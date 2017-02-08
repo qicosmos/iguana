@@ -154,6 +154,7 @@
     <ClInclude Include="json.hpp" />
     <ClInclude Include="reflection.hpp" />
     <ClInclude Include="traits.hpp" />
+    <ClInclude Include="xml.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="example.cpp" />

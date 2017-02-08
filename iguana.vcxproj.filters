@@ -27,6 +27,9 @@
     <ClInclude Include="traits.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="xml.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="example.cpp">

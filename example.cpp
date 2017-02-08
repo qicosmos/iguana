@@ -1,5 +1,6 @@
 #include <iostream>
 #include "json.hpp"
+#include "xml.hpp"
 
 struct person
 {
@@ -14,6 +15,14 @@ struct one_t
 };
 REFLECTION(one_t, id);
 
+struct two
+{
+	std::string name;
+	one_t one;
+	int age;
+};
+REFLECTION(two, name, one, age);
+
 struct composit_t
 {
 	int a;
@@ -25,6 +34,27 @@ struct composit_t
 	std::list<one_t> g;
 };
 REFLECTION(composit_t, a, b, c, d, e, f, g);
+
+void test_json()
+{
+	person p;
+	const char * json = "{ \"name\" : \"tom\", \"age\" : 28}";
+	iguana::json::from_json(p, json);
+
+	iguana::json::string_stream ss;
+	iguana::json::to_json(ss, p);
+	std::cout << ss.str() << std::endl;
+
+	one_t one = { 2 };
+	composit_t composit = { 1,{ "tom", "jack" }, 3,{ { 2,3 } },{ { 5,6 } }, 5.3,{ one } };
+	iguana::json::string_stream sst;
+	iguana::json::to_json(sst, composit);
+	std::cout << sst.str() << std::endl;
+
+	const char* str_comp = R"({"a":1, "b":["tom", "jack"], "c":3, "d":{"2":3,"5":6},"e":{"3":4},"f":5.3,"g":[{"id":1},{"id":2}])";
+	composit_t comp;
+	iguana::json::from_json(comp, str_comp);
+}
 
 //void performance()
 //{
@@ -75,23 +105,22 @@ REFLECTION(composit_t, a, b, c, d, e, f, g);
 //	std::cout << t.elapsed() << std::endl;
 //}
 
-int main()
+void test_xml()
 {
-	person p;
-	const char * json = "{ \"name\" : \"tom\", \"age\" : 28}";
-	iguana::json::from_json(p, json);
+	person p = {"admin", 20};
 
 	iguana::json::string_stream ss;
-	iguana::json::to_json(ss, p);
+	iguana::xml::to_xml(ss, p);
 	std::cout << ss.str() << std::endl;
 
-	one_t one = { 2 };
-	composit_t composit = { 1,{ "tom", "jack" }, 3,{ { 2,3 } },{ { 5,6 } }, 5.3,{ one } };
-	iguana::json::string_stream sst;
-	iguana::json::to_json(sst, composit);
-	std::cout << sst.str() << std::endl;
+	ss.clear();
+	two t = { "test", {2}, 4 };
+	iguana::xml::to_xml(ss, t);
+	std::cout << ss.str() << std::endl;
+}
 
-	const char* str_comp = R"({"a":1, "b":["tom", "jack"], "c":3, "d":{"2":3,"5":6},"e":{"3":4},"f":5.3,"g":[{"id":1},{"id":2}])";
-	composit_t comp;
-	iguana::json::from_json(comp, str_comp);
+int main()
+{
+//	test_json();
+	test_xml();
 }

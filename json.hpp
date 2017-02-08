@@ -189,12 +189,11 @@ namespace iguana {
 		template<typename Stream, typename T>
 		std::enable_if_t<std::is_arithmetic<T>::value> render_key(Stream& ss, T t) {
 			ss.put('"');
-			auto v = std::is_integral<T>::value;
 			render_json_value(ss, t);
 			ss.put('"');
 		}
 
-		template<typename Stream, typename T>
+		template<typename Stream>
 		void render_key(Stream& ss, const std::string &s) {
 			render_json_value(ss, s);
 		}
