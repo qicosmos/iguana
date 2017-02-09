@@ -246,7 +246,7 @@ namespace iguana {
 			ss.put(']');
 		}
 
-		template<typename Stream, typename T, typename = std::enable_if_t<is_reflection<T>::value>>
+		template<typename Stream, typename T, typename>
 		void to_json(Stream& s, T &&t) {
 			s.put('{');
 			for_each(std::forward<T>(t),
