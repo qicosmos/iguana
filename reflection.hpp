@@ -449,19 +449,19 @@ template<typename T, typename F>
 constexpr std::enable_if_t<is_reflection<T>::value> for_each(T&& t, F&& f)
 {
     for_each_impl<0>(std::forward<F>(f), std::forward<T>(t), false, (void *)nullptr);
-};
+}
 
 template<typename T, typename F, typename F1>
 constexpr std::enable_if_t<is_reflection<T>::value> for_each(T&& t, F&& f, F1&& f1)
 {
     for_each_impl<0>(std::forward<F>(f), std::forward<F1>(f1), std::forward<T>(t), false, (void *)nullptr);
-};
+}
 
 template<typename T, typename F>
-constexpr std::enable_if_t<!is_reflection<T>::value> for_each(const T& tp, F&& f)
+constexpr std::enable_if_t<!is_reflection<T>::value> for_each(T&& tp, F&& f)
 {
-    apply_tuple(std::forward<F>(f), tp, std::make_index_sequence<std::tuple_size<std::remove_reference_t <T>>::value>{});
-};
+    apply_tuple(std::forward<F>(f), std::forward<T>(tp), std::make_index_sequence<std::tuple_size<std::remove_reference_t <T>>::value>{});
+}
 
 template<typename T, size_t  I>
 constexpr const char* get_name()
@@ -489,9 +489,15 @@ const char* get_name(size_t i)
 }
 
 template<typename T>
-size_t get_value()
+std::enable_if_t<is_reflection<T>::value, size_t> get_value()
 {
     using M = Members<std::remove_const_t <std::remove_reference_t<T>>>;
     return M::value;
+}
+
+template<typename T>
+std::enable_if_t<!is_reflection<T>::value, size_t> get_value()
+{
+	return 1;
 }
 #endif //UNTITLED3_REFLECTION_HPP
