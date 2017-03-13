@@ -60,7 +60,7 @@ Serialization of xml is similar with json. The first step is also defining meta 
 	std::string xml = "<?xml version=\"1.0\" encoding=\"UTF-8\">  <name>buke</name> <id>1</id>";
 	iguana::xml::from_xml(p, xml.data(), xml.length());
 
-### a complecated example
+### a complicated example
 iguana can deal with objects which contain another objects and containers. Here is the example:
 
 At first define meta data:
