@@ -245,7 +245,6 @@ namespace iguana {
 			});
 			ss.put(']');
 		}
-
 		//template<typename Stream, typename T, typename = std::enable_if_t<is_reflection<T>::value>>
 		//void write_json_key(Stream& s, size_t I)
 		//{

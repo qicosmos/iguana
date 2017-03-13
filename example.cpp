@@ -108,7 +108,6 @@ void test_json()
 void test_xml()
 {
 	person p = {"admin", 20};
-
 	iguana::string_stream ss;
 	iguana::xml::to_xml(ss, p);
 	std::cout << ss.str() << std::endl;
@@ -116,7 +115,12 @@ void test_xml()
 	ss.clear();
 	two t = { "test", {2}, 4 };
 	iguana::xml::to_xml(ss, t);
-	std::cout << ss.str() << std::endl;
+	auto result = ss.str();
+	std::cout << result << std::endl;
+
+	std::string xml = "			<?xml version=\"1.0\" encoding=\"UTF-8\">  <name>buke</name> <one><id>1</id></one>  <age>2</age>";
+	two t1;
+	iguana::xml::from_xml(t1, xml.data(), xml.length());
 }
 
 void test_reflection()
