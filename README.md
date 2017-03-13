@@ -13,7 +13,7 @@ Library provides a portable across platforms way to:
 ### Tutorial ###
 This Tutorial is provided to give you an idea of how to iguana for serialization. 
 
-#### serialization of json
+### serialization of json
 
 The first thing to do when you serialize an object is define meta data.  There is an example of defining meta data.
 
@@ -47,7 +47,7 @@ How about deserialization of json? Look at the follow example.
 	iguana::json::from_json(p, json);
 It's as simple as serialization, just need to call from_json method.
 
-#### serialization of xml
+### serialization of xml
 Serialization of xml is similar with json. The first step is also defining meta data as above. This is a complete example.
 
 	person p = {"admin", 20};
@@ -60,7 +60,7 @@ Serialization of xml is similar with json. The first step is also defining meta 
 	std::string xml = "<?xml version=\"1.0\" encoding=\"UTF-8\">  <name>buke</name> <id>1</id>";
 	iguana::xml::from_xml(p, xml.data(), xml.length());
 
-#### a complecated example
+### a complecated example
 iguana can deal with objects which contain another objects and containers. Here is the example:
 
 At first define meta data:
@@ -103,7 +103,7 @@ Then call the simple interface:
 	composit_t comp;
 	iguana::json::from_json(comp, str_comp);
 	
-#### Full sources:
+### Full sources:
 
 
 - https://github.com/qicosmos/iguana/blob/master/example.cpp
