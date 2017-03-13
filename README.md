@@ -112,7 +112,7 @@ Then call the simple interface:
 
 - **Question**: Why is the library called *iguana*?
 
-	- **Answer**: I think serialization is like a iguana, because the only difference is the displaying format, however the meta data is never changed. With changeless meta data and reflection, you can serialize an object to any format, which is like how a iguana does.
+	- **Answer**: I think serialization is like an iguana, because the only difference is the displaying format, however the meta data is never changed. With changeless meta data and reflection, you can serialize an object to any format, which is like how an iguana does.
 	
 - **Question**: Does *iguana* support raw pointer?
 
