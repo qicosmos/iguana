@@ -41,13 +41,13 @@ void test_json()
 	const char * json = "{ \"name\" : \"tom\", \"age\" : 28}";
 	iguana::json::from_json(p, json);
 
-	iguana::json::string_stream ss;
+	iguana::string_stream ss;
 	iguana::json::to_json(ss, p);
 	std::cout << ss.str() << std::endl;
 
 	one_t one = { 2 };
 	composit_t composit = { 1,{ "tom", "jack" }, 3,{ { 2,3 } },{ { 5,6 } }, 5.3,{ one } };
-	iguana::json::string_stream sst;
+	iguana::string_stream sst;
 	iguana::json::to_json(sst, composit);
 	std::cout << sst.str() << std::endl;
 
@@ -108,16 +108,14 @@ void test_json()
 void test_xml()
 {
 	person p = {"admin", 20};
-
-	iguana::json::string_stream ss;
-	std::string result;
+	iguana::string_stream ss;
 	iguana::xml::to_xml(ss, p);
 	std::cout << ss.str() << std::endl;
 
 	ss.clear();
 	two t = { "test", {2}, 4 };
 	iguana::xml::to_xml(ss, t);
-	result = ss.str();
+	auto result = ss.str();
 	std::cout << result << std::endl;
 
 	std::string xml = "			<?xml version=\"1.0\" encoding=\"UTF-8\">  <name>buke</name> <one><id>1</id></one>  <age>2</age>";
@@ -125,8 +123,24 @@ void test_xml()
 	iguana::xml::from_xml(t1, xml.data(), xml.length());
 }
 
+void test_reflection()
+{
+	person p = { "admin", 20 };
+	for_each(p, [](const auto& item, size_t index, bool is_last) {
+		std::cout << index <<" "<< item << std::endl;
+	});
+
+	two t = { "test",{ 2 }, 4 };
+	for_each(t, [](const auto& item, size_t index, bool is_last) {
+		std::cout << index << " " << item << std::endl;
+	}, [](const auto& o, size_t index, bool is_last) {
+		std::cout << index << " "<<typeid(o).name()<< std::endl;
+	});
+}
+
 int main()
 {
-	test_json();
+	test_reflection();
+//	test_json();
 	test_xml();
 }
