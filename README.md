@@ -116,7 +116,7 @@ Then call the simple interface:
 	
 - **Question**: Is iguana surpport raw pointer?
 
-	- **Answer**: No. iguana doesn't surpport raw pointer, but will surpport smart pointer in the future.
+	- **Answer**: No. iguana doesn't support raw pointer, but will support smart pointer in the future.
 	
 
 - **Question**: Is iguana thread safe?
