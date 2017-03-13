@@ -1,21 +1,21 @@
-# An universal serialization engine based on reflection #
+# A Universal Serialization Engine based on Reflection #
 
-iguana is a modern, universal and easy to use serialization engine developed with c++14.
+*iguana* is a modern, universal and easy-to-use serialization engine developed in c++14.
 ### Motivation ###
-Serialize an object to any other format data with compile time reflection, such as json, xml, binary,table and so on.
-This library was degined to unified and simplify serialization in a portable cross-plateform manner. This library is also easily to extend, you can serialize any format data with the library.
-Library provides a portable across platforms way to: 
+Serialize an object to any other format data with compile-time reflection, such as json, xml, binary, table and so on.
+This library is designed to unify and simplify serialization in a portable cross-platform manner. This library is also easy to extend, and you can serialize any format of data with the library.
+This library provides a portable cross-platform way of: 
 
 - serialization of json
 - serialization of xml
-- serialization of any custom format
+- serialization of any customized format
 
 ### Tutorial ###
-This Tutorial is provided to give you an idea of how to iguana for serialization. 
+This Tutorial is provided to give you a view of how *iguana* works for serialization. 
 
-### serialization of json
+### Serialization of json
 
-The first thing to do when you serialize an object is define meta data.  There is an example of defining meta data.
+The first thing to do when you serialize an object is to define meta data.  There is an example of defining meta data.
 
 	struct person
 	{
@@ -24,9 +24,9 @@ The first thing to do when you serialize an object is define meta data.  There i
 	};
 
 	REFLECTION(person, name, age) //define meta data
-Defining meta data is very simple, just need difine a 'REFLECTION' micro.
+Defining meta data is very simple, and just needs to define in a `REFLECTION` macro.
 
-Now let's serialize person to json string.
+Now let's serialize `person` to `json` string.
 
 	person p = { "tom", 28 };
 
@@ -34,21 +34,21 @@ Now let's serialize person to json string.
 	iguana::json::to_json(ss, p);
 
 	std::cout << ss.str() << std::endl; 
-This example will out put:
+This example will output:
 
 	{"name":"tom","age":28}
-serialize person to json string is also very simple, just need to call to_json method, there is nothing more.
+Serializing person to `json` string is also very simple, just need to call `to_json` method, there is nothing more.
 
-How about deserialization of json? Look at the follow example.
+How about deserialization of `json`? Look at the follow example.
 
 	const char * json = "{ \"name\" : \"tom\", \"age\" : 28}";
 
 	person p;
 	iguana::json::from_json(p, json);
-It's as simple as serialization, just need to call from_json method.
+It's as simple as serialization, just need to call `from_json` method.
 
-### serialization of xml
-Serialization of xml is similar with json. The first step is also defining meta data as above. This is a complete example.
+### Serialization of xml
+Serialization of `xml` is similar to `json`. The first step is also defining meta data as above. This is a complete example.
 
 	person p = {"admin", 20};
 
@@ -60,10 +60,10 @@ Serialization of xml is similar with json. The first step is also defining meta 
 	std::string xml = "<?xml version=\"1.0\" encoding=\"UTF-8\">  <name>buke</name> <id>1</id>";
 	iguana::xml::from_xml(p, xml.data(), xml.length());
 
-### a complicated example
-iguana can deal with objects which contain another objects and containers. Here is the example:
+### A complicated example
+*iguana* can deal with objects which contain another objects and containers. Here is the example:
 
-At first define meta data:
+At first, we define the meta data:
 
 	struct one_t
 	{
@@ -110,24 +110,24 @@ Then call the simple interface:
 
 ### F.A.Q
 
-- **Question**: Why is the name called iguana?
+- **Question**: Why is the library called *iguana*?
 
-	- **Answer**: I think serialization is like a iguana, because the change is only the display format, however the meta data is never changed. With changeless meta data and reflection you can serializa an object to any format which is like a iugana does.
+	- **Answer**: I think serialization is like a iguana, because the only difference is the displaying format, however the meta data is never changed. With changeless meta data and reflection, you can serialize an object to any format, which is like how a iguana does.
 	
-- **Question**: Is iguana surpport raw pointer?
+- **Question**: Does *iguana* support raw pointer?
 
-	- **Answer**: No. iguana doesn't support raw pointer, but will support smart pointer in the future.
+	- **Answer**: No. *iguana* doesn't support raw pointer, but it will support smart pointer in the future.
 	
 
-- **Question**: Is iguana thread safe?
+- **Question**: Is iguana thread-safe?
 
-	- **Answer**: Not yet, but it's not a problem, you can use lock before call from_json or to_json.
+	- **Answer**: Not yet, but it's not a problem, you can use `lock` before calling `from_json` or `to_json`.
 
 
-- **Question**: Is iguana high performance?
+- **Question**: Is *iguana* high performance?
 
-	- **Answer**: Yes it is, because iguana is based on compile time reflection.
+	- **Answer**: Yes, it is, because *iguana* is based on compile-time reflection.
 
-- **Question**: I have found a bug, how do I notify?
-    - **Answer**: Create an issue at [GitHub](https://github.com/qicosmos/iguana) with a detailed description. 
+- **Question**: I found a bug, how could I report?
+    - **Answer**: Create an issue on [GitHub](https://github.com/qicosmos/iguana) with a detailed description. 
 
