@@ -10,6 +10,7 @@
 
 #define IGUANA_XML_READER_CHECK_FORWARD if (l > length) return 0; work_ptr += l; length -= l
 #define IGUANA_XML_READER_CHECK_FORWARD_CHAR if(length < 1) return 0; work_ptr += 1; length -= 1
+#define IGUANA_XML_HEADER "<?xml version = \"1.0\" encoding=\"UTF-8\">"
 
 namespace iguana { namespace xml 
 {
@@ -103,6 +104,18 @@ namespace iguana { namespace xml
 		{
 			value.assign(str, length);
 		}
+
+		template <typename T>
+		struct array_size
+		{
+			static constexpr size_t value = 0;
+		};
+
+		template <typename T, size_t Size>
+		struct array_size<T const(&)[Size]>
+		{
+			static constexpr size_t value = Size;
+		};
 	}
 
 	class xml_reader_t
@@ -235,6 +248,8 @@ namespace iguana { namespace xml
 			return true;
 		}
 
+		static const size_t xml_header_length = detail::array_size<decltype(IGUANA_XML_HEADER)>::value;
+
 	private:
 		char const*	buffer_;
 		size_t		length_;
@@ -320,11 +335,9 @@ namespace iguana { namespace xml
 
 	template<typename Stream, typename T, typename = std::enable_if_t<is_reflection<T>::value>>
 	void to_xml(Stream& s, T &&t) {
-		render_head(s, "xml");
-
+		//render_head(s, "xml");
+		s.write(IGUANA_XML_HEADER, xml_reader_t::xml_header_length);
 		to_xml_impl(s, std::forward<T>(t));
-
-		render_tail(s, "xml"/*get_name<T>()*/);
 	}
 
 	template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>

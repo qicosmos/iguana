@@ -127,6 +127,6 @@ void test_xml()
 
 int main()
 {
-//	test_json();
+	test_json();
 	test_xml();
 }
