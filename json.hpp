@@ -179,10 +179,10 @@ namespace iguana {
 		}
 
 		template<typename Stream>
-		void render_json_value(Stream& ss, const char* s)
+		void render_json_value(Stream& ss, const char* s, size_t size)
 		{
 			ss.put('"');
-			ss.write(s);
+			ss.write(s, size);
 			ss.put('"');
 		}
 
