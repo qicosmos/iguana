@@ -11,6 +11,9 @@ namespace iguana { namespace json
 {
 	template<typename InputIt, typename T, typename F>
 	T join(InputIt first, InputIt last, const T &delim, const F &f) {
+		if (first == last) 
+			return T();
+		
 		T t = f(*first++);
 		while (first != last) {
 			t += delim;
