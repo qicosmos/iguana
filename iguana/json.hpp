@@ -21,6 +21,9 @@ namespace iguana { namespace json
 
 	template<typename Stream, typename InputIt, typename T, typename F>
 	void join(Stream& ss, InputIt first, InputIt last, const T &delim, const F &f) {
+		if (first == last) 
+			return;
+		
 		f(*first++);
 		while (first != last) {
 			ss.put(delim);
