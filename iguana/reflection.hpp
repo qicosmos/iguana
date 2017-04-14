@@ -371,80 +371,6 @@ namespace iguana
 		constexpr static bool value = !std::is_same<decltype(iguana_reflect_members(std::declval<T>())), void>::value;
 	};
 
-	template<size_t I, typename F, typename T>
-	void apply_value(F&& f, T&& t, bool is_last)
-	{
-		std::forward<F>(f)(std::forward<T>(t), I, is_last);
-	};
-
-	template<size_t I, typename F, typename T>
-	constexpr void for_each_impl(F&& f, T&&t, bool is_last)
-	{
-		//using M = iguana_reflect_members<std::remove_const_t <std::remove_reference_t<T>>>;
-		using M = decltype(iguana_reflect_members(std::forward<T>(t)));
-		apply(std::forward<F>(f), std::forward<T>(t), M::apply_impl(), std::make_index_sequence<M::value()>{});
-	}
-
-	//-------------------------------------------------------------------------------------------------------------//
-	//-------------------------------------------------------------------------------------------------------------//
-	template<size_t I, typename F, typename F1, typename T>
-	std::enable_if_t<is_reflection<T>::value> apply_value(F&& f, F1&& f1, T&& t, bool is_last)
-	{
-		std::forward<F1>(f1)(std::forward<T>(t), I, is_last);
-	}
-
-	template<size_t I, typename F, typename F1, typename T>
-	std::enable_if_t<!is_reflection<T>::value> apply_value(F&& f, F1&& f1, T&& t, bool is_last)
-	{
-		std::forward<F>(f)(std::forward<T>(t), I, is_last);
-	}
-
-	template<size_t I, typename F, typename F1, typename T>
-	constexpr void for_each_impl(F&& f, F1&& f1, T&&t, bool is_last)
-	{
-		using M = decltype(iguana_reflect_members(std::forward<T>(t)));
-		apply(std::forward<F>(f), std::forward<F1>(f1), std::forward<T>(t), M::apply_impl(), std::make_index_sequence<M::value()>{});
-	}
-
-	template<typename F, typename F1, typename T, typename... Rest, std::size_t I0, std::size_t... I>
-	constexpr void apply(F&& f, F1&& f1, T&&t, std::tuple<Rest...>&& tp, std::index_sequence<I0, I...>)
-	{
-		apply_value<I0>(std::forward<F>(f), std::forward<F1>(f1), std::forward<T>(t).*(std::get<I0>(tp)), sizeof...(I) == 0);
-		apply(std::forward<F>(f), std::forward<F1>(f1), std::forward<T>(t), (std::tuple<Rest...>&&)tp, std::index_sequence<I...>{});
-	}
-
-	template<typename F, typename F1, typename T, typename... Rest>
-	constexpr void apply(F&& f, F1&&, T&& t, std::tuple<Rest...>&&, std::index_sequence<>)
-	{
-	}
-	//-------------------------------------------------------------------------------------------------------------//
-	//-------------------------------------------------------------------------------------------------------------//
-
-	template<typename F, typename T, typename... Rest, std::size_t I0, std::size_t... I>
-	constexpr void apply(F&& f, T&&t, std::tuple<Rest...>&& tp, std::index_sequence<I0, I...>)
-	{
-		apply_value<I0>(std::forward<F>(f), std::forward<T>(t).*(std::get<I0>(tp)), sizeof...(I) == 0);
-		//for_each_impl<I0>(std::forward<F>(f), std::forward<T>(t).*(std::get<I0>(tp)), sizeof...(I)==0, (void *)nullptr);
-		apply(std::forward<F>(f), std::forward<T>(t), (std::tuple<Rest...>&&)tp, std::index_sequence<I...>{});
-	}
-
-	template<typename F, typename T, typename... Rest>
-	constexpr void apply(F&& f, T&& t, std::tuple<Rest...>&&, std::index_sequence<>)
-	{
-	}
-
-	template<typename F, typename... Rest, std::size_t I0, std::size_t... I>
-	constexpr void apply_tuple(F&& f, std::tuple<Rest...>& tp, std::index_sequence<I0, I...>)
-	{
-		apply_value<I0>(std::forward<F>(f), std::get<I0>(tp), sizeof...(I) == 0);
-		apply_tuple(std::forward<F>(f), tp, std::index_sequence<I...>{});
-	}
-
-	template<typename F, typename... Rest>
-	constexpr void apply_tuple(F&& f, std::tuple<Rest...>&, std::index_sequence<>)
-	{
-	}
-
 	template<size_t I, typename T>
 	constexpr decltype(auto) get(T&& t)
 	{
@@ -461,7 +387,7 @@ namespace iguana
 	template <typename T, size_t ... Is>
 	constexpr auto get_impl(T& t, std::index_sequence<Is...>)
 	{
-		return std::make_tuple(std::ref(get<Is>(t))...);
+		return std::make_tuple(get<Is>(t)...);
 	}
 
 	template <typename T>
@@ -476,24 +402,6 @@ namespace iguana
 	{
 		using M = decltype(iguana_reflect_members(t));
 		return get_impl(t, std::make_index_sequence<M::value()>{});
-	}
-
-	template<typename T, typename F>
-	constexpr std::enable_if_t<is_reflection<T>::value> for_each(T&& t, F&& f)
-	{
-		for_each_impl<0>(std::forward<F>(f), std::forward<T>(t), false);
-	}
-
-	template<typename T, typename F, typename F1>
-	constexpr std::enable_if_t<is_reflection<T>::value> for_each(T&& t, F&& f, F1&& f1)
-	{
-		for_each_impl<0>(std::forward<F>(f), std::forward<F1>(f1), std::forward<T>(t), false);
-	}
-
-	template<typename T, typename F>
-	constexpr std::enable_if_t<!is_reflection<T>::value> for_each(T&& tp, F&& f)
-	{
-		apply_tuple(std::forward<F>(f), std::forward<T>(tp), std::make_index_sequence<std::tuple_size<std::remove_reference_t <T>>::value>{});
 	}
 
 	template<typename T, size_t  I>
@@ -533,4 +441,101 @@ namespace iguana
 	{
 		return 1;
 	}
+
+	template<size_t I, typename F, typename T>
+	void apply_value(F&& f, T&& t, bool is_last)
+	{
+		std::forward<F>(f)(std::forward<T>(t), I, is_last);
+	};
+
+	template<size_t I, typename F, typename T>
+	constexpr void for_each_impl(F&& f, T&&t, bool is_last)
+	{
+		//using M = iguana_reflect_members<std::remove_const_t <std::remove_reference_t<T>>>;
+		using M = decltype(iguana_reflect_members(std::forward<T>(t)));
+		apply(std::forward<F>(f), std::forward<T>(t), M::apply_impl(), std::make_index_sequence<M::value()>{});
+	}
+
+	//-------------------------------------------------------------------------------------------------------------//
+	//-------------------------------------------------------------------------------------------------------------//
+	template<size_t I, typename F, typename F1, typename T>
+	std::enable_if_t<is_reflection<T>::value> apply_value(F&& f, F1&& f1, T&& t, bool is_last)
+	{
+		std::forward<F1>(f1)(std::forward<T>(t), I, is_last);
+	}
+
+	template<size_t I, typename F, typename F1, typename T>
+	std::enable_if_t<!is_reflection<T>::value> apply_value(F&& f, F1&& f1, T&& t, bool is_last)
+	{
+		std::forward<F>(f)(std::forward<T>(t), I, is_last);
+	}
+
+	template<typename F, typename... Rest, std::size_t I0, std::size_t... I>
+	constexpr void apply_tuple(F&& f, std::tuple<Rest...>& tp, std::index_sequence<I0, I...>)
+	{
+		apply_value<I0>(std::forward<F>(f), std::get<I0>(tp), sizeof...(I) == 0);
+		apply_tuple(std::forward<F>(f), tp, std::index_sequence<I...>{});
+	}
+
+	template<typename F, typename... Rest>
+	constexpr void apply_tuple(F&& f, std::tuple<Rest...>&, std::index_sequence<>)
+	{
+	}
+
+	
+
+	template<typename F, typename T, typename... Rest>
+	constexpr void apply(F&& f, T&& t, std::tuple<Rest...>&&, std::index_sequence<>)
+	{
+	}
+
+	template<typename F, typename F1, typename T, typename... Rest>
+	constexpr void apply(F&& f, F1&&, T&& t, std::tuple<Rest...>&&, std::index_sequence<>)
+	{
+	}
+
+	template<typename F, typename F1, typename T, typename... Rest, std::size_t I0, std::size_t... I>
+	constexpr void apply(F&& f, F1&& f1, T&&t, std::tuple<Rest...>&& tp, std::index_sequence<I0, I...>)
+	{
+		apply_value<I0>(std::forward<F>(f), std::forward<F1>(f1), std::forward<T>(t).*(std::get<I0>(tp)), sizeof...(I) == 0);
+		apply(std::forward<F>(f), std::forward<F1>(f1), std::forward<T>(t), (std::tuple<Rest...>&&)tp, std::index_sequence<I...>{});
+	}
+
+	template<typename F, typename T, typename... Rest, std::size_t I0, std::size_t... I>
+	constexpr void apply(F&& f, T&&t, std::tuple<Rest...>&& tp, std::index_sequence<I0, I...>)
+	{
+		apply_value<I0>(std::forward<F>(f), std::forward<T>(t).*(std::get<I0>(tp)), sizeof...(I) == 0);
+		//for_each_impl<I0>(std::forward<F>(f), std::forward<T>(t).*(std::get<I0>(tp)), sizeof...(I)==0, (void *)nullptr);
+		apply(std::forward<F>(f), std::forward<T>(t), (std::tuple<Rest...>&&)tp, std::index_sequence<I...>{});
+	}
+
+	template<size_t I, typename F, typename F1, typename T>
+	constexpr void for_each_impl(F&& f, F1&& f1, T&&t, bool is_last)
+	{
+		using M = decltype(iguana_reflect_members(std::forward<T>(t)));
+		apply(std::forward<F>(f), std::forward<F1>(f1), std::forward<T>(t), M::apply_impl(), std::make_index_sequence<M::value()>{});
+	}
+
+	//-------------------------------------------------------------------------------------------------------------//
+	//-------------------------------------------------------------------------------------------------------------//
+
+	template<typename T, typename F>
+	constexpr std::enable_if_t<is_reflection<T>::value> for_each(T&& t, F&& f)
+	{
+		for_each_impl<0>(std::forward<F>(f), std::forward<T>(t), false);
+	}
+
+	template<typename T, typename F, typename F1>
+	constexpr std::enable_if_t<is_reflection<T>::value> for_each(T&& t, F&& f, F1&& f1)
+	{
+		for_each_impl<0>(std::forward<F>(f), std::forward<F1>(f1), std::forward<T>(t), false);
+	}
+
+	template<typename T, typename F>
+	constexpr std::enable_if_t<!is_reflection<T>::value> for_each(T&& tp, F&& f)
+	{
+		apply_tuple(std::forward<F>(f), std::forward<T>(tp), std::make_index_sequence<std::tuple_size<std::remove_reference_t <T>>::value>{});
+	}
+
+	
 }
