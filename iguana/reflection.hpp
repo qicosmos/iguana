@@ -317,20 +317,42 @@ namespace iguana
 {
 	template<typename...> using void_t = void;
 	//template <typename> struct members {};
+
+	template <typename> struct reflect_members {};
 }
 
-template<typename> struct iguana_reflect_members {};
+void iguana_reflect_members(...) {}
 
-#define MAKE_META_DATA_IMPL(STRUCT_NAME, ...)\
-template<>struct ::iguana_reflect_members<STRUCT_NAME>{\
-    constexpr decltype(auto) static apply(){\
-        return std::make_tuple(__VA_ARGS__);\
-    }\
-    using type = void;\
-    constexpr static const char *name = #STRUCT_NAME;\
-    constexpr static const size_t value = GET_ARG_COUNT(__VA_ARGS__);\
-    constexpr static const std::array<const char*, value>& arr = arr_##STRUCT_NAME;\
-};
+//#define MAKE_META_DATA_IMPL(STRUCT_NAME, ...)\
+//struct iguana_reflect_members<STRUCT_NAME>::type {\
+//    constexpr decltype(auto) static apply(){\
+//        return std::make_tuple(__VA_ARGS__);\
+//    }\
+//    using type = void;\
+//    constexpr static const char *name = #STRUCT_NAME;\
+//    constexpr static const size_t value = GET_ARG_COUNT(__VA_ARGS__);\
+//    constexpr static const std::array<const char*, value>& arr = arr_##STRUCT_NAME;\
+//};
+
+/*constexpr static const char *name = #STRUCT_NAME; \
+constexpr static const size_t value = GET_ARG_COUNT(__VA_ARGS__); \ */
+
+#define MAKE_META_DATA_IMPL(STRUCT_NAME, ...) \
+auto iguana_reflect_members(STRUCT_NAME const&) \
+{ \
+	struct reflect_members \
+	{ \
+		constexpr decltype(auto) static apply(){\
+			return std::make_tuple(__VA_ARGS__);\
+		}\
+		using type = void;\
+		using size_type = std::integral_constant<size_t, GET_ARG_COUNT(__VA_ARGS__)>; \
+		constexpr static char const *name() { return #STRUCT_NAME; }\
+		constexpr static size_t value() { return size_type::value; }\
+		constexpr static std::array<const char*, size_type::value> arr() { return arr_##STRUCT_NAME; }\
+	}; \
+	return reflect_members{}; \
+}
 
 #define MAKE_META_DATA(STRUCT_NAME, N, ...) \
     constexpr std::array<const char*, N> arr_##STRUCT_NAME = { MARCO_EXPAND(MACRO_CONCAT(CON_STR, N)(__VA_ARGS__)) };\
@@ -343,17 +365,10 @@ MAKE_META_DATA(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)
 
 namespace iguana
 {
-	template <typename T, typename = void>
-	struct is_reflection : std::false_type
-	{
-	};
-
-	// this way of using SFINEA is type reference and cv qualifiers immuned
 	template <typename T>
-	struct is_reflection<T, void_t<
-		typename iguana_reflect_members<std::remove_const_t <std::remove_reference_t<T>>>::type
-		>> : std::true_type
+	struct is_reflection
 	{
+		constexpr static bool value = !std::is_same<decltype(iguana_reflect_members(std::declval<T>())), void>::value;
 	};
 
 	template<size_t I, typename F, typename T>
@@ -365,8 +380,9 @@ namespace iguana
 	template<size_t I, typename F, typename T>
 	constexpr void for_each_impl(F&& f, T&&t, bool is_last)
 	{
-		using M = iguana_reflect_members<std::remove_const_t <std::remove_reference_t<T>>>;
-		apply(std::forward<F>(f), std::forward<T>(t), M::apply(), std::make_index_sequence<M::value>{});
+		//using M = iguana_reflect_members<std::remove_const_t <std::remove_reference_t<T>>>;
+		using M = decltype(iguana_reflect_members(std::forward<T>(t)));
+		apply(std::forward<F>(f), std::forward<T>(t), M::apply(), std::make_index_sequence<M::value()>{});
 	}
 
 	//-------------------------------------------------------------------------------------------------------------//
@@ -386,8 +402,8 @@ namespace iguana
 	template<size_t I, typename F, typename F1, typename T>
 	constexpr void for_each_impl(F&& f, F1&& f1, T&&t, bool is_last)
 	{
-		using M = iguana_reflect_members<std::remove_const_t <std::remove_reference_t<T>>>;
-		apply(std::forward<F>(f), std::forward<F1>(f1), std::forward<T>(t), M::apply(), std::make_index_sequence<M::value>{});
+		using M = decltype(iguana_reflect_members(std::forward<T>(t)));
+		apply(std::forward<F>(f), std::forward<F1>(f1), std::forward<T>(t), M::apply(), std::make_index_sequence<M::value()>{});
 	}
 
 	template<typename F, typename F1, typename T, typename... Rest, std::size_t I0, std::size_t... I>
@@ -432,7 +448,7 @@ namespace iguana
 	template<size_t I, typename T>
 	constexpr decltype(auto) get(T&& t)
 	{
-		using M = iguana_reflect_members<std::remove_const_t<std::remove_reference_t<T>>>;
+		using M = decltype(iguana_reflect_members(std::forward<T>(t)));
 		return std::forward<T>(t).*(std::get<I>(M::apply()));
 	}
 
@@ -451,13 +467,15 @@ namespace iguana
 	template <typename T>
 	constexpr auto get(T const& t)
 	{
-		return get_impl(t, std::make_index_sequence<iguana_reflect_members<T>::value>{});
+		using M = decltype(iguana_reflect_members(t));
+		return get_impl(t, std::make_index_sequence<M::value()>{});
 	}
 
 	template <typename T>
 	constexpr auto get_ref(T& t)
 	{
-		return get_impl(t, std::make_index_sequence<iguana_reflect_members<T>::value>{});
+		using M = decltype(iguana_reflect_members(t));
+		return get_impl(t, std::make_index_sequence<M::value()>{});
 	}
 
 	template<typename T, typename F>
@@ -481,33 +499,33 @@ namespace iguana
 	template<typename T, size_t  I>
 	constexpr const char* get_name()
 	{
-		using M = iguana_reflect_members<std::remove_const_t <std::remove_reference_t<T>>>;
+		using M = decltype(iguana_reflect_members(std::declval<T>()));
 		static_assert(I<M::value, "out of range");
-		return M::arr[I];
+		return M::arr()[I];
 	}
 
 	template<typename T>
 	constexpr const char* get_name()
 	{
-		using M = iguana_reflect_members<std::remove_const_t <std::remove_reference_t<T>>>;
-		return M::name;
+		using M = decltype(iguana_reflect_members(std::declval<T>()));
+		return M::name();
 	}
 
 	template<typename T>
 	const char* get_name(size_t i)
 	{
-		using M = iguana_reflect_members<std::remove_const_t <std::remove_reference_t<T>>>;
+		using M = decltype(iguana_reflect_members(std::declval<T>()));
 		//if(i>=M::value)
 		//    return "";
 
-		return i >= M::value ? "" : M::arr[i];
+		return i >= M::value() ? "" : M::arr()[i];
 	}
 
 	template<typename T>
 	std::enable_if_t<is_reflection<T>::value, size_t> get_value()
 	{
-		using M = iguana_reflect_members<std::remove_const_t <std::remove_reference_t<T>>>;
-		return M::value;
+		using M = decltype(iguana_reflect_members(std::declval<T>()));
+		return M::value();
 	}
 
 	template<typename T>
