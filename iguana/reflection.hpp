@@ -342,7 +342,7 @@ auto iguana_reflect_members(STRUCT_NAME const&) \
 { \
 	struct reflect_members \
 	{ \
-		constexpr decltype(auto) static apply(){\
+		constexpr decltype(auto) static apply_impl(){\
 			return std::make_tuple(__VA_ARGS__);\
 		}\
 		using type = void;\
@@ -382,7 +382,7 @@ namespace iguana
 	{
 		//using M = iguana_reflect_members<std::remove_const_t <std::remove_reference_t<T>>>;
 		using M = decltype(iguana_reflect_members(std::forward<T>(t)));
-		apply(std::forward<F>(f), std::forward<T>(t), M::apply(), std::make_index_sequence<M::value()>{});
+		apply(std::forward<F>(f), std::forward<T>(t), M::apply_impl(), std::make_index_sequence<M::value()>{});
 	}
 
 	//-------------------------------------------------------------------------------------------------------------//
@@ -403,7 +403,7 @@ namespace iguana
 	constexpr void for_each_impl(F&& f, F1&& f1, T&&t, bool is_last)
 	{
 		using M = decltype(iguana_reflect_members(std::forward<T>(t)));
-		apply(std::forward<F>(f), std::forward<F1>(f1), std::forward<T>(t), M::apply(), std::make_index_sequence<M::value()>{});
+		apply(std::forward<F>(f), std::forward<F1>(f1), std::forward<T>(t), M::apply_impl(), std::make_index_sequence<M::value()>{});
 	}
 
 	template<typename F, typename F1, typename T, typename... Rest, std::size_t I0, std::size_t... I>
@@ -449,7 +449,7 @@ namespace iguana
 	constexpr decltype(auto) get(T&& t)
 	{
 		using M = decltype(iguana_reflect_members(std::forward<T>(t)));
-		return std::forward<T>(t).*(std::get<I>(M::apply()));
+		return std::forward<T>(t).*(std::get<I>(M::apply_impl()));
 	}
 
 	template <typename T, size_t ... Is>
