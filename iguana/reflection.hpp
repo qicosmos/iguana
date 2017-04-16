@@ -323,20 +323,6 @@ namespace iguana
 
 void iguana_reflect_members(...) {}
 
-//#define MAKE_META_DATA_IMPL(STRUCT_NAME, ...)\
-//struct iguana_reflect_members<STRUCT_NAME>::type {\
-//    constexpr decltype(auto) static apply(){\
-//        return std::make_tuple(__VA_ARGS__);\
-//    }\
-//    using type = void;\
-//    constexpr static const char *name = #STRUCT_NAME;\
-//    constexpr static const size_t value = GET_ARG_COUNT(__VA_ARGS__);\
-//    constexpr static const std::array<const char*, value>& arr = arr_##STRUCT_NAME;\
-//};
-
-/*constexpr static const char *name = #STRUCT_NAME; \
-constexpr static const size_t value = GET_ARG_COUNT(__VA_ARGS__); \ */
-
 #define MAKE_META_DATA_IMPL(STRUCT_NAME, ...) \
 auto iguana_reflect_members(STRUCT_NAME const&) \
 { \
