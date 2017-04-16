@@ -12,6 +12,7 @@
 #include <vector>
 #include <array>
 #include <type_traits>
+#include <functional>
 
 #include "detail/itoa.hpp"
 #include "detail/traits.hpp"
@@ -373,7 +374,7 @@ namespace iguana
 	template <typename T, size_t ... Is>
 	constexpr auto get_impl(T& t, std::index_sequence<Is...>)
 	{
-		return std::make_tuple(get<Is>(t)...);
+		return std::make_tuple(std::ref(get<Is>(t))...);
 	}
 
 	template <typename T>
