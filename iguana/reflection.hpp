@@ -322,10 +322,10 @@ namespace iguana
 	template <typename> struct reflect_members {};
 }
 
-void iguana_reflect_members(...) {}
+inline void iguana_reflect_members(...) {}
 
 #define MAKE_META_DATA_IMPL(STRUCT_NAME, ...) \
-auto iguana_reflect_members(STRUCT_NAME const&) \
+inline auto iguana_reflect_members(STRUCT_NAME const&) \
 { \
 	struct reflect_members \
 	{ \
