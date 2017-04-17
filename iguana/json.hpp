@@ -101,7 +101,13 @@ namespace iguana { namespace json
 	}
 
 	template <typename Stream, typename T, size_t N>
-	void render_json_value(Stream& ss, T(&v)[N])
+	void render_json_value(Stream& ss, const T(&v)[N])
+	{
+		render_array(ss, v);
+	}
+
+	template<typename Stream, typename T>
+	void render_array(Stream& ss, const T& v)
 	{
 		ss.put('[');
 		join(ss, std::begin(v), std::end(v), ',',
@@ -109,6 +115,12 @@ namespace iguana { namespace json
 			render_json_value(ss, jsv);
 		});
 		ss.put(']');
+	}
+
+	template <typename Stream, typename T, size_t N>
+	void render_json_value(Stream& ss, const std::array<T, N>& v)
+	{
+		render_array(ss, v);
 	}
 
 	template<typename Stream, typename T>
@@ -204,7 +216,7 @@ namespace iguana { namespace json
 						return true;
 				}
 
-				for (int i = 0; i < str_length; ++i) {
+				for (size_t i = 0; i < str_length; ++i) {
 					if (str[i] != data[i]) {
 						return true;
 					}
@@ -915,21 +927,40 @@ namespace iguana { namespace json
 	template <typename T, size_t N>
 	void read_json(reader_t &rd, T(&val)[N])
 	{
-		auto& tok = rd.peek();
-		if (tok.type == token::t_string)
-		{
-			size_t len = tok.str.len;
-			if (len > N)
-				len = N;
-			memcpy(val, tok.str.str, len);
-			if (len < N)
-				val[len] = 0;
-		}
-		else
-		{
-			rd.error("not a valid string.");
+		read_array(rd, val);
+	}
+
+	template<typename T>
+	void read_array(reader_t &rd, T& val)
+	{
+		if (rd.expect('[') == false) {
+			rd.error("array must start with [.");
 		}
 		rd.next();
+		auto tok = &rd.peek();
+		int index = 0;
+		while (tok->str.str[0] != ']') {
+			read_json(rd, val[index++]);
+			tok = &rd.peek();
+			if (tok->str.str[0] == ',') {
+				rd.next();
+				tok = &rd.peek();
+				continue;
+			}
+			else if (tok->str.str[0] == ']') {
+				break;
+			}
+			else {
+				rd.error("no valid array!");
+			}
+		}
+		rd.next();
+	}
+
+	template <typename T, size_t N>
+	void read_json(reader_t &rd, std::array<T, N>& val)
+	{
+		read_array(rd, val);
 	}
 
 	template<typename T>
