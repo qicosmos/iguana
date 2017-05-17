@@ -1,4 +1,4 @@
-# A Universal Serialization Engine based on compile-time Reflection #
+# A Universal Serialization Engine Based on compile-time Reflection #
 
 *iguana* is a modern, universal and easy-to-use serialization engine developed in c++14.
 ### Motivation ###
