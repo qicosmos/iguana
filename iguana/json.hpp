@@ -46,6 +46,22 @@ namespace iguana { namespace json
 	{
 		char temp[20];
 		auto p = itoa_fwd(value, temp);
+		ss.write(temp, p-temp);
+	}
+
+	template<typename Stream>
+	void render_json_value(Stream& ss, int64_t value)
+	{
+		char temp[65];
+		auto p = xtoa(value, temp, 10, 1);
+		ss.write(temp, p - temp);
+	}
+
+	template<typename Stream>
+	void render_json_value(Stream& ss, uint64_t value)
+	{
+		char temp[65];
+		auto p = xtoa(value, temp, 10, 0);
 		ss.write(temp, p - temp);
 	}
 
@@ -241,6 +257,7 @@ namespace iguana { namespace json
 			uint64_t u64;
 			double d64;
 		} value;
+		bool neg = false;
 	};
 
 	class reader_t {
@@ -287,10 +304,13 @@ namespace iguana { namespace json
 			return cur_tok_;
 		}
 
-		void next() {
+		void next()
+		{
 			auto c = skip();
 			bool do_next = false;
-			switch (c) {
+			cur_tok_.neg = false;
+			switch (c)
+			{
 			case 0:
 				cur_tok_.type = token::t_end;
 				cur_tok_.str.str = ptr_ + cur_offset_;
@@ -301,32 +321,40 @@ namespace iguana { namespace json
 			case '[':
 			case ']':
 			case ':':
-			case ',': {
+			case ',':
+			{
 				cur_tok_.type = token::t_ctrl;
 				cur_tok_.str.str = ptr_ + cur_offset_;
 				cur_tok_.str.len = 1;
 				take();
 				break;
 			}
-			case '/': {
+			case '/':
+			{
 				take();
 				c = read();
-				if (c == '/') {
+				if (c == '/')
+				{
 					take();
 					c = read();
-					while (c != '\n' && c != 0) {
+					while (c != '\n' && c != 0)
+					{
 						take();
 						c = read();
 					}
 					do_next = true;
 					break;
 				}
-				else if (c == '*') {
+				else if (c == '*')
+				{
 					take();
 					c = read();
-					do {
-						while (c != '*') {
-							if (c == 0) {
+					do
+					{
+						while (c != '*')
+						{
+							if (c == 0)
+							{
 								return;
 							}
 							take();
@@ -334,7 +362,8 @@ namespace iguana { namespace json
 						}
 						take();
 						c = read();
-						if (c == '/') {
+						if (c == '/')
+						{
 							take();
 							do_next = true;
 							break;
@@ -344,23 +373,29 @@ namespace iguana { namespace json
 				//error parser comment
 				error("not a comment!");
 			}
-			case '"': {
+			case '"':
+			{
 				cur_tok_.type = token::t_string;
 				parser_quote_string();
 				break;
 			}
-			default: {
-				if (c >= '0' && c <= '9') {
+			default:
+			{
+				if (c >= '0' && c <= '9')
+				{
 					cur_tok_.type = token::t_uint;
 					cur_tok_.value.u64 = c - '0';
 					parser_number();
 				}
-				else if (c == '-') {
+				else if (c == '-')
+				{
 					cur_tok_.type = token::t_int;
-					cur_tok_.value.u64 = '0' - c;
+					cur_tok_.value.i64 = 0;
+					cur_tok_.neg = true;
 					parser_number();
 				}
-				else {
+				else
+				{
 					cur_tok_.type = token::t_string;
 					parser_string();
 				}
@@ -777,6 +812,8 @@ namespace iguana { namespace json
 		}
 		case token::t_int: {
 			val = static_cast<int>(tok.value.i64);
+			if (tok.neg)
+				val = -val;
 			break;
 		}
 		case token::t_uint: {
@@ -785,6 +822,8 @@ namespace iguana { namespace json
 		}
 		case token::t_number: {
 			val = static_cast<int>(tok.value.d64);
+			if (tok.neg)
+				val = -val;
 			break;
 		}
 		default: {
@@ -849,6 +888,8 @@ namespace iguana { namespace json
 		case token::t_int:
 		{
 			val = static_cast<T>(tok.value.i64);
+			if (tok.neg)
+				val = -val;
 			break;
 		}
 		case token::t_uint:
@@ -859,6 +900,8 @@ namespace iguana { namespace json
 		case token::t_number:
 		{
 			val = static_cast<T>(tok.value.d64);
+			if (tok.neg)
+				val = -val;
 			break;
 		}
 		default:

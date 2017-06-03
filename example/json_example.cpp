@@ -1,11 +1,12 @@
 #include <iguana/json.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
 
 namespace client
 {
 	struct person
 	{
 		std::string	name;
-		int		    age;
+		int64_t		 age;
 	};
 
 	REFLECTION(person, name, age);
@@ -13,8 +14,7 @@ namespace client
 
 int main(void)
 {
-	client::person p = { "zombie chow", 31 };
-	
+	client::person p = { "zombie chow", -311 };
 	iguana::string_stream ss;
 	iguana::json::to_json(ss, p);
 	
