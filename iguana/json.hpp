@@ -807,21 +807,21 @@ namespace iguana { namespace json
 		switch (tok.type) {
 		case token::t_string: {
 			int64_t temp = std::strtoll(tok.str.str, nullptr, 10);
-			val = static_cast<int>(temp);
+			val = static_cast<T>(temp);
 			break;
 		}
 		case token::t_int: {
-			val = static_cast<int>(tok.value.i64);
+			val = static_cast<T>(tok.value.i64);
 			if (tok.neg)
 				val = -val;
 			break;
 		}
 		case token::t_uint: {
-			val = static_cast<int>(tok.value.u64);
+			val = static_cast<T>(tok.value.u64);
 			break;
 		}
 		case token::t_number: {
-			val = static_cast<int>(tok.value.d64);
+			val = static_cast<T>(tok.value.d64);
 			if (tok.neg)
 				val = -val;
 			break;
@@ -839,25 +839,25 @@ namespace iguana { namespace json
 		switch (tok.type) {
 		case token::t_string: {
 			uint64_t temp = std::strtoull(tok.str.str, nullptr, 10);
-			val = static_cast<unsigned int>(temp);
+			val = static_cast<T>(temp);
 			break;
 		}
 		case token::t_int: {
 			if (tok.value.i64 < 0) {
 				rd.error("assign a negative signed integral to unsigned integral number.");
 			}
-			val = static_cast<unsigned int>(tok.value.i64);
+			val = static_cast<T>(tok.value.i64);
 			break;
 		}
 		case token::t_uint: {
-			val = static_cast<unsigned int>(tok.value.u64);
+			val = static_cast<T>(tok.value.u64);
 			break;
 		}
 		case token::t_number: {
 			if (tok.value.d64 < 0) {
 				rd.error("assign a negative float point to unsigned integral number.");
 			}
-			val = static_cast<unsigned int>(tok.value.d64);
+			val = static_cast<T>(tok.value.d64);
 			break;
 		}
 		default: {
