@@ -395,7 +395,7 @@ namespace iguana
 	constexpr const char* get_name()
 	{
 		using M = decltype(iguana_reflect_members(std::declval<T>()));
-		static_assert(I<M::value, "out of range");
+		static_assert(I<M::value(), "out of range");
 		return M::arr()[I];
 	}
 
