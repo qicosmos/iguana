@@ -134,4 +134,8 @@ Then call the simple interface:
 
 ### Update
 1. Support C++17
-2. If you want to use the C++17 version code, please include the xxxx17.hpp. for example, include "json17.hpp". And you need set c++17 flag in CMakelists.txt, replace "-std=c++114" to "-std=c++17". Because vs2017 not support C++17 yet, the C++17 code just support GCC7.1 and clang4.0. Enjoy C++17, really fun.
+2. If you want to use the C++17 version code, please include the xxxx17.hpp. for example, include "json17.hpp".
+
+And you need set c++17 flag in CMakelists.txt, replace "-std=c++114" to "-std=c++17". 
+
+Because vs2017 not support C++17 yet, the C++17 code just support GCC7.1 and clang4.0. Enjoy C++17, really fun.
