@@ -193,7 +193,7 @@ namespace iguana { namespace json
 
 	template<typename Stream, typename T>
 	void to_json(Stream& s, const std::vector<T> &v) {
-		render_json_value(v);
+		render_json_value(s, v);
 	};
 
 	template<typename Stream, typename... Args>
