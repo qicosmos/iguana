@@ -956,7 +956,7 @@ namespace iguana { namespace json
 		rd.next();
 	}
 
-	void read_json(reader_t &rd, std::string &val) {
+	inline void read_json(reader_t &rd, std::string &val) {
 		auto &tok = rd.peek();
 		if (tok.type == token::t_string) {
 			val.assign(tok.str.str, tok.str.len);
