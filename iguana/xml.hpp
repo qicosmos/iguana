@@ -92,13 +92,13 @@ namespace iguana { namespace xml
 		}
 
 		template <typename T>
-		auto get_value(char const* str, size_t length, T& value)
+		inline auto get_value(char const* str, size_t length, T& value)
 			-> std::enable_if_t<std::is_arithmetic<T>::value>
 		{
 			value = boost::lexical_cast<T>(str, length);
 		}
 
-		void get_value(char const* str, size_t length, std::string& value)
+		inline void get_value(char const* str, size_t length, std::string& value)
 		{
 			value.assign(str, length);
 		}
@@ -255,7 +255,7 @@ namespace iguana { namespace xml
 
 	//to xml
 	template<typename Stream, typename T>
-	std::enable_if_t<!std::is_floating_point<T>::value && (std::is_integral<T>::value || std::is_unsigned<T>::value || std::is_signed<T>::value)>
+	inline std::enable_if_t<!std::is_floating_point<T>::value && (std::is_integral<T>::value || std::is_unsigned<T>::value || std::is_signed<T>::value)>
 		render_xml_value(Stream& ss, T value)
 	{
 		char temp[20];
@@ -264,7 +264,7 @@ namespace iguana { namespace xml
 	}
 
 	template<typename Stream, typename T>
-	std::enable_if_t<std::is_floating_point<T>::value> render_xml_value(Stream& ss, T value)
+	inline std::enable_if_t<std::is_floating_point<T>::value> render_xml_value(Stream& ss, T value)
 	{
 		char temp[20];
 		sprintf(temp, "%f", value);
@@ -272,36 +272,36 @@ namespace iguana { namespace xml
 	}
 
 	template<typename Stream>
-	void render_xml_value(Stream& ss, const std::string &s)
+	inline void render_xml_value(Stream& ss, const std::string &s)
 	{
 		ss.write(s.c_str(), s.size());
 	}
 
 	template<typename Stream>
-	void render_xml_value(Stream& ss, const char* s)
+	inline void render_xml_value(Stream& ss, const char* s)
 	{
 		ss.write(s, strlen(s));
 	}
 
 	template<typename Stream, typename T>
-	std::enable_if_t<std::is_arithmetic<T>::value> render_key(Stream& ss, T t) {
+	inline std::enable_if_t<std::is_arithmetic<T>::value> render_key(Stream& ss, T t) {
 		ss.put('<');
 		render_xml_value(ss, t);
 		ss.put('>');
 	}
 
 	template<typename Stream>
-	void render_key(Stream& ss, const std::string &s) {
+	inline void render_key(Stream& ss, const std::string &s) {
 		render_xml_value(ss, s);
 	}
 
 	template<typename Stream>
-	void render_key(Stream& ss, const char* s) {
+	inline void render_key(Stream& ss, const char* s) {
 		render_xml_value(ss, s);
 	}
 
 	template<typename Stream>
-	void render_tail(Stream& ss, const char* s)
+	inline void render_tail(Stream& ss, const char* s)
 	{
 		ss.put('<');
 		ss.put('/');
@@ -310,7 +310,7 @@ namespace iguana { namespace xml
 	}
 
 	template<typename Stream>
-	void render_head(Stream& ss, const char* s)
+	inline void render_head(Stream& ss, const char* s)
 	{
 		ss.put('<');
 		ss.write(s, strlen(s));
@@ -318,7 +318,7 @@ namespace iguana { namespace xml
 	}
 
 	template<typename Stream, typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-	void to_xml_impl(Stream& s, T &&t) {
+	inline void to_xml_impl(Stream& s, T &&t) {
 		for_each(std::forward<T>(t), [&s](const auto& v, size_t I, bool is_last) { //magic for_each struct std::forward<T>(t)
 			render_head(s, get_name<T>(I));
 			render_xml_value(s, v);
@@ -332,14 +332,14 @@ namespace iguana { namespace xml
 	}
 
 	template<typename Stream, typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-	void to_xml(Stream& s, T &&t) {
+	inline void to_xml(Stream& s, T &&t) {
 		//render_head(s, "xml");
 		s.write(IGUANA_XML_HEADER, xml_reader_t::xml_header_length);
 		to_xml_impl(s, std::forward<T>(t));
 	}
 
 	template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-	void do_read(xml_reader_t &rd, T &&t)
+	inline void do_read(xml_reader_t &rd, T &&t)
 	{
 		for_each(std::forward<T>(t),
 			[&rd](auto& value, size_t I, bool is_last) 
@@ -362,7 +362,7 @@ namespace iguana { namespace xml
 	}
 
 	template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-	void from_xml(T &&t, const char *buf, size_t len = -1) 
+	inline void from_xml(T &&t, const char *buf, size_t len = -1)
 	{
 		xml_reader_t rd(buf, len);
 		if (rd.get_root())
