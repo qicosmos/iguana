@@ -7,13 +7,13 @@ namespace msgpack { MSGPACK_API_VERSION_NAMESPACE(v2)
 	namespace adaptor
 	{
 		template <typename Tuple, size_t ... Is>
-		auto make_define_array_from_tuple_impl(Tuple& tuple, std::index_sequence<Is...>)
+		inline auto make_define_array_from_tuple_impl(Tuple& tuple, std::index_sequence<Is...>)
 		{
 			return v1::type::make_define_array(std::get<Is>(tuple)...);
 		}
 
 		template <typename Tuple>
-		auto make_define_array_from_tuple(Tuple& tuple)
+		inline auto make_define_array_from_tuple(Tuple& tuple)
 		{
 			using indices_type = std::make_index_sequence<std::tuple_size<Tuple>::value>;
 			return make_define_array_from_tuple_impl(tuple, indices_type{});
@@ -118,20 +118,20 @@ namespace iguana
 	namespace msgpack
 	{
 		template <typename T>
-		void to_msgpack(memory_buffer& buf, T&& t)
+		inline void to_msgpack(memory_buffer& buf, T&& t)
 		{
 			::msgpack::pack(buf, std::forward<T>(t));
 		}
 
 		template <typename T>
-		void from_msgpack(T& t, ::msgpack::unpacked& msg, char const* data, size_t length)
+		inline void from_msgpack(T& t, ::msgpack::unpacked& msg, char const* data, size_t length)
 		{
 			::msgpack::unpack(&msg, data, length);
 			t = std::move(msg.get().as<T>());
 		}
 
 		template <typename T>
-		void from_msgpack(T& t, char const* data, size_t length)
+		inline void from_msgpack(T& t, char const* data, size_t length)
 		{
 			::msgpack::unpacked msg;
 			from_msgpack(t, msg, data, length);

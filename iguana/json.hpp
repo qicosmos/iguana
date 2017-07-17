@@ -10,7 +10,7 @@
 namespace iguana { namespace json
 {
 	template<typename InputIt, typename T, typename F>
-	T join(InputIt first, InputIt last, const T &delim, const F &f) {
+	inline T join(InputIt first, InputIt last, const T &delim, const F &f) {
 		if (first == last) 
 			return T();
 		
@@ -23,7 +23,7 @@ namespace iguana { namespace json
 	}
 
 	template<typename Stream, typename InputIt, typename T, typename F>
-	void join(Stream& ss, InputIt first, InputIt last, const T &delim, const F &f) {
+	inline void join(Stream& ss, InputIt first, InputIt last, const T &delim, const F &f) {
 		if (first == last) 
 			return;
 		
@@ -35,13 +35,13 @@ namespace iguana { namespace json
 	}
 
 	template<typename Stream>
-	void render_json_value(Stream& ss, nullptr_t) { ss.write("null"); }
+	inline void render_json_value(Stream& ss, nullptr_t) { ss.write("null"); }
 
 	template<typename Stream>
-	void render_json_value(Stream& ss, bool b) { ss.write(b ? "true" : "false"); };
+	inline void render_json_value(Stream& ss, bool b) { ss.write(b ? "true" : "false"); };
 
 	template<typename Stream, typename T>
-	std::enable_if_t<!std::is_floating_point<T>::value&&(std::is_integral<T>::value || std::is_unsigned<T>::value || std::is_signed<T>::value)>
+	inline std::enable_if_t<!std::is_floating_point<T>::value&&(std::is_integral<T>::value || std::is_unsigned<T>::value || std::is_signed<T>::value)>
 		render_json_value(Stream& ss, T value)
 	{
 		char temp[20];
@@ -50,7 +50,7 @@ namespace iguana { namespace json
 	}
 
 	template<typename Stream>
-	void render_json_value(Stream& ss, int64_t value)
+	inline void render_json_value(Stream& ss, int64_t value)
 	{
 		char temp[65];
 		auto p = xtoa(value, temp, 10, 1);
@@ -58,7 +58,7 @@ namespace iguana { namespace json
 	}
 
 	template<typename Stream>
-	void render_json_value(Stream& ss, uint64_t value)
+	inline void render_json_value(Stream& ss, uint64_t value)
 	{
 		char temp[65];
 		auto p = xtoa(value, temp, 10, 0);
@@ -66,7 +66,7 @@ namespace iguana { namespace json
 	}
 
 	template<typename Stream, typename T>
-	std::enable_if_t<std::is_floating_point<T>::value> render_json_value(Stream& ss, T value)
+	inline std::enable_if_t<std::is_floating_point<T>::value> render_json_value(Stream& ss, T value)
 	{
 		char temp[20];
 		sprintf(temp, "%f", value);
@@ -74,7 +74,7 @@ namespace iguana { namespace json
 	}
 
 	template<typename Stream>
-	void render_json_value(Stream& ss, const std::string &s)
+	inline void render_json_value(Stream& ss, const std::string &s)
 	{
 		ss.put('"');
 		ss.write(s.c_str(), s.size());
@@ -82,7 +82,7 @@ namespace iguana { namespace json
 	}
 
 	template<typename Stream>
-	void render_json_value(Stream& ss, const char* s, size_t size)
+	inline void render_json_value(Stream& ss, const char* s, size_t size)
 	{
 		ss.put('"');
 		ss.write(s, size);
@@ -90,40 +90,40 @@ namespace iguana { namespace json
 	}
 
 	template<typename Stream, typename T>
-	std::enable_if_t<std::is_arithmetic<T>::value> render_key(Stream& ss, T t) {
+	inline std::enable_if_t<std::is_arithmetic<T>::value> render_key(Stream& ss, T t) {
 		ss.put('"');
 		render_json_value(ss, t);
 		ss.put('"');
 	}
 
 	template<typename Stream>
-	void render_key(Stream& ss, const std::string &s) {
+	inline void render_key(Stream& ss, const std::string &s) {
 		render_json_value(ss, s);
 	}
 
 	template<typename Stream, typename T>
-	auto to_json(Stream& ss, T &&t) -> std::enable_if_t<is_reflection<T>::value>;
+	inline auto to_json(Stream& ss, T &&t) -> std::enable_if_t<is_reflection<T>::value>;
 
 	template<typename Stream, typename T>
-	auto render_json_value(Stream& ss, T &&t) -> std::enable_if_t<is_reflection<T>::value>
+	inline auto render_json_value(Stream& ss, T &&t) -> std::enable_if_t<is_reflection<T>::value>
 	{
 		to_json(ss, std::forward<T>(t));
 	}
 
 	template<typename Stream, typename T>
-	std::enable_if_t <std::is_enum<T>::value> render_json_value(Stream& ss, T val)
+	inline std::enable_if_t <std::is_enum<T>::value> render_json_value(Stream& ss, T val)
 	{
 		render_json_value(ss, (std::underlying_type_t<T>&)val);
 	}
 
 	template <typename Stream, typename T, size_t N>
-	void render_json_value(Stream& ss, const T(&v)[N])
+	inline void render_json_value(Stream& ss, const T(&v)[N])
 	{
 		render_array(ss, v);
 	}
 
 	template<typename Stream, typename T>
-	void render_array(Stream& ss, const T& v)
+	inline void render_array(Stream& ss, const T& v)
 	{
 		ss.put('[');
 		join(ss, std::begin(v), std::end(v), ',',
@@ -134,13 +134,13 @@ namespace iguana { namespace json
 	}
 
 	template <typename Stream, typename T, size_t N>
-	void render_json_value(Stream& ss, const std::array<T, N>& v)
+	inline void render_json_value(Stream& ss, const std::array<T, N>& v)
 	{
 		render_array(ss, v);
 	}
 
 	template<typename Stream, typename T>
-	std::enable_if_t <is_associat_container<T>::value>
+	inline std::enable_if_t <is_associat_container<T>::value>
 		render_json_value(Stream& ss, const T&o) {
 		ss.put('{');
 		join(ss, o.cbegin(), o.cend(), ',',
@@ -153,7 +153,7 @@ namespace iguana { namespace json
 	}
 
 	template<typename Stream, typename T>
-	std::enable_if_t <is_sequence_container<T>::value> render_json_value(Stream& ss, const T &v) {
+	inline std::enable_if_t <is_sequence_container<T>::value> render_json_value(Stream& ss, const T &v) {
 		ss.put('[');
 		join(ss, v.cbegin(), v.cend(), ',',
 			[&ss](const auto &jsv) {
@@ -169,7 +169,7 @@ namespace iguana { namespace json
 	s.put('"');
 
 	template<typename Stream, typename T>
-	auto to_json(Stream& s, T &&t) -> std::enable_if_t<is_reflection<T>::value>
+	inline auto to_json(Stream& s, T &&t) -> std::enable_if_t<is_reflection<T>::value>
 	{
 		s.put('{');
 		for_each(std::forward<T>(t),
@@ -192,12 +192,12 @@ namespace iguana { namespace json
 	}
 
 	template<typename Stream, typename T>
-	void to_json(Stream& s, const std::vector<T> &v) {
+	inline void to_json(Stream& s, const std::vector<T> &v) {
 		render_json_value(s, v);
 	};
 
 	template<typename Stream, typename... Args>
-	void to_json(Stream& s, std::tuple<Args...> tp) {
+	inline void to_json(Stream& s, std::tuple<Args...> tp) {
 		s.put('[');
 		apply_tuple([&s](const auto &v, size_t I, bool is_last) {
 			render_json_value(s, v);
@@ -717,7 +717,7 @@ namespace iguana { namespace json
 		double decimal = 0.1;
 	};
 
-	void skip(reader_t &rd);
+	inline void skip(reader_t &rd);
 
 	inline void skip_array(reader_t &rd) {
 		auto tok = &rd.peek();
@@ -974,7 +974,7 @@ namespace iguana { namespace json
 	}
 
 	template<typename T>
-	void read_array(reader_t &rd, T& val)
+	inline void read_array(reader_t &rd, T& val)
 	{
 		if (rd.expect('[') == false) {
 			rd.error("array must start with [.");
@@ -1007,12 +1007,12 @@ namespace iguana { namespace json
 	}
 
 	template<typename T>
-	std::enable_if_t<is_emplace_back_able<T>::value> emplace_back(T &val) {
+	inline std::enable_if_t<is_emplace_back_able<T>::value> emplace_back(T &val) {
 		val.emplace_back();
 	}
 
 	template<typename T>
-	std::enable_if_t<is_template_instant_of<std::queue, T>::value> emplace_back(T &val) {
+	inline std::enable_if_t<is_template_instant_of<std::queue, T>::value> emplace_back(T &val) {
 		val.emplace();
 	}
 
@@ -1088,7 +1088,7 @@ namespace iguana { namespace json
 	}
 
 	template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-	void do_read(reader_t &rd, T &&t) {
+	inline void do_read(reader_t &rd, T &&t) {
 		for_each(std::forward<T>(t), [&rd](auto &v, size_t I, bool is_last) {
 			rd.next();
 			if (rd.peek().str != get_name<T>(I))
@@ -1107,7 +1107,7 @@ namespace iguana { namespace json
 	}
 
 	template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-	void from_json(T &&t, const char *buf, size_t len = -1) {
+	inline void from_json(T &&t, const char *buf, size_t len = -1) {
 		reader_t rd(buf, len);
 		do_read(rd, t);
 	}
