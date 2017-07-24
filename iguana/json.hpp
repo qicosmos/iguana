@@ -35,10 +35,16 @@ namespace iguana { namespace json
 	}
 
 	template<typename Stream>
-	inline void render_json_value(Stream& ss, nullptr_t) { ss.write("null"); }
+	inline void render_json_value(Stream& ss, nullptr_t)
+	{
+		ss.write("null", sizeof("null"));
+	}
 
 	template<typename Stream>
-	inline void render_json_value(Stream& ss, bool b) { ss.write(b ? "true" : "false"); };
+	inline void render_json_value(Stream& ss, bool b)
+	{
+		ss.write(b ? "true" : "false", (b ? sizeof("true") : sizeof("false")) - 1);
+	};
 
 	template<typename Stream, typename T>
 	inline std::enable_if_t<!std::is_floating_point<T>::value&&(std::is_integral<T>::value || std::is_unsigned<T>::value || std::is_signed<T>::value)>
