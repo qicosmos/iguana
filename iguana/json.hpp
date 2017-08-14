@@ -1113,9 +1113,9 @@ namespace iguana { namespace json
 	}
 
 	template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-	inline void from_json(T&t, const char *buf, size_t len = -1) {
+	inline void from_json(T&&t, const char *buf, size_t len = -1) {
 		reader_t rd(buf, len);
-		do_read(rd, t);
+		do_read(rd, std::forward<T>(t));
 	}
 } }
 #endif //SERIALIZE_JSON_HPP
