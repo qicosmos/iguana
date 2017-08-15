@@ -203,7 +203,7 @@ namespace iguana { namespace json
 	};
 
 	template<typename Stream, typename... Args>
-	inline void to_json(Stream& s, std::tuple<Args...> tp) {
+	inline void to_json(Stream& s, std::tuple<Args...>& tp) {
 		s.put('[');
 		apply_tuple([&s](const auto &v, size_t I, bool is_last) {
 			render_json_value(s, v);
@@ -1094,7 +1094,7 @@ namespace iguana { namespace json
 	}
 
 	template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-	inline void do_read(reader_t &rd, T &&t) {
+	inline void do_read(reader_t &rd, T&& t) {
 		for_each(std::forward<T>(t), [&rd](auto &v, size_t I, bool is_last) {
 			rd.next();
 			if (rd.peek().str != get_name<T>(I))
@@ -1112,10 +1112,20 @@ namespace iguana { namespace json
 		});
 	}
 
-	template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-	inline void from_json(T&&t, const char *buf, size_t len = -1) {
+	template<typename T>
+	inline std::enable_if_t<is_reflection<T>::value> from_json(T&t, const char *buf, size_t len = -1) {
 		reader_t rd(buf, len);
-		do_read(rd, std::forward<T>(t));
+		do_read(rd, t);
+	}
+
+	template<typename T>
+	inline std::enable_if_t<is_tuple<T>::value> from_json(T& t, const char *buf, size_t len = -1) {
+		reader_t rd(buf, len);
+		for_each(t, [&rd](auto &v, size_t I, bool is_last) {
+			rd.next();
+
+			read_json(rd, v);
+		});
 	}
 } }
 #endif //SERIALIZE_JSON_HPP

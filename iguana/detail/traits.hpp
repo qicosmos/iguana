@@ -36,6 +36,10 @@ namespace iguana
     struct is_stdstring : is_template_instant_of < std::basic_string, T >
     {};
 
+	template<typename T>
+	struct is_tuple : is_template_instant_of < std::tuple, T >
+	{};
+
     template< class T >
     struct is_sequence_container : std::integral_constant < bool,
             is_template_instant_of<std::deque, T>::value ||
