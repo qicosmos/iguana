@@ -295,7 +295,7 @@
 
 #define ADD_REFERENCE(t)        std::reference_wrapper<decltype(t)>(t)
 #define ADD_REFERENCE_CONST(t)  std::reference_wrapper<std::add_const_t<decltype(t)>>(t)
-#define OBJECT(t)          t//std::make_pair(#t, ADD_REFERENCE(t))
+#define FIELD(t)          t//std::make_pair(#t, ADD_REFERENCE(t))
 //#define OBJECT_CONST(t)    std::make_pair(#t, ADD_REFERENCE_CONST(t))
 #define MAKE_NAMES(...) #__VA_ARGS__,
 
@@ -343,7 +343,7 @@ inline auto iguana_reflect_members(STRUCT_NAME const&) \
 
 #define MAKE_META_DATA(STRUCT_NAME, N, ...) \
     constexpr std::array<const char*, N> arr_##STRUCT_NAME = { MARCO_EXPAND(MACRO_CONCAT(CON_STR, N)(__VA_ARGS__)) };\
-    MAKE_META_DATA_IMPL(STRUCT_NAME, MAKE_ARG_LIST(N, &STRUCT_NAME::OBJECT, __VA_ARGS__))
+    MAKE_META_DATA_IMPL(STRUCT_NAME, MAKE_ARG_LIST(N, &STRUCT_NAME::FIELD, __VA_ARGS__))
 
 //MAKE_TUPLE_CONST(MAKE_ARG_LIST(N, OBJECT, __VA_ARGS__))
 

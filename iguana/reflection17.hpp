@@ -300,7 +300,7 @@ namespace iguana::detal {
 
 #define ADD_REFERENCE(t)        std::reference_wrapper<decltype(t)>(t)
 #define ADD_REFERENCE_CONST(t)  std::reference_wrapper<std::add_const_t<decltype(t)>>(t)
-#define OBJECT(t)          t
+#define FIELD(t)          t
 #define MAKE_NAMES(...) #__VA_ARGS__,
 
 //note use MACRO_CONCAT like A##_##B direct may cause marco expand error
@@ -335,7 +335,7 @@ auto iguana_reflect_members(STRUCT_NAME const&) \
 
 #define MAKE_META_DATA(STRUCT_NAME, N, ...) \
     constexpr inline std::array<std::string_view, N> arr_##STRUCT_NAME = { MARCO_EXPAND(MACRO_CONCAT(CON_STR, N)(__VA_ARGS__)) };\
-    MAKE_META_DATA_IMPL(STRUCT_NAME, MAKE_ARG_LIST(N, &STRUCT_NAME::OBJECT, __VA_ARGS__))
+    MAKE_META_DATA_IMPL(STRUCT_NAME, MAKE_ARG_LIST(N, &STRUCT_NAME::FIELD, __VA_ARGS__))
 }
 
 namespace iguana
