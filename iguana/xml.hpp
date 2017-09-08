@@ -319,11 +319,11 @@ namespace iguana { namespace xml
 
 	template<typename Stream, typename T, typename = std::enable_if_t<is_reflection<T>::value>>
 	inline void to_xml_impl(Stream& s, T &&t) {
-		for_each(std::forward<T>(t), [&s](const auto& v, size_t I, bool is_last) { //magic for_each struct std::forward<T>(t)
+		for_each(std::forward<T>(t), [&s](const auto& v, size_t I) { //magic for_each struct std::forward<T>(t)
 			render_head(s, get_name<T>(I));
 			render_xml_value(s, v);
 			render_tail(s, get_name<T>(I));
-		}, [&s](const auto& o, size_t I, bool is_last)
+		}, [&s](const auto& o, size_t I)
 		{
 			render_head(s, get_name<T>(I));
 			to_xml_impl(s, o);
@@ -342,7 +342,7 @@ namespace iguana { namespace xml
 	inline void do_read(xml_reader_t &rd, T &&t)
 	{
 		for_each(std::forward<T>(t),
-			[&rd](auto& value, size_t I, bool is_last) 
+			[&rd](auto& value, size_t I) 
 		{
 			if (rd.begin_object(get_name<T>(I)) == 1)
 			{
@@ -351,7 +351,7 @@ namespace iguana { namespace xml
 				rd.end_object(get_name<T>(I));
 			}
 		},
-			[&rd](auto &obj, size_t I, bool is_last) 
+			[&rd](auto &obj, size_t I) 
 		{
 			if (rd.begin_object(get_name<T>(I)) == 1)
 			{

@@ -179,17 +179,22 @@ namespace iguana { namespace json
 	{
 		s.put('{');
 		for_each(std::forward<T>(t),
-			[&s](const auto &v, size_t I, bool is_last) { //magic for_each struct std::forward<T>(t)
+			[&s](const auto &v, size_t I) { //magic for_each struct std::forward<T>(t)
 			write_json_key(s, I);
 			s.put(':');
 			render_json_value(s, v);
-			if (!is_last)
+
+			using M = decltype(iguana_reflect_members(std::declval<T>()));
+			constexpr auto Count = M::value();
+			if (I < Count - 1)
 				s.put(',');
-		}, [&s](const auto &o, size_t I, bool is_last) {
+		}, [&s](const auto &o, size_t I) {
 			write_json_key(s, I);
 			s.put(':');
 			to_json(s, o);
-			if (!is_last)
+			using M = decltype(iguana_reflect_members(std::declval<T>()));
+			constexpr auto Count = M::value();
+			if (I < Count - 1)
 				s.put(',');
 		});
 		s.put('}');
@@ -205,9 +210,10 @@ namespace iguana { namespace json
 	template<typename Stream, typename... Args>
 	inline void to_json(Stream& s, std::tuple<Args...>& tp) {
 		s.put('[');
-		apply_tuple([&s](const auto &v, size_t I, bool is_last) {
+		apply_tuple([&s](const auto &v, size_t I) {
 			render_json_value(s, v);
-			if (!is_last)
+			if(I<std::tuple_size<std::tuple<Args...>>::value-1)
+			//if (!is_last)
 				s.put(',');
 		}, tp, std::make_index_sequence<sizeof...(Args)>{});
 		s.put(']');
@@ -1095,7 +1101,7 @@ namespace iguana { namespace json
 
 	template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
 	inline void do_read(reader_t &rd, T&& t) {
-		for_each(std::forward<T>(t), [&rd](auto &v, size_t I, bool is_last) {
+		for_each(std::forward<T>(t), [&rd](auto &v, size_t I) {
 			rd.next();
 			if (rd.peek().str != get_name<T>(I))
 				return;
@@ -1103,7 +1109,7 @@ namespace iguana { namespace json
 			rd.next();
 			rd.next();
 			read_json(rd, v);
-		}, [&rd](auto &o, size_t I, bool is_last) {
+		}, [&rd](auto &o, size_t I) {
 			rd.next();
 			rd.next();
 			rd.next();
@@ -1121,7 +1127,7 @@ namespace iguana { namespace json
 	template<typename T>
 	inline std::enable_if_t<is_tuple<T>::value> from_json(T& t, const char *buf, size_t len = -1) {
 		reader_t rd(buf, len);
-		for_each(t, [&rd](auto &v, size_t I, bool is_last) {
+		for_each(t, [&rd](auto &v, size_t I) {
 			rd.next();
 
 			read_json(rd, v);
