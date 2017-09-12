@@ -449,19 +449,10 @@ namespace iguana
 		std::forward<F>(f)(std::forward<T>(t), I);
 	}
 
-	template<typename F, typename... Rest, std::size_t I0, std::size_t... I>
-	constexpr void apply_tuple(F&& f, std::tuple<Rest...>& tp, std::index_sequence<I0, I...>)
-	{
-		apply_value<I0>(std::forward<F>(f), std::get<I0>(tp));
-		apply_tuple(std::forward<F>(f), tp, std::index_sequence<I...>{});
-	}
-
-	template<typename F, typename... Rest>
-	constexpr void apply_tuple(F&& f, std::tuple<Rest...>&, std::index_sequence<>)
-	{
-	}
-
-	
+	template <typename F, typename... Rest, std::size_t... Idx>
+	void apply_tuple(F&& f, std::tuple<Rest...>& tp, std::index_sequence<Idx...>) {
+		(void)std::initializer_list<int> { (apply_value<Idx>(std::forward<F>(f), std::get<Idx>(tp)), void(), 0)...};
+	}	
 
 	template<typename F, typename T, typename... Rest>
 	constexpr void apply(F&& f, T&& t, std::tuple<Rest...>&&, std::index_sequence<>)
