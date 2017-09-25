@@ -35,7 +35,7 @@ namespace iguana { namespace json
         }
 
         template<typename Stream>
-        void render_json_value(Stream& ss, nullptr_t) { ss.write("null"); }
+        void render_json_value(Stream& ss, std::nullptr_t) { ss.write("null"); }
 
         template<typename Stream>
         void render_json_value(Stream& ss, bool b) { ss.write(b ? "true" : "false"); };
