@@ -486,13 +486,19 @@ namespace iguana
 		apply(std::forward<F>(f), std::forward<F1>(f1), std::forward<T>(t), M::apply_impl(), std::make_index_sequence<M::value()>{});
 	}
 
+	template<size_t I, typename F, typename T>
+	constexpr void for_each_impl(F&& f, T&&t)
+	{
+		using M = decltype(iguana_reflect_members(std::forward<T>(t)));
+		apply(std::forward<F>(f), std::forward<T>(t), M::apply_impl(), std::make_index_sequence<M::value()>{});
+	}
 	//-------------------------------------------------------------------------------------------------------------//
 	//-------------------------------------------------------------------------------------------------------------//
 
 	template<typename T, typename F>
 	constexpr std::enable_if_t<is_reflection<T>::value> for_each(T&& t, F&& f)
 	{
-		for_each_impl<0>(std::forward<F>(f), std::forward<T>(t), false);
+		for_each_impl<0>(std::forward<F>(f), std::forward<T>(t));
 	}
 
 	template<typename T, typename F, typename F1>
