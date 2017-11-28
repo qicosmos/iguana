@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <functional>
 #include <cctype>
-#include <boost/lexical_cast.hpp>
 #include "reflection.hpp"
 
 #define IGUANA_XML_READER_CHECK_FORWARD if (l > length) return 0; work_ptr += l; length -= l
@@ -91,11 +90,27 @@ namespace iguana { namespace xml
 			return l;
 		}
 
+		template<typename T>
+		constexpr bool is_64_v = std::is_same_v<T, std::int64_t>||std::is_same_v<T, std::uint64_t>;
+
 		template <typename T>
 		inline auto get_value(char const* str, size_t length, T& value)
 			-> std::enable_if_t<std::is_arithmetic<T>::value>
 		{
-			value = boost::lexical_cast<T>(str, length);
+			using U = std::remove_const_t<std::remove_reference_t<T>>;
+			if constexpr(std::is_integral_v<U>&&!detail::is_64_v<U>){
+				value = std::atoi(str);
+			}
+			else if constexpr(std::is_floating_point_v<U>){
+				value = std::atof(str);
+			}
+			else if constexpr(detail::is_64_v<U>){
+					value = std::atoll(str);
+			}
+			else{
+				std::cout<<"don't support the type now"<<std::endl;
+				throw(std::invalid_argument("don't support the type now"));
+			}
 		}
 
 		inline void get_value(char const* str, size_t length, std::string& value)
