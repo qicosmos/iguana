@@ -2,8 +2,8 @@
 // Created by Qiyu on 17-6-5.
 //
 
-#ifndef IGUANA_REFLECTION17_HPP
-#define IGUANA_REFLECTION17_HPP
+#ifndef IGUANA_REFLECTION_HPP
+#define IGUANA_REFLECTION_HPP
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -20,7 +20,7 @@
 #include "detail/traits.hpp"
 #include "detail/string_stream.hpp"
 
-namespace iguana::detal {
+namespace iguana::detail {
 /******************************************/
 /* arg list expand macro, now support 120 args */
 #define MAKE_ARG_LIST_1(op, arg, ...)   op(arg)
@@ -336,6 +336,7 @@ auto iguana_reflect_members(STRUCT_NAME const&) \
 #define MAKE_META_DATA(STRUCT_NAME, N, ...) \
     constexpr inline std::array<std::string_view, N> arr_##STRUCT_NAME = { MARCO_EXPAND(MACRO_CONCAT(CON_STR, N)(__VA_ARGS__)) };\
     MAKE_META_DATA_IMPL(STRUCT_NAME, MAKE_ARG_LIST(N, &STRUCT_NAME::FIELD, __VA_ARGS__))
+
 }
 
 namespace iguana
@@ -352,6 +353,9 @@ MAKE_META_DATA(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)
     struct is_reflection<T, std::void_t<typename decltype(iguana_reflect_members(std::declval<T>()))::type>> : std::true_type
     {
     };
+
+    template<typename T>
+    inline constexpr bool is_reflection_v = is_reflection<T>::value;
 
     template<size_t I, typename T>
     constexpr decltype(auto) get(T&& t)
@@ -395,6 +399,14 @@ MAKE_META_DATA(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)
     }
 
     template<typename T>
+    constexpr const std::string_view get_name(size_t i)
+    {
+        using M = decltype(iguana_reflect_members(std::declval<T>()));
+//		static_assert(I<M::value(), "out of range");
+        return M::arr()[i];
+    }
+
+    template<typename T>
     constexpr const std::string_view get_name()
     {
         using M = decltype(iguana_reflect_members(std::declval<T>()));
@@ -402,20 +414,33 @@ MAKE_META_DATA(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)
     }
 
     template<typename T>
-    std::enable_if_t<is_reflection<T>::value, size_t> get_value()
+    constexpr std::enable_if_t<is_reflection<T>::value, size_t> get_value()
     {
         using M = decltype(iguana_reflect_members(std::declval<T>()));
         return M::value();
     }
 
     template<typename T>
-    std::enable_if_t<!is_reflection<T>::value, size_t> get_value()
+    constexpr std::enable_if_t<!is_reflection<T>::value, size_t> get_value()
     {
         return 1;
     }
 
+    template<typename T>
+    constexpr auto get_array()
+    {
+        using M = decltype(iguana_reflect_members(std::declval<T>()));
+        return M::arr();
+    }
+
     //-------------------------------------------------------------------------------------------------------------//
     //-------------------------------------------------------------------------------------------------------------//
+    template <typename... Args, typename F, std::size_t... Idx>
+    constexpr void for_each(std::tuple<Args...>& t, F&& f, std::index_sequence<Idx...>)
+    {
+        (std::forward<F>(f)(std::get<Idx>(t), std::integral_constant<size_t, Idx>{}), ...);
+    }
+
     template <typename... Args, typename F, std::size_t... Idx>
     constexpr void for_each(const std::tuple<Args...>& t, F&& f, std::index_sequence<Idx...>)
     {
@@ -429,4 +454,4 @@ MAKE_META_DATA(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)
         for_each(M::apply_impl(), std::forward<F>(f), std::make_index_sequence<M::value()>{});
     }
 }
-#endif //IGUANA_REFLECTION17_HPP
+#endif //IGUANA_REFLECTION_HPP

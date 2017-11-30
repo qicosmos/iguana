@@ -60,5 +60,14 @@ namespace iguana
             is_template_instant_of<std::list, T>::value ||
             is_template_instant_of<std::vector, T>::value
     > {};
+
+    template <typename T, typename Tuple>
+    struct has_type;
+
+    template <typename T, typename... Us>
+    struct has_type<T, std::tuple<Us...>> : std::disjunction<std::is_same<T, Us>...> {};
+
+    template<typename T>
+    inline constexpr bool  is_int64_v = std::is_same_v<T, int64_t>||std::is_same_v<T, uint64_t>;
 }
 #endif //SERIALIZE_TRAITS_HPP
