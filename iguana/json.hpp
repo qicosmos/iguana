@@ -793,7 +793,7 @@ namespace iguana { namespace json
 
         //read json to value
         template<typename T>
-        std::enable_if_t<is_signed_intergral_like<T>::value> read_json(reader_t &rd, T &val) {
+        inline std::enable_if_t<is_signed_intergral_like<T>::value> read_json(reader_t &rd, T &val) {
             auto &tok = rd.peek();
             switch (tok.type) {
                 case token::t_string: {
@@ -947,7 +947,7 @@ namespace iguana { namespace json
             rd.next();
         }
 
-        void read_json(reader_t &rd, std::string &val) {
+        inline void read_json(reader_t &rd, std::string &val) {
             auto &tok = rd.peek();
             if (tok.type == token::t_string) {
                 val.assign(tok.str.str, tok.str.len);
@@ -959,13 +959,13 @@ namespace iguana { namespace json
         }
 
         template <typename T, size_t N>
-        void read_json(reader_t &rd, T(&val)[N])
+        inline void read_json(reader_t &rd, T(&val)[N])
         {
             read_array(rd, val);
         }
 
         template<typename T>
-        void read_array(reader_t &rd, T& val)
+        inline void read_array(reader_t &rd, T& val)
         {
             if (rd.expect('[') == false) {
                 rd.error("array must start with [.");
@@ -992,7 +992,7 @@ namespace iguana { namespace json
         }
 
         template <typename T, size_t N>
-        void read_json(reader_t &rd, std::array<T, N>& val)
+        inline void read_json(reader_t &rd, std::array<T, N>& val)
         {
             read_array(rd, val);
         }
@@ -1008,7 +1008,7 @@ namespace iguana { namespace json
         }
 
         template<typename T>
-        std::enable_if_t<is_sequence_container<T>::value> read_json(reader_t &rd, T &val) {
+        inline std::enable_if_t<is_sequence_container<T>::value> read_json(reader_t &rd, T &val) {
             if (rd.expect('[') == false) {
                 rd.error("array must start with [.");
             }
@@ -1034,7 +1034,7 @@ namespace iguana { namespace json
         }
 
         template<typename T>
-        std::enable_if_t<is_associat_container<T>::value> read_json(reader_t &rd, T &val) {
+        inline std::enable_if_t<is_associat_container<T>::value> read_json(reader_t &rd, T &val) {
             if (rd.expect('{') == false)
             {
                 rd.error("object must start with {!");
@@ -1073,7 +1073,7 @@ namespace iguana { namespace json
         }
 
         template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-        void read_json(reader_t &rd, T &val) {
+        inline void read_json(reader_t &rd, T &val) {
             do_read(rd, val);
             rd.next();
         }
@@ -1110,7 +1110,7 @@ namespace iguana { namespace json
         }
 
         template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-        constexpr void from_json(T &&t, const char *buf, size_t len = -1) {
+        inline constexpr void from_json(T &&t, const char *buf, size_t len = -1) {
             reader_t rd(buf, len);
             do_read(rd, t);
         }
