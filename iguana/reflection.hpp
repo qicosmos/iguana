@@ -433,6 +433,24 @@ MAKE_META_DATA(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)
         return M::arr();
     }
 
+    template<typename T>
+    constexpr auto get_index(std::string_view name)
+    {
+        using M = decltype(iguana_reflect_members(std::declval<T>()));
+        constexpr auto arr = M::arr();
+
+        auto it = std::find_if(arr.begin(), arr.end(), [name](auto str){
+            return (str.substr(0, str.length()-1)==name);
+        });
+
+        return std::distance(arr.begin(), it);
+    }
+
+    template <class Tuple, class F, std::size_t...Is>
+    void tuple_switch(std::size_t i, Tuple&& t, F&& f, std::index_sequence<Is...>) {
+        ((i == Is && ((std::forward<F>(f)(std::get<Is>(std::forward<Tuple>(t)))), false)), ...);
+    }
+
     //-------------------------------------------------------------------------------------------------------------//
     //-------------------------------------------------------------------------------------------------------------//
     template <typename... Args, typename F, std::size_t... Idx>

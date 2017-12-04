@@ -1,6 +1,6 @@
 #include <iostream>
-#include "json.hpp"
-#include "xml.hpp"
+#include <iguana/json.hpp>
+#include <iguana/xml.hpp>
 
 struct person
 {
@@ -39,7 +39,7 @@ void test_json()
 {
 	person p;
 	const char * json = "{ \"name\" : \"tom\", \"age\" : 28}";
-	iguana::json::from_json(p, json);
+	iguana::json::from_json0(p, json);
 
 	iguana::string_stream ss;
 	iguana::json::to_json(ss, p);
@@ -51,9 +51,11 @@ void test_json()
 	iguana::json::to_json(sst, composit);
 	std::cout << sst.str() << std::endl;
 
-	const char* str_comp = R"({"a":1, "b":["tom", "jack"], "c":3, "d":{"2":3,"5":6},"e":{"3":4},"f":5.3,"g":[{"id":1},{"id":2}])";
+//	const char* str_comp = R"({"a":1, "b":["tom", "jack"], "c":3, "d":{"2":3,"5":6},"e":{"3":4},"f":5.3,"g":[{"id":1},{"id":2}])";
+	const char* str_comp = R"({"b":["tom", "jack"], "a":1, "c":3, "e":{"3":4}, "d":{"2":3,"5":6},"f":5.3,"g":[{"id":1},{"id":2}])";
 	composit_t comp;
-	iguana::json::from_json(comp, str_comp);
+	iguana::json::from_json0(comp, str_comp);
+	std::cout<<comp.a<<" "<<comp.f<<std::endl;
 }
 
 //void performance()
@@ -64,7 +66,7 @@ void test_json()
 //
 //	const size_t LEN = 1000000;
 //
-//	//·´ÐòÁÐ»¯
+//	//ï¿½ï¿½ï¿½ï¿½ï¿½Ð»ï¿½
 //	std::cout << "ajson deserialize: ";
 //	boost::timer t;
 //	for (size_t i = 0; i < LEN; i++)
@@ -81,7 +83,7 @@ void test_json()
 //	}
 //	std::cout << t.elapsed() << std::endl;
 //
-//	//ÐòÁÐ»¯
+//	//ï¿½ï¿½ï¿½Ð»ï¿½
 //	std::cout << "ajson serialize: ";
 //	t.restart();
 //	ajson::string_stream ss1;
@@ -123,24 +125,8 @@ void test_xml()
 	iguana::xml::from_xml(t1, xml.data(), xml.length());
 }
 
-void test_reflection()
-{
-	person p = { "admin", 20 };
-	for_each(p, [](const auto& item, size_t index, bool is_last) {
-		std::cout << index <<" "<< item << std::endl;
-	});
-
-	two t = { "test",{ 2 }, 4 };
-	for_each(t, [](const auto& item, size_t index, bool is_last) {
-		std::cout << index << " " << item << std::endl;
-	}, [](const auto& o, size_t index, bool is_last) {
-		std::cout << index << " "<<typeid(o).name()<< std::endl;
-	});
-}
-
 int main()
 {
-	test_reflection();
-//	test_json();
+	test_json();
 	test_xml();
 }

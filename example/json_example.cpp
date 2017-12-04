@@ -1,4 +1,5 @@
 #include <iguana/json.hpp>
+//#include <boost/timer.hpp>
 
 namespace client
 {
@@ -56,9 +57,28 @@ void test()
 //	}
 //}
 
+//void compare_speed(){
+//	std::string s1 = "{\"name\":\"zombie chow\",\"age\":-311}";
+//	std::string s2 = "{\"age\":-311,\"name\":\"zombie chow\"}";
+//
+//	client::person p2;
+//	const size_t Size = 1000000;
+//
+//	boost::timer t;
+//	for (auto i = 0; i < Size; ++i) {
+//		iguana::json::from_json(p2, s1.data(), s1.length()); //the sequence must be limited
+//	}
+//	std::cout<<t.elapsed()<<'\n';
+//	t.restart();
+//
+//	for (auto i = 0; i < Size; ++i) {
+//		iguana::json::from_json0(p2, s2.data(), s2.length()); //no limitation, but slower
+//	}
+//	std::cout<<t.elapsed()<<'\n';
+//}
+
 int main(void)
 {
-//	test_tuple();
 	test();
 	client::person p = { "zombie chow", -311 };
 	iguana::string_stream ss;
@@ -68,7 +88,9 @@ int main(void)
 	std::cout << json_str << std::endl;
 
 	client::person p2;
-	iguana::json::from_json(p2, json_str.data(), json_str.length());
+
+	iguana::json::from_json(p2, json_str.data(), json_str.length()); //the sequence must be limited
+    iguana::json::from_json0(p2, json_str.data(), json_str.length()); //no limitation, but slower
 
 	std::cout << p2.name << " - " << p2.age << std::endl;
 	return 0;
