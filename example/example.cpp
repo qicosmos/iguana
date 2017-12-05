@@ -38,8 +38,8 @@ REFLECTION(composit_t, a, b, c, d, e, f, g);
 void test_json()
 {
 	person p;
-	const char * json = "{ \"name\" : \"tom\", \"age\" : 28}";
-	iguana::json::from_json0(p, json);
+	const char * json = "{ \"name\" : \"tom\", \"age\" : 20}";
+	auto r = iguana::json::from_json0(p, json);
 
 	iguana::string_stream ss;
 	iguana::json::to_json(ss, p);

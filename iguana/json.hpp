@@ -251,6 +251,7 @@ namespace iguana { namespace json
             bool neg = false;
         };
 
+        bool g_has_error = false;
         class reader_t {
         public:
             reader_t(const char *ptr = nullptr, size_t len = -1) : ptr_(ptr), len_(len) {
@@ -280,15 +281,16 @@ namespace iguana { namespace json
                 return &buffer[0] + pos;
             }
 
-            inline void error(const char *message) const {
-                char buffer[20];
-                std::string msg = "error at line :";
-                msg += itoa_native(cur_line_, buffer, 19);
-                msg += " col :";
-                msg += itoa_native(cur_col_, buffer, 19);
-                msg += " msg:";
-                msg += message;
-                throw std::invalid_argument(msg);
+            inline void error(const char *message)  {
+                g_has_error = true;
+//                char buffer[20];
+//                std::string msg = "error at line :";
+//                msg += itoa_native(cur_line_, buffer, 19);
+//                msg += " col :";
+//                msg += itoa_native(cur_col_, buffer, 19);
+//                msg += " msg:";
+//                msg += message;
+//                throw std::invalid_argument(msg);
             }
 
             inline token const &peek() const {
@@ -791,6 +793,12 @@ namespace iguana { namespace json
             rd.error("invalid json document!");
         }
 
+        void check_result(auto val, char const *str){
+            if(val==0&&str!="0"){
+                g_has_error = true;
+            }
+        }
+
         //read json to value
         template<typename T>
         inline std::enable_if_t<is_signed_intergral_like<T>::value> read_json(reader_t &rd, T &val) {
@@ -799,6 +807,7 @@ namespace iguana { namespace json
                 case token::t_string: {
                     int64_t temp = std::strtoll(tok.str.str, nullptr, 10);
                     val = static_cast<T>(temp);
+                    check_result(val, tok.str.str);
                     break;
                 }
                 case token::t_int: {
@@ -831,6 +840,7 @@ namespace iguana { namespace json
                 case token::t_string: {
                     uint64_t temp = std::strtoull(tok.str.str, nullptr, 10);
                     val = static_cast<T>(temp);
+                    check_result(val, tok.str.str);
                     break;
                 }
                 case token::t_int: {
@@ -874,6 +884,7 @@ namespace iguana { namespace json
                 {
                     double temp = std::strtold(tok.str.str, nullptr);
                     val = static_cast<T>(temp);
+                    check_result(val, tok.str.str);
                     break;
                 }
                 case token::t_int:
@@ -1091,8 +1102,10 @@ namespace iguana { namespace json
                 if constexpr (!is_reflection<decltype(t.*v)>::value)
                 {
                     rd.next();
-                    if (rd.peek().str != get_name<T, Idx>().data())
+                    if (rd.peek().str != get_name<T, Idx>().data()){
+                        g_has_error = true;
                         return;
+                    }
 
                     rd.next();
                     rd.next();
@@ -1110,16 +1123,20 @@ namespace iguana { namespace json
         }
 
         template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-        inline constexpr void from_json(T &&t, const char *buf, size_t len = -1) {
+        inline constexpr bool from_json(T &&t, const char *buf, size_t len = -1) {
+            g_has_error = false;
             reader_t rd(buf, len);
             do_read(rd, t);
+            return !g_has_error;
         }
 
         //this interface support disorderly parse, however slower than from_json interface
         template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-        inline constexpr void from_json0(T &&t, const char *buf, size_t len = -1) {
+        inline constexpr bool from_json0(T &&t, const char *buf, size_t len = -1) {
+            g_has_error = false;
             reader_t rd(buf, len);
             do_read0(rd, t);
+            return !g_has_error;
         }
 
         template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
@@ -1134,8 +1151,10 @@ namespace iguana { namespace json
                 rd.next();
                 std::string_view s(rd.peek().str.str, rd.peek().str.length());
                 auto index = iguana::get_index<T>(s);
-                if(index==Size)
+                if(index==Size){
+                    g_has_error = true;
                     break;
+                }
 
                 tuple_switch(index, tp, [&t, &rd, j](auto &v) {
                     if constexpr (!is_reflection<decltype(t.*v)>::value)
