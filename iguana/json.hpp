@@ -793,7 +793,8 @@ namespace iguana { namespace json
             rd.error("invalid json document!");
         }
 
-        void check_result(auto val, char const *str){
+        template<typename T>
+        void check_result(T val, char const *str){
             if(val==0&&str!="0"){
                 g_has_error = true;
             }

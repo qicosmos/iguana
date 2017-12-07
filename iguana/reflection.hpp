@@ -344,13 +344,16 @@ namespace iguana
 #define REFLECTION(STRUCT_NAME, ...) \
 MAKE_META_DATA(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)
 
+    template<typename T>
+    using Reflect_members = decltype(iguana_reflect_members(std::declval<T>()));
+
     template <typename T, typename = void>
     struct is_reflection : std::false_type
     {
     };
 
     template <typename T>
-    struct is_reflection<T, std::void_t<typename decltype(iguana_reflect_members(std::declval<T>()))::type>> : std::true_type
+    struct is_reflection<T, std::void_t<typename Reflect_members<T>::type>> : std::true_type
     {
     };
 
