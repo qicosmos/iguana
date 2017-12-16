@@ -77,8 +77,25 @@ void test()
 //	std::cout<<t.elapsed()<<'\n';
 //}
 
+void test_v()
+{
+	client::person p1 = { "tom", 20 };
+	client::person p2 = { "jack", 19 };
+	client::person p3 = { "mike", 21 };
+
+	std::vector<client::person> v{ p1, p2, p3 };
+	iguana::string_stream ss;
+	iguana::json::to_json(ss, v);
+	auto json_str = ss.str();
+	std::cout << json_str << std::endl;
+
+	std::vector<client::person> v1;
+	iguana::json::from_json(v1, json_str.data(), json_str.length());
+}
+
 int main(void)
 {
+	test_v();
 	test();
 	client::person p = { "zombie chow", -311 };
 	iguana::string_stream ss;

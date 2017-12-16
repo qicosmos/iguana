@@ -169,6 +169,20 @@ namespace iguana { namespace json
             s.put('"');
         };
 
+		template<typename Stream, typename T>
+		constexpr auto to_json(Stream& s, const std::vector<T>& v)->std::enable_if_t<is_reflection<T>::value>
+		{
+			s.put('[');
+			const size_t size = v.size();
+			for (size_t i = 0; i < size; i++)
+			{
+				to_json(s, v[i]);
+				if(i!= size-1)
+					s.put(',');
+			}
+			s.put(']');
+		}
+
         template<typename Stream, typename T>
         constexpr auto to_json(Stream& s, T &&t) -> std::enable_if_t<is_reflection<T>::value>
         {
@@ -1122,6 +1136,26 @@ namespace iguana { namespace json
                 }
             });
         }
+
+		template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
+		inline constexpr bool from_json(std::vector<T>& v, const char *buf, size_t len = -1) {
+			g_has_error = false;
+			T t{};
+			reader_t rd(buf, len);
+			rd.next();
+			while (rd.peek().type != token::t_end)
+			{
+				do_read(rd, t);
+				if (g_has_error)
+					return false;
+
+				v.push_back(std::move(t));
+				rd.next();
+				rd.next();
+			}
+			
+			return true;
+		}
 
         template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
         inline constexpr bool from_json(T &&t, const char *buf, size_t len = -1) {
