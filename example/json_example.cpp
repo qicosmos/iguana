@@ -18,6 +18,14 @@ struct MyStruct
 };
 REFLECTION(MyStruct, a);
 
+struct student
+{
+	int id;
+	std::string name;
+	int age;
+};
+REFLECTION(student, id, name, age);
+
 void test()
 {
 	MyStruct p = { 5566777755311 }; 
@@ -93,8 +101,27 @@ void test_v()
 	iguana::json::from_json(v1, json_str.data(), json_str.length());
 }
 
+void test_disorder()
+{
+	student s{ 1, "tom", 20 };
+	iguana::string_stream ss;
+	iguana::json::to_json(ss, s);
+	auto json_str = ss.str();
+	std::cout << json_str << std::endl;
+
+	student s1{};
+	std::string str = "{\"name\":\"tom\",\"id\":1,\"age\":20}";
+	bool r = iguana::json::from_json0(s1, str.data(), str.length());
+	std::string str1 = "{\"name\":\"tom\",\"age\":20,\"id\":1}";
+	r = iguana::json::from_json0(s1, str1.data(), str1.length());
+
+	std::string str2 = "{ \"id\":1,\"name\" : \"madoka\",\"age\" : 27 }";
+	r = iguana::json::from_json0(s1, str2.data(), str2.length());
+}
+
 int main(void)
 {
+	test_disorder();
 	test_v();
 	test();
 	client::person p = { "zombie chow", -311 };
