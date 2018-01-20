@@ -364,6 +364,15 @@ MAKE_META_DATA(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)
     constexpr decltype(auto) get(T&& t)
     {
         using M = decltype(iguana_reflect_members(std::forward<T>(t)));
+		using U = decltype(std::forward<T>(t).*(std::get<I>(M::apply_impl())));
+		
+		if constexpr(std::is_array_v<U>) {
+			auto s = std::forward<T>(t).*(std::get<I>(M::apply_impl()));
+			std::array<char, sizeof(U)> arr;
+			memcpy(arr.data(), s, arr.size());
+			return arr;
+		}
+		else
         return std::forward<T>(t).*(std::get<I>(M::apply_impl()));
     }
 
