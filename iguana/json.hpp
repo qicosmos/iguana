@@ -591,72 +591,86 @@ namespace iguana { namespace json
                 } while (true);
             }
 
-            void parser_string() {
-                cur_tok_.str.str = ptr_ + cur_offset_;
-                take();
-                auto c = read();
-                size_t esc_count = 0;
-                do {
-                    switch (c) {
-                        case 0:
-                        case '\n': {
-                            error("not a valid string!");
-                            break;
-                        }
-                        case '\\': {
-                            take();
-                            c = read();
-                            switch (c) {
-                                case 'b': {
-                                    c = '\b';
-                                    break;
-                                }
-                                case 'f': {
-                                    c = '\f';
-                                    break;
-                                }
-                                case 'n': {
-                                    c = '\n';
-                                    break;
-                                }
-                                case 'r': {
-                                    c = '\r';
-                                    break;
-                                }
-                                case 't': {
-                                    c = '\t';
-                                    break;
-                                }
-                                case 'u': {
-                                    take();
-                                    esacpe_utf8(esc_count);
-                                    continue;
-                                }
-                                default: {
-                                    error("unknown escape char!");
-                                }
-                            }
-                            ++esc_count;
-                            break;
-                        }
-                        case ' ':
-                        case '\t':
-                        case '\r':
-                        case ',':
-                        case '[':
-                        case ']':
-                        case ':':
-                        case '{':
-                        case '}': {
-                            cur_tok_.str.len = ptr_ + cur_offset_ - esc_count - cur_tok_.str.str;
-                            return;
-                        }
-                    }
-                    fill_escape_char(esc_count, c);
-                    take();
-                    c = read();
-                } while (true);
-            }
+			void parser_string()
+			{
+				cur_tok_.str.str = ptr_ + cur_offset_;
+				take();
+				auto c = read();
+				size_t esc_count = 0;
+				do
+				{
+					switch (c)
+					{
+					case 0:
+					{
+						error("not a valid string!");
+						break;
+					}
+					case '\\':
+					{
+						take();
+						c = read();
+						switch (c)
+						{
+						case 'b':
+						{
+							c = '\b';
+							break;
+						}
+						case 'f':
+						{
+							c = '\f';
+							break;
+						}
+						case 'n':
+						{
+							c = '\n';
+							break;
+						}
+						case 'r':
+						{
+							c = '\r';
+							break;
+						}
+						case 't':
+						{
+							c = '\t';
+							break;
+						}
+						case 'u':
+						{
+							take();
+							esacpe_utf8(esc_count);
+							continue;
+						}
+						default:
+						{
+							error("unknown escape char!");
+						}
+						}
+						++esc_count;
+						break;
+					}
+					case ' ':
+					case '\t':
+					case '\r':
+					case '\n':
+					case ',':
+					case '[':
+					case ']':
+					case ':':
+					case '{':
+					case '}':
+					{
+						cur_tok_.str.len = ptr_ + cur_offset_ - esc_count - cur_tok_.str.str;
+						return;
+					}
+					}
+					fill_escape_char(esc_count, c);
+					take();
+					c = read();
+				} while (true);
+			}
 
             void parser_number() {
                 cur_tok_.str.str = ptr_ + cur_offset_;
