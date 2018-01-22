@@ -79,6 +79,52 @@ namespace iguana
 			return len;
 		}
 
+		inline void write_str(char const * str, size_t len)
+		{
+			put('"');
+			char const * ptr = str;
+			char const * end = ptr + len;
+			while (ptr < end)
+			{
+				const char c = *ptr;
+				if (c == 0)
+					break;
+				++ptr;
+				if (escape[(unsigned char)c])
+				{
+					char buff[6] = { '\\', '0' };
+					size_t len = 2;
+					buff[1] = escape[(unsigned char)c];
+					if (buff[1] == 'u')
+					{
+						if (ptr < end)
+						{
+							buff[2] = (hex_table[((unsigned char)c) >> 4]);
+							buff[3] = (hex_table[((unsigned char)c) & 0xF]);
+							const char c1 = *ptr;
+							++ptr;
+							buff[4] = (hex_table[((unsigned char)c1) >> 4]);
+							buff[5] = (hex_table[((unsigned char)c1) & 0xF]);
+						}
+						else
+						{
+							buff[2] = '0';
+							buff[3] = '0';
+							buff[4] = (hex_table[((unsigned char)c) >> 4]);
+							buff[5] = (hex_table[((unsigned char)c) & 0xF]);
+						}
+						len = 6;
+					}
+					write(buff, len);
+				}
+				else
+				{
+					put(c);
+				}
+			}
+			put('"');
+		}
+
 		inline void put(char c)
 		{
 			std::size_t writed_len = this->m_write_ptr + 1 - this->m_header_ptr;
@@ -118,6 +164,19 @@ namespace iguana
 		{
 			return this->m_write_ptr - this->m_header_ptr;
 		}
+
+		inline static char const * hex_table = "0123456789ABCDEF";
+		inline static char const escape[256] = {
+#define Z16 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+			//0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F
+			'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'b', 't', 'n', 'u', 'f', 'r', 'u', 'u', // 00
+			'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', // 10
+			0, 0, '"', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 20
+			Z16, Z16,																		// 30~4F
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '\\', 0, 0, 0, // 50
+			Z16, Z16, Z16, Z16, Z16, Z16, Z16, Z16, Z16, Z16								// 60~FF
+#undef Z16
+		};
 	};
 
 	typedef basic_string_stream<std::allocator<char>> string_stream;

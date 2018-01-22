@@ -76,17 +76,13 @@ namespace iguana { namespace json
         template<typename Stream>
         void render_json_value(Stream& ss, const std::string &s)
         {
-            ss.put('"');
-            ss.write(s.c_str(), s.size());
-            ss.put('"');
+            ss.write_str(s.c_str(), s.size());
         }
 
         template<typename Stream>
         void render_json_value(Stream& ss, const char* s, size_t size)
         {
-            ss.put('"');
-            ss.write(s, size);
-            ss.put('"');
+            ss.write_str(s, size);
         }
 
         template<typename Stream, typename T>
@@ -268,7 +264,7 @@ namespace iguana { namespace json
         bool g_has_error = false;
         class reader_t {
         public:
-            reader_t(const char *ptr = nullptr, size_t len = -1) : ptr_(ptr), len_(len) {
+            reader_t(const char *ptr = nullptr, size_t len = -1) : ptr_((char *)ptr), len_(len) {
                 if (ptr == nullptr) {
                     end_mark_ = true;
                 }
@@ -455,10 +451,9 @@ namespace iguana { namespace json
             }
 
             inline void fill_escape_char(size_t count, char c) {
-                //            if (count == 0)
-                //                return;
-                //
-                //           ptr_[cur_offset_ - count] = c;
+				if (count == 0)
+					return;
+				ptr_[cur_offset_ - count] = c;
             }
 
             char table[103] = {
@@ -528,68 +523,89 @@ namespace iguana { namespace json
                 }
             }
 
-            void parser_quote_string() {
-                take();
-                cur_tok_.str.str = ptr_ + cur_offset_;
-                auto c = read();
-                size_t esc_count = 0;
-                do {
-                    switch (c) {
-                        case 0:
-                        case '\n': {
-                            error("not a valid quote string!");
-                            break;
-                        }
-                        case '\\': {
-                            take();
-                            c = read();
-                            switch (c) {
-                                case 'b': {
-                                    c = '\b';
-                                    break;
-                                }
-                                case 'f': {
-                                    c = '\f';
-                                    break;
-                                }
-                                case 'n': {
-                                    c = '\n';
-                                    break;
-                                }
-                                case 'r': {
-                                    c = '\r';
-                                    break;
-                                }
-                                case 't': {
-                                    c = '\t';
-                                    break;
-                                }
-                                case '"': {
-                                    break;
-                                }
-                                case 'u': {
-                                    take();
-                                    esacpe_utf8(esc_count);
-                                    continue;
-                                }
-                                default: {
-                                    error("unknown escape char!");
-                                }
-                            }
-                            ++esc_count;
-                            break;
-                        }
-                        case '"': {
-                            cur_tok_.str.len = ptr_ + cur_offset_ - esc_count - cur_tok_.str.str;
-                            take();
-                            return;
-                        }
-                    }
-                    fill_escape_char(esc_count, c);
-                    take();
-                    c = read();
-                } while (true);
-            }
+			void parser_quote_string()
+			{
+				take();
+				cur_tok_.str.str = ptr_ + cur_offset_;
+				auto c = read();
+				size_t esc_count = 0;
+				do
+				{
+					switch (c)
+					{
+					case 0:
+					case '\n':
+					{
+						error("not a valid quote string!");
+						break;
+					}
+					case '\\':
+					{
+						take();
+						c = read();
+						switch (c)
+						{
+						case '/':
+						{
+							c = '/';
+							break;
+						}
+						case 'b':
+						{
+							c = '\b';
+							break;
+						}
+						case 'f':
+						{
+							c = '\f';
+							break;
+						}
+						case 'n':
+						{
+							c = '\n';
+							break;
+						}
+						case 'r':
+						{
+							c = '\r';
+							break;
+						}
+						case 't':
+						{
+							c = '\t';
+							break;
+						}
+						case '"':
+						{
+							break;
+						}
+						case 'u':
+						{
+							take();
+							esacpe_utf8(esc_count);
+							c = read();
+							continue;
+						}
+						default:
+						{
+							error("unknown escape char!");
+						}
+						}
+						++esc_count;
+						break;
+					}
+					case '"':
+					{
+						cur_tok_.str.len = ptr_ + cur_offset_ - esc_count - cur_tok_.str.str;
+						take();
+						return;
+					}
+					}
+					fill_escape_char(esc_count, c);
+					take();
+					c = read();
+				} while (true);
+			}
 
 			void parser_string()
 			{
@@ -734,7 +750,7 @@ namespace iguana { namespace json
             size_t len_ = 0;
             size_t cur_offset_ = 0;
             bool end_mark_ = false;
-            const char *ptr_;
+            char *ptr_;
             double decimal = 0.1;
         };
 
