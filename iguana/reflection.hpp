@@ -144,7 +144,7 @@ namespace iguana::detail {
 #define MAKE_ARG_LIST_119(op, arg, ...)  op(arg), MARCO_EXPAND(MAKE_ARG_LIST_118(op, __VA_ARGS__))
 #define MAKE_ARG_LIST_120(op, arg, ...)  op(arg), MARCO_EXPAND(MAKE_ARG_LIST_119(op, __VA_ARGS__))
 
-#define ADD_VIEW(str) std::string_view(#str, sizeof(#str))
+#define ADD_VIEW(str) std::string_view(#str, sizeof(#str)-1)
 
 #define SEPERATOR ,
 #define CON_STR_1(element, ...) ADD_VIEW(element)
@@ -326,7 +326,7 @@ auto iguana_reflect_members(STRUCT_NAME const&) \
         }\
         using type = void;\
         using size_type = std::integral_constant<size_t, GET_ARG_COUNT(__VA_ARGS__)>; \
-        constexpr static std::string_view name() { return std::string_view(#STRUCT_NAME, sizeof(#STRUCT_NAME)); }\
+        constexpr static std::string_view name() { return std::string_view(#STRUCT_NAME, sizeof(#STRUCT_NAME)-1); }\
         constexpr static size_t value() { return size_type::value; }\
         constexpr static std::array<std::string_view, size_type::value> arr() { return arr_##STRUCT_NAME; }\
     }; \
