@@ -452,7 +452,7 @@ MAKE_META_DATA(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)
         constexpr auto arr = M::arr();
 
         auto it = std::find_if(arr.begin(), arr.end(), [name](auto str){
-            return (str.substr(0, str.length()-1)==name);
+            return (str==name);
         });
 
         return std::distance(arr.begin(), it);
@@ -483,5 +483,13 @@ MAKE_META_DATA(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)
         using M = decltype(iguana_reflect_members(std::forward<T>(t)));
         for_each(M::apply_impl(), std::forward<F>(f), std::make_index_sequence<M::value()>{});
     }
+
+	template<typename T, typename F>
+	constexpr std::enable_if_t<is_tuple<std::decay_t<T>>::value> for_each(T&& t, F&& f)
+	{
+		//using M = decltype(iguana_reflect_members(std::forward<T>(t)));
+		constexpr const size_t SIZE = std::tuple_size_v<std::decay_t<T>>;
+		for_each(std::forward<T>(t), std::forward<F>(f), std::make_index_sequence<SIZE>{});
+	}
 }
 #endif //IGUANA_REFLECTION_HPP
