@@ -215,31 +215,23 @@ namespace iguana { namespace json
             struct string_ref {
                 char const *str;
                 size_t len;
+				bool operator == (string_ref const& rhs) const
+				{
+					if (len == rhs.len)
+					{
+						return std::memcmp(str, rhs.str, len) == 0;
+					}
+					return false;
+				}
 
-                int length() const {
-                    auto size = len;
-                    for (size_t i = 0; i < len; ++i) {
-                        if (str[i] == 92 || str[i] == 116 || str[i] == 50)
-                            size -= 1;
-                    }
-
-                    return static_cast<int>(size);
-                }
-
-                bool operator!=(const char *data) const {
-                    auto const str_length = strlen(data);
-                    if (len != str_length) {
-                        if (length() != str_length)
-                            return true;
-                    }
-
-                    for (size_t i = 0; i < str_length; ++i) {
-                        if (str[i] != data[i]) {
-                            return true;
-                        }
-                    }
-                    return false;
-                }
+				bool operator != (std::string_view rhs) const
+				{
+					if (len == rhs.length())
+					{
+						return std::memcmp(str, rhs.data(), len) != 0;
+					}
+					return false;
+				}
             };
         }
 
