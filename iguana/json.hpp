@@ -1206,7 +1206,7 @@ namespace iguana { namespace json
             constexpr auto Size = M::value();
             for (size_t j = 0; j < Count; ++j) {
                 rd.next();
-                std::string_view s(rd.peek().str.str, rd.peek().str.length());
+                std::string_view s(rd.peek().str.str, rd.peek().str.len);
                 auto index = iguana::get_index<T>(s);
                 if(index==Size){
                     g_has_error = true;
