@@ -186,6 +186,20 @@ namespace iguana { namespace json
 			s.put(']');
 		}
 
+		template<typename Stream, typename T>
+		constexpr auto to_json(Stream& s, T&& t)->std::enable_if_t<is_tuple<std::decay_t<T>>::value> {
+			using U = typename std::decay_t<T>;
+			s.put('[');
+			const size_t size = std::tuple_size_v<U>;
+			for_each(std::forward<T>(t), [&s, size](auto& v, auto i) {
+				render_json_value(s, v);
+
+				if (i != size - 1)
+					s.put(',');
+			});
+			s.put(']');
+		}
+
         template<typename Stream, typename T>
         constexpr auto to_json(Stream& s, T &&t) -> std::enable_if_t<is_reflection<T>::value>
         {
@@ -1167,6 +1181,38 @@ namespace iguana { namespace json
         }
 
 		template<typename T>
+		inline constexpr std::enable_if_t<is_tuple<std::decay_t<T>>::value, bool>
+			from_json(T&& t, const char *buf, size_t len = -1) {
+			using U = std::decay_t<T>;
+			g_has_error = false;
+			reader_t rd(buf, len);
+			rd.next();
+			for_each(std::forward<T>(t), [&rd](auto &v, auto i)
+			{
+				assign<decltype(v)>(rd, v);
+			});
+			return !g_has_error;
+		}
+
+		template<typename U, typename T>
+		inline void assign(reader_t& rd, T& t) {
+			if constexpr (!is_reflection<U>::value)
+			{
+				read_json(rd, t);
+			}
+			else
+			{
+				do_read(rd, t);
+				rd.next();
+			}
+
+			if (g_has_error)
+				return;
+
+			rd.next();
+		}
+
+		template<typename T>
 		inline constexpr std::enable_if_t<is_sequence_container<std::decay_t<T>>::value, bool> 
 			from_json(T&& v, const char *buf, size_t len = -1) {
 			using U = typename std::decay_t<T>::value_type;
@@ -1175,21 +1221,8 @@ namespace iguana { namespace json
 			rd.next();
 			while (rd.peek().type != token::t_end)
 			{
-				if constexpr (!is_reflection<U>::value)
-				{
-					read_json(rd, t);
-				}
-				else
-				{
-					do_read(rd, t);
-					rd.next();
-				}
-
-				if (g_has_error)
-					return false;
-
+				assign<U>(rd, t);
 				v.push_back(std::move(t));
-				rd.next();
 			}
 			
 			return true;
