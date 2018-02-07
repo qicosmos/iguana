@@ -166,13 +166,20 @@ namespace iguana { namespace json
         };
 
 		template<typename Stream, typename T>
-		constexpr auto to_json(Stream& s, const std::vector<T>& v)->std::enable_if_t<is_reflection<T>::value>
+		constexpr auto to_json(Stream& s, T&& v)->std::enable_if_t<is_sequence_container<std::decay_t<T>>::value>
 		{
+			using U = typename std::decay_t<T>::value_type;
 			s.put('[');
 			const size_t size = v.size();
 			for (size_t i = 0; i < size; i++)
 			{
-				to_json(s, v[i]);
+				if constexpr(is_reflection_v<U>) {
+					to_json(s, v[i]);
+				}
+				else {
+					render_json_value(s, v[i]);
+				}
+				
 				if(i!= size-1)
 					s.put(',');
 			}
@@ -230,7 +237,7 @@ namespace iguana { namespace json
 					{
 						return std::memcmp(str, rhs.data(), len) != 0;
 					}
-					return false;
+					return true;
 				}
             };
         }
@@ -1126,8 +1133,8 @@ namespace iguana { namespace json
             rd.next();
         }
 
-        template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-        constexpr void do_read(reader_t &rd, T &&t)
+        template<typename T>
+		inline constexpr std::enable_if_t<is_reflection_v<T>> do_read(reader_t &rd, T &&t)
         {
             for_each(std::forward<T>(t), [&t, &rd](const auto &v,  auto i)
             {
@@ -1159,28 +1166,37 @@ namespace iguana { namespace json
             });
         }
 
-		template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-		inline constexpr bool from_json(std::vector<T>& v, const char *buf, size_t len = -1) {
-			g_has_error = false;
-			T t{};
+		template<typename T>
+		inline constexpr std::enable_if_t<is_sequence_container<std::decay_t<T>>::value, bool> 
+			from_json(T&& v, const char *buf, size_t len = -1) {
+			using U = typename std::decay_t<T>::value_type;
+			U t{};
 			reader_t rd(buf, len);
 			rd.next();
 			while (rd.peek().type != token::t_end)
 			{
-				do_read(rd, t);
+				if constexpr (!is_reflection<U>::value)
+				{
+					read_json(rd, t);
+				}
+				else
+				{
+					do_read(rd, t);
+					rd.next();
+				}
+
 				if (g_has_error)
 					return false;
 
 				v.push_back(std::move(t));
-				rd.next();
 				rd.next();
 			}
 			
 			return true;
 		}
 
-        template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-        inline constexpr bool from_json(T &&t, const char *buf, size_t len = -1) {
+        template<typename T>
+        inline constexpr std::enable_if_t<is_reflection_v<T>, bool> from_json(T &&t, const char *buf, size_t len = -1) {
             g_has_error = false;
             reader_t rd(buf, len);
             do_read(rd, t);
