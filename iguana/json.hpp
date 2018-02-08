@@ -1180,20 +1180,6 @@ namespace iguana { namespace json
             });
         }
 
-		template<typename T>
-		inline constexpr std::enable_if_t<is_tuple<std::decay_t<T>>::value, bool>
-			from_json(T&& t, const char *buf, size_t len = -1) {
-			using U = std::decay_t<T>;
-			g_has_error = false;
-			reader_t rd(buf, len);
-			rd.next();
-			for_each(std::forward<T>(t), [&rd](auto &v, auto i)
-			{
-				assign<decltype(v)>(rd, v);
-			});
-			return !g_has_error;
-		}
-
 		template<typename U, typename T>
 		inline void assign(reader_t& rd, T& t) {
 			if constexpr (!is_reflection<U>::value)
@@ -1210,6 +1196,20 @@ namespace iguana { namespace json
 				return;
 
 			rd.next();
+		}
+
+		template<typename T>
+		inline constexpr std::enable_if_t<is_tuple<std::decay_t<T>>::value, bool>
+			from_json(T&& t, const char *buf, size_t len = -1) {
+			using U = std::decay_t<T>;
+			g_has_error = false;
+			reader_t rd(buf, len);
+			rd.next();
+			for_each(std::forward<T>(t), [&rd](auto &v, auto i)
+			{
+				assign<decltype(v)>(rd, v);
+			});
+			return !g_has_error;
 		}
 
 		template<typename T>
