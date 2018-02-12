@@ -106,7 +106,7 @@ Then call the simple interface:
 ### Full sources:
 
 
-- https://github.com/qicosmos/iguana/blob/master/example.cpp
+- https://github.com/qicosmos/iguana/blob/master/example/example.cpp
 
 ### F.A.Q
 
