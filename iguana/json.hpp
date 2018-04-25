@@ -1274,7 +1274,7 @@ namespace iguana { namespace json
 
                         rd.next();
                         rd.next();
-                        do_read(rd, t.*v);
+                        do_read0(rd, t.*v);
                         rd.next();
                     }
                 }, std::make_index_sequence<Size>{});
