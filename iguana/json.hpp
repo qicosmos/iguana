@@ -274,7 +274,7 @@ namespace iguana { namespace json
             bool neg = false;
         };
 
-        bool g_has_error = false;
+        static bool g_has_error = false;
         class reader_t {
         public:
             reader_t(const char *ptr = nullptr, size_t len = -1) : ptr_((char *)ptr), len_(len) {
