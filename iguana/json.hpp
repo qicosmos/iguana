@@ -852,7 +852,7 @@ namespace iguana { namespace json
 
         template<typename T>
         void check_result(T val, char const *str){
-            if(val==0&&str!="0"){
+            if(val == 0 && strcmp(str,"0") != 0){
                 g_has_error = true;
             }
         }
@@ -1005,7 +1005,7 @@ namespace iguana { namespace json
                 }
                 case token::t_number:
                 {
-                    val = (tok.value.d64 != 0.0);
+                    val = fabs(tok.value.d64) > 0.000001;
                     break;
                 }
                 default:
