@@ -266,7 +266,7 @@ namespace iguana::xml {
                 return true;
             }
 
-            static const size_t xml_header_length = detail::array_size<decltype(IGUANA_XML_HEADER)>::value;
+            static const size_t xml_header_length = detail::array_size<decltype(IGUANA_XML_HEADER)>::value - 1;
 
         private:
             char const*	buffer_;
