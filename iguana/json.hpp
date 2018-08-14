@@ -633,7 +633,7 @@ namespace iguana { namespace json
 					case 0:
 					{
 						error("not a valid string!");
-						break;
+                        return;
 					}
 					case '\\':
 					{
@@ -852,7 +852,7 @@ namespace iguana { namespace json
 
         template<typename T>
         void check_result(T val, char const *str){
-            if(val==0&&str!="0"){
+            if(val == 0 && strcmp(str,"0") != 0){
                 g_has_error = true;
             }
         }
@@ -972,6 +972,7 @@ namespace iguana { namespace json
             rd.next();
         }
 
+#define MIN_NUMBER_VALUE 1e-8
         inline void read_json(reader_t &rd, bool &val)
         {
             auto& tok = rd.peek();
@@ -1005,7 +1006,7 @@ namespace iguana { namespace json
                 }
                 case token::t_number:
                 {
-                    val = (tok.value.d64 != 0.0);
+                val = fabs(tok.value.d64) > MIN_NUMBER_VALUE;
                     break;
                 }
                 default:
