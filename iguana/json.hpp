@@ -633,7 +633,7 @@ namespace iguana { namespace json
 					case 0:
 					{
 						error("not a valid string!");
-						break;
+                        return;
 					}
 					case '\\':
 					{

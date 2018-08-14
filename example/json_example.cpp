@@ -137,5 +137,12 @@ int main(void)
     iguana::json::from_json0(p2, json_str.data(), json_str.length()); //no limitation, but slower
 
 	std::cout << p2.name << " - " << p2.age << std::endl;
-	return 0;
+	
+
+    // 测试异常数据,之前的版本会在do.while中死循环
+    client::person p3;
+    json_str = "unknownType";
+    bool bOK = iguana::json::from_json0(p3, json_str.data(), json_str.length()); //no limitation, but slower
+
+    return 0;
 }
