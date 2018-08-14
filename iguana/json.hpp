@@ -972,6 +972,7 @@ namespace iguana { namespace json
             rd.next();
         }
 
+#define MIN_NUMBER_VALUE 1e-8
         inline void read_json(reader_t &rd, bool &val)
         {
             auto& tok = rd.peek();
@@ -1005,7 +1006,7 @@ namespace iguana { namespace json
                 }
                 case token::t_number:
                 {
-                    val = fabs(tok.value.d64) > 0.000001;
+                val = fabs(tok.value.d64) > MIN_NUMBER_VALUE;
                     break;
                 }
                 default:
