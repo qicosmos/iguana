@@ -1215,6 +1215,7 @@ namespace iguana { namespace json
 		template<typename T>
 		inline constexpr std::enable_if_t<is_sequence_container<std::decay_t<T>>::value, bool> 
 			from_json(T&& v, const char *buf, size_t len = -1) {
+			v.clear();
 			using U = typename std::decay_t<T>::value_type;
 			U t{};
 			reader_t rd(buf, len);
