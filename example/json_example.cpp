@@ -1,4 +1,5 @@
 #include <iguana/json.hpp>
+#include <assert.h>
 //#include <boost/timer.hpp>
 
 namespace client
@@ -7,6 +8,11 @@ namespace client
 	{
 		std::string	name;
 		int64_t		 age;
+
+        bool operator == (const person& p) const
+        {
+            return name == p.name && age == p.age;
+        }
 	};
 
 	REFLECTION(person, name, age);
@@ -99,6 +105,27 @@ void test_v()
 
 	std::vector<client::person> v1;
 	iguana::json::from_json(v1, json_str.data(), json_str.length());
+
+    assert(v == v1);
+
+    // 测试嵌套的数据
+    client::person allPerson;
+    allPerson.age = 20 + 19 + 21;
+    allPerson.name = json_str; // vector<>转换过来的json字符串
+    
+    ss.clear();
+    iguana::json::to_json(ss, allPerson);
+    json_str = ss.str();
+    std::cout << json_str << std::endl;
+
+    client::person allPerson2;
+    iguana::json::from_json(allPerson2, json_str.data(), json_str.length());
+    assert(allPerson2 == allPerson);
+
+
+    // bug: 有重复的记录
+    iguana::json::from_json(v1, allPerson2.name.data(), allPerson2.name.length());
+    assert(v == v1);
 }
 
 void test_disorder()
