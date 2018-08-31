@@ -1087,7 +1087,9 @@ namespace iguana { namespace json
             }
             rd.next();
             auto tok = &rd.peek();
-            while (tok->str.str[0] != ']') {
+
+            // 如果格式不对，这里会进入死循环，建议  加上一个条件 !g_has_error
+            while (tok->str.str[0] != ']'/* && !g_has_error*/) {
                 emplace_back(val);
                 read_json(rd, val.back());
                 tok = &rd.peek();
