@@ -6,7 +6,7 @@
 #define SERIALIZE_JSON_HPP
 #include <string.h>
 #include "reflection.hpp" //test c++17 version
-
+#include <iostream>
 namespace iguana { namespace json
     {
         template<typename InputIt, typename T, typename F>
@@ -306,13 +306,16 @@ namespace iguana { namespace json
 
             inline void error(const char *message)  {
                 g_has_error = true;
-//                char buffer[20];
-//                std::string msg = "error at line :";
-//                msg += itoa_native(cur_line_, buffer, 19);
-//                msg += " col :";
-//                msg += itoa_native(cur_col_, buffer, 19);
-//                msg += " msg:";
-//                msg += message;
+#ifdef _DEBUG
+                char buffer[20];
+                std::string msg = "error at line :";
+                msg += itoa_native(cur_line_, buffer, 19);
+                msg += " col :";
+                msg += itoa_native(cur_col_, buffer, 19);
+                msg += " msg:";
+                msg += message;
+                std::cout<< msg << std::endl;
+#endif
 //                throw std::invalid_argument(msg);
             }
 
