@@ -550,7 +550,7 @@ namespace iguana { namespace json
 					case '\n':
 					{
 						error("not a valid quote string!");
-						break;
+						return;
 					}
 					case '\\':
 					{
@@ -1223,6 +1223,9 @@ namespace iguana { namespace json
 			rd.next();
 			while (rd.peek().type != token::t_end)
 			{
+				if (g_has_error)
+					return false;
+
 				assign<U>(rd, t);
 				v.push_back(std::move(t));
 			}
