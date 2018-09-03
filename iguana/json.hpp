@@ -1258,16 +1258,24 @@ namespace iguana { namespace json
 
             auto tp = M::apply_impl();
             constexpr auto Size = M::value();
-            for (size_t j = 0; j < Count; ++j) {
+
+            while(rd.peek().type != token::t_end) {
                 rd.next();
-                std::string_view s(rd.peek().str.str, rd.peek().str.len);
+				auto& tk = rd.peek();
+
+                std::string_view s(tk.str.str, tk.str.len);
                 auto index = iguana::get_index<T>(s);
                 if(index==Size){
-                    g_has_error = true;
-                    break;
+					if (tk.type == token::t_end)
+						break;
+
+					rd.next();
+					rd.next();
+					rd.next();
+                    continue;
                 }
 
-                tuple_switch(index, tp, [&t, &rd, j](auto &v) {
+                tuple_switch(index, tp, [&t, &rd](auto &v) {
                     if constexpr (!is_reflection<decltype(t.*v)>::value)
                     {
                         rd.next();
@@ -1276,7 +1284,6 @@ namespace iguana { namespace json
                     }
                     else
                     {
-
                         rd.next();
                         rd.next();
                         do_read0(rd, t.*v);
