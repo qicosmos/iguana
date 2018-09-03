@@ -602,6 +602,7 @@ namespace iguana { namespace json
 						default:
 						{
 							error("unknown escape char!");
+							return;
 						}
 						}
 						++esc_count;
