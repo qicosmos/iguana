@@ -268,3 +268,36 @@ namespace iguana
 
 // simulate the new reflexpr keyword
 #define reflexpr(x) iguana::reflect_info<std::remove_const_t<std::remove_reference_t<decltype(x)>>>
+
+// iguana lagacy
+namespace iguana
+{
+    template<typename T>
+    constexpr auto get_index(std::string_view name)
+    {
+        //using M = decltype(iguana_reflect_members(std::declval<T>()));
+        //constexpr auto arr = M::arr();
+        using reflect_info_t = reflect_info<std::remove_cv_t<std::remove_reference_t<T>>>;
+        constexpr auto arr = reflect_info_t::mdata_names();
+
+        auto it = std::find_if(arr.begin(), arr.end(), [name](auto str) {
+            return (str == name);
+        });
+
+        return std::distance(arr.begin(), it);
+    }
+
+    template <typename T>
+    constexpr size_t get_size() noexcept
+    {
+        using reflect_info_t = reflect_info<std::remove_cv_t<std::remove_reference_t<T>>>;
+        return reflect_info_t::mdata_count;
+    }
+
+    template <typename T>
+    constexpr auto get_mdata() noexcept
+    {
+        using reflect_info_t = reflect_info<std::remove_cv_t<std::remove_reference_t<T>>>;
+        return reflect_info_t::mdata();
+    }
+}

@@ -1218,6 +1218,11 @@ namespace iguana { namespace json
             T&          t_;
         };
 
+        template <class Tuple, class F, std::size_t...Is>
+        void tuple_switch(std::size_t i, Tuple&& t, F&& f, std::index_sequence<Is...>) {
+            ((i == Is && ((std::forward<F>(f)(std::get<Is>(t))), false)), ...);
+        }
+
         template<typename T>
 		inline constexpr std::enable_if_t<is_reflected_v<std::remove_reference_t<T>>> do_read(reader_t &rd, T &&t)
         {
@@ -1226,7 +1231,7 @@ namespace iguana { namespace json
 
 		template<typename U, typename T>
 		inline void assign(reader_t& rd, T& t) {
-			if constexpr (!is_reflection<U>::value)
+			if constexpr (!is_reflected_v<U>)
 			{
 				read_json(rd, t);
 			}
@@ -1301,19 +1306,13 @@ namespace iguana { namespace json
         constexpr auto do_read0(reader_t &rd, T &&t)
             -> std::enable_if_t<is_reflected_v<std::remove_reference_t<T>>>
         {
-            using M = decltype(iguana_reflect_members(std::forward<T>(t)));
-            constexpr auto Count = M::value();
-
-            auto tp = M::apply_impl();
-            constexpr auto Size = M::value();
-
             while(rd.peek().type != token::t_end) {
                 rd.next();
 				auto& tk = rd.peek();
 
                 std::string_view s(tk.str.str, tk.str.len);
                 auto index = iguana::get_index<T>(s);
-                if(index==Size){
+                if(index==iguana::get_size<T>()){
 					if (tk.type == token::t_end)
 						break;
 
@@ -1323,8 +1322,8 @@ namespace iguana { namespace json
                     continue;
                 }
 
-                tuple_switch(index, tp, [&t, &rd](auto &v) {
-                    if constexpr (!is_reflection<decltype(t.*v)>::value)
+                tuple_switch(index, iguana::get_mdata<T>(), [&t, &rd](auto &v) {
+                    if constexpr (!is_reflected_v<std::remove_reference_t<decltype(t.*v)>>)
                     {
                         rd.next();
                         rd.next();
@@ -1337,7 +1336,7 @@ namespace iguana { namespace json
                         do_read0(rd, t.*v);
                         rd.next();
                     }
-                }, std::make_index_sequence<Size>{});
+                }, std::make_index_sequence<iguana::get_size<T>()>{});
             }
         }
     } }
