@@ -8,15 +8,15 @@ namespace client
 		std::string	name;
 		int64_t		 age;
 	};
-
-	REFLECTION(person, name, age);
 }
+
+IGUANA_REFLECT(client::person, IGUANA_MDATA(name, age));
 
 struct MyStruct
 {
 	uint64_t a;
 };
-REFLECTION(MyStruct, a);
+IGUANA_REFLECT(MyStruct, IGUANA_MDATA(a));
 
 struct student
 {
@@ -24,7 +24,7 @@ struct student
 	std::string name;
 	int age;
 };
-REFLECTION(student, id, name, age);
+IGUANA_REFLECT(student, IGUANA_MDATA(id, name, age));
 
 void test()
 {

@@ -5,10 +5,25 @@
 #ifndef SERIALIZE_JSON_HPP
 #define SERIALIZE_JSON_HPP
 #include <string.h>
-#include "reflection.hpp" //test c++17 version
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <tuple>
+#include <iomanip>
+#include <map>
+#include <vector>
+#include <array>
+#include <type_traits>
+#include <functional>
+#include <string_view>
+//#include "reflection.hpp" //test c++17 version
+#include "detail/itoa.hpp"
+#include "detail/traits.hpp"
+#include "detail/string_stream.hpp"
+#include "reflection_new.hpp"
 
 namespace iguana { namespace json
-    {
+{
         template<typename InputIt, typename T, typename F>
         T join(InputIt first, InputIt last, const T &delim, const F &f) {
             if (first == last)
@@ -98,10 +113,10 @@ namespace iguana { namespace json
         }
 
         template<typename Stream, typename T>
-        constexpr auto to_json(Stream& ss, T &&t) -> std::enable_if_t<is_reflection<T>::value>;
+        constexpr auto to_json(Stream& ss, T &&t) -> std::enable_if_t<is_reflected_v<std::remove_reference_t<T>>>;
 
         template<typename Stream, typename T>
-        auto render_json_value(Stream& ss, T &&t) -> std::enable_if_t<is_reflection<T>::value>
+        auto render_json_value(Stream& ss, T &&t) -> std::enable_if_t<is_reflected_v<std::remove_reference_t<T>>>
         {
             to_json(ss, std::forward<T>(t));
         }
@@ -158,12 +173,12 @@ namespace iguana { namespace json
             ss.put(']');
         }
 
-        constexpr auto write_json_key = [](auto& s, auto i, auto& t){
+        /*constexpr auto write_json_key = [](auto& s, auto i, auto& t){
             s.put('"');
             auto name = get_name<decltype(t), decltype(i)::value>(); //will be replaced by string_view later
             s.write(name.data(), name.length());
             s.put('"');
-        };
+        };*/
 
 		template<typename Stream, typename T>
 		constexpr auto to_json(Stream& s, T&& v)->std::enable_if_t<is_sequence_container<std::decay_t<T>>::value>
@@ -173,7 +188,7 @@ namespace iguana { namespace json
 			const size_t size = v.size();
 			for (size_t i = 0; i < size; i++)
 			{
-				if constexpr(is_reflection_v<U>) {
+				if constexpr(is_reflected_v<U>) {
 					to_json(s, v[i]);
 				}
 				else {
@@ -200,32 +215,45 @@ namespace iguana { namespace json
 			s.put(']');
 		}
 
+        // forward
         template<typename Stream, typename T>
-        constexpr auto to_json(Stream& s, T &&t) -> std::enable_if_t<is_reflection<T>::value>
+        constexpr auto to_json(Stream& s, T &&t)->std::enable_if_t<is_reflected_v<std::remove_reference_t<T>>>;
+
+        template <typename Stream, typename T>
+        struct write_visitor_t
         {
-            s.put('{');
-            for_each(std::forward<T>(t), [&t, &s](const auto &v,  auto i)
+            write_visitor_t(Stream& s, T const& t) : s_(s), t_(t) {}
+
+            template <typename PMD, typename Arr>
+            void visit_mdata(std::string_view name, PMD pmd, size_t index, Arr names)
             {
-                using M = decltype(iguana_reflect_members(std::forward<T>(t)));
-                constexpr auto Idx = decltype(i)::value;
-                constexpr auto Count = M::value();
-                static_assert(Idx<Count);
+                s_.write(name.data(), name.length());
+                s_.put(':');
 
-                write_json_key(s, i, t);
-                s.put(':');
-
-                if constexpr (!is_reflection<decltype(v)>::value)
+                using element_type = std::remove_reference_t<decltype(t_.*pmd)>;
+                if constexpr (is_reflected_v<element_type>)
                 {
-                    render_json_value(s, t.*v);
+                    to_json(s_, t_.*pmd);
                 }
                 else
                 {
-                    to_json(s, t.*v);
+                    render_json_value(s_, t_.*pmd);
                 }
 
-                if(Idx<Count-1)
-                    s.put(',');
-            });
+                if (index < names.size() - 1)
+                    s_.put(',');
+            }
+
+        private:
+            Stream& s_;
+            T const& t_;
+        };
+
+        template<typename Stream, typename T>
+        constexpr auto to_json(Stream& s, T &&t) -> std::enable_if_t<is_reflected_v<std::remove_reference_t<T>>>
+        {
+            s.put('{');
+            reflect_visit(reflexpr(t) {}, write_visitor_t{ s, t });
             s.put('}');
         }
 
@@ -1143,48 +1171,67 @@ namespace iguana { namespace json
             rd.next();
         }
 
-        template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
+        template<typename T, typename = std::enable_if_t<is_reflected_v<std::remove_reference_t<T>>>>
         inline void read_json(reader_t &rd, T &val) {
             do_read(rd, val);
             rd.next();
         }
 
-        template<typename T>
-		inline constexpr std::enable_if_t<is_reflection_v<T>> do_read(reader_t &rd, T &&t)
+        template <typename T>
+        struct read_visitor_t
         {
-            for_each(std::forward<T>(t), [&t, &rd](const auto &v,  auto i)
+            read_visitor_t(reader_t& rd, T& t)
+                : rd_(rd)
+                , t_(t)
             {
-                using M = decltype(iguana_reflect_members(std::forward<T>(t)));
-                constexpr auto Idx = decltype(i)::value;
-                constexpr auto Count = M::value();
-                static_assert(Idx<Count);
+                static_assert(!std::is_const_v<T>);
+            }
 
-                if constexpr (!is_reflection<decltype(t.*v)>::value)
+            template <typename PMD, typename Arr>
+            void visit_mdata(std::string_view name, PMD pmd, size_t index, Arr names)
+            {
+                using element_type = std::remove_reference_t<decltype(t_.*pmd)>;
+                if constexpr (is_reflected_v<element_type>)
                 {
-                    rd.next();
-                    if (rd.peek().str != get_name<T, Idx>().data()){
+                    rd_.next();
+                    rd_.next();
+                    rd_.next();
+                    do_read(rd_, t_.*pmd);
+                    rd_.next();
+                }
+                else
+                {
+                    rd_.next();
+                    if (rd_.peek().str != name.data()) {
                         g_has_error = true;
                         return;
                     }
 
-                    rd.next();
-                    rd.next();
-                    read_json(rd, t.*v);
+                    rd_.next();
+                    rd_.next();
+                    read_json(rd_, t_.*pmd);
                 }
-                else
-                {
-                    rd.next();
-                    rd.next();
-                    rd.next();
-                    do_read(rd, t.*v);
-                    rd.next();
-                }
-            });
+            }
+
+        private:
+            reader_t&   rd_;
+            T&          t_;
+        };
+
+        template <class Tuple, class F, std::size_t...Is>
+        void tuple_switch(std::size_t i, Tuple&& t, F&& f, std::index_sequence<Is...>) {
+            ((i == Is && ((std::forward<F>(f)(std::get<Is>(t))), false)), ...);
+        }
+
+        template<typename T>
+		inline constexpr std::enable_if_t<is_reflected_v<std::remove_reference_t<T>>> do_read(reader_t &rd, T &&t)
+        {
+            reflect_visit(reflexpr(t) {}, read_visitor_t{ rd, t });
         }
 
 		template<typename U, typename T>
 		inline void assign(reader_t& rd, T& t) {
-			if constexpr (!is_reflection<U>::value)
+			if constexpr (!is_reflected_v<U>)
 			{
 				read_json(rd, t);
 			}
@@ -1235,7 +1282,9 @@ namespace iguana { namespace json
 		}
 
         template<typename T>
-        inline constexpr std::enable_if_t<is_reflection_v<T>, bool> from_json(T &&t, const char *buf, size_t len = -1) {
+        inline constexpr auto from_json(T &&t, const char *buf, size_t len = -1) 
+            -> std::enable_if_t< is_reflected_v<std::remove_reference_t<T>>, bool>
+        {
             g_has_error = false;
             reader_t rd(buf, len);
             do_read(rd, t);
@@ -1243,30 +1292,27 @@ namespace iguana { namespace json
         }
 
         //this interface support disorderly parse, however slower than from_json interface
-        template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-        inline constexpr bool from_json0(T &&t, const char *buf, size_t len = -1) {
+        template<typename T>
+        inline constexpr auto from_json0(T &&t, const char *buf, size_t len = -1) 
+            -> std::enable_if_t< is_reflected_v<std::remove_reference_t<T>>, bool>
+        {
             g_has_error = false;
             reader_t rd(buf, len);
             do_read0(rd, t);
             return !g_has_error;
         }
 
-        template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-        constexpr void do_read0(reader_t &rd, T &&t)
+        template<typename T>
+        constexpr auto do_read0(reader_t &rd, T &&t)
+            -> std::enable_if_t<is_reflected_v<std::remove_reference_t<T>>>
         {
-            using M = decltype(iguana_reflect_members(std::forward<T>(t)));
-            constexpr auto Count = M::value();
-
-            auto tp = M::apply_impl();
-            constexpr auto Size = M::value();
-
             while(rd.peek().type != token::t_end) {
                 rd.next();
 				auto& tk = rd.peek();
 
                 std::string_view s(tk.str.str, tk.str.len);
                 auto index = iguana::get_index<T>(s);
-                if(index==Size){
+                if(index==iguana::get_size<T>()){
 					if (tk.type == token::t_end)
 						break;
 
@@ -1276,8 +1322,8 @@ namespace iguana { namespace json
                     continue;
                 }
 
-                tuple_switch(index, tp, [&t, &rd](auto &v) {
-                    if constexpr (!is_reflection<decltype(t.*v)>::value)
+                tuple_switch(index, iguana::get_mdata<T>(), [&t, &rd](auto &v) {
+                    if constexpr (!is_reflected_v<std::remove_reference_t<decltype(t.*v)>>)
                     {
                         rd.next();
                         rd.next();
@@ -1290,7 +1336,7 @@ namespace iguana { namespace json
                         do_read0(rd, t.*v);
                         rd.next();
                     }
-                }, std::make_index_sequence<Size>{});
+                }, std::make_index_sequence<iguana::get_size<T>()>{});
             }
         }
     } }
