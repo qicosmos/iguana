@@ -9,10 +9,6 @@ namespace iguana
     template <typename T>
     struct reflect_info 
     {
-        static char const* name() noexcept
-        {
-            return typeid(T).name();
-        }
     };
 }
 
@@ -54,6 +50,12 @@ namespace iguana
     using disable_if = std::enable_if<!Test, T>;
     template <bool Test, typename T = void>
     using disable_if_t = typename disable_if<Test, T>::type;
+
+    struct swallow_t
+    {
+        template <typename ... Args>
+        swallow_t(Args ...) {};
+    };
 }
 
 /* non-static member function */
@@ -146,17 +148,17 @@ static constexpr size_t ctor_count = N;
 /* MAIN entry */
 #define IGUANA_REFLECT_1(c)                                               \
 template<> struct iguana::reflect_info<c> {                               \
-    static constexpr std::string_view name() noexcept { return #c; }    \
+    static constexpr std::string_view name() noexcept { return #c; }      \
 };
 #define IGUANA_REFLECT_2(c, seq)                                          \
 template<> struct iguana::reflect_info<c> {                               \
-    static constexpr std::string_view name() noexcept { return #c; }    \
+    static constexpr std::string_view name() noexcept { return #c; }      \
     BOOST_PP_SEQ_FOR_EACH(IGUANA_APPLY_PROCESS, c, seq)                   \
 };
 #define IGUANA_REFLECT(...) IGUANA_APPLY_MACRO(BOOST_PP_OVERLOAD(IGUANA_REFLECT_, __VA_ARGS__)(__VA_ARGS__))
 
 /* useful mpl */
-#define IGUANA_TMP_HAS(CAT)                                               \
+#define IGUANA_TMP_HAS(CAT)                                             \
 template <typename T, typename = void>                                  \
 struct BOOST_PP_CAT(has_reflect_, CAT) : std::false_type{};             \
 template <typename T>                                                   \
@@ -175,9 +177,9 @@ struct BOOST_PP_CAT(has_visit_, CAT)<T, std::void_t<                    \
         std::declval<int>()                                             \
     ))>> : std::true_type{};
 
-#define IGUANA_TMP_VISIT(CAT)                                             \
+#define IGUANA_TMP_VISIT(CAT)                                           \
 template <typename T, typename V>                                       \
-inline static auto BOOST_PP_CAT(visit_, CAT)(reflect_info<T>, V const& visitor) noexcept \
+inline static auto BOOST_PP_CAT(visit_, CAT)(reflect_info<T>, V&& visitor) noexcept \
 -> std::enable_if_t<std::conjunction<                                   \
     BOOST_PP_CAT(has_reflect_, CAT)<reflect_info<T>>,                   \
     BOOST_PP_CAT(has_visit_, CAT)<V>>::value> {                         \
@@ -186,7 +188,7 @@ inline static auto BOOST_PP_CAT(visit_, CAT)(reflect_info<T>, V const& visitor) 
     visit_loop(                                                         \
         reflect_into_t::BOOST_PP_CAT(CAT, _names)(),                    \
         reflect_into_t::BOOST_PP_CAT(CAT, BOOST_PP_EMPTY())(),          \
-        [&visitor](auto ... args) {                                     \
+        [&visitor](auto ... args) mutable {                                     \
             visitor.BOOST_PP_CAT(visit_, CAT)(std::forward<decltype(args)>(args)...); }, \
         std::make_index_sequence<size>{});                              \
 }                                                                       \
@@ -224,7 +226,7 @@ namespace iguana
     namespace reflect_detail
     {
         template <typename Arr, typename Tuple, typename F, size_t ... Is>
-        inline static auto visit_loop(Arr const& names, Tuple const& members, F const& func, std::index_sequence<Is...>)
+        inline static auto visit_loop(Arr const& names, Tuple const& members, F&& func, std::index_sequence<Is...>)
         {
             swallow_t{
                 (func(names[Is], std::get<Is>(members), Is, names), true) ...
@@ -234,7 +236,7 @@ namespace iguana
         BOOST_PP_SEQ_FOR_EACH(IGUANA_TMP_VISIT_PROC, _, IGUANA_VISIT_SEQ)
 
         template <typename T, typename V>
-        inline static void visit(reflect_info<T> ri, V const& visitor) noexcept
+        inline static void visit(reflect_info<T> ri, V&& visitor) noexcept
         {
             BOOST_PP_SEQ_FOR_EACH(IGUANA_VISIT_PROC, _, IGUANA_VISIT_SEQ)
         }
@@ -247,9 +249,9 @@ namespace iguana
     }
 
     template <typename T, typename V>
-    inline static void reflect_visit(reflect_info<T> ri, V const& visitor) noexcept
+    inline static void reflect_visit(reflect_info<T> ri, V && visitor) noexcept
     {
-        reflect_detail::visit(ri, visitor);
+        reflect_detail::visit(ri, std::forward<V>(visitor));
     }
 }
 
@@ -265,4 +267,4 @@ namespace iguana
 }
 
 // simulate the new reflexpr keyword
-#define reflexpr(x) iguana::reflect_info<std::remove_const_t<x>>
+#define reflexpr(x) iguana::reflect_info<std::remove_const_t<std::remove_reference_t<decltype(x)>>>

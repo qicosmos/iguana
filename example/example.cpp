@@ -1,5 +1,6 @@
 #include <iostream>
-#include <iguana/reflection_new.hpp>
+//#include <iguana/reflection_new.hpp>
+#include "iguana/json.hpp"
 
 struct person
 {
@@ -8,11 +9,11 @@ struct person
 };
 IGUANA_REFLECT(person, IGUANA_MDATA(name, age));
 
-/*struct one_t
+struct one_t
 {
 	int id;
 };
-REFLECTION(one_t, id);
+IGUANA_REFLECT(one_t, IGUANA_MDATA(id));
 
 struct two
 {
@@ -20,7 +21,7 @@ struct two
 	one_t one;
 	int age;
 };
-REFLECTION(two, name, one, age);
+IGUANA_REFLECT(two, IGUANA_MDATA(name, one, age));
 
 struct composit_t
 {
@@ -32,10 +33,18 @@ struct composit_t
 	double f;
 	std::list<one_t> g;
 };
-REFLECTION(composit_t, a, b, c, d, e, f, g);*/
+IGUANA_REFLECT(composit_t, IGUANA_MDATA(a, b, c, d, e, f, g));
 
 void test_json()
 {
+    person p = { "admin", 20 };
+    iguana::string_stream ss;
+
+    iguana::json::to_json(ss, p);
+    std::string result = ss.str();
+
+    person p1 = {};
+    iguana::json::from_json(p1, result.data(), result.length());
 }
 
 //void performance()
