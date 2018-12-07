@@ -1007,7 +1007,7 @@ namespace iguana { namespace json
                 }
                 case token::t_number:
                 {
-                val = fabs(tok.value.d64) > MIN_NUMBER_VALUE;
+                val = labs(tok.value.d64) > MIN_NUMBER_VALUE;
                     break;
                 }
                 default:
