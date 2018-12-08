@@ -5,7 +5,8 @@
 #ifndef SERIALIZE_JSON_HPP
 #define SERIALIZE_JSON_HPP
 #include <string.h>
-#include "reflection.hpp" //test c++17 version
+#include <math.h>
+#include "reflection.hpp"
 
 namespace iguana { namespace json
     {
@@ -1007,7 +1008,7 @@ namespace iguana { namespace json
                 }
                 case token::t_number:
                 {
-                val = labs(tok.value.d64) > MIN_NUMBER_VALUE;
+                val = fabs(tok.value.d64) > MIN_NUMBER_VALUE;
                     break;
                 }
                 default:
