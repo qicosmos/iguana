@@ -1259,13 +1259,13 @@ namespace iguana { namespace json
 
             auto tp = M::apply_impl();
             constexpr auto Size = M::value();
-
-            while(rd.peek().type != token::t_end) {
+			size_t index = 0;
+            while(rd.peek().type != token::t_end&&index<Size) {
                 rd.next();
 				auto& tk = rd.peek();
 
                 std::string_view s(tk.str.str, tk.str.len);
-                auto index = iguana::get_index<T>(s);
+				index = iguana::get_index<T>(s);
                 if(index==Size){
 					if (tk.type == token::t_end)
 						break;
@@ -1291,6 +1291,7 @@ namespace iguana { namespace json
                         rd.next();
                     }
                 }, std::make_index_sequence<Size>{});
+				index++;
             }
         }
     } }
