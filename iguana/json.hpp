@@ -5,7 +5,8 @@
 #ifndef SERIALIZE_JSON_HPP
 #define SERIALIZE_JSON_HPP
 #include <string.h>
-#include "reflection.hpp" //test c++17 version
+#include <math.h>
+#include "reflection.hpp"
 
 namespace iguana { namespace json
     {
@@ -515,15 +516,18 @@ namespace iguana { namespace json
 
                 if (utf1 < 0x80) {
                     fill_escape_char(esc_count, (char)utf1);
+                    esc_count -= 1;
                 }
                 else if (utf1 < 0x800) {
                     fill_escape_char(esc_count, (char)(0xC0 | ((utf1 >> 6) & 0xFF)));
                     fill_escape_char(esc_count - 1, (char)(0x80 | ((utf1 & 0x3F))));
+                    esc_count -= 2;
                 }
                 else if (utf1 < 0x80000) {
                     fill_escape_char(esc_count, (char)(0xE0 | ((utf1 >> 12) & 0xFF)));
                     fill_escape_char(esc_count - 1, (char)(0x80 | ((utf1 >> 6) & 0x3F)));
                     fill_escape_char(esc_count - 2, (char)(0x80 | ((utf1 & 0x3F))));
+                    esc_count -= 3;
                 }
                 else {
                     if (utf1 < 0x110000) {
@@ -533,6 +537,7 @@ namespace iguana { namespace json
                     fill_escape_char(esc_count - 1, (char)(0x80 | ((utf1 >> 12) & 0x3F)));
                     fill_escape_char(esc_count - 2, (char)(0x80 | ((utf1 >> 6) & 0x3F)));
                     fill_escape_char(esc_count - 3, (char)(0x80 | ((utf1 & 0x3F))));
+                    esc_count -= 4;
                 }
             }
 
