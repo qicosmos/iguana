@@ -346,7 +346,8 @@ namespace iguana::xml {
                 constexpr auto Count = M::value();
                 static_assert(Idx<Count);
 
-                if constexpr (!is_reflection<decltype(t.*v)>::value)
+				using type_v = decltype(t.*v);
+                if constexpr (!is_reflection<type_v>::value)
                 {
                     render_head(s, get_name<T, Idx>().data());
                     render_xml_value(s, t.*v);
@@ -378,7 +379,8 @@ namespace iguana::xml {
                 constexpr auto Count = M::value();
                 static_assert(Idx<Count);
 
-                if constexpr (!is_reflection<decltype(t.*v)>::value)
+				using type_v = decltype(t.*v);
+                if constexpr (!is_reflection<type_v>::value)
                 {
                     if (rd.begin_object(get_name<T, Idx>().data()) == 1)
                     {
