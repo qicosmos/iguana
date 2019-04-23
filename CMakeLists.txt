@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8)
 project(iguana)
 
+find_package(Boost REQUIRED)
+include_directories(${Boost_INCLUDE_DIRS})
+
 if(MSVC)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
 ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
