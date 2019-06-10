@@ -1164,7 +1164,7 @@ namespace iguana { namespace json
                 constexpr auto Count = M::value();
                 static_assert(Idx<Count);
 
-				using type_v = decltype(t.*v);
+				using type_v = decltype(std::declval<T>().*std::declval<decltype(v)>());
                 if constexpr (!is_reflection<type_v>::value)
                 {
                     rd.next();
@@ -1283,7 +1283,7 @@ namespace iguana { namespace json
                 }
 
                 tuple_switch(index, tp, [&t, &rd](auto &v) {
-					using type_v = decltype(t.*v);
+					using type_v = decltype(std::declval<T>().*std::declval<decltype(v)>());
                     if constexpr (!is_reflection<type_v>::value)
                     {
                         rd.next();
