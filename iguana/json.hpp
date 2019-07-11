@@ -1266,7 +1266,7 @@ namespace iguana { namespace json
             auto tp = M::apply_impl();
             constexpr auto Size = M::value();
 			size_t index = 0;
-            while(rd.peek().type != token::t_end&&index<Size) {
+            while(rd.peek().type != token::t_end&&index<=Size) {
                 rd.next();
 				auto& tk = rd.peek();
 
