@@ -103,6 +103,20 @@ Then call the simple interface:
 	composit_t comp;
 	iguana::json::from_json(comp, str_comp);
 	
+### How to solve the problem of unicode path in a json file?
+
+If there is an unicode string as a path in a json file, however iguana parse the file as utf-8, so maybe you can see some strange characters after parse.
+
+It's ok, because you see the utf-8 strings. The problem is you can't use the string directly, such as use std::ifstream to open the file with the unicode string path.
+
+We can slove the problem1 easily with c++17:
+
+```
+	//the p.path is a unicode string path
+	std::ifstream in(std::filesystem::u8path(p.path)); //std::filesystem::u8path help us
+	//now you can operate the file
+```		
+	
 ### Full sources:
 
 
