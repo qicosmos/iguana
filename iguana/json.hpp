@@ -858,6 +858,9 @@ namespace iguana { namespace json
 
         template<typename T>
         void check_result(T val, char const *str){
+			if (*str == 'n')
+				return;
+
             if(val == 0 && (*str)!='0'){
                 g_has_error = true;
             }
