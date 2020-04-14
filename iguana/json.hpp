@@ -817,6 +817,7 @@ namespace iguana { namespace json
                 }
                 else {
                     rd.error("invalid json document!");
+                    break;
                 }
                 if (tok->str.str[0] == ',') {
                     rd.next();
@@ -1048,6 +1049,7 @@ namespace iguana { namespace json
         {
             if (rd.expect('[') == false) {
                 rd.error("array must start with [.");
+                return;
             }
             rd.next();
             auto tok = &rd.peek();
@@ -1065,6 +1067,7 @@ namespace iguana { namespace json
                 }
                 else {
                     rd.error("no valid array!");
+                    break;
                 }
             }
             rd.next();
@@ -1090,10 +1093,11 @@ namespace iguana { namespace json
         inline std::enable_if_t<is_sequence_container<T>::value> read_json(reader_t &rd, T &val) {
             if (rd.expect('[') == false) {
                 rd.error("array must start with [.");
+                return;
             }
             rd.next();
             auto tok = &rd.peek();
-            while (tok->str.str[0] != ']') {
+            while (tok->str.str[0] != ']' || tok->type== token::t_end) {
                 emplace_back(val);
                 read_json(rd, val.back());
                 tok = &rd.peek();
@@ -1107,6 +1111,7 @@ namespace iguana { namespace json
                 }
                 else {
                     rd.error("no valid array!");
+                    break;
                 }
             }
             rd.next();
@@ -1117,6 +1122,7 @@ namespace iguana { namespace json
             if (rd.expect('{') == false)
             {
                 rd.error("object must start with {!");
+                return;
             }
             rd.next();
             auto tok = &rd.peek();
@@ -1127,6 +1133,7 @@ namespace iguana { namespace json
                 if (rd.expect(':') == false)
                 {
                     rd.error("invalid object!");
+                    break;
                 }
                 rd.next();
                 typename T::mapped_type value;
@@ -1146,6 +1153,7 @@ namespace iguana { namespace json
                 else
                 {
                     rd.error("no valid object!");
+                    break;
                 }
             }
             rd.next();
@@ -1268,15 +1276,18 @@ namespace iguana { namespace json
 
             auto tp = M::apply_impl();
             constexpr auto Size = M::value();
+            size_t loop_idx = 0;
 			size_t index = 0;
             while(rd.peek().type != token::t_end&&index<=Size) {
-                rd.next();
+                if(loop_idx !=Size)
+                    rd.next();
+
 				auto& tk = rd.peek();
 
                 std::string_view s(tk.str.str, tk.str.len);
 				index = iguana::get_index<T>(s);
                 if(index==Size){
-					if (tk.type == token::t_end)
+					if (tk.type == token::t_end||tk.type == token::t_ctrl)
 						break;
 
 					rd.next();
@@ -1301,7 +1312,7 @@ namespace iguana { namespace json
                         rd.next();
                     }
                 }, std::make_index_sequence<Size>{});
-				index++;
+                loop_idx++;
             }
         }
     } }
