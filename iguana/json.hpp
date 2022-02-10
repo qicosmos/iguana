@@ -1163,7 +1163,7 @@ namespace iguana { namespace json
 
         template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
         inline void read_json(reader_t &rd, T &val) {
-            do_read(rd, val);
+            do_read0(rd, val);
             rd.next();
         }
 
