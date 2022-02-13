@@ -113,12 +113,6 @@ namespace iguana { namespace json
             render_json_value(ss, (std::underlying_type_t<T>&)val);
         }
 
-        template <typename Stream, typename T, size_t N>
-        void render_json_value(Stream& ss, const T(&v)[N])
-        {
-            render_array(ss, v);
-        }
-
         template<typename Stream, typename T>
         void render_array(Stream& ss, const T& v)
         {
@@ -129,6 +123,14 @@ namespace iguana { namespace json
                  });
             ss.put(']');
         }
+
+        template <typename Stream, typename T, size_t N>
+        void render_json_value(Stream& ss, const T(&v)[N])
+        {
+            render_array(ss, v);
+        }
+
+        
 
         template <typename Stream, typename T, size_t N>
         void render_json_value(Stream& ss, const std::array<T, N>& v)
@@ -1160,8 +1162,10 @@ namespace iguana { namespace json
         }
 
         template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
+
         inline void read_json(reader_t &rd, T &val, bool unorder = false) {
           unorder?do_read0(rd, val) : do_read(rd, val);
+
             rd.next();
         }
 
