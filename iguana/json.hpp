@@ -871,7 +871,7 @@ namespace iguana { namespace json
 
         //read json to value
         template<typename T>
-        inline std::enable_if_t<is_signed_intergral_like<T>::value> read_json(reader_t &rd, T &val) {
+        inline std::enable_if_t<is_signed_intergral_like<T>::value> read_json(reader_t &rd, T &val, bool unorder = false) {
             auto &tok = rd.peek();
             switch (tok.type) {
                 case token::t_string: {
@@ -904,7 +904,7 @@ namespace iguana { namespace json
         }
 
         template<typename T>
-        inline std::enable_if_t<is_unsigned_intergral_like<T>::value> read_json(reader_t &rd, T &val) {
+        inline std::enable_if_t<is_unsigned_intergral_like<T>::value> read_json(reader_t &rd, T &val, bool unorder = false) {
             auto &tok = rd.peek();
             switch (tok.type) {
                 case token::t_string: {
@@ -939,13 +939,13 @@ namespace iguana { namespace json
         }
 
         template<typename T>
-        inline std::enable_if_t<std::is_enum<T>::value> read_json(reader_t &rd, T &val) {
+        inline std::enable_if_t<std::is_enum<T>::value> read_json(reader_t &rd, T &val, bool unorder = false) {
             typedef typename std::underlying_type<T>::type RAW_TYPE;
             read_json(rd, (RAW_TYPE&)val);
         }
 
         template<typename T>
-        inline std::enable_if_t<std::is_floating_point<T>::value> read_json(reader_t &rd, T &val)
+        inline std::enable_if_t<std::is_floating_point<T>::value> read_json(reader_t &rd, T &val, bool unorder = false)
         {
             auto& tok = rd.peek();
             switch (tok.type)
@@ -985,7 +985,7 @@ namespace iguana { namespace json
         }
 
 #define MIN_NUMBER_VALUE 1e-8
-        inline void read_json(reader_t &rd, bool &val)
+        inline void read_json(reader_t &rd, bool &val, bool unorder = false)
         {
             auto& tok = rd.peek();
             switch (tok.type)
@@ -1029,7 +1029,7 @@ namespace iguana { namespace json
             rd.next();
         }
 
-        inline void read_json(reader_t &rd, std::string &val) {
+        inline void read_json(reader_t &rd, std::string &val, bool unorder = false) {
             auto &tok = rd.peek();
             if (tok.type == token::t_string) {
                 val.assign(tok.str.str, tok.str.len);
@@ -1041,7 +1041,7 @@ namespace iguana { namespace json
         }
 
         template <typename T, size_t N>
-        inline void read_json(reader_t &rd, T(&val)[N])
+        inline void read_json(reader_t &rd, T(&val)[N], bool unorder = false)
         {
             read_array(rd, val);
         }
@@ -1076,7 +1076,7 @@ namespace iguana { namespace json
         }
 
         template <typename T, size_t N>
-        inline void read_json(reader_t &rd, std::array<T, N>& val)
+        inline void read_json(reader_t &rd, std::array<T, N>& val, bool unorder = false)
         {
             read_array(rd, val);
         }
@@ -1092,7 +1092,7 @@ namespace iguana { namespace json
         }
 
         template<typename T>
-        inline std::enable_if_t<is_sequence_container<T>::value> read_json(reader_t &rd, T &val) {
+        inline std::enable_if_t<is_sequence_container<T>::value> read_json(reader_t &rd, T &val, bool unorder = false) {
             if (rd.expect('[') == false) {
                 rd.error("array must start with [.");
                 return;
@@ -1101,7 +1101,7 @@ namespace iguana { namespace json
             auto tok = &rd.peek();
             while (tok->str.str[0] != ']' || tok->type== token::t_end) {
                 emplace_back(val);
-                read_json(rd, val.back());
+                read_json(rd, val.back(), unorder);
                 tok = &rd.peek();
                 if (tok->str.str[0] == ',') {
                     rd.next();
@@ -1120,7 +1120,7 @@ namespace iguana { namespace json
         }
 
         template<typename T>
-        inline std::enable_if_t<is_associat_container<T>::value> read_json(reader_t &rd, T &val) {
+        inline std::enable_if_t<is_associat_container<T>::value> read_json(reader_t &rd, T &val, bool unorder = false) {
             if (rd.expect('{') == false)
             {
                 rd.error("object must start with {!");
@@ -1131,7 +1131,7 @@ namespace iguana { namespace json
             while (tok->str.str[0] != '}')
             {
                 typename T::key_type key;
-                read_json(rd, key);
+                read_json(rd, key, unorder);
                 if (rd.expect(':') == false)
                 {
                     rd.error("invalid object!");
@@ -1139,7 +1139,7 @@ namespace iguana { namespace json
                 }
                 rd.next();
                 typename T::mapped_type value;
-                read_json(rd, value);
+                read_json(rd, value, unorder);
                 val[key] = value;
                 tok = &rd.peek();
                 if (tok->str.str[0] == ',')
@@ -1162,8 +1162,10 @@ namespace iguana { namespace json
         }
 
         template<typename T, typename = std::enable_if_t<is_reflection<T>::value>>
-        inline void read_json(reader_t &rd, T &val) {
-            do_read0(rd, val);
+
+        inline void read_json(reader_t &rd, T &val, bool unorder = false) {
+          unorder?do_read0(rd, val) : do_read(rd, val);
+
             rd.next();
         }
 
@@ -1304,7 +1306,7 @@ namespace iguana { namespace json
                     {
                         rd.next();
                         rd.next();
-                        read_json(rd, t.*v);
+                        read_json(rd, t.*v, true);
                     }
                     else
                     {
