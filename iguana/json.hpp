@@ -286,7 +286,7 @@ public:
     return &buffer[0] + pos;
   }
 
-  inline void error(const char *message) {
+  inline void error(const char *) {
     g_has_error = true;
     //                char buffer[20];
     //                std::string msg = "error at line :";
@@ -785,7 +785,7 @@ template <typename T> void check_result(T val, char const *str) {
 // read json to value
 template <typename T>
 inline std::enable_if_t<is_signed_intergral_like<T>::value>
-read_json(reader_t &rd, T &val, bool unorder = false) {
+read_json(reader_t &rd, T &val, [[maybe_unused]] bool unorder = false) {
   auto &tok = rd.peek();
   switch (tok.type) {
   case token::t_string: {
@@ -896,7 +896,7 @@ read_json(reader_t &rd, T &val, bool unorder = false) {
 }
 
 #define MIN_NUMBER_VALUE 1e-8
-inline void read_json(reader_t &rd, bool &val, bool unorder = false) {
+inline void read_json(reader_t &rd, bool &val) {
   auto &tok = rd.peek();
   switch (tok.type) {
   case token::t_string: {
@@ -930,7 +930,7 @@ inline void read_json(reader_t &rd, bool &val, bool unorder = false) {
   rd.next();
 }
 
-inline void read_json(reader_t &rd, std::string &val, bool unorder = false) {
+inline void read_json(reader_t &rd, std::string &val) {
   auto &tok = rd.peek();
   if (tok.type == token::t_string) {
     val.assign(tok.str.str, tok.str.len);

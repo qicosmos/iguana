@@ -290,9 +290,9 @@ xtoa (long long sval,
     unsigned int rem = uval % uradix;
     uval /= uradix;
     if (10 > rem) {
-      *sp++ = '0' + rem;
+      *sp++ = '0' + (char)rem;
     } else {
-      *sp++ = 'A' + rem - 10;
+      *sp++ = 'A' + (char)rem - 10;
     }
   } while (0 < uval);
 
