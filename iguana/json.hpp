@@ -261,7 +261,7 @@ static bool g_has_error = false;
 class reader_t {
 public:
   reader_t(const char *ptr = nullptr, size_t len = -1)
-      : ptr_((char *)ptr), len_(len) {
+      : len_(len), ptr_((char *)ptr) {
     if (ptr == nullptr) {
       end_mark_ = true;
     } else if (len == 0) {
@@ -437,7 +437,7 @@ private:
 
   inline char char_to_hex(char v) {
     if (v < 'f') {
-      v = table[v];
+      v = table[(int)v];
     } else {
       v = 16;
     }
@@ -1104,7 +1104,6 @@ template <typename U, typename T> inline void assign(reader_t &rd, T &t) {
 template <typename T>
 inline std::enable_if_t<is_tuple<std::decay_t<T>>::value, bool>
 from_json(T &&t, const char *buf, size_t len = -1) {
-  using U = std::decay_t<T>;
   g_has_error = false;
   reader_t rd(buf, len);
   rd.next();
