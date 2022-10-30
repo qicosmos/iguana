@@ -437,7 +437,7 @@ private:
 
   inline char char_to_hex(char v) {
     if (v < 'f') {
-      v = table[(int)v];
+      v = table[int(v)];
     } else {
       v = 16;
     }
@@ -896,7 +896,7 @@ read_json(reader_t &rd, T &val, bool unorder = false) {
 }
 
 #define MIN_NUMBER_VALUE 1e-8
-inline void read_json(reader_t &rd, bool &val) {
+inline void read_json(reader_t &rd, bool &val, bool unorder = false) {
   auto &tok = rd.peek();
   switch (tok.type) {
   case token::t_string: {
@@ -930,7 +930,7 @@ inline void read_json(reader_t &rd, bool &val) {
   rd.next();
 }
 
-inline void read_json(reader_t &rd, std::string &val) {
+inline void read_json(reader_t &rd, std::string &val, bool unorder = false) {
   auto &tok = rd.peek();
   if (tok.type == token::t_string) {
     val.assign(tok.str.str, tok.str.len);
@@ -1153,7 +1153,6 @@ inline bool from_json0(T &&t, const char *buf, size_t len = -1) {
 template <typename T, typename = std::enable_if_t<is_reflection<T>::value>>
 constexpr void do_read0(reader_t &rd, T &&t) {
   using M = decltype(iguana_reflect_members(std::forward<T>(t)));
-  constexpr auto Count = M::value();
 
   auto tp = M::apply_impl();
   constexpr auto Size = M::value();

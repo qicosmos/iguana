@@ -352,7 +352,7 @@ MAKE_META_DATA(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)
     };
 
     template <typename T>
-    struct is_reflection<T, std::void_t<decltype(std::declval<Reflect_members<T>>().arr())>> : std::true_type
+    struct is_reflection<T, std::void_t<decltype(Reflect_members<T>::arr())>> : std::true_type
     {
     };
 

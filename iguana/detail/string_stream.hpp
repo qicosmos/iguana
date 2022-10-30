@@ -20,8 +20,8 @@ namespace iguana
 		enum { INIT_BUFF_SIZE = 1024 };
 
 		basic_string_stream() 
-			: m_length(INIT_BUFF_SIZE)
-			, m_status(good)
+			: m_status(good)
+			, m_length(INIT_BUFF_SIZE)
 		{
 			this->m_header_ptr = this->alloc.allocate(INIT_BUFF_SIZE);
 			this->m_read_ptr = this->m_header_ptr;
