@@ -111,7 +111,7 @@ void test_disorder()
 
 	student s1{};
 	std::string str = "{\"name\":\"tom\",\"id\":1,\"age\":20}";
-	bool r = iguana::json::from_json0(s1, str.data(), str.length());
+	[[maybe_unused]]bool r = iguana::json::from_json0(s1, str.data(), str.length());
 	std::string str1 = "{\"name\":\"tom\",\"age\":20,\"id\":1}";
 	r = iguana::json::from_json0(s1, str1.data(), str1.length());
 
@@ -139,10 +139,10 @@ int main(void)
 	std::cout << p2.name << " - " << p2.age << std::endl;
 	
 
-    // ²âÊÔÒì³£Êý¾Ý,Ö®Ç°µÄ°æ±¾»áÔÚdo.whileÖÐËÀÑ­»·
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ì³£ï¿½ï¿½ï¿½ï¿½,Ö®Ç°ï¿½Ä°æ±¾ï¿½ï¿½ï¿½ï¿½do.whileï¿½ï¿½ï¿½ï¿½Ñ­ï¿½ï¿½
     client::person p3;
     json_str = "unknownType";
-    bool bOK = iguana::json::from_json0(p3, json_str.data(), json_str.length()); //no limitation, but slower
+    [[maybe_unused]]bool bOK = iguana::json::from_json0(p3, json_str.data(), json_str.length()); //no limitation, but slower
 
     return 0;
 }

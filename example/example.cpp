@@ -39,7 +39,7 @@ void test_json()
 {
 	person p;
 	const char * json = "{ \"name\" : \"tom\", \"age\" : 20}";
-	auto r = iguana::json::from_json0(p, json);
+	[[maybe_unused]]auto r = iguana::json::from_json0(p, json);
 
 	iguana::string_stream ss;
 	iguana::json::to_json(ss, p);

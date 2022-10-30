@@ -261,7 +261,7 @@ static bool g_has_error = false;
 class reader_t {
 public:
   reader_t(const char *ptr = nullptr, size_t len = -1)
-      : ptr_((char *)ptr), len_(len) {
+      : len_(len), ptr_((char *)ptr) {
     if (ptr == nullptr) {
       end_mark_ = true;
     } else if (len == 0) {
@@ -437,7 +437,7 @@ private:
 
   inline char char_to_hex(char v) {
     if (v < 'f') {
-      v = table[v];
+      v = table[int(v)];
     } else {
       v = 16;
     }
@@ -896,7 +896,7 @@ read_json(reader_t &rd, T &val, bool unorder = false) {
 }
 
 #define MIN_NUMBER_VALUE 1e-8
-inline void read_json(reader_t &rd, bool &val) {
+inline void read_json(reader_t &rd, bool &val, bool unorder = false) {
   auto &tok = rd.peek();
   switch (tok.type) {
   case token::t_string: {
@@ -930,7 +930,7 @@ inline void read_json(reader_t &rd, bool &val) {
   rd.next();
 }
 
-inline void read_json(reader_t &rd, std::string &val) {
+inline void read_json(reader_t &rd, std::string &val, bool unorder = false) {
   auto &tok = rd.peek();
   if (tok.type == token::t_string) {
     val.assign(tok.str.str, tok.str.len);
@@ -1104,7 +1104,6 @@ template <typename U, typename T> inline void assign(reader_t &rd, T &t) {
 template <typename T>
 inline std::enable_if_t<is_tuple<std::decay_t<T>>::value, bool>
 from_json(T &&t, const char *buf, size_t len = -1) {
-  using U = std::decay_t<T>;
   g_has_error = false;
   reader_t rd(buf, len);
   rd.next();
@@ -1154,7 +1153,6 @@ inline bool from_json0(T &&t, const char *buf, size_t len = -1) {
 template <typename T, typename = std::enable_if_t<is_reflection<T>::value>>
 constexpr void do_read0(reader_t &rd, T &&t) {
   using M = decltype(iguana_reflect_members(std::forward<T>(t)));
-  constexpr auto Count = M::value();
 
   auto tp = M::apply_impl();
   constexpr auto Size = M::value();
