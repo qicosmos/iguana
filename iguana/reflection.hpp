@@ -324,7 +324,6 @@ static auto iguana_reflect_members(STRUCT_NAME const&) \
         constexpr decltype(auto) static apply_impl(){\
             return std::make_tuple(__VA_ARGS__);\
         }\
-        using type = void;\
         using size_type = std::integral_constant<size_t, GET_ARG_COUNT(__VA_ARGS__)>; \
         constexpr static std::string_view name() { return std::string_view(#STRUCT_NAME, sizeof(#STRUCT_NAME)-1); }\
         constexpr static size_t value() { return size_type::value; }\
@@ -353,7 +352,7 @@ MAKE_META_DATA(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)
     };
 
     template <typename T>
-    struct is_reflection<T, std::void_t<typename Reflect_members<T>::type>> : std::true_type
+    struct is_reflection<T, std::void_t<decltype(Reflect_members<T>::arr())>> : std::true_type
     {
     };
 
