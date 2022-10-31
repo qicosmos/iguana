@@ -317,7 +317,7 @@ namespace iguana::detail {
     MACRO_CONCAT(CON_STR, GET_ARG_COUNT(__VA_ARGS__))(__VA_ARGS__)
 
 #define MAKE_META_DATA_IMPL(STRUCT_NAME, ...) \
-static auto iguana_reflect_members(STRUCT_NAME const&) \
+inline auto iguana_reflect_members(STRUCT_NAME const&) \
 { \
     struct reflect_members \
     { \

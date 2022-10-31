@@ -265,7 +265,7 @@ template<typename I> char* itoa_fwd (I i,char *p) {
      return dec_::convert<dec_::Fwd>::itoa(i,p);
 }
 
-static char *
+inline char *
 xtoa (long long sval,
       char * str,
       int radix,
