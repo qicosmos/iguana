@@ -13,6 +13,7 @@ set(IGUANA_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(
 	${IGUANA_DIR}
 	${IGUANA_DIR}/third_party/msgpack/include
+	${IGUANA_DIR}/third_party/frozen/include
 )
 
 set(EXAMPLE
@@ -31,7 +32,10 @@ set(MSGPACK_EXAMPLE
 	example/msgpack_example.cpp
 )
 
+set(TEST example/test.cpp)
+
 add_executable(example 	${EXAMPLE})
 add_executable(json_example 	${JSON_EXAMPLE})
 add_executable(xml_example 		${XML_EXAMPLE})
 add_executable(msgpack_example 	${MSGPACK_EXAMPLE})
+add_executable(test 	${TEST})

@@ -153,7 +153,7 @@ constexpr auto write_json_key = [](auto &s, auto i, auto &t) {
   auto name =
       get_name<decltype(t),
                decltype(i)::value>(); // will be replaced by string_view later
-  s.write(name.data(), name.length());
+  s.write(name.data(), name.size());
   s.put('"');
 };
 
@@ -217,7 +217,7 @@ constexpr auto to_json(Stream &s, T &&t)
 }
 
 ///***********************************  from
-///json*********************************///
+/// json*********************************///
 // reader from ajson
 namespace detail {
 struct string_ref {
