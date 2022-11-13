@@ -79,7 +79,7 @@ inline void skip_object_value(auto &&it, auto &&end) {
   }
 }
 
-template<refletable T, typename It>
+template <refletable T, typename It>
 void from_json(T &value, It &&it, auto &&end);
 
 template <num_t U, class It>
@@ -124,9 +124,11 @@ inline void parse_item(U &value, It &&it, auto &&end) {
 }
 
 template <str_t U, class It>
-inline void parse_item(U &value, It &&it, auto &&end) {
-  skip_ws(it, end);
-  match<'"'>(it, end);
+inline void parse_item(U &value, It &&it, auto &&end, bool skip = false) {
+  if (!skip) {
+    skip_ws(it, end);
+    match<'"'>(it, end);
+  }
 
   if constexpr (!std::contiguous_iterator<std::decay_t<It>>) {
     const auto cend = value.cend();
@@ -337,97 +339,95 @@ inline void parse_item(U &value, It &&it, auto &&end) {
 
 template <refletable U, class It>
 inline void parse_item(U &value, It &&it, auto &&end) {
-    from_json(value, it, end);
+  from_json(value, it, end);
 }
 
-template<refletable T, typename It>
+template <refletable T, typename It>
 inline void from_json(T &value, It &&it, auto &&end) {
-    skip_ws(it, end);
+  skip_ws(it, end);
 
-    match<'{'>(it, end);
-    skip_ws(it, end);
-    bool first = true;
-    while (it != end) {
-      if (*it == '}') [[unlikely]] {
-        ++it;
-        return;
-      } else if (first) [[unlikely]]
-        first = false;
-      else [[likely]] {
-        match<','>(it, end);
-      }
+  match<'{'>(it, end);
+  skip_ws(it, end);
+  bool first = true;
+  while (it != end) {
+    if (*it == '}') [[unlikely]] {
+      ++it;
+      return;
+    } else if (first) [[unlikely]]
+      first = false;
+    else [[likely]] {
+      match<','>(it, end);
+    }
 
-      if constexpr (refletable<T>) {
-        std::string_view key;
-        if constexpr (std::contiguous_iterator<std::decay_t<It>>) {
-          // skip white space and escape characters and find the string
-          skip_ws(it, end);
-          match<'"'>(it, end);
-          auto start = it;
-          skip_till_escape_or_qoute(it, end);
-          if (*it == '\\') [[unlikely]] {
-            // we dont' optimize this currently because it would increase binary
-            // size significantly with the complexity of generating escaped
-            // compile time versions of keys
-            it = start;
-            static thread_local std::string static_key{};
-            //                            read<json>::op<ws_and_opening_handled<Opts>()>(static_key,
-            //                            it, end);
-            key = static_key;
-          } else [[likely]] {
-            key = std::string_view{
-                &*start, static_cast<size_t>(std::distance(start, it))};
-            ++it;
-          }
-        } else {
-          static thread_local std::string static_key{};
-          //                        read<json>::op<Opts>(static_key, it, end);
-          key = static_key;
-        }
-
+    if constexpr (refletable<T>) {
+      std::string_view key;
+      if constexpr (std::contiguous_iterator<std::decay_t<It>>) {
+        // skip white space and escape characters and find the string
         skip_ws(it, end);
-        match<':'>(it, end);
-
-        static constexpr auto frozen_map = get_iguana_struct_map<T>();
-        const auto &member_it = frozen_map.find(key);
-        if (member_it != frozen_map.end()) {
-          std::visit(
-              [&](auto &&member_ptr) {
-                using V = std::decay_t<decltype(member_ptr)>;
-                if constexpr (std::is_member_pointer_v<V>) {
-                  parse_item(value.*member_ptr, it, end);
-                } else {
-                  //                                        read<json>::op<Opts>(member_ptr(value),
-                  //                                        it, end);
-                }
-              },
-              member_it->second);
-        } else [[unlikely]] {
-          //                        if constexpr (Opts.error_on_unknown_keys) {
-          //                            throw std::runtime_error("Unknown key: "
-          //                            + std::string(key));
-          //                        }
-          //                        else
-          { skip_object_value(it, end); }
+        match<'"'>(it, end);
+        auto start = it;
+        skip_till_escape_or_qoute(it, end);
+        if (*it == '\\') [[unlikely]] {
+          // we dont' optimize this currently because it would increase binary
+          // size significantly with the complexity of generating escaped
+          // compile time versions of keys
+          it = start;
+          static thread_local std::string static_key{};
+          parse_item(static_key, it, end, true);
+          key = static_key;
+        } else [[likely]] {
+          key = std::string_view{&*start,
+                                 static_cast<size_t>(std::distance(start, it))};
+          ++it;
         }
       } else {
-        static thread_local std::string key{};
-        //                    read<json>::op<Opts>(key, it, end);
-
-        skip_ws(it, end);
-        match<':'>(it, end);
-
-        if constexpr (std::is_same_v<typename T::key_type, std::string>) {
-          //                        read<json>::op<Opts>(value[key], it, end);
-        } else {
-          static thread_local typename T::key_type key_value{};
-          //                        read<json>::op<Opts>(key_value, key.begin(),
-          //                        key.end());
-          //                        read<json>::op<Opts>(value[key_value], it,
-          //                        end);
-        }
+        static thread_local std::string static_key{};
+        parse_item(static_key, it, end, true);
+        key = static_key;
       }
+
       skip_ws(it, end);
+      match<':'>(it, end);
+
+      static constexpr auto frozen_map = get_iguana_struct_map<T>();
+      const auto &member_it = frozen_map.find(key);
+      if (member_it != frozen_map.end()) {
+        std::visit(
+            [&](auto &&member_ptr) {
+              using V = std::decay_t<decltype(member_ptr)>;
+              if constexpr (std::is_member_pointer_v<V>) {
+                parse_item(value.*member_ptr, it, end);
+              } else {
+                static_assert(!sizeof(V), "type not supported");
+              }
+            },
+            member_it->second);
+      } else [[unlikely]] {
+        //                        if constexpr (Opts.error_on_unknown_keys) {
+        //                            throw std::runtime_error("Unknown key: "
+        //                            + std::string(key));
+        //                        }
+        //                        else
+        { skip_object_value(it, end); }
+      }
+    } else {
+      static thread_local std::string key{};
+      //                    read<json>::op<Opts>(key, it, end);
+
+      skip_ws(it, end);
+      match<':'>(it, end);
+
+      if constexpr (std::is_same_v<typename T::key_type, std::string>) {
+        //                        read<json>::op<Opts>(value[key], it, end);
+      } else {
+        static thread_local typename T::key_type key_value{};
+        //                        read<json>::op<Opts>(key_value, key.begin(),
+        //                        key.end());
+        //                        read<json>::op<Opts>(value[key_value], it,
+        //                        end);
+      }
     }
+    skip_ws(it, end);
   }
+}
 } // namespace iguana

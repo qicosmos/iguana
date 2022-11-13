@@ -52,9 +52,30 @@ struct vector_t {
 };
 REFLECTION(vector_t, v);
 
+struct composite_t {
+  int a[2];
+  std::vector<std::string> v;
+};
+REFLECTION(composite_t, a, v);
+
 // map TODO
 
 int main() {
+  {
+    person p{};
+    std::string str = R"({"\name": "\tom", "ok":true})";
+    iguana::from_json(p, std::begin(str), std::end(str));
+    std::cout << "test ok\n";
+  }
+  {
+    composite_t obj{{1, 2}, {"aa", "bb"}};
+    iguana::string_stream ss;
+    iguana::json::to_json(ss, obj);
+    composite_t p{};
+    std::string str = ss.str();
+    iguana::from_json(p, std::begin(str), std::end(str));
+    std::cout << "test ok\n";
+  }
   {
     try {
       vector_t arr{{1, 2}};
@@ -62,8 +83,7 @@ int main() {
       iguana::json::to_json(ss, arr);
       vector_t p{};
       std::string str = ss.str();
-      iguana::from_json(p, std::begin(str),
-                                               std::end(str));
+      iguana::from_json(p, std::begin(str), std::end(str));
       std::cout << "test ok\n";
     } catch (std::exception &e) {
       std::cout << "error: " << e.what() << "\n";
@@ -91,8 +111,7 @@ int main() {
   {
     optional_t p{};
     std::string str = R"({"p": false})";
-    iguana::from_json(p, std::begin(str),
-                                               std::end(str));
+    iguana::from_json(p, std::begin(str), std::end(str));
   }
   {
     char_t p{};
@@ -112,8 +131,7 @@ int main() {
 
     person p1{};
     std::string str1 = R"({"ok": true, "name" : "tom"})";
-    iguana::from_json(p1, std::begin(str1),
-                                           std::end(str1));
+    iguana::from_json(p1, std::begin(str1), std::end(str1));
     std::cout << p1.name << " " << p1.ok << "\n";
   }
 
