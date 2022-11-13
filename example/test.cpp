@@ -2,6 +2,7 @@
 #include <iguana/json.hpp>
 #include <iguana/json_util.hpp>
 #include <iostream>
+#include <optional>
 
 struct point_t {
   int x;
@@ -61,7 +62,7 @@ int main() {
       iguana::json::to_json(ss, arr);
       vector_t p{};
       std::string str = ss.str();
-      iguana::from_json<vector_t>::template op(p, std::begin(str),
+      iguana::from_json(p, std::begin(str),
                                                std::end(str));
       std::cout << "test ok\n";
     } catch (std::exception &e) {
@@ -74,7 +75,7 @@ int main() {
     iguana::json::to_json(ss, arr);
     arr_t p{};
     std::string str = ss.str();
-    iguana::from_json<arr_t>::template op(p, std::begin(str), std::end(str));
+    iguana::from_json(p, std::begin(str), std::end(str));
     std::cout << "\n";
   }
   {
@@ -83,35 +84,35 @@ int main() {
     iguana::json::to_json(ss, t);
     simple_t p{};
     std::string str = ss.str();
-    iguana::from_json<simple_t>::template op(p, std::begin(str), std::end(str));
+    iguana::from_json(p, std::begin(str), std::end(str));
     std::cout << p.id << "\n";
   }
 
   {
     optional_t p{};
     std::string str = R"({"p": false})";
-    iguana::from_json<optional_t>::template op(p, std::begin(str),
+    iguana::from_json(p, std::begin(str),
                                                std::end(str));
   }
   {
     char_t p{};
     std::string str = R"({"ch": "t"})";
-    iguana::from_json<char_t>::template op(p, std::begin(str), std::end(str));
+    iguana::from_json(p, std::begin(str), std::end(str));
   }
 
   {
     bool_t p{};
     std::string str = R"({"ok": true})";
-    iguana::from_json<bool_t>::template op(p, std::begin(str), std::end(str));
+    iguana::from_json(p, std::begin(str), std::end(str));
   }
   {
     person p{};
     std::string str = R"({"name" : "tom", "ok": true})";
-    iguana::from_json<person>::template op(p, std::begin(str), std::end(str));
+    iguana::from_json(p, std::begin(str), std::end(str));
 
     person p1{};
     std::string str1 = R"({"ok": true, "name" : "tom"})";
-    iguana::from_json<person>::template op(p1, std::begin(str1),
+    iguana::from_json(p1, std::begin(str1),
                                            std::end(str1));
     std::cout << p1.name << " " << p1.ok << "\n";
   }
@@ -119,7 +120,7 @@ int main() {
   {
     point_t p{};
     std::string str = R"({"x" : 1, "y" : 2})";
-    iguana::from_json<point_t>::template op(p, std::begin(str), std::end(str));
+    iguana::from_json(p, std::begin(str), std::end(str));
   }
 
   //  using value_type = std::variant<int point_t::*, int point_t::*>;

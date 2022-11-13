@@ -79,10 +79,11 @@ inline void skip_object_value(auto &&it, auto &&end) {
   }
 }
 
-template <class T = void> struct from_json {};
+template<refletable T, typename It>
+void from_json(T &value, It &&it, auto &&end);
 
 template <num_t U, class It>
-inline void parse_item(U &&value, It &&it, auto &&end) {
+inline void parse_item(U &value, It &&it, auto &&end) {
   skip_ws(it, end);
 
   using T = std::remove_reference_t<U>;
@@ -123,7 +124,7 @@ inline void parse_item(U &&value, It &&it, auto &&end) {
 }
 
 template <str_t U, class It>
-inline void parse_item(U &&value, It &&it, auto &&end) {
+inline void parse_item(U &value, It &&it, auto &&end) {
   skip_ws(it, end);
   match<'"'>(it, end);
 
@@ -195,7 +196,7 @@ inline void parse_item(U &&value, It &&it, auto &&end) {
 }
 
 template <c_array U, class It>
-inline void parse_item(U &&value, It &&it, auto &&end) {
+inline void parse_item(U &value, It &&it, auto &&end) {
   using T = std::remove_reference_t<U>;
   skip_ws(it, end);
 
@@ -241,9 +242,7 @@ template <typename Type>
 concept vector_container = is_std_vector_v<std::remove_reference_t<Type>>;
 
 template <vector_container U, class It>
-inline void parse_item(U &&value, It &&it, auto &&end) {
-  using T = std::remove_reference_t<U>;
-
+inline void parse_item(U &value, It &&it, auto &&end) {
   skip_ws(it, end);
 
   match<'['>(it, end);
@@ -262,7 +261,7 @@ inline void parse_item(U &&value, It &&it, auto &&end) {
 }
 
 template <bool_t U, class It>
-inline void parse_item(U &&value, It &&it, auto &&end) {
+inline void parse_item(U &value, It &&it, auto &&end) {
   skip_ws(it, end);
 
   if (it < end) [[likely]] {
@@ -287,7 +286,7 @@ inline void parse_item(U &&value, It &&it, auto &&end) {
 }
 
 template <optional U, class It>
-inline void parse_item(U &&value, It &&it, auto &&end) {
+inline void parse_item(U &value, It &&it, auto &&end) {
   skip_ws(it, end);
   using T = std::remove_reference_t<U>;
   if (it == end) {
@@ -323,7 +322,7 @@ inline void parse_item(U &&value, It &&it, auto &&end) {
 }
 
 template <char_t U, class It>
-inline void parse_item(U &&value, It &&it, auto &&end) {
+inline void parse_item(U &value, It &&it, auto &&end) {
   // TODO: this does not handle escaped chars
   skip_ws(it, end);
   match<'"'>(it, end);
@@ -337,14 +336,12 @@ inline void parse_item(U &&value, It &&it, auto &&end) {
 }
 
 template <refletable U, class It>
-inline void parse_item(U &&value, It &&it, auto &&end) {
-  from_json<U>::template op(value, it, end);
+inline void parse_item(U &value, It &&it, auto &&end) {
+    from_json(value, it, end);
 }
 
-template <class T>
-requires refletable<T>
-struct from_json<T> {
-  template <class It> static void op(auto &value, It &&it, auto &&end) {
+template<refletable T, typename It>
+inline void from_json(T &value, It &&it, auto &&end) {
     skip_ws(it, end);
 
     match<'{'>(it, end);
@@ -433,5 +430,4 @@ struct from_json<T> {
       skip_ws(it, end);
     }
   }
-};
 } // namespace iguana
