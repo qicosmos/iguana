@@ -66,9 +66,10 @@ REFLECTION(two_fields_t, a, v);
 
 // map TODO
 struct map_t {
-  std::map<int, std::string> map;
+  std::map<int, std::string> map1;
+  std::unordered_map<int, std::string> map2;
 };
-REFLECTION(map_t, map);
+REFLECTION(map_t, map1, map2);
 
 // list, set, unordered map... TODO
 
@@ -183,6 +184,20 @@ TEST_CASE("test vector") {
   vector_t p{};
   iguana::from_json(p, std::begin(str), std::end(str));
   CHECK(arr.arr == p.arr);
+}
+
+TEST_CASE("test map") {
+  map_t map{};
+  map.map1 = {{1, "hello"}, {2, "iguana"}};
+  map.map2 = {{3, "this"}, {4, "hashmap"}};
+  iguana::string_stream ss;
+  iguana::json::to_json(ss, map);
+
+  std::string str = ss.str();
+  map_t p{};
+  iguana::from_json(p, std::begin(str), std::end(str));
+  CHECK(map.map1 == p.map1);
+  CHECK(map.map2 == p.map2);
 }
 
 TEST_CASE("check some types") {

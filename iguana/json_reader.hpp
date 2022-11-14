@@ -44,6 +44,11 @@ concept container = requires(Type container) {
   container.end();
 };
 
+template <typename Type>
+concept map_container = container<Type> && requires(Type container) {
+  typename std::remove_cvref_t<Type>::mapped_type;
+};
+
 template <class T>
 concept c_array = std::is_array_v<std::remove_cvref_t<T>> &&
                   std::extent_v<std::remove_cvref_t<T>> >
@@ -267,6 +272,41 @@ inline void parse_item(U &value, It &&it, auto &&end) {
       match<','>(it, end);
     }
     parse_item(value.emplace_back(), it, end);
+    skip_ws(it, end);
+  }
+}
+
+template <map_container U, class It>
+inline void parse_item(U &value, It &&it, auto &&end) {
+  using T = std::remove_reference_t<U>;
+  skip_ws(it, end);
+
+  match<'{'>(it, end);
+  skip_ws(it, end);
+  bool first = true;
+  while (it != end) {
+    if (*it == '}') [[unlikely]] {
+      ++it;
+      return;
+    } else if (first) [[unlikely]]
+      first = false;
+    else [[likely]] {
+      match<','>(it, end);
+    }
+
+    static thread_local std::string key{};
+    parse_item(key, it, end);
+
+    skip_ws(it, end);
+    match<':'>(it, end);
+
+    if constexpr (std::is_same_v<typename T::key_type, std::string>) {
+      parse_item(value[key], it, end);
+    } else {
+      static thread_local typename T::key_type key_value{};
+      parse_item(key_value, key.begin(), key.end());
+      parse_item(value[key_value], it, end);
+    }
     skip_ws(it, end);
   }
 }
