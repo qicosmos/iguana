@@ -64,14 +64,47 @@ struct two_fields_t {
 };
 REFLECTION(two_fields_t, a, v);
 
-// map TODO
 struct map_t {
   std::map<int, std::string> map1;
   std::unordered_map<int, std::string> map2;
 };
 REFLECTION(map_t, map1, map2);
 
-// list, set, unordered map... TODO
+struct fixed_name_object_t {
+  std::string name0{};
+  std::string name1{};
+  std::string name2{};
+  std::string name3{};
+  std::string name4{};
+};
+REFLECTION(fixed_name_object_t, name0, name1, name2, name3, name4);
+
+struct nested_object_t {
+  std::vector<std::array<double, 3>> v3s{};
+  std::string id{};
+};
+REFLECTION(nested_object_t, v3s, id);
+
+struct another_object_t {
+  std::string string{};
+  std::string another_string{};
+  bool boolean{};
+  nested_object_t nested_object{};
+};
+REFLECTION(another_object_t, string, another_string, boolean, nested_object);
+
+struct obj_t {
+  //   fixed_object_t fixed_object{};
+  fixed_name_object_t fixed_name_object{};
+  another_object_t another_object{};
+  std::vector<std::string> string_array{};
+  std::string string{};
+  double number{};
+  bool boolean{};
+  bool another_bool{};
+};
+REFLECTION(obj_t, fixed_name_object, another_object, string_array, string,
+           number, boolean, another_bool);
 
 TEST_CASE("test simple object") {
   std::string_view str = R"({"name": "tom", "ok":true})";
@@ -198,6 +231,53 @@ TEST_CASE("test map") {
   iguana::from_json(p, std::begin(str), std::end(str));
   CHECK(map.map1 == p.map1);
   CHECK(map.map2 == p.map2);
+}
+
+TEST_CASE("test nested object") {
+  std::string str = R"({
+         "v3s": [[0.12345, 0.23456, 0.001345],
+                  [0.3894675, 97.39827, 297.92387],
+                  [18.18, 87.289, 2988.298]],
+         "id": "298728949872"
+      })";
+
+  nested_object_t obj{};
+  iguana::from_json(obj, std::begin(str), std::end(str));
+  std::cout << obj.id << "\n";
+}
+
+inline constexpr std::string_view json0 = R"(
+{
+   "fixed_name_object": {
+      "name0": "James",
+      "name1": "Abraham",
+      "name2": "Susan",
+      "name3": "Frank",
+      "name4": "Alicia"
+   },
+   "another_object": {
+      "string": "here is some text",
+      "another_string": "Hello World",
+      "boolean": false,
+      "nested_object": {
+         "v3s": [[0.12345, 0.23456, 0.001345],
+                  [0.3894675, 97.39827, 297.92387],
+                  [18.18, 87.289, 2988.298]],
+         "id": "298728949872"
+      }
+   },
+   "string_array": ["Cat", "Dog", "Elephant", "Tiger"],
+   "string": "Hello world",
+   "number": 3.14,
+   "boolean": true,
+   "another_bool": false
+}
+)";
+
+TEST_CASE("test complicated object") {
+  obj_t obj;
+  iguana::from_json(obj, std::begin(json0), std::end(json0));
+  std::cout << obj.another_bool << "\n";
 }
 
 TEST_CASE("check some types") {
