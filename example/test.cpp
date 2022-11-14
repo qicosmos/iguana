@@ -65,6 +65,10 @@ struct two_fields_t {
 REFLECTION(two_fields_t, a, v);
 
 // map TODO
+struct map_t {
+  std::map<int, std::string> map;
+};
+REFLECTION(map_t, map);
 
 // list, set, unordered map... TODO
 
@@ -97,7 +101,8 @@ TEST_CASE("test two_fields object") {
 }
 
 TEST_CASE("test simple nested object") {
-  simple_nested_t t{.id = 1, {.name = "tom", .ok = false}};
+  person o{.name = "tom", .ok = false};
+  simple_nested_t t{1, o};
   iguana::string_stream ss;
   iguana::json::to_json(ss, t);
 
