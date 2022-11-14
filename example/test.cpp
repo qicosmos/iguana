@@ -106,6 +106,11 @@ struct obj_t {
 REFLECTION(obj_t, fixed_name_object, another_object, string_array, string,
            number, boolean, another_bool);
 
+struct tuple_t {
+  std::tuple<int, double, std::string> tp;
+};
+REFLECTION(tuple_t, tp);
+
 TEST_CASE("test simple object") {
   std::string_view str = R"({"name": "tom", "ok":true})";
 
@@ -243,7 +248,22 @@ TEST_CASE("test nested object") {
 
   nested_object_t obj{};
   iguana::from_json(obj, std::begin(str), std::end(str));
-  std::cout << obj.id << "\n";
+  CHECK(obj.id == "298728949872");
+}
+
+TEST_CASE("test tuple") {
+  tuple_t t;
+  t.tp = std::make_tuple(2, 3.14, "hello iguana");
+  iguana::string_stream ss;
+  iguana::json::to_json(ss, t);
+
+  std::string str = ss.str();
+  tuple_t p{};
+  iguana::from_json(p, std::begin(str), std::end(str));
+
+  CHECK(std::get<0>(t.tp) == std::get<0>(p.tp));
+  CHECK(std::get<1>(t.tp) == std::get<1>(p.tp));
+  CHECK(std::get<2>(t.tp) == std::get<2>(p.tp));
 }
 
 inline constexpr std::string_view json0 = R"(
@@ -277,7 +297,8 @@ inline constexpr std::string_view json0 = R"(
 TEST_CASE("test complicated object") {
   obj_t obj;
   iguana::from_json(obj, std::begin(json0), std::end(json0));
-  std::cout << obj.another_bool << "\n";
+  CHECK(obj.number == 3.14);
+  CHECK(obj.string == "Hello world");
 }
 
 TEST_CASE("check some types") {

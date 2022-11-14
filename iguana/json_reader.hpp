@@ -63,6 +63,12 @@ concept array = requires(Type arr) {
 template <typename Type>
 concept fixed_array = c_array<Type> || array<Type>;
 
+template <typename Type>
+concept tuple = !array<Type> && requires(Type tuple) {
+  std::get<0>(tuple);
+  sizeof(std::tuple_size<std::remove_cvref_t<Type>>);
+};
+
 inline void skip_object_value(auto &&it, auto &&end) {
   skip_ws(it, end);
   while (it != end) {
@@ -309,6 +315,28 @@ inline void parse_item(U &value, It &&it, auto &&end) {
     }
     skip_ws(it, end);
   }
+}
+
+template <tuple U, class It>
+inline void parse_item(U &value, It &&it, auto &&end) {
+  skip_ws(it, end);
+  match<'['>(it, end);
+  skip_ws(it, end);
+
+  for_each(value, [&](auto &v, auto i) {
+    constexpr auto I = decltype(i)::value;
+    if (it == end || *it == ']') {
+      return;
+    }
+    if constexpr (I != 0) {
+      match<','>(it, end);
+      skip_ws(it, end);
+    }
+    parse_item(v, it, end);
+    skip_ws(it, end);
+  });
+
+  match<']'>(it, end);
 }
 
 template <bool_t U, class It>

@@ -192,6 +192,12 @@ constexpr auto to_json(Stream &s, T &&t)
 }
 
 template <typename Stream, typename T>
+std::enable_if_t<is_tuple<std::decay_t<T>>::value>
+render_json_value(Stream &ss, const T &v) {
+  to_json(ss, v);
+}
+
+template <typename Stream, typename T>
 constexpr auto to_json(Stream &s, T &&t)
     -> std::enable_if_t<is_reflection<T>::value> {
   s.put('{');
