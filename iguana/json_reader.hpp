@@ -49,6 +49,15 @@ concept c_array = std::is_array_v<std::remove_cvref_t<T>> &&
                   std::extent_v<std::remove_cvref_t<T>> >
 0;
 
+template <typename Type>
+concept array = requires(Type arr) {
+  arr.size();
+  std::tuple_size<std::remove_cvref_t<Type>>{};
+};
+
+template <typename Type>
+concept fixed_array = c_array<Type> || array<Type>;
+
 inline void skip_object_value(auto &&it, auto &&end) {
   skip_ws(it, end);
   while (it != end) {
@@ -197,7 +206,7 @@ inline void parse_item(U &value, It &&it, auto &&end, bool skip = false) {
   }
 }
 
-template <c_array U, class It>
+template <fixed_array U, class It>
 inline void parse_item(U &value, It &&it, auto &&end) {
   using T = std::remove_reference_t<U>;
   skip_ws(it, end);
@@ -213,7 +222,7 @@ inline void parse_item(U &value, It &&it, auto &&end) {
     return;
   }
 
-  const auto n = std::extent_v<T>;
+  constexpr auto n = sizeof(T) / sizeof(decltype(std::declval<T>()[0]));
 
   auto value_it = std::begin(value);
 
@@ -403,28 +412,19 @@ inline void from_json(T &value, It &&it, auto &&end) {
             },
             member_it->second);
       } else [[unlikely]] {
-        //                        if constexpr (Opts.error_on_unknown_keys) {
-        //                            throw std::runtime_error("Unknown key: "
-        //                            + std::string(key));
-        //                        }
-        //                        else
-        { skip_object_value(it, end); }
+        throw std::runtime_error("Unknown key: " + std::string(key));
       }
     } else {
       static thread_local std::string key{};
-      //                    read<json>::op<Opts>(key, it, end);
-
       skip_ws(it, end);
       match<':'>(it, end);
 
       if constexpr (std::is_same_v<typename T::key_type, std::string>) {
-        //                        read<json>::op<Opts>(value[key], it, end);
+        parse_item(value[key], it, end);
       } else {
         static thread_local typename T::key_type key_value{};
-        //                        read<json>::op<Opts>(key_value, key.begin(),
-        //                        key.end());
-        //                        read<json>::op<Opts>(value[key_value], it,
-        //                        end);
+        parse_item(key_value, key.begin(), key.end());
+        parse_item(value[key_value], it, end);
       }
     }
     skip_ws(it, end);
