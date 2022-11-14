@@ -60,7 +60,7 @@ REFLECTION(composite_t, a, v);
 
 // map TODO
 
-int main() {
+void function_test() {
   {
     person p{};
     std::string str = R"({"\name": "\tom", "ok":true})";
@@ -149,3 +149,15 @@ int main() {
   //  static_assert(map.at("y") ==
   //                value_type{std::in_place_index_t<1>{}, &point_t::y});
 }
+
+#define DOCTEST_CONFIG_IMPLEMENT
+#include "doctest.h"
+
+// doctest comments
+// 'function' : must be 'attribute' - see issue #182
+DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
+int main(int argc, char **argv) {
+  function_test();
+  return doctest::Context(argc, argv).run();
+}
+DOCTEST_MSVC_SUPPRESS_WARNING_POP
