@@ -71,6 +71,22 @@ struct map_t {
 };
 REFLECTION(map_t, map1, map2);
 
+struct list_t {
+  std::list<int> lst;
+};
+REFLECTION(list_t, lst);
+
+struct forward_list_t {
+  std::forward_list<int> lst;
+};
+REFLECTION(forward_list_t, lst);
+
+struct deque_t {
+  std::deque<int> lst;
+};
+REFLECTION(deque_t, lst);
+
+
 struct fixed_name_object_t {
   std::string name0{};
   std::string name1{};
@@ -265,6 +281,29 @@ TEST_CASE("test tuple") {
   CHECK(std::get<0>(t.tp) == std::get<0>(p.tp));
   CHECK(std::get<1>(t.tp) == std::get<1>(p.tp));
   CHECK(std::get<2>(t.tp) == std::get<2>(p.tp));
+}
+
+
+TEST_CASE("test list") {
+  list_t list{{1, 2, 3}};
+  iguana::string_stream ss;
+  iguana::json::to_json(ss, list);
+
+  std::string str = ss.str();
+  list_t p{};
+  iguana::from_json(p, std::begin(str), std::end(str));
+  CHECK(list.lst == p.lst);
+}
+
+TEST_CASE("test deque_t") {
+  deque_t list{{1, 2, 3}};
+  iguana::string_stream ss;
+  iguana::json::to_json(ss, list);
+
+  std::string str = ss.str();
+  deque_t p{};
+  iguana::from_json(p, std::begin(str), std::end(str));
+  CHECK(list.lst == p.lst);
 }
 
 inline constexpr std::string_view json0 = R"(
