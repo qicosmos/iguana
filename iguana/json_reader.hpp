@@ -9,9 +9,6 @@ template <class T>
 concept refletable = is_reflection<T>::value;
 
 template <class T>
-concept non_refletable = !refletable<T>;
-
-template <class T>
 concept char_t = std::same_as < std::decay_t<T>,
 char > || std::same_as<std::decay_t<T>, char16_t> ||
     std::same_as<std::decay_t<T>, char32_t> ||
@@ -30,6 +27,14 @@ concept num_t = std::floating_point<std::decay_t<T>> || int_t<T>;
 
 template <class T>
 concept str_t = std::convertible_to<std::decay_t<T>, std::string_view>;
+
+template <typename Type> constexpr inline bool is_std_vector_v = false;
+
+template <typename... args>
+constexpr inline bool is_std_vector_v<std::vector<args...>> = true;
+
+template <typename Type>
+concept vector_container = is_std_vector_v<std::remove_reference_t<Type>>;
 
 template <typename Type>
 concept optional = requires(Type optional) {
@@ -71,6 +76,9 @@ concept tuple = !array<Type> && requires(Type tuple) {
   std::get<0>(tuple);
   sizeof(std::tuple_size<std::remove_cvref_t<Type>>);
 };
+
+template <class T>
+concept non_refletable = container<T> || c_array<T> || tuple<T>;
 
 IGUANA_INLINE void skip_object_value(auto &&it, auto &&end) {
   skip_ws(it, end);
@@ -256,14 +264,6 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
     }
   }
 }
-
-template <typename Type> constexpr inline bool is_std_vector_v = false;
-
-template <typename... args>
-constexpr inline bool is_std_vector_v<std::vector<args...>> = true;
-
-template <typename Type>
-concept vector_container = is_std_vector_v<std::remove_reference_t<Type>>;
 
 template <vector_container U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
