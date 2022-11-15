@@ -507,4 +507,10 @@ IGUANA_INLINE void from_json(T &value, It &&it, auto &&end) {
   parse_item(value, it, end);
 }
 
+template <typename T, typename It>
+IGUANA_INLINE void from_json(T &value, It &&it, auto &&end) {
+  static_assert(!sizeof(T), "The type is not support, please check if you have "
+                            "defined REFLECTION for the type");
+}
+
 } // namespace iguana
