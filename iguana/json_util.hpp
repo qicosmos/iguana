@@ -6,6 +6,17 @@
 #include <bit>
 #include <string_view>
 
+#if defined __clang__
+#define IGUANA_INLINE __attribute__((always_inline)) inline
+#define IGUANA__INLINE_LAMBDA __attribute__((always_inline)) constexpr
+#elif defined _MSC_VER
+#define IGUANA_INLINE __forceinline
+#define IGUANA__INLINE_LAMBDA constexpr
+#else
+#define IGUANA_INLINE __attribute__((always_inline)) inline
+#define IGUANA__INLINE_LAMBDA constexpr __attribute__((always_inline))
+#endif
+
 namespace iguana {
 template <size_t N> struct string_literal {
   static constexpr size_t size = (N > 0) ? (N - 1) : 0;
@@ -20,7 +31,7 @@ template <size_t N> struct string_literal {
   constexpr const std::string_view sv() const noexcept { return {value, size}; }
 };
 
-template <char c> inline void match(auto &&it, auto &&end) {
+template <char c> IGUANA_INLINE void match(auto &&it, auto &&end) {
   if (it == end || *it != c) [[unlikely]] {
     static constexpr char b[] = {c, '\0'};
     //         static constexpr auto error = concat_arrays("Expected:", b);
@@ -31,7 +42,7 @@ template <char c> inline void match(auto &&it, auto &&end) {
   }
 }
 
-template <string_literal str> inline void match(auto &&it, auto &&end) {
+template <string_literal str> IGUANA_INLINE void match(auto &&it, auto &&end) {
   const auto n = static_cast<size_t>(std::distance(it, end));
   if (n < str.size) [[unlikely]] {
     // TODO: compile time generate this message, currently borken with
@@ -52,7 +63,7 @@ template <string_literal str> inline void match(auto &&it, auto &&end) {
   }
 }
 
-inline void skip_comment(auto &&it, auto &&end) {
+IGUANA_INLINE void skip_comment(auto &&it, auto &&end) {
   ++it;
   if (it == end) [[unlikely]]
     throw std::runtime_error("Unexpected end, expected comment");
@@ -74,7 +85,7 @@ inline void skip_comment(auto &&it, auto &&end) {
     throw std::runtime_error("Expected / or * after /");
 }
 
-inline void skip_ws(auto &&it, auto &&end) {
+IGUANA_INLINE void skip_ws(auto &&it, auto &&end) {
   while (it != end) {
     // assuming ascii
     if (static_cast<uint8_t>(*it) < 33) {
@@ -87,7 +98,7 @@ inline void skip_ws(auto &&it, auto &&end) {
   }
 }
 
-inline void skip_ws_no_comments(auto &&it, auto &&end) {
+IGUANA_INLINE void skip_ws_no_comments(auto &&it, auto &&end) {
   while (it != end) {
     // assuming ascii
     if (static_cast<uint8_t>(*it) < 33) {
@@ -98,20 +109,20 @@ inline void skip_ws_no_comments(auto &&it, auto &&end) {
   }
 }
 
-inline void skip_till_escape_or_qoute(auto &&it, auto &&end) {
+IGUANA_INLINE void skip_till_escape_or_qoute(auto &&it, auto &&end) {
   static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
 
   auto has_zero = [](uint64_t chunk) {
     return (((chunk - 0x0101010101010101) & ~chunk) & 0x8080808080808080);
   };
 
-  auto has_qoute = [&](uint64_t chunk) {
+  auto has_qoute = [&](uint64_t chunk) IGUANA__INLINE_LAMBDA {
     return has_zero(
         chunk ^
         0b0010001000100010001000100010001000100010001000100010001000100010);
   };
 
-  auto has_escape = [&](uint64_t chunk) {
+  auto has_escape = [&](uint64_t chunk) IGUANA__INLINE_LAMBDA {
     return has_zero(
         chunk ^
         0b0101110001011100010111000101110001011100010111000101110001011100);
@@ -139,7 +150,7 @@ inline void skip_till_escape_or_qoute(auto &&it, auto &&end) {
   throw std::runtime_error("Expected \"");
 }
 
-inline void skip_string(auto &&it, auto &&end) noexcept {
+IGUANA_INLINE void skip_string(auto &&it, auto &&end) noexcept {
   ++it;
   while (it < end) {
     if (*it == '"') {
@@ -152,7 +163,7 @@ inline void skip_string(auto &&it, auto &&end) noexcept {
 }
 
 template <char open, char close>
-inline void skip_until_closed(auto &&it, auto &&end) {
+IGUANA_INLINE void skip_until_closed(auto &&it, auto &&end) {
   ++it;
   size_t open_count = 1;
   size_t close_count = 0;
@@ -178,7 +189,7 @@ inline void skip_until_closed(auto &&it, auto &&end) {
   }
 }
 
-inline constexpr bool is_numeric(const auto c) noexcept {
+IGUANA_INLINE constexpr bool is_numeric(const auto c) noexcept {
   switch (c) {
   case '0':
   case '1':
