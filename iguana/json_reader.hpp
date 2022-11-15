@@ -3,6 +3,8 @@
 #include "json_util.hpp"
 #include "reflection.hpp"
 #include <charconv>
+#include <fstream>
+#include <filesystem>
 
 namespace iguana {
 template <class T>
@@ -503,8 +505,32 @@ IGUANA_INLINE void from_json(T &value, It &&it, auto &&end) {
 }
 
 template <non_refletable T, typename It>
-IGUANA_INLINE void from_json(T &value, It &&it, auto &&end) {
+IGUANA_INLINE void from_json(T& value, It&& it, auto&& end) {
   parse_item(value, it, end);
+}
+
+template <typename T>
+IGUANA_INLINE void from_json(T& value, const std::string& filename) {
+  std::ifstream file(filename, std::ios::binary);
+  if (!file) {
+    throw std::runtime_error("cannot open file: " + filename);
+  }
+
+  std::error_code ec;
+  uint64_t size = std::filesystem::file_size(filename, ec);
+  if (ec) {
+    throw std::runtime_error("file size error " + ec.message());
+  }
+
+  if (size == 0) {
+    throw std::runtime_error("empty file");
+  }
+
+  std::string content;
+  content.resize(size);
+
+  file.read(content.data(), size);
+  from_json(value, content.begin(), content.end());
 }
 
 template <typename T, typename It>
