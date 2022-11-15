@@ -9,6 +9,9 @@ template <class T>
 concept refletable = is_reflection<T>::value;
 
 template <class T>
+concept non_refletable = !refletable<T>;
+
+template <class T>
 concept char_t = std::same_as < std::decay_t<T>,
 char > || std::same_as<std::decay_t<T>, char16_t> ||
     std::same_as<std::decay_t<T>, char32_t> ||
@@ -498,4 +501,10 @@ IGUANA_INLINE void from_json(T &value, It &&it, auto &&end) {
     skip_ws(it, end);
   }
 }
+
+template <non_refletable T, typename It>
+IGUANA_INLINE void from_json(T &value, It &&it, auto &&end) {
+  parse_item(value, it, end);
+}
+
 } // namespace iguana
