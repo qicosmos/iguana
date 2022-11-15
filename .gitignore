@@ -32,3 +32,4 @@ build
 .vscode
 .idea
 cmake-*
+.cache
