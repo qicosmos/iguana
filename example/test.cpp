@@ -383,6 +383,20 @@ TEST_CASE("test non-reflectable object") {
   }
 }
 
+TEST_CASE("test file interface") {
+  std::string filename = "test.json";
+  std::ofstream out(filename, std::ios::binary);
+  out.write(json0.data(), json0.size());
+  out.close();
+
+  obj_t obj;
+  iguana::from_json(obj, filename);
+  CHECK(obj.number == 3.14);
+  CHECK(obj.string == "Hello world");
+
+  std::filesystem::remove(filename);
+}
+
 TEST_CASE("check some types") {
   using value_type = std::variant<int point_t::*, double point_t::*>;
   constexpr auto map = iguana::get_iguana_struct_map<point_t>();
