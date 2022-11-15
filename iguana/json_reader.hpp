@@ -3,8 +3,10 @@
 #include "json_util.hpp"
 #include "reflection.hpp"
 #include <charconv>
+#include <forward_list>
 #include <fstream>
 #include <filesystem>
+
 
 namespace iguana {
 template <class T>
@@ -78,6 +80,19 @@ concept tuple = !array<Type> && requires(Type tuple) {
   std::get<0>(tuple);
   sizeof(std::tuple_size<std::remove_cvref_t<Type>>);
 };
+
+template <typename Type> constexpr inline bool is_std_list_v = false;
+template <typename... args>
+constexpr inline bool is_std_list_v<std::list<args...>> = true;
+
+template <typename Type> constexpr inline bool is_std_deque_v = false;
+template <typename... args>
+constexpr inline bool is_std_deque_v<std::deque<args...>> = true;
+
+template <typename Type>
+concept sequence_container = is_std_list_v<std::remove_reference_t<Type>> ||
+                             is_std_vector_v<std::remove_reference_t<Type>> ||
+                             is_std_deque_v<std::remove_reference_t<Type>>;
 
 template <class T>
 concept non_refletable = container<T> || c_array<T> || tuple<T>;
@@ -267,7 +282,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
   }
 }
 
-template <vector_container U, class It>
+template <sequence_container U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
   value.clear();
   skip_ws(it, end);
