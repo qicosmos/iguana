@@ -22,7 +22,7 @@ jobs:
       run: brew install boost
       
     - name: configure cmake
-      run: CXX=clang++ CC=clang cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -DCMAKE_INCLUDE_PATH=$CMAKE_INCLUDE_PATH:/usr/local/Cellar/boost/1.80.0
+      run: CMAKE_INCLUDE_PATH=/usr/local/Cellar/boost/1.80.0 CXX=clang++ CC=clang cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }}
       
     - name: build project
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.mode }}
