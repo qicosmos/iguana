@@ -3,10 +3,9 @@
 #include "json_util.hpp"
 #include "reflection.hpp"
 #include <charconv>
+#include <filesystem>
 #include <forward_list>
 #include <fstream>
-#include <filesystem>
-
 
 namespace iguana {
 template <class T>
@@ -91,8 +90,8 @@ constexpr inline bool is_std_deque_v<std::deque<args...>> = true;
 
 template <typename Type>
 concept sequence_container = is_std_list_v<std::remove_reference_t<Type>> ||
-                             is_std_vector_v<std::remove_reference_t<Type>> ||
-                             is_std_deque_v<std::remove_reference_t<Type>>;
+    is_std_vector_v<std::remove_reference_t<Type>> ||
+    is_std_deque_v<std::remove_reference_t<Type>>;
 
 template <class T>
 concept non_refletable = container<T> || c_array<T> || tuple<T>;
@@ -520,12 +519,12 @@ IGUANA_INLINE void from_json(T &value, It &&it, auto &&end) {
 }
 
 template <non_refletable T, typename It>
-IGUANA_INLINE void from_json(T& value, It&& it, auto&& end) {
+IGUANA_INLINE void from_json(T &value, It &&it, auto &&end) {
   parse_item(value, it, end);
 }
 
 template <typename T>
-IGUANA_INLINE void from_json(T& value, const std::string& filename) {
+IGUANA_INLINE void from_json(T &value, const std::string &filename) {
   std::ifstream file(filename, std::ios::binary);
   if (!file) {
     throw std::runtime_error("cannot open file: " + filename);
