@@ -1,3 +1,4 @@
+#include <vector>
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
 #include "iguana/json_reader.hpp"
@@ -69,6 +70,22 @@ struct map_t {
   std::unordered_map<int, std::string> map2;
 };
 REFLECTION(map_t, map1, map2);
+
+struct list_t {
+  std::list<int> lst;
+};
+REFLECTION(list_t, lst);
+
+struct forward_list_t {
+  std::forward_list<int> lst;
+};
+REFLECTION(forward_list_t, lst);
+
+struct deque_t {
+  std::deque<int> lst;
+};
+REFLECTION(deque_t, lst);
+
 
 struct fixed_name_object_t {
   std::string name0{};
@@ -266,6 +283,29 @@ TEST_CASE("test tuple") {
   CHECK(std::get<2>(t.tp) == std::get<2>(p.tp));
 }
 
+
+TEST_CASE("test list") {
+  list_t list{{1, 2, 3}};
+  iguana::string_stream ss;
+  iguana::json::to_json(ss, list);
+
+  std::string str = ss.str();
+  list_t p{};
+  iguana::from_json(p, std::begin(str), std::end(str));
+  CHECK(list.lst == p.lst);
+}
+
+TEST_CASE("test deque_t") {
+  deque_t list{{1, 2, 3}};
+  iguana::string_stream ss;
+  iguana::json::to_json(ss, list);
+
+  std::string str = ss.str();
+  deque_t p{};
+  iguana::from_json(p, std::begin(str), std::end(str));
+  CHECK(list.lst == p.lst);
+}
+
 inline constexpr std::string_view json0 = R"(
 {
    "fixed_name_object": {
@@ -299,6 +339,62 @@ TEST_CASE("test complicated object") {
   iguana::from_json(obj, std::begin(json0), std::end(json0));
   CHECK(obj.number == 3.14);
   CHECK(obj.string == "Hello world");
+}
+
+TEST_CASE("test non-reflectable object") {
+  {
+    std::tuple<int, double, std::string> t{1, 3.14, std::string("iguana")};
+
+    iguana::string_stream ss;
+    iguana::json::to_json(ss, t);
+
+    std::string str = ss.str();
+    std::tuple<int, double, std::string> p{};
+    iguana::from_json(p, std::begin(str), std::end(str));
+
+    CHECK(std::get<0>(t) == std::get<0>(p));
+    CHECK(std::get<1>(t) == std::get<1>(p));
+    CHECK(std::get<2>(t) == std::get<2>(p));
+  }
+
+  {
+    std::string str = "[1, 2, 3]";
+    std::vector<int> p{};
+    iguana::from_json(p, std::begin(str), std::end(str));
+    CHECK(p == std::vector<int>{1, 2, 3});
+
+    std::array<int, 3> arr;
+    iguana::from_json(arr, std::begin(str), std::end(str));
+    CHECK(arr == std::array<int, 3>{1, 2, 3});
+
+    int c_arr[3];
+    iguana::from_json(c_arr, std::begin(str), std::end(str));
+    CHECK(c_arr[0] == 1);
+    CHECK(c_arr[1] == 2);
+    CHECK(c_arr[2] == 3);
+  }
+
+  {
+    std::string str = R"({"1":"tom"})";
+    std::map<int, std::string> map;
+    iguana::from_json(map, std::begin(str), std::end(str));
+    CHECK(map.size() == 1);
+    CHECK(map.at(1) == "tom");
+  }
+}
+
+TEST_CASE("test file interface") {
+  std::string filename = "test.json";
+  std::ofstream out(filename, std::ios::binary);
+  out.write(json0.data(), json0.size());
+  out.close();
+
+  obj_t obj;
+  iguana::from_json(obj, filename);
+  CHECK(obj.number == 3.14);
+  CHECK(obj.string == "Hello world");
+
+  std::filesystem::remove(filename);
 }
 
 TEST_CASE("check some types") {

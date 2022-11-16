@@ -3,6 +3,10 @@
 #include "json_util.hpp"
 #include "reflection.hpp"
 #include <charconv>
+#include <forward_list>
+#include <fstream>
+#include <filesystem>
+
 
 namespace iguana {
 template <class T>
@@ -27,6 +31,14 @@ concept num_t = std::floating_point<std::decay_t<T>> || int_t<T>;
 
 template <class T>
 concept str_t = std::convertible_to<std::decay_t<T>, std::string_view>;
+
+template <typename Type> constexpr inline bool is_std_vector_v = false;
+
+template <typename... args>
+constexpr inline bool is_std_vector_v<std::vector<args...>> = true;
+
+template <typename Type>
+concept vector_container = is_std_vector_v<std::remove_reference_t<Type>>;
 
 template <typename Type>
 concept optional = requires(Type optional) {
@@ -68,6 +80,22 @@ concept tuple = !array<Type> && requires(Type tuple) {
   std::get<0>(tuple);
   sizeof(std::tuple_size<std::remove_cvref_t<Type>>);
 };
+
+template <typename Type> constexpr inline bool is_std_list_v = false;
+template <typename... args>
+constexpr inline bool is_std_list_v<std::list<args...>> = true;
+
+template <typename Type> constexpr inline bool is_std_deque_v = false;
+template <typename... args>
+constexpr inline bool is_std_deque_v<std::deque<args...>> = true;
+
+template <typename Type>
+concept sequence_container = is_std_list_v<std::remove_reference_t<Type>> ||
+                             is_std_vector_v<std::remove_reference_t<Type>> ||
+                             is_std_deque_v<std::remove_reference_t<Type>>;
+
+template <class T>
+concept non_refletable = container<T> || c_array<T> || tuple<T>;
 
 IGUANA_INLINE void skip_object_value(auto &&it, auto &&end) {
   skip_ws(it, end);
@@ -254,15 +282,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
   }
 }
 
-template <typename Type> constexpr inline bool is_std_vector_v = false;
-
-template <typename... args>
-constexpr inline bool is_std_vector_v<std::vector<args...>> = true;
-
-template <typename Type>
-concept vector_container = is_std_vector_v<std::remove_reference_t<Type>>;
-
-template <vector_container U, class It>
+template <sequence_container U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
   value.clear();
   skip_ws(it, end);
@@ -498,4 +518,41 @@ IGUANA_INLINE void from_json(T &value, It &&it, auto &&end) {
     skip_ws(it, end);
   }
 }
+
+template <non_refletable T, typename It>
+IGUANA_INLINE void from_json(T& value, It&& it, auto&& end) {
+  parse_item(value, it, end);
+}
+
+template <typename T>
+IGUANA_INLINE void from_json(T& value, const std::string& filename) {
+  std::ifstream file(filename, std::ios::binary);
+  if (!file) {
+    throw std::runtime_error("cannot open file: " + filename);
+  }
+
+  std::error_code ec;
+  uint64_t size = std::filesystem::file_size(filename, ec);
+  if (ec) {
+    throw std::runtime_error("file size error " + ec.message());
+  }
+
+  if (size == 0) {
+    throw std::runtime_error("empty file");
+  }
+
+  std::string content;
+  content.resize(size);
+
+  file.read(content.data(), size);
+  from_json(value, content.begin(), content.end());
+}
+
+template <typename T, typename It>
+IGUANA_INLINE void from_json(T &value, It &&it, auto &&end) {
+  static_assert(!sizeof(T), "The type is not support, please check if you have "
+                            "defined REFLECTION for the type, otherwise the "
+                            "type is not supported now!");
+}
+
 } // namespace iguana
