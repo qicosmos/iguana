@@ -19,7 +19,7 @@ jobs:
       uses: actions/checkout@v3
       
     - name: install depends
-      run: brew install libboost-dev
+      run: brew install boost
       
     - name: configure cmake
       run: CXX=clang++ CC=clange cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }}
