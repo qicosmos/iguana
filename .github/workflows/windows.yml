@@ -27,4 +27,4 @@ jobs:
         run: cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -A${{ matrix.arch }}
         
       - name: build iguana
-        run: cmake --build ${{ github.workspace }} --config ${{ matrix.mode }}
+        run: cmake --build ${{ github.workspace }}
