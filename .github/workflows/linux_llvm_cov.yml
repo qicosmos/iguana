@@ -1,0 +1,42 @@
+name: Ubuntu 22.04 (llvm cov)
+
+on:
+  pull_request_target:
+    branches: [ master ]
+    
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: check out
+        uses: actions/checkout@v3
+
+      - name: install depends
+        run: sudo apt-get install libboost-dev
+
+      - name: run voverage script
+        run: bash coverage_gen.sh llvm
+
+      - name: upload coverage results
+        uses: actions/upload-artifact@v3
+        with:
+          name: llvm-cov
+          path: ${{ github.workspace }}/.coverage_llvm_cov
+
+      - name: create code coverage report
+        working-directory: ${{github.workspace}}/build
+        run: |
+            echo "Code Coverage Report" > tmp.log
+            echo "for detail, [goto summary](https://github.com/${{ github.repository_owner }}/${{ github.event.repository.name }}/actions/runs/${{github.run_id}}) download Artifacts `llvm-cov`" >> tmp.log
+            echo "\`\`\`" >> tmp.log
+            llvm-cov report ./tests/test_rpc -instr-profile=test_rpc.profdata -ignore-filename-regex="thirdparty|tests" -show-region-summary=false >> tmp.log
+            echo "\`\`\`" >> tmp.log
+
+
+
+      - name: create comment
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-file: '${{github.workspace}}/build/tmp.log'
