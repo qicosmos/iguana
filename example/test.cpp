@@ -16,6 +16,9 @@ REFLECTION(point_t, x, y);
 struct person {
   std::string name;
   bool ok;
+  bool operator==(person const &rhs) const {
+    return name == rhs.name and ok == rhs.ok;
+  }
 };
 REFLECTION(person, name, ok);
 
@@ -415,11 +418,35 @@ TEST_CASE("test file interface") {
   out.close();
 
   obj_t obj;
-  iguana::from_json(obj, filename);
+  iguana::from_json_file(obj, filename);
   CHECK(obj.number == 3.14);
   CHECK(obj.string == "Hello world");
 
   std::filesystem::remove(filename);
+}
+
+TEST_CASE("test view and byte interface") {
+  std::string_view str = R"({"name": "tom", "ok":true})";
+
+  person p;
+  iguana::from_json(p, str);
+
+  std::string str1 = {str.data(), str.size()};
+  person p1;
+  iguana::from_json(p1, str1);
+
+  CHECK(p == p1);
+
+  std::vector<char> v;
+  v.resize(str.size());
+  std::memcpy(v.data(), str.data(), str.size());
+  person p2;
+  iguana::from_json(p2, v);
+  CHECK(p == p2);
+
+  person p3;
+  iguana::from_json(p3, v.data(), v.size());
+  CHECK(p2 == p3);
 }
 
 TEST_CASE("check some types") {

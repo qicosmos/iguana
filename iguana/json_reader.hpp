@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <forward_list>
 #include <fstream>
+#include <string_view>
 
 namespace iguana {
 template <class T>
@@ -80,6 +81,16 @@ concept tuple = !array<Type> && requires(Type tuple) {
   sizeof(std::tuple_size<std::remove_cvref_t<Type>>);
 };
 
+template <typename Type>
+concept json_view = requires(Type container) {
+  container.size();
+  container.data();
+};
+
+template <typename T>
+concept json_byte = std::is_same_v<char, T> ||
+    std::is_same_v<unsigned char, T> || std::is_same_v<std::byte, T>;
+
 template <typename Type> constexpr inline bool is_std_list_v = false;
 template <typename... args>
 constexpr inline bool is_std_list_v<std::list<args...>> = true;
@@ -127,7 +138,7 @@ IGUANA_INLINE void skip_object_value(auto &&it, auto &&end) {
 }
 
 template <refletable T, typename It>
-void from_json(T &value, It &&it, auto &&end);
+void from_json(T &value, It &&it, It &&end);
 
 template <num_t U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
@@ -439,7 +450,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
 }
 
 template <refletable T, typename It>
-IGUANA_INLINE void from_json(T &value, It &&it, auto &&end) {
+IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
   skip_ws(it, end);
 
   match<'{'>(it, end);
@@ -519,12 +530,12 @@ IGUANA_INLINE void from_json(T &value, It &&it, auto &&end) {
 }
 
 template <non_refletable T, typename It>
-IGUANA_INLINE void from_json(T &value, It &&it, auto &&end) {
+IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
   parse_item(value, it, end);
 }
 
 template <typename T>
-IGUANA_INLINE void from_json(T &value, const std::string &filename) {
+IGUANA_INLINE void from_json_file(T &value, const std::string &filename) {
   std::ifstream file(filename, std::ios::binary);
   if (!file) {
     std::string cur_path = std::filesystem::current_path().string();
@@ -549,8 +560,19 @@ IGUANA_INLINE void from_json(T &value, const std::string &filename) {
   from_json(value, content.begin(), content.end());
 }
 
+template <typename T, json_view View>
+IGUANA_INLINE void from_json(T &value, const View &view) {
+  from_json(value, std::begin(view), std::end(view));
+}
+
+template <typename T, json_byte Byte>
+IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size) {
+  std::string_view buffer(data, size);
+  from_json(value, buffer);
+}
+
 template <typename T, typename It>
-IGUANA_INLINE void from_json(T &value, It &&it, auto &&end) {
+IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
   static_assert(!sizeof(T), "The type is not support, please check if you have "
                             "defined REFLECTION for the type, otherwise the "
                             "type is not supported now!");
