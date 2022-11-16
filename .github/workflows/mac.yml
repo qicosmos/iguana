@@ -1,0 +1,32 @@
+name:  macOS Monterey 12
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+    
+jobs:
+  build:
+    strategy:
+      matrix:
+        mode: [ Debug ]
+        
+    runs-on: macos-12
+    
+    steps:
+    - name: check out
+      uses: actions/checkout@v3
+      
+    - name: install depends
+      run: brew install libboost-dev
+      
+    - name: configure cmake
+      run: CXX=clang++ CC=clange cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }}
+      
+    - name: build project
+      run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.mode }}
+      
+    - name: test
+      working-directory: ${{ github.workspace }}/build
+      run: ctest -C ${{ matrix.mode }} -j `nproc` -V
