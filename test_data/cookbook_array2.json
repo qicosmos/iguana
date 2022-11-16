@@ -1,0 +1,14 @@
+[
+  {
+    "a": "Hello World",
+    "b": 1234,
+    "c": 1.23,
+    "d": false
+  },
+  {
+    "a": "Goodbye World",
+    "b": 4321,
+    "c": 123,
+    "d": true
+  }
+]

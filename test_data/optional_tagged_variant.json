@@ -1,0 +1,20 @@
+[
+  {
+    "type": 0,
+    "name": "string value",
+    "value": "hello"
+  },
+  {
+    "type": 1,
+    "name": "int value",
+    "value": 5
+  },
+  {
+    "type": 2,
+    "name": "bool value",
+    "value": false
+  },
+  {
+    "name": "no value"
+  }
+]

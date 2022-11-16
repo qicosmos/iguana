@@ -1,0 +1,47 @@
+{
+  "nodes": [
+    {
+      "id": "0",
+      "metadata": {
+        "member0": 44,
+        "member1": "value1",
+        "member2": true
+      }
+    },
+    {
+      "id": "1",
+      "metadata": {
+        "member0": 2323,
+        "member1": "value4",
+        "member2": false
+      }
+    },
+    {
+      "id": "2",
+      "metadata": {
+        "member0": 1234,
+        "member1": "value7",
+        "member2": false
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "0",
+      "target": "1"
+    },
+    {
+      "source": "1",
+      "target": "0"
+    },
+    {
+      "source": "2",
+      "target": "0"
+    },
+    {
+      "source": "1",
+      "target": "2"
+    }
+  ]
+}
+

@@ -1,0 +1,18 @@
+[
+  {
+    "version": 2,
+    "config_options": [
+      {
+        "name": "bob",
+        "value": 42
+      }
+    ],
+    "option2": 5
+  },
+  {
+    "version": 1,
+    "name": "what is the answer to the ultimate question?",
+    "value": 42,
+    "next question": "what is earth"
+  }
+]

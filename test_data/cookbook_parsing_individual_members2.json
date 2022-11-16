@@ -1,0 +1,14 @@
+{
+  "member0": 55,
+  "member1": [
+    "this",
+    "is",
+    "a",
+    "test"
+  ],
+  "member2": {
+    "a": 123.4,
+    "b": "found me"
+  }
+}
+

@@ -35,8 +35,8 @@ template <char c> IGUANA_INLINE void match(auto &&it, auto &&end) {
   if (it == end || *it != c) [[unlikely]] {
     static constexpr char b[] = {c, '\0'};
     //         static constexpr auto error = concat_arrays("Expected:", b);
-    std::string_view error = std::string("Expected:").append(b);
-    throw std::runtime_error(error.data());
+    std::string error = std::string("Expected:").append(b);
+    throw std::runtime_error(error);
   } else [[likely]] {
     ++it;
   }

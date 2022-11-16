@@ -527,7 +527,9 @@ template <typename T>
 IGUANA_INLINE void from_json(T &value, const std::string &filename) {
   std::ifstream file(filename, std::ios::binary);
   if (!file) {
-    throw std::runtime_error("cannot open file: " + filename);
+    std::string cur_path = std::filesystem::current_path().string();
+    throw std::runtime_error("cannot open file: " + filename +
+                             ", current path " + cur_path);
   }
 
   std::error_code ec;

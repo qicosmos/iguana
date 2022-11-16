@@ -1,0 +1,13 @@
+{
+  "uris": [
+    "example.com",
+    "B\u00FCcher.ch",
+    "happy.cn",
+    "happy\u5FEB\u4E50.cn",
+    "\u5FEB\u4E50.cn",
+    "happy.\u4E2D\u56FD",
+    "\u5FEB\u4E50.\u4E2D\u56FD",
+    "www.\u30CF\u30F3\u30C9\u30DC\u30FC\u30EB\u30B5\u30E0\u30BA.com",
+    "\uD83E\uDD84.com"
+  ]
+}

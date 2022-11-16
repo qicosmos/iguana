@@ -35,9 +35,13 @@ set(MSGPACK_EXAMPLE
 )
 
 set(TEST example/test.cpp)
+set(TEST_UT test/json_file_test.cpp)
+set(TEST_EXCEPTION test/invalid_data_test.cpp)
 
 add_executable(example 	${EXAMPLE})
 add_executable(json_example 	${JSON_EXAMPLE})
 add_executable(xml_example 		${XML_EXAMPLE})
 add_executable(msgpack_example 	${MSGPACK_EXAMPLE})
 add_executable(test 	${TEST})
+add_executable(test_ut 	${TEST_UT})
+add_executable(test_exception 	${TEST_EXCEPTION})
