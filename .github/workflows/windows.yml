@@ -1,0 +1,26 @@
+name: Windows Server 2022
+
+on: 
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+    
+jobs:
+  build:
+    runs-on: windows-lastest
+    
+    strategy: 
+      matrix:
+        mode: [Debug]
+        arch: [x64]
+    
+    steps:
+      - name: check out
+        uses: actions/checkout@v3
+        
+      - name: generate project
+        run: cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -A${{ matrix.arch }}
+        
+      - name: build iguana
+        run: cmake --build ${{ github.workspace }} --config ${{ matrix.mode }}
