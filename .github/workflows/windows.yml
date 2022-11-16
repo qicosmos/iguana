@@ -15,6 +15,10 @@ jobs:
         mode: [Debug]
         arch: [x64]
     
+    env: 
+      CXX: cl.exe
+      CC: cl.exe
+    
     steps:
       - name: check out
         uses: actions/checkout@v3
