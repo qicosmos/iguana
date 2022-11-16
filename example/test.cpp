@@ -86,7 +86,6 @@ struct deque_t {
 };
 REFLECTION(deque_t, lst);
 
-
 struct fixed_name_object_t {
   std::string name0{};
   std::string name1{};
@@ -128,7 +127,34 @@ struct tuple_t {
 };
 REFLECTION(tuple_t, tp);
 
+struct test_double_t {
+  double val;
+};
+REFLECTION(test_double_t, val);
+
+TEST_CASE("test double") {
+  test_double_t d{.val = 1.4806532964699196e-22};
+  iguana::string_stream ss;
+  iguana::json::to_json(ss, d);
+
+  std::string str = ss.str();
+  test_double_t p{};
+  iguana::from_json(p, std::begin(str), std::end(str));
+  CHECK(d.val == p.val);
+}
+
 TEST_CASE("test simple object") {
+  {
+    test_double_t d{.val = 1.4806532964699196e-22};
+    iguana::string_stream ss;
+    iguana::json::to_json(ss, d);
+
+    std::string str = ss.str();
+    test_double_t p{};
+    iguana::from_json(p, std::begin(str), std::end(str));
+    std::cout << p.val << "\n";
+  }
+
   std::string_view str = R"({"name": "tom", "ok":true})";
 
   person p{};
@@ -282,7 +308,6 @@ TEST_CASE("test tuple") {
   CHECK(std::get<1>(t.tp) == std::get<1>(p.tp));
   CHECK(std::get<2>(t.tp) == std::get<2>(p.tp));
 }
-
 
 TEST_CASE("test list") {
   list_t list{{1, 2, 3}};

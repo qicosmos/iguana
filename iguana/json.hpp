@@ -5,6 +5,7 @@
 #ifndef SERIALIZE_JSON_HPP
 #define SERIALIZE_JSON_HPP
 #include "reflection.hpp"
+#include <dragonbox/dragonbox_to_chars.h>
 #include <math.h>
 #include <string.h>
 
@@ -68,9 +69,10 @@ template <typename Stream> void render_json_value(Stream &ss, uint64_t value) {
 template <typename Stream, typename T>
 std::enable_if_t<std::is_floating_point<T>::value> render_json_value(Stream &ss,
                                                                      T value) {
-  char temp[20];
-  sprintf(temp, "%f", value);
-  ss.write(temp);
+  char temp[40];
+  const auto end = jkj::dragonbox::to_chars(value, temp);
+  const auto n = std::distance(temp, end);
+  ss.write(temp, n);
 }
 
 template <typename Stream>
