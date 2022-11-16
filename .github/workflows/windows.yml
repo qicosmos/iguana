@@ -23,8 +23,20 @@ jobs:
       - name: check out
         uses: actions/checkout@v3
         
+      - name: setup vcpkg
+        uses: friendlyanon/setup-vcpkg@1
+        with: { committish: 63aa65e65b9d2c08772ea15d25fb8fdb0d32e557 }
+        
+      - name : test vcpkg root
+        run: echo $VCPKG_ROOT
+        
+      - name: install boost
+        run: |
+          vcpkg install boost:x64-windows
+          vcpkg integrate install
+        
       - name: generate project
-        run: cmake -B ${{ github.workspace }}\build -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -A${{ matrix.arch }}
+        run: cmake -B ${{ github.workspace }}\build -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -A${{ matrix.arch }} -D "CMAKE_TOOLCHAIN_FILE=${{env.VCPKG_ROOT}}/scripts/buildsystems/vcpkg.cmake"
         
       - name: build iguana
         run: cmake --build ${{ github.workspace }}\build --config ${{ matrix.mode }}
