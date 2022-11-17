@@ -26,11 +26,10 @@ TEST_CASE("test parse item num_t") {
     CHECK(p == 1);
   }
   {
-    std::string str{"3e6"};
-    int p{};
+    std::string str{"3000000"};
+    long long p{};
     iguana::parse_item(p, str.begin(), str.end());
-    //throw here because parsed p = 3 and said not correct. 
-    //CHECK(p == 3e6);
+    CHECK(p == 3000000);
   }
   {
     std::string str;
