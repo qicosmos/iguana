@@ -162,20 +162,6 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
         throw std::runtime_error("Failed to parse number");
       it += (p - &*it);
     }
-  } else {
-    double num;
-    char buffer[256];
-    size_t i{};
-    while (it != end && is_numeric(*it)) {
-      if (i > 254) [[unlikely]]
-        throw std::runtime_error("Number is too long");
-      buffer[i] = *it++;
-      ++i;
-    }
-    auto [p, ec] = fast_float::from_chars(buffer, buffer + i, num);
-    if (ec != std::errc{}) [[unlikely]]
-      throw std::runtime_error("Failed to parse number");
-    value = static_cast<T>(num);
   }
 }
 
@@ -185,30 +171,6 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end,
   if (!skip) {
     skip_ws(it, end);
     match<'"'>(it, end);
-  }
-
-  if constexpr (!std::contiguous_iterator<std::decay_t<It>>) {
-    const auto cend = value.cend();
-    for (auto c = value.begin(); c < cend; ++c, ++it) {
-      if (it == end) [[unlikely]]
-        throw std::runtime_error(R"(Expected ")");
-      switch (*it) {
-        [[unlikely]] case '\\' : {
-          if (++it == end) [[unlikely]]
-            throw std::runtime_error(R"(Expected ")");
-          else [[likely]] {
-            *c = *it;
-          }
-          break;
-        }
-        [[unlikely]] case '"' : {
-          ++it;
-          value.resize(std::distance(value.begin(), c));
-          return;
-        }
-        [[likely]] default : *c = *it;
-      }
-    }
   }
 
   // growth portion
@@ -231,25 +193,6 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end,
         ++it;
         start = it;
       }
-    }
-  } else {
-    while (it != end) {
-      switch (*it) {
-        [[unlikely]] case '\\' : {
-          if (++it == end) [[unlikely]]
-            throw std::runtime_error(R"(Expected ")");
-          else [[likely]] {
-            value.push_back(*it);
-          }
-          break;
-        }
-        [[unlikely]] case '"' : {
-          ++it;
-          return;
-        }
-        [[likely]] default : value.push_back(*it);
-      }
-      ++it;
     }
   }
 }
@@ -310,6 +253,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
     parse_item(value.emplace_back(), it, end);
     skip_ws(it, end);
   }
+  throw std::runtime_error("Expected ]");
 }
 
 template <map_container U, class It>
@@ -413,16 +357,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
         typename T::value_type t;
         parse_item(t, it, end);
         value = std::move(t);
-      }
-      //                else if constexpr (is_specialization_v<T,
-      //                std::unique_ptr>)
-      //                    value = std::make_unique<typename
-      //                    T::element_type>();
-      //                else if constexpr (is_specialization_v<T,
-      //                std::shared_ptr>)
-      //                    value = std::make_shared<typename
-      //                    T::element_type>();
-      else
+      } else
         throw std::runtime_error(
             "Cannot read into unset nullable that is not "
             "std::optional, std::unique_ptr, or std::shared_ptr");
@@ -511,18 +446,6 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
             member_it->second);
       } else [[unlikely]] {
         throw std::runtime_error("Unknown key: " + std::string(key));
-      }
-    } else {
-      static thread_local std::string key{};
-      skip_ws(it, end);
-      match<':'>(it, end);
-
-      if constexpr (std::is_same_v<typename T::key_type, std::string>) {
-        parse_item(value[key], it, end);
-      } else {
-        static thread_local typename T::key_type key_value{};
-        parse_item(key_value, key.begin(), key.end());
-        parse_item(value[key_value], it, end);
       }
     }
     skip_ws(it, end);
