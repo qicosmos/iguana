@@ -1,4 +1,4 @@
-name: Ubuntu 20.04 (gcc)
+name: Ubuntu 20.04 (clang)
 
 on:
   push:
@@ -11,7 +11,6 @@ jobs:
     strategy:
       matrix:
         mode: [ Debug, Release ]
-        
     runs-on: ubuntu-latest
     
     steps:
@@ -19,7 +18,7 @@ jobs:
       uses: actions/checkout@v3
       
     - name: configure cmake
-      run: CXX=g++ CC=gcc cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }}
+      run: CXX=clang++ CC=clang cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }}
       
     - name: build project
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.mode }}
@@ -27,3 +26,4 @@ jobs:
     - name: test
       working-directory: ${{ github.workspace }}/build
       run: ctest -C ${{ matrix.mode }} -j `nproc` -V
+  
