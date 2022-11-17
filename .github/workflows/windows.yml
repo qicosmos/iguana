@@ -1,0 +1,30 @@
+name: Windows Server 2022
+
+on: 
+  push:
+    branches: [ refactor_faster ]
+  pull_request:
+    branches: [ refactor_faster ]
+    
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    strategy: 
+      matrix:
+        mode: [Debug]
+        arch: [x64]
+    
+    env: 
+      CXX: cl.exe
+      CC: cl.exe
+    
+    steps:
+      - name: check out
+        uses: actions/checkout@v3
+        
+      - name: generate project
+        run: cmake -B ${{ github.workspace }}\build -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -A${{ matrix.arch }} -D "CMAKE_TOOLCHAIN_FILE=${{env.VCPKG_ROOT}}/scripts/buildsystems/vcpkg.cmake"
+        
+      - name: build iguana
+        run: cmake --build ${{ github.workspace }}\build --config ${{ matrix.mode }}
