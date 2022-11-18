@@ -128,13 +128,15 @@ IGUANA_INLINE void skip_till_escape_or_qoute(auto &&it, auto &&end) {
         0b0101110001011100010111000101110001011100010111000101110001011100);
   };
 
-  const auto end_m7 = end - 7;
-  for (; it < end_m7; it += 8) {
-    const auto chunk = *reinterpret_cast<const uint64_t *>(&*it);
-    uint64_t test = has_qoute(chunk) | has_escape(chunk);
-    if (test != 0) {
-      it += (std::countr_zero(test) >> 3);
-      return;
+  if (std::distance(it, end) >= 7) [[likely]] {
+    const auto end_m7 = end - 7;
+    for (; it < end_m7; it += 8) {
+      const auto chunk = *reinterpret_cast<const uint64_t *>(&*it);
+      uint64_t test = has_qoute(chunk) | has_escape(chunk);
+      if (test != 0) {
+        it += (std::countr_zero(test) >> 3);
+        return;
+      }
     }
   }
 
