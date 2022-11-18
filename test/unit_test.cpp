@@ -155,7 +155,7 @@ TEST_CASE("test parse item str_t") {
     CHECK(test == "a");
   }
   {
-    std::string str{"\"\\aaaa1\""};
+    std::string str{"\"\\aaaa1\\\""};
     std::string test{};
     iguana::parse_item(test, str.begin(), str.end());
     CHECK(test == str.substr(2, test.size()));
