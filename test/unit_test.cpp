@@ -223,6 +223,12 @@ TEST_CASE("test parse item char") {
     CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
   }
   {
+    std::string str{R"("\)"};
+    char test{};
+    CHECK_THROWS_WITH(iguana::parse_item(test, str.begin(), str.end()),
+                      "Unxpected end of buffer");
+  }
+  {
     std::string str{""};
     char test{};
     CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
@@ -310,6 +316,52 @@ TEST_CASE("test parse item optional") {
     iguana::parse_item(test, str.begin(), str.end());
     CHECK(*test == 1);
   }
+}
+
+TEST_CASE("test unknown fields") {
+  std::string str = R"({"dummy":0, "name":"tom", "age":20})";
+  person p;
+  CHECK_THROWS_WITH(iguana::from_json(p, str), "Unknown key: dummy");
+
+  std::string str1 = R"({"name":"tom", "age":20})";
+  person p1;
+  iguana::from_json(p1, str1);
+
+  std::string str2 = R"({"\name":"\tom", "age":20})";
+  person p2;
+  iguana::from_json(p2, str2);
+  std::cout << p2.name << "\n";
+  CHECK(p2.name == "tom");
+}
+
+TEST_CASE("test from_json_file") {
+  std::string str = R"({"name":"tom", "age":20})";
+  std::string filename = "test.json";
+  std::ofstream out(filename, std::ios::binary);
+  out.write(str.data(), str.size());
+  out.close();
+
+  person obj;
+  iguana::from_json_file(obj, filename);
+  CHECK(obj.name == "tom");
+  CHECK(obj.age == 20);
+
+  std::filesystem::remove(filename);
+
+  person p;
+  CHECK_THROWS_AS(iguana::from_json_file(p, "not_exist.json"),
+                  std::runtime_error);
+
+  std::string cur_path = std::filesystem::current_path().string();
+  std::filesystem::create_directories("dummy_test_dir");
+  CHECK_THROWS_AS(iguana::from_json_file(p, "dummy_test_dir"),
+                  std::runtime_error);
+  std::filesystem::remove("dummy_test_dir");
+
+  std::ofstream out1("dummy_test_dir.json", std::ios::binary);
+  CHECK_THROWS_AS(iguana::from_json_file(p, "dummy_test_dir.json"),
+                  std::runtime_error);
+  std::filesystem::remove("dummy_test_dir.json");
 }
 
 // doctest comments

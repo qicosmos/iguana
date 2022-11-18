@@ -26,3 +26,9 @@ struct MyClass2 {
   }
 };
 REFLECTION(MyClass2, member_unsigned0, member_unsigned1, member_signed);
+
+struct person {
+  std::string name;
+  int age;
+};
+REFLECTION(person, name, age);
