@@ -525,16 +525,11 @@ IGUANA_INLINE void from_json_file(T &value, const std::string &filename) {
     throw std::runtime_error("file size error " + ec.message());
   }
 
-  std::ifstream file(filename, std::ios::binary);
-  if (!file) {
-    std::string cur_path = std::filesystem::current_path().string();
-    throw std::runtime_error("cannot open file: " + filename +
-                             ", current path " + cur_path);
-  }
-
   if (size == 0) {
     throw std::runtime_error("empty file");
   }
+
+  std::ifstream file(filename, std::ios::binary);
 
   std::string content;
   content.resize(size);
