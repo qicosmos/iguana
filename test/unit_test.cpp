@@ -191,6 +191,12 @@ TEST_CASE("test parse item seq container") {
     std::array<int, 3> test{};
     CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
   }
+
+  {
+      std::string str{ "[0,1,2" };
+      std::list<int> test{};
+      CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+  }
 }
 
 TEST_CASE("test parse item map container") {
