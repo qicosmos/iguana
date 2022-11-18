@@ -519,17 +519,17 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
 
 template <typename T>
 IGUANA_INLINE void from_json_file(T &value, const std::string &filename) {
+  std::error_code ec;
+  uint64_t size = std::filesystem::file_size(filename, ec);
+  if (ec) {
+    throw std::runtime_error("file size error " + ec.message());
+  }
+
   std::ifstream file(filename, std::ios::binary);
   if (!file) {
     std::string cur_path = std::filesystem::current_path().string();
     throw std::runtime_error("cannot open file: " + filename +
                              ", current path " + cur_path);
-  }
-
-  std::error_code ec;
-  uint64_t size = std::filesystem::file_size(filename, ec);
-  if (ec) {
-    throw std::runtime_error("file size error " + ec.message());
   }
 
   if (size == 0) {

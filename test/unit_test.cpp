@@ -94,45 +94,36 @@ TEST_CASE("test parse item array_t") {
 
 TEST_CASE("test parse item str_t") {
   {
-    std::string str{"\"aaaaaaaaaa1\""};
-    std::string test{};
-    iguana::parse_item(test, str.begin(), str.end());
-    CHECK(test == str.substr(1, test.size()));
+    std::string str{"[\"aaaaaaaaaa1\"]"};
+    std::vector<std::string> test{};
+    iguana::from_json(test, str.begin(), str.end());
+    CHECK(test[0] == "aaaaaaaaaa1");
   }
   {
     // this case throw at json_util@line 132
-    std::string str{"\"aaa1\""};
-    std::string test{};
-    iguana::parse_item(test, str.begin(), str.end());
-    CHECK(test == str.substr(1, test.size()));
+    std::string str{"[\"aaa1\"]"};
+    std::vector<std::string> test{};
+    iguana::from_json(test, str.begin(), str.end());
+    std::cout << "\n";
+    CHECK(test[0] == "aaa1");
   }
   {
     std::list<char> str;
+    str.push_back('[');
     str.push_back('\"');
     str.push_back('\\');
     str.push_back('a');
     str.push_back('\"');
+    str.push_back(']');
     str.push_back('a');
     str.push_back('a');
     str.push_back('1');
-    std::string test{};
+    std::vector<std::string> test{};
     iguana::parse_item(test, str.begin(), str.end());
-    
-    auto begin = str.begin();
-    std::advance(begin, 2);
-    CHECK(test == "a");
+
+    CHECK(test[0] == "a");
   }
-  {
-    std::list<char> str;
-    str.push_back('\"');
-    str.push_back('a');
-    str.push_back('a');
-    str.push_back('a');
-    str.push_back('1');
-    std::string test{};
-    test.resize(3);
-    iguana::parse_item(test, str.begin(), str.end());
-  }
+
   {
     std::list<char> str;
     str.push_back('\"');
@@ -143,28 +134,6 @@ TEST_CASE("test parse item str_t") {
     test.resize(1);
     iguana::parse_item(test, str.begin(), str.end());
     CHECK(test == "a");
-  }
-  {
-    std::list<char> str;
-    str.push_back('\"');
-    str.push_back('a');
-    str.push_back('\\');
-    str.push_back('\"');
-    std::string test{};
-    iguana::parse_item(test, str.begin(), str.end());
-    CHECK(test == "a");
-  }
-  {
-    std::string str{"\"\\aaaa1\""};
-    std::string test{};
-    iguana::parse_item(test, str.begin(), str.end());
-    CHECK(test == str.substr(2, test.size()));
-  }
-  {
-    std::string str{"\"aaaa1\""};
-    std::string test{};
-    iguana::parse_item(test, str.begin(), str.end());
-    CHECK(test == str.substr(1, test.size()));
   }
 }
 
@@ -196,9 +165,9 @@ TEST_CASE("test parse item seq container") {
   }
 
   {
-      std::string str{ "[0,1,2" };
-      std::list<int> test{};
-      CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    std::string str{"[0,1,2"};
+    std::list<int> test{};
+    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
   }
 }
 
