@@ -36,7 +36,6 @@ set(MSGPACK_EXAMPLE
 
 set(TEST example/test.cpp)
 set(TEST_UT test/unit_test.cpp)
-set(TEST_FILE test/json_file_test.cpp)
 set(TEST_EXCEPTION test/invalid_data_test.cpp)
 
 add_executable(example 	${EXAMPLE})
