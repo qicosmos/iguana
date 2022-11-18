@@ -84,7 +84,8 @@ concept tuple = !array<Type> && requires(Type tuple) {
 template <typename Type>
 concept json_view = requires(Type container) {
   container.size();
-  container.data();
+  container.begin();
+  container.end();
 };
 
 template <typename T>
@@ -150,7 +151,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
     if constexpr (std::is_floating_point_v<T>) {
       const auto size = std::distance(it, end);
       if (size == 0) [[unlikely]]
-          throw std::runtime_error("Failed to parse number");
+        throw std::runtime_error("Failed to parse number");
       const auto start = &*it;
       auto [p, ec] = fast_float::from_chars(start, start + size, value);
       if (ec != std::errc{}) [[unlikely]]
@@ -164,6 +165,20 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
         throw std::runtime_error("Failed to parse number");
       it += (p - &*it);
     }
+  } else {
+    double num;
+    char buffer[256];
+    size_t i{};
+    while (it != end && is_numeric(*it)) {
+      if (i > 254) [[unlikely]]
+        throw std::runtime_error("Number is too long");
+      buffer[i] = *it++;
+      ++i;
+    }
+    auto [p, ec] = fast_float::from_chars(buffer, buffer + i, num);
+    if (ec != std::errc{}) [[unlikely]]
+      throw std::runtime_error("Failed to parse number");
+    value = static_cast<T>(num);
   }
 }
 
@@ -173,6 +188,30 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end,
   if (!skip) {
     skip_ws(it, end);
     match<'"'>(it, end);
+  }
+
+  if constexpr (!std::contiguous_iterator<std::decay_t<It>>) {
+    const auto cend = value.cend();
+    for (auto c = value.begin(); c < cend; ++c, ++it) {
+      if (it == end) [[unlikely]]
+        throw std::runtime_error(R"(Expected ")");
+      switch (*it) {
+        [[unlikely]] case '\\' : {
+          if (++it == end) [[unlikely]]
+            throw std::runtime_error(R"(Expected ")");
+          else [[likely]] {
+            *c = *it;
+          }
+          break;
+        }
+        [[unlikely]] case '"' : {
+          ++it;
+          value.resize(std::distance(value.begin(), c));
+          return;
+        }
+        [[likely]] default : *c = *it;
+      }
+    }
   }
 
   // growth portion
@@ -195,6 +234,25 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end,
         ++it;
         start = it;
       }
+    }
+  } else {
+    while (it != end) {
+      switch (*it) {
+        [[unlikely]] case '\\' : {
+          if (++it == end) [[unlikely]]
+            throw std::runtime_error(R"(Expected ")");
+          else [[likely]] {
+            value.push_back(*it);
+          }
+          break;
+        }
+        [[unlikely]] case '"' : {
+          ++it;
+          return;
+        }
+        [[likely]] default : value.push_back(*it);
+      }
+      ++it;
     }
   }
 }
@@ -244,7 +302,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
 
   match<'['>(it, end);
   skip_ws(it, end);
-  for (size_t i = 0; it < end; ++i) {
+  for (size_t i = 0; it != end; ++i) {
     if (*it == ']') [[unlikely]] {
       ++it;
       return;
