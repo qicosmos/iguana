@@ -1,4 +1,8 @@
 
+#include <deque>
+#include <iterator>
+#include <list>
+#include <vector>
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
 #include "iguana/json_reader.hpp"
@@ -38,16 +42,19 @@ TEST_CASE("test parse item num_t") {
     CHECK_THROWS(iguana::parse_item(p, str.begin(), str.end()));
   }
   {
-    std::list<char> arr{ '0','.','9'};
-    double test = 0;
-    iguana::parse_item(test, arr.begin(), arr.end());
-    CHECK(test == 0.9);
+    std::list<char> arr{'[', '0', '.', '9', ']'};
+    std::vector<double> test;
+    iguana::from_json(test, arr);
+    CHECK(test[0] == 0.9);
+
+    std::deque<char> arr1{'[', '0', '.', '9', ']'};
+    iguana::from_json(test, arr1);
+    CHECK(test[0] == 0.9);
   }
   {
-    std::list<char> arr{ '0','.','9' };
-    for (int i = 0; i < 999; i++)
-    {
-        arr.push_back('1');
+    std::list<char> arr{'0', '.', '9'};
+    for (int i = 0; i < 999; i++) {
+      arr.push_back('1');
     }
 
     double test = 0;
@@ -96,8 +103,8 @@ TEST_CASE("test parse item str_t") {
     // this case throw at json_util@line 132
     std::string str{"\"aaa1\""};
     std::string test{};
-    //iguana::parse_item(test, str.begin(), str.end());
-    //CHECK(test == str.substr(1, test.size()));
+    // iguana::parse_item(test, str.begin(), str.end());
+    // CHECK(test == str.substr(1, test.size()));
   }
   {
     std::list<char> str;
@@ -109,8 +116,8 @@ TEST_CASE("test parse item str_t") {
     str.push_back('1');
     std::string test{};
     test.resize(2);
-    iguana::parse_item(test, str.begin(), str.end(),true);
-    //CHECK(test.empty());
+    iguana::parse_item(test, str.begin(), str.end(), true);
+    // CHECK(test.empty());
   }
   {
     std::list<char> str;
@@ -142,13 +149,13 @@ TEST_CASE("test parse item str_t") {
     str.push_back('\"');
     std::string test{};
     iguana::parse_item(test, str.begin(), str.end());
-    //CHECK(test == "a");
+    // CHECK(test == "a");
   }
   {
     std::string str{"\"\\aaaa1\""};
     std::string test{};
     iguana::parse_item(test, str.begin(), str.end());
-    CHECK(test == str.substr(2,test.size()));
+    CHECK(test == str.substr(2, test.size()));
   }
   {
     std::string str{"\"aaaa1\""};
@@ -192,9 +199,7 @@ TEST_CASE("test parse item seq container") {
   }
 }
 
-
-TEST_CASE("test parse item map container")
-{
+TEST_CASE("test parse item map container") {
   {
     std::string str{"{\"key1\":\"value1\", \"key2\":\"value2\"}"};
     std::map<std::string, std::string> test{};
@@ -205,8 +210,7 @@ TEST_CASE("test parse item map container")
   }
 }
 
-TEST_CASE("test parse item char")
-{
+TEST_CASE("test parse item char") {
   {
     std::string str{"\"c\""};
     char test{};
@@ -231,12 +235,11 @@ TEST_CASE("test parse item char")
   }
 }
 
-TEST_CASE("test parse item tuple")
-{
+TEST_CASE("test parse item tuple") {
   {
     std::string str{"[1],\"a\",1.5]"};
 
-    std::tuple<int, std::string,double> tp;
+    std::tuple<int, std::string, double> tp;
 
     iguana::parse_item(tp, str.begin(), str.end());
     CHECK(std::get<0>(tp) == 1);
@@ -244,15 +247,14 @@ TEST_CASE("test parse item tuple")
   {
     std::string str{"[1,\"a\",1.5,[1,1.5]]"};
 
-    std::tuple<int, std::string, double,std::tuple<int,double>> tp;
+    std::tuple<int, std::string, double, std::tuple<int, double>> tp;
 
     iguana::parse_item(tp, str.begin(), str.end());
     CHECK(std::get<0>(tp) == 1);
   }
 }
 
-TEST_CASE("test parse item bool")
-{
+TEST_CASE("test parse item bool") {
   {
     std::string str{"true"};
     bool test = false;
@@ -290,8 +292,7 @@ TEST_CASE("test parse item bool")
   }
 }
 
-TEST_CASE("test parse item optional")
-{
+TEST_CASE("test parse item optional") {
   {
     std::string str{"null"};
     std::optional<int> test{};
@@ -313,7 +314,7 @@ TEST_CASE("test parse item optional")
 
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
-DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007) int main(int argc, char** argv) {
-    return doctest::Context(argc, argv).run();
+DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007) int main(int argc, char **argv) {
+  return doctest::Context(argc, argv).run();
 }
 DOCTEST_MSVC_SUPPRESS_WARNING_POP
