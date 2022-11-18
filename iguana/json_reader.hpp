@@ -149,6 +149,8 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
   if constexpr (std::contiguous_iterator<std::decay_t<It>>) {
     if constexpr (std::is_floating_point_v<T>) {
       const auto size = std::distance(it, end);
+      if (size == 0) [[unlikely]]
+          throw std::runtime_error("Failed to parse number");
       const auto start = &*it;
       auto [p, ec] = fast_float::from_chars(start, start + size, value);
       if (ec != std::errc{}) [[unlikely]]
