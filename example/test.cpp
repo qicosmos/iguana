@@ -167,10 +167,10 @@ TEST_CASE("test simple object") {
 
   SUBCASE("random order of fields") {
     person p1{};
-    std::string_view str1 = R"({"ok":true, "name": "tom"})";
+    std::string_view str1 = R"({"ok":false, "name": "tom"})";
     iguana::from_json(p1, std::begin(str1), std::end(str1));
     CHECK(p1.name == "tom");
-    CHECK(p1.ok == true);
+    CHECK(p1.ok == false);
   }
 }
 
@@ -256,6 +256,14 @@ TEST_CASE("test bool, null, char, int, float") {
     iguana::from_json(p, std::begin(str), std::end(str));
     CHECK(p.x == 1);
     CHECK(p.y == double(2));
+  }
+
+  {
+    std::string str = R"([1.0, 2.0])";
+    std::vector<float> v;
+    iguana::from_json(v, str);
+    CHECK(v[0] == 1.0);
+    CHECK(v[1] == 2.0);
   }
 }
 
@@ -447,6 +455,52 @@ TEST_CASE("test view and byte interface") {
   person p3;
   iguana::from_json(p3, v.data(), v.size());
   CHECK(p2 == p3);
+}
+
+TEST_CASE("parse num") {
+  std::string str = R"(["x"])";
+  std::vector<float> v;
+  CHECK_THROWS_WITH(iguana::from_json(v, str), "Failed to parse number");
+
+  std::vector<int> v1;
+  CHECK_THROWS_WITH(iguana::from_json(v1, str), "Failed to parse number");
+}
+
+TEST_CASE("parse invalid array") {
+  {
+    std::string str = R"([1)";
+    std::vector<int> v;
+    CHECK_THROWS_WITH(iguana::from_json(v, str), "Expected ]");
+
+    std::array<int, 1> arr;
+    CHECK_THROWS_WITH(iguana::from_json(arr, str), "Unexpected end");
+  }
+  {
+    std::string str = R"([ )";
+    std::array<int, 1> v;
+    CHECK_THROWS_WITH(iguana::from_json(v, str), "Unexpected end");
+  }
+  {
+    std::string str = R"([1})";
+    std::vector<float> v;
+    CHECK_THROWS_AS(iguana::from_json(v, str), std::runtime_error);
+
+    std::array<int, 1> arr;
+    CHECK_THROWS_WITH(iguana::from_json(arr, str), "Expected ]");
+  }
+
+  {
+    std::string str = R"([])";
+    std::array<int, 1> arr;
+    iguana::from_json(arr, str);
+  }
+}
+
+TEST_CASE("parse some other char") {
+  std::string str = R"({"\name":"\tom", "ok":false})";
+  person p;
+  iguana::from_json(p, str);
+  CHECK(p.name == "tom");
 }
 
 TEST_CASE("check some types") {
