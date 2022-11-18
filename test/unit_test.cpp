@@ -103,8 +103,8 @@ TEST_CASE("test parse item str_t") {
     // this case throw at json_util@line 132
     std::string str{"\"aaa1\""};
     std::string test{};
-    // iguana::parse_item(test, str.begin(), str.end());
-    // CHECK(test == str.substr(1, test.size()));
+    iguana::parse_item(test, str.begin(), str.end());
+    CHECK(test == str.substr(1, test.size()));
   }
   {
     std::list<char> str;
@@ -152,7 +152,7 @@ TEST_CASE("test parse item str_t") {
     str.push_back('\"');
     std::string test{};
     iguana::parse_item(test, str.begin(), str.end());
-    // CHECK(test == "a");
+    CHECK(test == "a");
   }
   {
     std::string str{"\"\\aaaa1\""};
