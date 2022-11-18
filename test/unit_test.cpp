@@ -355,6 +355,7 @@ TEST_CASE("test from_json_file") {
   std::ofstream out1("dummy_test_dir.json", std::ios::binary);
   CHECK_THROWS_AS(iguana::from_json_file(p, "dummy_test_dir.json"),
                   std::runtime_error);
+  out1.close();
   std::filesystem::remove("dummy_test_dir.json");
 }
 
