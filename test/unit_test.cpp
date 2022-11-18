@@ -103,11 +103,12 @@ TEST_CASE("test parse item str_t") {
     // this case throw at json_util@line 132
     std::string str{"\"aaa1\""};
     std::string test{};
-    // iguana::parse_item(test, str.begin(), str.end());
-    // CHECK(test == str.substr(1, test.size()));
+    iguana::parse_item(test, str.begin(), str.end());
+    CHECK(test == str.substr(1, test.size()));
   }
   {
     std::list<char> str;
+    str.push_back('\"');
     str.push_back('\\');
     str.push_back('a');
     str.push_back('\"');
@@ -115,9 +116,11 @@ TEST_CASE("test parse item str_t") {
     str.push_back('a');
     str.push_back('1');
     std::string test{};
-    test.resize(2);
-    iguana::parse_item(test, str.begin(), str.end(), true);
-    // CHECK(test.empty());
+    iguana::parse_item(test, str.begin(), str.end());
+    
+    auto begin = str.begin();
+    std::advance(begin, 2);
+    CHECK(test == "a");
   }
   {
     std::list<char> str;
@@ -149,7 +152,7 @@ TEST_CASE("test parse item str_t") {
     str.push_back('\"');
     std::string test{};
     iguana::parse_item(test, str.begin(), str.end());
-    // CHECK(test == "a");
+    CHECK(test == "a");
   }
   {
     std::string str{"\"\\aaaa1\""};
@@ -190,6 +193,12 @@ TEST_CASE("test parse item seq container") {
     std::string str{"[0,1,2"};
     std::array<int, 3> test{};
     CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+  }
+
+  {
+      std::string str{ "[0,1,2" };
+      std::list<int> test{};
+      CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
   }
 }
 
@@ -355,6 +364,7 @@ TEST_CASE("test from_json_file") {
   std::ofstream out1("dummy_test_dir.json", std::ios::binary);
   CHECK_THROWS_AS(iguana::from_json_file(p, "dummy_test_dir.json"),
                   std::runtime_error);
+  out1.close();
   std::filesystem::remove("dummy_test_dir.json");
 }
 
