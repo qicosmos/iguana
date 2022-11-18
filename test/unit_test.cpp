@@ -117,7 +117,9 @@ TEST_CASE("test parse item str_t") {
     std::string test{};
     test.resize(2);
     iguana::parse_item(test, str.begin(), str.end(), true);
-    // CHECK(test.empty());
+    
+    auto begin = str.begin();
+    CHECK(*begin == 'a');
   }
   {
     std::list<char> str;
