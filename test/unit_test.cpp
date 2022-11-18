@@ -108,6 +108,7 @@ TEST_CASE("test parse item str_t") {
   }
   {
     std::list<char> str;
+    str.push_back('\"');
     str.push_back('\\');
     str.push_back('a');
     str.push_back('\"');
@@ -115,9 +116,11 @@ TEST_CASE("test parse item str_t") {
     str.push_back('a');
     str.push_back('1');
     std::string test{};
-    test.resize(2);
-    iguana::parse_item(test, str.begin(), str.end(), true);
-    // CHECK(test.empty());
+    iguana::parse_item(test, str.begin(), str.end());
+    
+    auto begin = str.begin();
+    std::advance(begin, 2);
+    CHECK(test == "a");
   }
   {
     std::list<char> str;
