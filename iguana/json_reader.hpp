@@ -106,43 +106,14 @@ concept sequence_container = is_std_list_v<std::remove_reference_t<Type>> ||
     is_std_deque_v<std::remove_reference_t<Type>>;
 
 template <class T>
-concept non_refletable = container<T> || c_array<T> || tuple<T>;
-
-IGUANA_INLINE void skip_object_value(auto &&it, auto &&end) {
-  skip_ws(it, end);
-  while (it != end) {
-    switch (*it) {
-    case '{':
-      skip_until_closed<'{', '}'>(it, end);
-      break;
-    case '[':
-      skip_until_closed<'[', ']'>(it, end);
-      break;
-    case '"':
-      skip_string(it, end);
-      break;
-    case '/':
-      skip_comment(it, end);
-      continue;
-    case ',':
-    case '}':
-    case ']':
-      break;
-    default: {
-      ++it;
-      continue;
-    }
-    }
-
-    break;
-  }
-}
+concept non_refletable = container<T> || c_array<T> || tuple<T> ||
+    optional<T> || std::is_fundamental_v<T>;
 
 template <refletable T, typename It>
 void from_json(T &value, It &&it, It &&end);
 
 template <num_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
 
   using T = std::remove_reference_t<U>;
@@ -183,8 +154,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
 }
 
 template <str_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end,
-                              bool skip = false) {
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
   if (!skip) {
     skip_ws(it, end);
     match<'"'>(it, end);
@@ -258,7 +228,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end,
 }
 
 template <fixed_array U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   using T = std::remove_reference_t<U>;
   skip_ws(it, end);
 
@@ -296,7 +266,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
 }
 
 template <sequence_container U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   value.clear();
   skip_ws(it, end);
 
@@ -310,14 +280,16 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
     if (i > 0) [[likely]] {
       match<','>(it, end);
     }
+
     parse_item(value.emplace_back(), it, end);
+
     skip_ws(it, end);
   }
   throw std::runtime_error("Expected ]");
 }
 
 template <map_container U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   using T = std::remove_reference_t<U>;
   skip_ws(it, end);
 
@@ -352,7 +324,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
 }
 
 template <tuple U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   match<'['>(it, end);
   skip_ws(it, end);
@@ -374,7 +346,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
 }
 
 template <bool_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
 
   if (it < end) [[likely]] {
@@ -399,7 +371,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
 }
 
 template <optional U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   using T = std::remove_reference_t<U>;
   if (it == end) {
@@ -426,7 +398,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
 }
 
 template <char_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   // TODO: this does not handle escaped chars
   skip_ws(it, end);
   match<'"'>(it, end);
@@ -440,7 +412,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
 }
 
 template <refletable U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, auto &&end) {
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   from_json(value, it, end);
 }
 
