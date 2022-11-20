@@ -7,8 +7,8 @@
 #include "doctest.h"
 #include "iguana/json_reader.hpp"
 #include "test_headers.h"
-#include <iguana/json.hpp>
 #include <iguana/json_util.hpp>
+#include <iguana/json_writer.hpp>
 #include <iostream>
 
 TEST_CASE("test parse item num_t") {

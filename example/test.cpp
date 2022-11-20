@@ -2,8 +2,8 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
 #include "iguana/json_reader.hpp"
-#include <iguana/json.hpp>
 #include <iguana/json_util.hpp>
+#include <iguana/json_writer.hpp>
 #include <iostream>
 #include <optional>
 
@@ -138,7 +138,7 @@ REFLECTION(test_double_t, val);
 TEST_CASE("test double") {
   test_double_t d{.val = 1.4806532964699196e-22};
   iguana::string_stream ss;
-  iguana::json::to_json(ss, d);
+  iguana::to_json(ss, d);
 
   std::string str = ss.str();
   test_double_t p{};
@@ -150,7 +150,7 @@ TEST_CASE("test simple object") {
   {
     test_double_t d{.val = 1.4806532964699196e-22};
     iguana::string_stream ss;
-    iguana::json::to_json(ss, d);
+    iguana::to_json(ss, d);
 
     std::string str = ss.str();
     test_double_t p{};
@@ -177,7 +177,7 @@ TEST_CASE("test simple object") {
 TEST_CASE("test two_fields object") {
   two_fields_t obj{{1, 2}, {"aa", "bb"}};
   iguana::string_stream ss;
-  iguana::json::to_json(ss, obj);
+  iguana::to_json(ss, obj);
 
   std::string str = ss.str();
   two_fields_t p{};
@@ -189,7 +189,7 @@ TEST_CASE("test simple nested object") {
   person o{.name = "tom", .ok = false};
   simple_nested_t t{1, o};
   iguana::string_stream ss;
-  iguana::json::to_json(ss, t);
+  iguana::to_json(ss, t);
 
   std::string str = ss.str();
   simple_nested_t p{};
@@ -203,7 +203,7 @@ TEST_CASE("test simple nested object") {
 TEST_CASE("test c array and std::array") {
   arr_t arr{{1, 2}};
   iguana::string_stream ss;
-  iguana::json::to_json(ss, arr);
+  iguana::to_json(ss, arr);
   arr_t arr1{};
   std::string str = ss.str();
 
@@ -270,7 +270,7 @@ TEST_CASE("test bool, null, char, int, float") {
 TEST_CASE("test vector") {
   vector_t arr{{1, 2}};
   iguana::string_stream ss;
-  iguana::json::to_json(ss, arr);
+  iguana::to_json(ss, arr);
 
   std::string str = ss.str();
   vector_t p{};
@@ -283,7 +283,7 @@ TEST_CASE("test map") {
   map.map1 = {{1, "hello"}, {2, "iguana"}};
   map.map2 = {{3, "this"}, {4, "hashmap"}};
   iguana::string_stream ss;
-  iguana::json::to_json(ss, map);
+  iguana::to_json(ss, map);
 
   std::string str = ss.str();
   map_t p{};
@@ -309,7 +309,7 @@ TEST_CASE("test tuple") {
   tuple_t t;
   t.tp = std::make_tuple(2, 3.14, "hello iguana");
   iguana::string_stream ss;
-  iguana::json::to_json(ss, t);
+  iguana::to_json(ss, t);
 
   std::string str = ss.str();
   tuple_t p{};
@@ -323,7 +323,7 @@ TEST_CASE("test tuple") {
 TEST_CASE("test list") {
   list_t list{{1, 2, 3}};
   iguana::string_stream ss;
-  iguana::json::to_json(ss, list);
+  iguana::to_json(ss, list);
 
   std::string str = ss.str();
   list_t p{};
@@ -334,7 +334,7 @@ TEST_CASE("test list") {
 TEST_CASE("test deque_t") {
   deque_t list{{1, 2, 3}};
   iguana::string_stream ss;
-  iguana::json::to_json(ss, list);
+  iguana::to_json(ss, list);
 
   std::string str = ss.str();
   deque_t p{};
@@ -382,7 +382,7 @@ TEST_CASE("test non-reflectable object") {
     std::tuple<int, double, std::string> t{1, 3.14, std::string("iguana")};
 
     iguana::string_stream ss;
-    iguana::json::to_json(ss, t);
+    iguana::to_json(ss, t);
 
     std::string str = ss.str();
     std::tuple<int, double, std::string> p{};

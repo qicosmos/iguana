@@ -7,6 +7,7 @@
 #include <forward_list>
 #include <fstream>
 #include <string_view>
+#include <type_traits>
 
 namespace iguana {
 template <class T>
@@ -281,7 +282,12 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
       match<','>(it, end);
     }
 
-    parse_item(value.emplace_back(), it, end);
+    using value_type = typename std::remove_cv_t<U>::value_type;
+    if constexpr (refletable<value_type>) {
+      from_json(value.emplace_back(), it, end);
+    } else {
+      parse_item(value.emplace_back(), it, end);
+    }
 
     skip_ws(it, end);
   }

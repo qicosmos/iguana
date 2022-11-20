@@ -1,5 +1,5 @@
-#include "iguana/json.hpp"
 #include "iguana/json_reader.hpp"
+#include "iguana/json_writer.hpp"
 #include <chrono>
 #include <iostream>
 #ifdef HAS_RAPIDJSON
@@ -194,7 +194,7 @@ obj_t create_object() {
   return obj;
 }
 
-constexpr size_t iterations = 100000;
+constexpr int iterations = 100000;
 
 void test_from_json() {
   obj_t obj;
@@ -225,13 +225,13 @@ void test_to_json() {
   obj_t obj = create_object();
 
   iguana::string_stream ss;
-  iguana::json::to_json(ss, obj);
+  iguana::to_json(ss, obj);
 
   {
     ScopedTimer timer("iguana   to  json");
     for (int i = 0; i < iterations; ++i) {
       ss.clear();
-      iguana::json::to_json(ss, obj);
+      iguana::to_json(ss, obj);
     }
   }
 
