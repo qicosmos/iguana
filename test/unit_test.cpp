@@ -10,6 +10,7 @@
 #include <iguana/json_util.hpp>
 #include <iguana/json_writer.hpp>
 #include <iostream>
+#include <optional>
 
 TEST_CASE("test parse item num_t") {
   {
