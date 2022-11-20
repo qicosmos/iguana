@@ -31,7 +31,7 @@ Now let's serialize `person` to `json` string.
 	person p = { "tom", 28 };
 
 	iguana::string_stream ss;
-	iguana::json::to_json(ss, p);
+	iguana::to_json(ss, p);
 
 	std::cout << ss.str() << std::endl; 
 This example will output:
@@ -44,7 +44,7 @@ How about deserialization of `json`? Look at the follow example.
 	const char * json = "{ \"name\" : \"tom\", \"age\" : 28}";
 
 	person p;
-	iguana::json::from_json(p, json);
+	iguana::from_json(p, json);
 It's as simple as serialization, just need to call `from_json` method.
 
 ### Serialization of xml
@@ -96,12 +96,12 @@ Then call the simple interface:
 	one_t one = { 2 };
 	composit_t composit = { 1,{ "tom", "jack" }, 3,{ { 2,3 } },{ { 5,6 } }, 5.3,{ one } };
 	iguana::string_stream ss;
-	iguana::json::to_json(ss, composit);
+	iguana::to_json(ss, composit);
 	std::cout << ss.str() << std::endl;
 
 	const char* str_comp = R"({"a":1, "b":["tom", "jack"], "c":3, "d":{"2":3,"5":6},"e":{"3":4},"f":5.3,"g":[{"id":1},{"id":2}])";
 	composit_t comp;
-	iguana::json::from_json(comp, str_comp);
+	iguana::from_json(comp, str_comp);
 	
 ### How to solve the problem of unicode path in a json file?
 
@@ -148,4 +148,4 @@ We can slove the problem1 easily with c++17:
 
 ### Update
 1. Support C++17
-2. Support disorderly parse json, a new interface from_json0 do this, however it is slower than from_json.
+2. Refactor json reader, modification based on glaze  [json/read.hpp](https://github.com/stephenberry/glaze/blob/main/include/glaze/json/read.hpp)
