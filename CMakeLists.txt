@@ -11,7 +11,7 @@ endif(MSVC)
 set(CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -ldl")
 set(IGUANA_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
-option(HAS_RAPIDJSON "import rapidjson" ON)
+option(HAS_RAPIDJSON "import rapidjson" OFF)
 if (${HAS_RAPIDJSON})
 	add_definitions(-DHAS_RAPIDJSON)
 	include_directories(../rapidjson/include)
