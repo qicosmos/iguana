@@ -1,4 +1,4 @@
-name: Ubuntu 20.04 (clang)
+name: Ubuntu (clang)
 
 on:
   push:
@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         mode: [ Debug, Release ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     
     steps:
     - name: check out
