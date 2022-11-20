@@ -148,9 +148,9 @@ struct obj_t {
   template <typename Writer> void Serialize(Writer &writer) const {
     writer.StartObject();
     writer.String("fixed_name_object");
-    fixed_name_object.template Serialize(writer);
+    fixed_name_object.Serialize(writer);
     writer.String("another_object");
-    another_object.template Serialize(writer);
+    another_object.Serialize(writer);
     writer.String("string_array");
     writer.StartArray();
     for (auto &str : string_array) {
