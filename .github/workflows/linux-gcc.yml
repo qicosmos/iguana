@@ -1,10 +1,10 @@
-name: Ubuntu 20.04 (gcc)
+name: Ubuntu (gcc)
 
 on:
   push:
-    branches: [ refactor_faster ]
+    branches: [ master ]
   pull_request:
-    branches: [ refactor_faster ]
+    branches: [ master ]
     
 jobs:
   build:
@@ -12,12 +12,15 @@ jobs:
       matrix:
         mode: [ Debug, Release ]
         
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     
     steps:
     - name: check out
       uses: actions/checkout@v3
-      
+    
+    - name: checkout gcc version
+      run: gcc --version
+
     - name: configure cmake
       run: CXX=g++ CC=gcc cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }}
       

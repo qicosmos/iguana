@@ -1,4 +1,4 @@
-name: Ubuntu (clang)
+name:  macOS Monterey 12
 
 on:
   push:
@@ -11,14 +11,15 @@ jobs:
     strategy:
       matrix:
         mode: [ Debug, Release ]
-    runs-on: ubuntu-22.04
+        
+    runs-on: macos-12
     
     steps:
     - name: check out
       uses: actions/checkout@v3
       
     - name: configure cmake
-      run: CXX=clang++ CC=clang cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }}
+      run:  CXX=clang++ CC=clang cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }}
       
     - name: build project
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.mode }}
@@ -26,4 +27,3 @@ jobs:
     - name: test
       working-directory: ${{ github.workspace }}/build
       run: ctest -C ${{ matrix.mode }} -j `nproc` -V
-  
