@@ -135,6 +135,22 @@ TEST_CASE("test parse item str_t") {
     iguana::parse_item(test, str.begin(), str.end());
     CHECK(test == "a");
   }
+
+  {
+    std::list<char> list{'"', 'a', '"'};
+    std::string test{};
+    test.resize(2);
+    iguana::from_json(test, list);
+    CHECK(test == "a");
+  }
+
+  {
+    std::list<char> list{'"', 'u', '8', '0', '0', '1', '"'};
+    std::string test{};
+    test.resize(20);
+    iguana::from_json(test, list);
+    CHECK(test == "老");
+  }
 }
 
 TEST_CASE("test parse item seq container") {
@@ -304,6 +320,30 @@ TEST_CASE("test unknown fields") {
   iguana::from_json(p2, str2);
   std::cout << p2.name << "\n";
   CHECK(p2.name == "tom");
+}
+
+TEST_CASE("test unicode") {
+  {
+    std::string str2 = R"({"\name":"\u8001", "age":20})";
+    person p2;
+    iguana::from_json(p2, str2);
+
+    CHECK(p2.name == "老");
+  }
+  {
+    std::string str = R"("\u8001")";
+
+    std::string t;
+    iguana::from_json(t, str);
+    CHECK(t == "老");
+  }
+  {
+    std::list<char> str = {'[', '"', 'u', '8', '0', '0', '1', '"', ']'};
+
+    std::list<std::string> list;
+    iguana::from_json(list, str);
+    CHECK(*list.begin() == "老");
+  }
 }
 
 TEST_CASE("test from_json_file") {

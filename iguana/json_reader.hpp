@@ -1,5 +1,6 @@
 #pragma once
 #include "detail/fast_float.h"
+#include "detail/utf.hpp"
 #include "json_util.hpp"
 #include "reflection.hpp"
 #include <charconv>
@@ -180,6 +181,18 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
           value.resize(std::distance(value.begin(), c));
           return;
         }
+        [[unlikely]] case 'u' : {
+          ++it;
+          auto start = it;
+          auto code_point = parse_unicode_hex4(it);
+          std::string str;
+          encode_utf8(str, code_point);
+          std::memcpy(value.data(), str.data(), str.size());
+          --it;
+          c += std::distance(start, it) - 1;
+
+          break;
+        }
         [[likely]] default : *c = *it;
       }
     }
@@ -200,10 +213,17 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
         // Must be an escape
         // TODO propperly handle this
         value.append(&*start, static_cast<size_t>(std::distance(start, it)));
-        ++it;                 // skip first escape
-        value.push_back(*it); // add the escaped character
-        ++it;
-        start = it;
+        ++it; // skip first escape
+        if (*it == 'u') {
+          ++it;
+          auto code_point = parse_unicode_hex4(it);
+          encode_utf8(value, code_point);
+          start = it;
+        } else {
+          value.push_back(*it); // add the escaped character
+          ++it;
+          start = it;
+        }
       }
     }
   } else {
@@ -217,9 +237,16 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
           }
           break;
         }
+        [[unlikely]] case ']' : { return; }
         [[unlikely]] case '"' : {
           ++it;
           return;
+        }
+        [[unlikely]] case 'u' : {
+          ++it;
+          auto code_point = parse_unicode_hex4(it);
+          encode_utf8(value, code_point);
+          break;
         }
         [[likely]] default : value.push_back(*it);
       }
