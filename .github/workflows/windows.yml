@@ -28,3 +28,8 @@ jobs:
         
       - name: build iguana
         run: cmake --build ${{ github.workspace }}\build --config ${{ matrix.mode }}
+
+      - name: test
+        working-directory: ${{github.workspace}}\build
+        run: ctest -C ${{matrix.mode}} -j 2 -V
+
