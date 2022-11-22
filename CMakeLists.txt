@@ -55,6 +55,6 @@ if (BUILD_UNIT_TESTS)
     enable_testing()
 endif ()
 
-add_test(NAME test COMMAND test)
+add_test(NAME test_some COMMAND test)
 add_test(NAME test_ut COMMAND test_ut)
 add_test(NAME test_exception COMMAND test_exception)
