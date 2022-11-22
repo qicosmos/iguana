@@ -4,8 +4,8 @@
 
 #ifndef SERIALIZE_JSON_HPP
 #define SERIALIZE_JSON_HPP
+#include "detail/dragonbox_to_chars.h"
 #include "reflection.hpp"
-#include <dragonbox/dragonbox_to_chars.h>
 #include <math.h>
 
 namespace iguana {
