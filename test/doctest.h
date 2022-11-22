@@ -4113,7 +4113,7 @@ int wildcmp(const char *str, const char *wild, bool caseSensitive) {
 }
 
 //// C string hash function (djb2) - taken from
-///http://www.cse.yorku.ca/~oz/hash.html
+/// http://www.cse.yorku.ca/~oz/hash.html
 // unsigned hashStr(unsigned const char* str) {
 //     unsigned long hash = 5381;
 //     char          c;
@@ -7028,8 +7028,8 @@ int Context::run() {
 #ifndef DOCTEST_CONFIG_NO_EXCEPTIONS
         try {
 #endif // DOCTEST_CONFIG_NO_EXCEPTIONS
-          // MSVC 2015 diagnoses fatalConditionHandler as unused (because
-          // reset() is a static method)
+       // MSVC 2015 diagnoses fatalConditionHandler as unused (because
+       // reset() is a static method)
           DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(
               4101) // unreferenced local variable
           FatalConditionHandler fatalConditionHandler; // Handle signals
