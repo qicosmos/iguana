@@ -21,7 +21,6 @@ endif()
 include_directories(
 	${IGUANA_DIR}
 	${IGUANA_DIR}/third_party/frozen/include
-	${IGUANA_DIR}/third_party/dragonbox/include
 	${IGUANA_DIR}/third_party/doctest
 )
 
