@@ -21,7 +21,6 @@ endif()
 include_directories(
 	${IGUANA_DIR}
 	${IGUANA_DIR}/third_party/frozen/include
-	${IGUANA_DIR}/third_party/doctest
 )
 
 set(EXAMPLE
@@ -36,7 +35,7 @@ set(XML_EXAMPLE
 	example/xml_example.cpp
 )
 
-set(TEST_SOME example/test.cpp)
+set(TEST_SOME test/test.cpp)
 set(TEST_UT test/unit_test.cpp)
 set(TEST_EXCEPTION test/invalid_data_test.cpp)
 set(BENCHMARK benchmark/benchmark.cpp)
