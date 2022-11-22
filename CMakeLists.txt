@@ -20,7 +20,6 @@ endif()
 
 include_directories(
 	${IGUANA_DIR}
-	${IGUANA_DIR}/third_party/msgpack/include
 	${IGUANA_DIR}/third_party/frozen/include
 	${IGUANA_DIR}/third_party/dragonbox/include
 	${IGUANA_DIR}/third_party/doctest
@@ -38,11 +37,7 @@ set(XML_EXAMPLE
 	example/xml_example.cpp
 )
 
-set(MSGPACK_EXAMPLE
-	example/msgpack_example.cpp
-)
-
-set(TEST example/test.cpp)
+set(TEST_SOME example/test.cpp)
 set(TEST_UT test/unit_test.cpp)
 set(TEST_EXCEPTION test/invalid_data_test.cpp)
 set(BENCHMARK benchmark/benchmark.cpp)
@@ -50,8 +45,7 @@ set(BENCHMARK benchmark/benchmark.cpp)
 add_executable(example 	${EXAMPLE})
 add_executable(json_example 	${JSON_EXAMPLE})
 add_executable(xml_example 		${XML_EXAMPLE})
-add_executable(msgpack_example 	${MSGPACK_EXAMPLE})
-add_executable(test	${TEST})
+add_executable(test_some	${TEST_SOME})
 add_executable(test_ut 	${TEST_UT})
 add_executable(test_exception 	${TEST_EXCEPTION})
 add_executable(benchmark 	${BENCHMARK})
