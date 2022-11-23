@@ -39,13 +39,13 @@ void test_json() {
 
   iguana::string_stream ss;
   iguana::to_json(ss, p);
-  std::cout << ss.str() << std::endl;
+  std::cout << ss << std::endl;
 
   one_t one = {2};
   composit_t composit = {1, {"tom", "jack"}, 3, {{2, 3}}, {{5, 6}}, 5.3, {one}};
   iguana::string_stream sst;
   iguana::to_json(sst, composit);
-  std::cout << sst.str() << std::endl;
+  std::cout << sst << std::endl;
 
   //	const char* str_comp = R"({"a":1, "b":["tom", "jack"], "c":3,
   //"d":{"2":3,"5":6},"e":{"3":4},"f":5.3,"g":[{"id":1},{"id":2}])";
@@ -109,13 +109,13 @@ void test_xml() {
   person p = {"admin", 20};
   iguana::string_stream ss;
   iguana::xml::to_xml(ss, p);
-  std::cout << ss.str() << std::endl;
+  std::cout << ss << std::endl;
 
   ss.clear();
   two t = {"test", {2}, 4};
   iguana::xml::to_xml(ss, t);
-  auto result = ss.str();
-  std::cout << result << std::endl;
+
+  std::cout << ss << std::endl;
 
   std::string xml =
       "			<?xml version=\"1.0\" encoding=\"UTF-8\">  "

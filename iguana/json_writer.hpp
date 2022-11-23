@@ -54,21 +54,21 @@ IGUANA_INLINE
     render_json_value(Stream &ss, T value) {
   char temp[20];
   auto p = itoa_fwd(value, temp);
-  ss.write(temp, p - temp);
+  ss.append(temp, p - temp);
 }
 
 template <typename Stream>
 IGUANA_INLINE void render_json_value(Stream &ss, int64_t value) {
   char temp[65];
   auto p = xtoa(value, temp, 10, 1);
-  ss.write(temp, p - temp);
+  ss.append(temp, p - temp);
 }
 
 template <typename Stream>
 IGUANA_INLINE void render_json_value(Stream &ss, uint64_t value) {
   char temp[65];
   auto p = xtoa(value, temp, 10, 0);
-  ss.write(temp, p - temp);
+  ss.append(temp, p - temp);
 }
 
 template <typename Stream, typename T>
@@ -82,7 +82,9 @@ render_json_value(Stream &ss, T value) {
 
 template <typename Stream>
 IGUANA_INLINE void render_json_value(Stream &ss, const std::string &s) {
+  ss.push_back('"');
   ss.append(s.data(), s.size());
+  ss.push_back('"');
 }
 
 template <typename Stream>
@@ -196,12 +198,13 @@ IGUANA_INLINE auto to_json(Stream &s, T &&t)
   using U = typename std::decay_t<T>;
   s.push_back('[');
   const size_t size = std::tuple_size_v<U>;
-  for_each(std::forward<T>(t), [&s, size](auto &v, auto i) {
-    render_json_value(s, v);
+  for_each(std::forward<T>(t),
+           [&s, size](auto &v, auto i) IGUANA__INLINE_LAMBDA {
+             render_json_value(s, v);
 
-    if (i != size - 1)
-      s.push_back(',');
-  });
+             if (i != size - 1)
+               s.push_back(',');
+           });
   s.push_back(']');
 }
 
@@ -215,24 +218,25 @@ template <typename Stream, typename T>
 IGUANA_INLINE constexpr auto to_json(Stream &s, T &&t)
     -> std::enable_if_t<is_reflection<T>::value> {
   s.push_back('{');
-  for_each(std::forward<T>(t), [&t, &s](const auto &v, auto i) {
-    using M = decltype(iguana_reflect_members(std::forward<T>(t)));
-    constexpr auto Idx = decltype(i)::value;
-    constexpr auto Count = M::value();
-    static_assert(Idx < Count);
+  for_each(std::forward<T>(t),
+           [&t, &s](const auto &v, auto i) IGUANA__INLINE_LAMBDA {
+             using M = decltype(iguana_reflect_members(std::forward<T>(t)));
+             constexpr auto Idx = decltype(i)::value;
+             constexpr auto Count = M::value();
+             static_assert(Idx < Count);
 
-    write_json_key(s, i, t);
-    s.push_back(':');
+             write_json_key(s, i, t);
+             s.push_back(':');
 
-    if constexpr (!is_reflection<decltype(v)>::value) {
-      render_json_value(s, t.*v);
-    } else {
-      to_json(s, t.*v);
-    }
+             if constexpr (!is_reflection<decltype(v)>::value) {
+               render_json_value(s, t.*v);
+             } else {
+               to_json(s, t.*v);
+             }
 
-    if (Idx < Count - 1)
-      s.push_back(',');
-  });
+             if (Idx < Count - 1)
+               s.push_back(',');
+           });
   s.push_back('}');
 }
 

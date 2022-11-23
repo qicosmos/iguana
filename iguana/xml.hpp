@@ -261,7 +261,7 @@ std::enable_if_t<!std::is_floating_point<T>::value &&
 render_xml_value(Stream &ss, T value) {
   char temp[20];
   auto p = itoa_fwd(value, temp);
-  ss.write(temp, p - temp);
+  ss.append(temp, p - temp);
 }
 
 template <typename Stream, typename T>
@@ -269,23 +269,23 @@ std::enable_if_t<std::is_floating_point<T>::value> render_xml_value(Stream &ss,
                                                                     T value) {
   char temp[20];
   sprintf(temp, "%f", value);
-  ss.write(temp);
+  ss.append(temp);
 }
 
 template <typename Stream>
 void render_xml_value(Stream &ss, const std::string &s) {
-  ss.write(s.c_str(), s.size());
+  ss.append(s.c_str(), s.size());
 }
 
 template <typename Stream> void render_xml_value(Stream &ss, const char *s) {
-  ss.write(s, strlen(s));
+  ss.append(s, strlen(s));
 }
 
 template <typename Stream, typename T>
 std::enable_if_t<std::is_arithmetic<T>::value> render_key(Stream &ss, T t) {
-  ss.put('<');
+  ss.push_back('<');
   render_xml_value(ss, t);
-  ss.put('>');
+  ss.push_back('>');
 }
 
 template <typename Stream> void render_key(Stream &ss, const std::string &s) {
@@ -297,16 +297,16 @@ template <typename Stream> void render_key(Stream &ss, const char *s) {
 }
 
 template <typename Stream> void render_tail(Stream &ss, const char *s) {
-  ss.put('<');
-  ss.put('/');
-  ss.write(s, strlen(s));
-  ss.put('>');
+  ss.push_back('<');
+  ss.push_back('/');
+  ss.append(s, strlen(s));
+  ss.push_back('>');
 }
 
 template <typename Stream> void render_head(Stream &ss, const char *s) {
-  ss.put('<');
-  ss.write(s, strlen(s));
-  ss.put('>');
+  ss.push_back('<');
+  ss.append(s, strlen(s));
+  ss.push_back('>');
 }
 
 template <typename Stream, typename T,
@@ -335,7 +335,7 @@ template <typename Stream, typename T,
           typename = std::enable_if_t<is_reflection<T>::value>>
 void to_xml(Stream &s, T &&t) {
   // render_head(s, "xml");
-  s.write(IGUANA_XML_HEADER, xml_reader_t::xml_header_length);
+  s.append(IGUANA_XML_HEADER, xml_reader_t::xml_header_length);
   to_xml_impl(s, std::forward<T>(t));
 }
 
