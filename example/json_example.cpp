@@ -28,10 +28,9 @@ void test() {
   MyStruct p = {5566777755311};
   iguana::string_stream ss;
   iguana::to_json(ss, p);
-  auto json_str = ss.str();
-  std::cout << json_str << std::endl;
+
   MyStruct p2;
-  iguana::from_json(p2, json_str);
+  iguana::from_json(p2, ss);
   std::cout << p2.a << std::endl;
 }
 
@@ -92,19 +91,17 @@ void test_v() {
   std::vector<client::person> v{p1, p2, p3};
   iguana::string_stream ss;
   iguana::to_json(ss, v);
-  auto json_str = ss.str();
-  std::cout << json_str << std::endl;
+  std::cout << ss << std::endl;
 
   std::vector<client::person> v1;
-  iguana::from_json(v1, json_str);
+  iguana::from_json(v1, ss);
 }
 
 void test_disorder() {
   student s{1, "tom", 20};
   iguana::string_stream ss;
   iguana::to_json(ss, s);
-  auto json_str = ss.str();
-  std::cout << json_str << std::endl;
+  std::cout << ss << std::endl;
 
   student s1{};
   std::string str = "{\"name\":\"tom\",\"id\":1,\"age\":20}";
@@ -124,15 +121,11 @@ int main(void) {
   iguana::string_stream ss;
   iguana::to_json(ss, p);
 
-  auto json_str = ss.str();
-  std::cout << json_str << std::endl;
+  std::cout << ss << std::endl;
 
   client::person p2;
 
-  iguana::from_json(p2, json_str.data(),
-                    json_str.length()); // the sequence must be limited
-  iguana::from_json(p2, json_str.data(),
-                    json_str.length()); // no limitation, but slower
+  iguana::from_json(p2, ss.data(), ss.length());
 
   std::cout << p2.name << " - " << p2.age << std::endl;
 
