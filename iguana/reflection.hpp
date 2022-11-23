@@ -14,8 +14,8 @@
 #include <string_view>
 #include <tuple>
 #include <type_traits>
-#include <vector>
 #include <variant>
+#include <vector>
 
 #include <frozen/string.h>
 #include <frozen/unordered_map.h>
@@ -614,6 +614,9 @@ struct is_reflection<T, std::void_t<decltype(Reflect_members<T>::arr())>>
 
 template <typename T>
 inline constexpr bool is_reflection_v = is_reflection<T>::value;
+
+template <class T>
+concept refletable = is_reflection_v<std::remove_cvref_t<T>>;
 
 template <size_t I, typename T> constexpr decltype(auto) get(T &&t) {
   using M = decltype(iguana_reflect_members(std::forward<T>(t)));

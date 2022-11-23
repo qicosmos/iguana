@@ -11,8 +11,6 @@
 #include <type_traits>
 
 namespace iguana {
-template <class T>
-concept refletable = is_reflection<T>::value;
 
 template <class T>
 concept char_t = std::same_as < std::decay_t<T>,
