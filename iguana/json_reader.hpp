@@ -377,7 +377,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 }
 
 template <bool_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
 
   if (it < end) [[likely]] {
@@ -394,11 +394,13 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
       value = false;
       break;
     }
-      [[unlikely]] default : throw std::runtime_error("Expected true or false");
+      [[unlikely]] default : return errc::not_a_bool;
     }
   } else [[unlikely]] {
-    throw std::runtime_error("Expected true or false");
+    return errc::not_a_bool;
   }
+
+  return errc::ok;
 }
 
 template <optional U, class It>
@@ -416,14 +418,9 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     }
   } else {
     if (!value) {
-      if constexpr (optional<T>) {
-        typename T::value_type t;
-        parse_item(t, it, end);
-        value = std::move(t);
-      } else
-        throw std::runtime_error(
-            "Cannot read into unset nullable that is not "
-            "std::optional, std::unique_ptr, or std::shared_ptr");
+      typename T::value_type t;
+      parse_item(t, it, end);
+      value = std::move(t);
     }
   }
 }

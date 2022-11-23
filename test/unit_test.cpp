@@ -252,37 +252,41 @@ TEST_CASE("test parse item bool") {
   {
     std::string str{"true"};
     bool test = false;
-    iguana::parse_item(test, str.begin(), str.end());
+    CHECK(iguana::parse_item(test, str.begin(), str.end()) == iguana::errc::ok);
     CHECK(test == true);
   }
   {
     std::string str{"false"};
     bool test = true;
-    iguana::parse_item(test, str.begin(), str.end());
+    CHECK(iguana::parse_item(test, str.begin(), str.end()) == iguana::errc::ok);
     CHECK(test == false);
   }
   {
     std::string str{"True"};
     bool test = false;
 
-    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK(iguana::parse_item(test, str.begin(), str.end()) ==
+          iguana::errc::not_a_bool);
   }
   {
     std::string str{"False"};
     bool test = true;
 
-    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK(iguana::parse_item(test, str.begin(), str.end()) ==
+          iguana::errc::not_a_bool);
   }
   {
     std::string str{"\"false\""};
     bool test = false;
 
-    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK(iguana::parse_item(test, str.begin(), str.end()) ==
+          iguana::errc::not_a_bool);
   }
   {
     std::string str{""};
     bool test = false;
-    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK(iguana::parse_item(test, str.begin(), str.end()) ==
+          iguana::errc::not_a_bool);
   }
 }
 

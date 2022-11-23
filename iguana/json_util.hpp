@@ -7,6 +7,7 @@
 #include <string_view>
 
 #include "define.h"
+#include "error_code.h"
 
 namespace iguana {
 template <size_t N> struct string_literal {
