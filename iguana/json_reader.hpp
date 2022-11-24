@@ -110,7 +110,7 @@ concept non_refletable = container<T> || c_array<T> || tuple<T> ||
     optional<T> || std::is_fundamental_v<T>;
 
 template <refletable T, typename It>
-errc from_json(T &value, It &&it, It &&end);
+errc from_json(T &value, It &&it, It &&end) noexcept;
 
 template <num_t U, class It>
 [[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it,
@@ -159,7 +159,7 @@ template <num_t U, class It>
 
 template <str_t U, class It>
 [[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end,
-                                            bool skip = false) {
+                                            bool skip = false) noexcept {
   if (!skip) {
     skip_ws(it, end);
     auto ec = match<'"'>(it, end);
@@ -267,7 +267,8 @@ template <str_t U, class It>
 }
 
 template <fixed_array U, class It>
-[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it,
+                                            It &&end) noexcept {
   using T = std::remove_reference_t<U>;
   skip_ws(it, end);
 
@@ -313,7 +314,8 @@ template <fixed_array U, class It>
 }
 
 template <sequence_container U, class It>
-[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it,
+                                            It &&end) noexcept {
   value.clear();
   errc ec{};
   skip_ws(it, end);
@@ -354,7 +356,8 @@ template <sequence_container U, class It>
 }
 
 template <map_container U, class It>
-[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it,
+                                            It &&end) noexcept {
   using T = std::remove_reference_t<U>;
   skip_ws(it, end);
 
@@ -413,7 +416,8 @@ template <map_container U, class It>
 }
 
 template <tuple U, class It>
-[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it,
+                                            It &&end) noexcept {
   skip_ws(it, end);
   iguana::errc ec{};
   ec = match<'['>(it, end);
@@ -456,7 +460,8 @@ template <tuple U, class It>
 }
 
 template <bool_t U, class It>
-[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it,
+                                            It &&end) noexcept {
   skip_ws(it, end);
   iguana::errc ec{};
   if (it < end) [[likely]] {
@@ -489,7 +494,8 @@ template <bool_t U, class It>
 }
 
 template <optional U, class It>
-[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it,
+                                            It &&end) noexcept {
   skip_ws(it, end);
   using T = std::remove_reference_t<U>;
   if (it == end) {
@@ -519,7 +525,8 @@ template <optional U, class It>
 }
 
 template <char_t U, class It>
-[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it,
+                                            It &&end) noexcept {
   // TODO: this does not handle escaped chars
   skip_ws(it, end);
   errc ec{};
@@ -541,12 +548,14 @@ template <char_t U, class It>
 }
 
 template <refletable U, class It>
-[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it,
+                                            It &&end) noexcept {
   return from_json(value, it, end);
 }
 
 template <refletable T, typename It>
-[[nodiscard]] IGUANA_INLINE errc from_json(T &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc from_json(T &value, It &&it,
+                                           It &&end) noexcept {
   skip_ws(it, end);
 
   errc ec{};
@@ -640,13 +649,14 @@ template <refletable T, typename It>
 }
 
 template <non_refletable T, typename It>
-[[nodiscard]] IGUANA_INLINE errc from_json(T &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc from_json(T &value, It &&it,
+                                           It &&end) noexcept {
   return parse_item(value, it, end);
 }
 
 template <typename T>
-[[nodiscard]] IGUANA_INLINE errc from_json_file(T &value,
-                                                const std::string &filename) {
+[[nodiscard]] IGUANA_INLINE errc
+from_json_file(T &value, const std::string &filename) noexcept {
   std::error_code ec;
   uint64_t size = std::filesystem::file_size(filename, ec);
   if (ec) {
@@ -667,12 +677,13 @@ template <typename T>
 }
 
 template <typename T, json_view View>
-[[nodiscard]] IGUANA_INLINE errc from_json(T &value, const View &view) {
+[[nodiscard]] IGUANA_INLINE errc from_json(T &value,
+                                           const View &view) noexcept {
   return from_json(value, std::begin(view), std::end(view));
 }
 
 template <typename T, json_byte Byte>
-IGUANA_INLINE errc from_json(T &value, const Byte *data, size_t size) {
+IGUANA_INLINE errc from_json(T &value, const Byte *data, size_t size) noexcept {
   std::string_view buffer(data, size);
   return from_json(value, buffer);
 }

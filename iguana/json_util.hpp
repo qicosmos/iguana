@@ -23,7 +23,7 @@ template <size_t N> struct string_literal {
   constexpr const std::string_view sv() const noexcept { return {value, size}; }
 };
 
-template <char c> IGUANA_INLINE errc match(auto &&it, auto &&end) {
+template <char c> IGUANA_INLINE errc match(auto &&it, auto &&end) noexcept {
   if (it == end || *it != c) [[unlikely]] {
     return errc::not_match_specific_chars;
   } else [[likely]] {
@@ -33,7 +33,8 @@ template <char c> IGUANA_INLINE errc match(auto &&it, auto &&end) {
   return errc::ok;
 }
 
-template <string_literal str> IGUANA_INLINE errc match(auto &&it, auto &&end) {
+template <string_literal str>
+IGUANA_INLINE errc match(auto &&it, auto &&end) noexcept {
   const auto n = static_cast<size_t>(std::distance(it, end));
   if (n < str.size) [[unlikely]] {
     return errc::unexpected_end;
@@ -50,7 +51,7 @@ template <string_literal str> IGUANA_INLINE errc match(auto &&it, auto &&end) {
   return errc::ok;
 }
 
-IGUANA_INLINE errc skip_comment(auto &&it, auto &&end) {
+IGUANA_INLINE errc skip_comment(auto &&it, auto &&end) noexcept {
   ++it;
   if (it == end) [[unlikely]]
     return errc::unexpected_end;
@@ -74,7 +75,7 @@ IGUANA_INLINE errc skip_comment(auto &&it, auto &&end) {
   return errc::ok;
 }
 
-IGUANA_INLINE errc skip_ws(auto &&it, auto &&end) {
+IGUANA_INLINE errc skip_ws(auto &&it, auto &&end) noexcept {
   while (it != end) {
     // assuming ascii
     if (static_cast<uint8_t>(*it) < 33) {
@@ -92,7 +93,7 @@ IGUANA_INLINE errc skip_ws(auto &&it, auto &&end) {
   return errc::ok;
 }
 
-IGUANA_INLINE errc skip_till_escape_or_qoute(auto &&it, auto &&end) {
+IGUANA_INLINE errc skip_till_escape_or_qoute(auto &&it, auto &&end) noexcept {
   static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
 
   auto has_zero = [](uint64_t chunk) {
