@@ -413,8 +413,7 @@ template <optional U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   if (*it == '"') {
-    if (it < end)
-      ++it;
+    match<'"'>(it, end);
   }
   using T = std::remove_reference_t<U>;
   if (it == end) {
@@ -425,8 +424,9 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     match<"ull">(it, end);
     if constexpr (!std::is_pointer_v<T>) {
       value.reset();
-      if (it < end)
-        ++it;
+      if (*it == '"') {
+        match<'"'>(it, end);
+      }
     }
   } else {
     if constexpr (optional<T>) {
