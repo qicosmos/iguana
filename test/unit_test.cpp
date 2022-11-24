@@ -18,11 +18,20 @@ TEST_CASE("test parse item num_t") {
     double p{};
     iguana::from_json(p, str.begin(), str.end());
     CHECK(p == 1.4806532964699196e-22);
+
+    std::error_code ec;
+    iguana::from_json(p, str.begin(), str.end(), ec);
+    CHECK(p == 1.4806532964699196e-22);
+    CHECK(!ec);
   }
   {
     std::string str{""};
     double p{};
+
     CHECK_THROWS(iguana::from_json(p, str.begin(), str.end()));
+    std::error_code ec;
+    iguana::from_json(p, str.begin(), str.end(), ec);
+    CHECK(ec);
   }
   {
     std::string str{"1.0"};
@@ -35,6 +44,14 @@ TEST_CASE("test parse item num_t") {
     long long p{};
     iguana::from_json(p, str.begin(), str.end());
     CHECK(p == 3000000);
+
+    iguana::from_json(p, str.data(), str.size());
+    CHECK(p == 3000000);
+
+    std::error_code ec;
+    iguana::from_json(p, str.data(), str.size(), ec);
+    CHECK(!ec);
+    CHECK(p == 3000000);
   }
   {
     std::string str;
@@ -46,6 +63,11 @@ TEST_CASE("test parse item num_t") {
     std::list<char> arr{'[', '0', '.', '9', ']'};
     std::vector<double> test;
     iguana::from_json(test, arr);
+    CHECK(test[0] == 0.9);
+
+    std::error_code ec;
+    iguana::from_json(test, arr, ec);
+    CHECK(!ec);
     CHECK(test[0] == 0.9);
 
     std::deque<char> arr1{'[', '0', '.', '9', ']'};
@@ -358,11 +380,20 @@ TEST_CASE("test from_json_file") {
   CHECK(obj.name == "tom");
   CHECK(obj.age == 20);
 
+  std::error_code ec;
+  iguana::from_json_file(obj, filename, ec);
+  CHECK(!ec);
+  CHECK(obj.name == "tom");
+  CHECK(obj.age == 20);
+
   std::filesystem::remove(filename);
 
   person p;
   CHECK_THROWS_AS(iguana::from_json_file(p, "not_exist.json"),
                   std::runtime_error);
+
+  iguana::from_json_file(p, "not_exist.json", ec);
+  CHECK(!ec);
 
   std::string cur_path = std::filesystem::current_path().string();
   std::filesystem::create_directories("dummy_test_dir");

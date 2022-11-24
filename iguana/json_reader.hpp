@@ -10,6 +10,8 @@
 #include <string_view>
 #include <type_traits>
 
+#include "error_code.h"
+
 namespace iguana {
 
 template <class T>
@@ -522,6 +524,55 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
   detail::parse_item(value, it, end);
 }
 
+template <typename T, typename It>
+IGUANA_INLINE void from_json(T &value, It &&it, It &&end, std::error_code &ec) {
+  try {
+    from_json(value, it, end);
+    ec = {};
+  } catch (std::runtime_error &e) {
+    ec = iguana::make_error_code(e.what());
+  }
+}
+
+template <typename T, json_view View>
+IGUANA_INLINE void from_json(T &value, const View &view) {
+  from_json(value, std::begin(view), std::end(view));
+}
+
+template <typename T, json_view View>
+IGUANA_INLINE void from_json(T &value, const View &view, std::error_code &ec) {
+  try {
+    from_json(value, view);
+    ec = {};
+  } catch (std::runtime_error &e) {
+    ec = iguana::make_error_code(e.what());
+  }
+}
+
+template <typename T, json_byte Byte>
+IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size) {
+  std::string_view buffer(data, size);
+  from_json(value, buffer);
+}
+
+template <typename T, json_byte Byte>
+IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size,
+                             std::error_code &ec) {
+  try {
+    from_json(value, data, size);
+    ec = {};
+  } catch (std::runtime_error &e) {
+    ec = iguana::make_error_code(e.what());
+  }
+}
+
+template <typename T, typename It>
+IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
+  static_assert(!sizeof(T), "The type is not support, please check if you have "
+                            "defined REFLECTION for the type, otherwise the "
+                            "type is not supported now!");
+}
+
 template <typename T>
 IGUANA_INLINE void from_json_file(T &value, const std::string &filename) {
   std::error_code ec;
@@ -543,22 +594,15 @@ IGUANA_INLINE void from_json_file(T &value, const std::string &filename) {
   from_json(value, content.begin(), content.end());
 }
 
-template <typename T, json_view View>
-IGUANA_INLINE void from_json(T &value, const View &view) {
-  from_json(value, std::begin(view), std::end(view));
-}
-
-template <typename T, json_byte Byte>
-IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size) {
-  std::string_view buffer(data, size);
-  from_json(value, buffer);
-}
-
-template <typename T, typename It>
-IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
-  static_assert(!sizeof(T), "The type is not support, please check if you have "
-                            "defined REFLECTION for the type, otherwise the "
-                            "type is not supported now!");
+template <typename T>
+IGUANA_INLINE void from_json_file(T &value, const std::string &filename,
+                                  std::error_code &ec) {
+  try {
+    from_json_file(value, filename);
+    ec = {};
+  } catch (std::runtime_error &e) {
+    ec = iguana::make_error_code(e.what());
+  }
 }
 
 } // namespace iguana
