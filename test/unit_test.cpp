@@ -223,7 +223,7 @@ struct ee_t {
 REFLECTION(ee_t, e);
 
 TEST_CASE("test enum") {
-  ee_t t{ .e = ee::bb };
+  ee_t t{.e = ee::bb};
   std::string str;
   iguana::to_json(str, t);
 
