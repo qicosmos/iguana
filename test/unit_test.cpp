@@ -16,36 +16,58 @@ TEST_CASE("test parse item num_t") {
   {
     std::string str{"1.4806532964699196e-22"};
     double p{};
-    iguana::parse_item(p, str.begin(), str.end());
+    iguana::from_json(p, str.begin(), str.end());
     CHECK(p == 1.4806532964699196e-22);
+
+    std::error_code ec;
+    iguana::from_json(p, str.begin(), str.end(), ec);
+    CHECK(p == 1.4806532964699196e-22);
+    CHECK(!ec);
   }
   {
     std::string str{""};
     double p{};
-    CHECK_THROWS(iguana::parse_item(p, str.begin(), str.end()));
+
+    CHECK_THROWS(iguana::from_json(p, str.begin(), str.end()));
+    std::error_code ec;
+    iguana::from_json(p, str.begin(), str.end(), ec);
+    CHECK(ec);
   }
   {
     std::string str{"1.0"};
     int p{};
-    iguana::parse_item(p, str.begin(), str.end());
+    iguana::from_json(p, str.begin(), str.end());
     CHECK(p == 1);
   }
   {
     std::string str{"3000000"};
     long long p{};
-    iguana::parse_item(p, str.begin(), str.end());
+    iguana::from_json(p, str.begin(), str.end());
+    CHECK(p == 3000000);
+
+    iguana::from_json(p, str.data(), str.size());
+    CHECK(p == 3000000);
+
+    std::error_code ec;
+    iguana::from_json(p, str.data(), str.size(), ec);
+    CHECK(!ec);
     CHECK(p == 3000000);
   }
   {
     std::string str;
     str.append(300, '1');
     int p{};
-    CHECK_THROWS(iguana::parse_item(p, str.begin(), str.end()));
+    CHECK_THROWS(iguana::from_json(p, str.begin(), str.end()));
   }
   {
     std::list<char> arr{'[', '0', '.', '9', ']'};
     std::vector<double> test;
     iguana::from_json(test, arr);
+    CHECK(test[0] == 0.9);
+
+    std::error_code ec;
+    iguana::from_json(test, arr, ec);
+    CHECK(!ec);
     CHECK(test[0] == 0.9);
 
     std::deque<char> arr1{'[', '0', '.', '9', ']'};
@@ -59,7 +81,7 @@ TEST_CASE("test parse item num_t") {
     }
 
     double test = 0;
-    CHECK_THROWS(iguana::parse_item(test, arr.begin(), arr.end()));
+    CHECK_THROWS(iguana::from_json(test, arr.begin(), arr.end()));
   }
 }
 
@@ -67,29 +89,29 @@ TEST_CASE("test parse item array_t") {
   {
     std::string str{"[1, -222]"};
     std::array<int, 2> test;
-    iguana::parse_item(test, str.begin(), str.end());
+    iguana::from_json(test, str.begin(), str.end());
     CHECK(test[0] == 1);
     CHECK(test[1] == -222);
   }
   {
     std::string str{"[1, -222,"};
     std::array<int, 2> test;
-    CHECK_NOTHROW(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK_NOTHROW(iguana::from_json(test, str.begin(), str.end()));
   }
   {
     std::string str{"[   "};
     std::array<int, 2> test;
-    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
   }
   {
     std::string str{"[ ]  "};
     std::array<int, 2> test;
-    CHECK_NOTHROW(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK_NOTHROW(iguana::from_json(test, str.begin(), str.end()));
   }
   {
     std::string str{"[ 1.2345]  "};
     std::array<int, 2> test;
-    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
   }
 }
 
@@ -119,7 +141,7 @@ TEST_CASE("test parse item str_t") {
     str.push_back('a');
     str.push_back('1');
     std::vector<std::string> test{};
-    iguana::parse_item(test, str.begin(), str.end());
+    iguana::from_json(test, str.begin(), str.end());
 
     CHECK(test[0] == "a");
   }
@@ -132,7 +154,7 @@ TEST_CASE("test parse item str_t") {
     str.push_back('\"');
     std::string test{};
     test.resize(1);
-    iguana::parse_item(test, str.begin(), str.end());
+    iguana::from_json(test, str.begin(), str.end());
     CHECK(test == "a");
   }
 
@@ -157,7 +179,7 @@ TEST_CASE("test parse item seq container") {
   {
     std::string str{"[0,1,2,3]"};
     std::vector<double> test{};
-    iguana::parse_item(test, str.begin(), str.end());
+    iguana::from_json(test, str.begin(), str.end());
     CHECK(test.size() == 4);
     CHECK(test[0] == 0);
     CHECK(test[1] == 1);
@@ -167,23 +189,23 @@ TEST_CASE("test parse item seq container") {
   {
     std::string str{"[0,1,2,3,]"};
     std::vector<double> test{};
-    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
   }
   {
     std::string str{"[0,1,2,3,"};
     std::vector<double> test{};
-    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
   }
   {
     std::string str{"[0,1,2"};
     std::array<int, 3> test{};
-    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
   }
 
   {
     std::string str{"[0,1,2"};
     std::list<int> test{};
-    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
   }
 }
 
@@ -191,7 +213,7 @@ TEST_CASE("test parse item map container") {
   {
     std::string str{"{\"key1\":\"value1\", \"key2\":\"value2\"}"};
     std::map<std::string, std::string> test{};
-    iguana::parse_item(test, str.begin(), str.end());
+    iguana::from_json(test, str.begin(), str.end());
     CHECK(test.size() == 2);
     CHECK(test.at("key1") == "value1");
     CHECK(test.at("key2") == "value2");
@@ -202,29 +224,29 @@ TEST_CASE("test parse item char") {
   {
     std::string str{"\"c\""};
     char test{};
-    iguana::parse_item(test, str.begin(), str.end());
+    iguana::from_json(test, str.begin(), str.end());
     CHECK(test == 'c');
   }
   {
     std::string str{"\""};
     char test{};
-    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
   }
   {
     std::string str{R"("\)"};
     char test{};
-    CHECK_THROWS_WITH(iguana::parse_item(test, str.begin(), str.end()),
+    CHECK_THROWS_WITH(iguana::from_json(test, str.begin(), str.end()),
                       "Unxpected end of buffer");
   }
   {
     std::string str{""};
     char test{};
-    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
   }
   {
     std::string str{"\"\\a\""};
     char test{};
-    iguana::parse_item(test, str.begin(), str.end());
+    iguana::from_json(test, str.begin(), str.end());
     CHECK(test == 'a');
   }
 }
@@ -235,7 +257,7 @@ TEST_CASE("test parse item tuple") {
 
     std::tuple<int, std::string, double> tp;
 
-    iguana::parse_item(tp, str.begin(), str.end());
+    iguana::from_json(tp, str.begin(), str.end());
     CHECK(std::get<0>(tp) == 1);
   }
   {
@@ -243,7 +265,7 @@ TEST_CASE("test parse item tuple") {
 
     std::tuple<int, std::string, double, std::tuple<int, double>> tp;
 
-    iguana::parse_item(tp, str.begin(), str.end());
+    iguana::from_json(tp, str.begin(), str.end());
     CHECK(std::get<0>(tp) == 1);
   }
 }
@@ -252,37 +274,37 @@ TEST_CASE("test parse item bool") {
   {
     std::string str{"true"};
     bool test = false;
-    iguana::parse_item(test, str.begin(), str.end());
+    iguana::from_json(test, str.begin(), str.end());
     CHECK(test == true);
   }
   {
     std::string str{"false"};
     bool test = true;
-    iguana::parse_item(test, str.begin(), str.end());
+    iguana::from_json(test, str.begin(), str.end());
     CHECK(test == false);
   }
   {
     std::string str{"True"};
     bool test = false;
 
-    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
   }
   {
     std::string str{"False"};
     bool test = true;
 
-    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
   }
   {
     std::string str{"\"false\""};
     bool test = false;
 
-    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
   }
   {
     std::string str{""};
     bool test = false;
-    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
   }
 }
 
@@ -290,19 +312,88 @@ TEST_CASE("test parse item optional") {
   {
     std::string str{"null"};
     std::optional<int> test{};
-    iguana::parse_item(test, str.begin(), str.end());
+    iguana::from_json(test, str.begin(), str.end());
     CHECK(!test.has_value());
   }
   {
     std::string str{""};
     std::optional<int> test{};
-    CHECK_THROWS(iguana::parse_item(test, str.begin(), str.end()));
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
   }
   {
     std::string str{"1"};
     std::optional<int> test{};
-    iguana::parse_item(test, str.begin(), str.end());
+    iguana::from_json(test, str.begin(), str.end());
     CHECK(*test == 1);
+  }
+}
+
+struct optional_t {
+  std::optional<bool> p;
+};
+REFLECTION(optional_t, p);
+
+struct struct_test_t {
+  int32_t value;
+};
+REFLECTION(struct_test_t, value);
+
+struct struct_container_t {
+  std::vector<struct_test_t> values;
+};
+REFLECTION(struct_container_t, values);
+
+struct struct_container_1_t {
+  std::optional<struct_container_t> val;
+}; // entities_t
+REFLECTION(struct_container_1_t, val);
+
+TEST_CASE("test optional") {
+  {
+    struct_container_t container{};
+    container.values = {{1}, {2}, {3}};
+
+    struct_container_1_t t1{};
+    t1.val = container;
+
+    std::string str;
+    iguana::to_json(str, t1);
+    std::cout << str << "\n";
+
+    struct_container_1_t t2{};
+    iguana::from_json(t2, str);
+    std::cout << t2.val.has_value() << "\n";
+
+    CHECK(t1.val->values[0].value == t2.val->values[0].value);
+    CHECK(t1.val->values[1].value == t2.val->values[1].value);
+    CHECK(t1.val->values[2].value == t2.val->values[2].value);
+  }
+
+  {
+    optional_t p;
+    std::string str;
+    iguana::to_json(str, p);
+
+    optional_t p1;
+    iguana::from_json(p1, str);
+    CHECK(!p1.p.has_value());
+
+    p.p = false;
+
+    str.clear();
+    iguana::to_json(str, p);
+    std::cout << str << "\n";
+
+    iguana::from_json(p1, str);
+    CHECK(*p1.p == false);
+
+    p.p = true;
+    str.clear();
+    iguana::to_json(str, p);
+    std::cout << str << "\n";
+
+    iguana::from_json(p1, str);
+    CHECK(*p1.p == true);
   }
 }
 
@@ -358,11 +449,20 @@ TEST_CASE("test from_json_file") {
   CHECK(obj.name == "tom");
   CHECK(obj.age == 20);
 
+  std::error_code ec;
+  iguana::from_json_file(obj, filename, ec);
+  CHECK(!ec);
+  CHECK(obj.name == "tom");
+  CHECK(obj.age == 20);
+
   std::filesystem::remove(filename);
 
   person p;
   CHECK_THROWS_AS(iguana::from_json_file(p, "not_exist.json"),
                   std::runtime_error);
+
+  iguana::from_json_file(p, "not_exist.json", ec);
+  CHECK(ec);
 
   std::string cur_path = std::filesystem::current_path().string();
   std::filesystem::create_directories("dummy_test_dir");

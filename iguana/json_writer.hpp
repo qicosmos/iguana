@@ -125,6 +125,15 @@ IGUANA_INLINE void render_json_value(Stream &ss, T val) {
   render_json_value(ss, (std::underlying_type_t<T> &)val);
 }
 
+template <typename Stream, optional T>
+IGUANA_INLINE void render_json_value(Stream &ss, T &val) {
+  if (!val) {
+    render_json_value(ss, std::string("null"));
+  } else {
+    render_json_value(ss, *val);
+  }
+}
+
 template <typename Stream, typename T>
 IGUANA_INLINE void render_array(Stream &ss, const T &v) {
   ss.push_back('[');

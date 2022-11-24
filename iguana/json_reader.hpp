@@ -10,6 +10,8 @@
 #include <string_view>
 #include <type_traits>
 
+#include "error_code.h"
+
 namespace iguana {
 
 template <class T>
@@ -112,6 +114,7 @@ concept non_refletable = container<T> || c_array<T> || tuple<T> ||
 template <refletable T, typename It>
 void from_json(T &value, It &&it, It &&end);
 
+namespace detail {
 template <refletable U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   from_json(value, it, end);
@@ -409,6 +412,9 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 template <optional U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
+  if (it < end && *it == '"') {
+    ++it;
+  }
   using T = std::remove_reference_t<U>;
   if (it == end) {
     throw std::runtime_error("Unexexpected eof");
@@ -418,18 +424,19 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     match<"ull">(it, end);
     if constexpr (!std::is_pointer_v<T>) {
       value.reset();
+      if (it < end && *it == '"') {
+        ++it;
+      }
     }
   } else {
-    if (!value) {
-      if constexpr (optional<T>) {
-        typename T::value_type t;
-        parse_item(t, it, end);
-        value = std::move(t);
-      } else
-        throw std::runtime_error(
-            "Cannot read into unset nullable that is not "
-            "std::optional, std::unique_ptr, or std::shared_ptr");
+    typename T::value_type t;
+    if constexpr (refletable<decltype(t)>) {
+      from_json(t, it, end);
+    } else {
+      parse_item(t, it, end);
     }
+
+    value = std::move(t);
   }
 }
 
@@ -446,6 +453,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   value = *it++;
   match<'"'>(it, end);
 }
+} // namespace detail
 
 template <refletable T, typename It>
 IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
@@ -478,7 +486,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
           // compile time versions of keys
           it = start;
           static thread_local std::string static_key{};
-          parse_item(static_key, it, end, true);
+          detail::parse_item(static_key, it, end, true);
           key = static_key;
         } else [[likely]] {
           key = std::string_view{&*start,
@@ -487,7 +495,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
         }
       } else {
         static thread_local std::string static_key{};
-        parse_item(static_key, it, end, true);
+        detail::parse_item(static_key, it, end, true);
         key = static_key;
       }
 
@@ -501,7 +509,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
             [&](auto &&member_ptr) IGUANA__INLINE_LAMBDA {
               using V = std::decay_t<decltype(member_ptr)>;
               if constexpr (std::is_member_pointer_v<V>) {
-                parse_item(value.*member_ptr, it, end);
+                detail::parse_item(value.*member_ptr, it, end);
               } else {
                 static_assert(!sizeof(V), "type not supported");
               }
@@ -517,7 +525,58 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
 
 template <non_refletable T, typename It>
 IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
-  parse_item(value, it, end);
+  detail::parse_item(value, it, end);
+}
+
+template <typename T, typename It>
+IGUANA_INLINE void from_json(T &value, It &&it, It &&end,
+                             std::error_code &ec) noexcept {
+  try {
+    from_json(value, it, end);
+    ec = {};
+  } catch (std::runtime_error &e) {
+    ec = iguana::make_error_code(e.what());
+  }
+}
+
+template <typename T, json_view View>
+IGUANA_INLINE void from_json(T &value, const View &view) {
+  from_json(value, std::begin(view), std::end(view));
+}
+
+template <typename T, json_view View>
+IGUANA_INLINE void from_json(T &value, const View &view,
+                             std::error_code &ec) noexcept {
+  try {
+    from_json(value, view);
+    ec = {};
+  } catch (std::runtime_error &e) {
+    ec = iguana::make_error_code(e.what());
+  }
+}
+
+template <typename T, json_byte Byte>
+IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size) {
+  std::string_view buffer(data, size);
+  from_json(value, buffer);
+}
+
+template <typename T, json_byte Byte>
+IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size,
+                             std::error_code &ec) noexcept {
+  try {
+    from_json(value, data, size);
+    ec = {};
+  } catch (std::runtime_error &e) {
+    ec = iguana::make_error_code(e.what());
+  }
+}
+
+template <typename T, typename It>
+IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
+  static_assert(!sizeof(T), "The type is not support, please check if you have "
+                            "defined REFLECTION for the type, otherwise the "
+                            "type is not supported now!");
 }
 
 template <typename T>
@@ -541,22 +600,15 @@ IGUANA_INLINE void from_json_file(T &value, const std::string &filename) {
   from_json(value, content.begin(), content.end());
 }
 
-template <typename T, json_view View>
-IGUANA_INLINE void from_json(T &value, const View &view) {
-  from_json(value, std::begin(view), std::end(view));
-}
-
-template <typename T, json_byte Byte>
-IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size) {
-  std::string_view buffer(data, size);
-  from_json(value, buffer);
-}
-
-template <typename T, typename It>
-IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
-  static_assert(!sizeof(T), "The type is not support, please check if you have "
-                            "defined REFLECTION for the type, otherwise the "
-                            "type is not supported now!");
+template <typename T>
+IGUANA_INLINE void from_json_file(T &value, const std::string &filename,
+                                  std::error_code &ec) noexcept {
+  try {
+    from_json_file(value, filename);
+    ec = {};
+  } catch (std::runtime_error &e) {
+    ec = iguana::make_error_code(e.what());
+  }
 }
 
 } // namespace iguana
