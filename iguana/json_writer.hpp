@@ -113,11 +113,11 @@ IGUANA_INLINE void render_key(Stream &ss, const std::string &s) {
   render_json_value(ss, s);
 }
 
-template <typename Stream, refletable T> void to_json(Stream &ss, T &&t);
+template <typename Stream, refletable T> void to_json(T &&t, Stream &ss);
 
 template <typename Stream, refletable T>
 IGUANA_INLINE void render_json_value(Stream &ss, T &&t) {
-  to_json(ss, std::forward<T>(t));
+  to_json(std::forward<T>(t), ss);
 }
 
 template <typename Stream, enum_t T>
@@ -185,13 +185,13 @@ constexpr auto write_json_key = [](auto &s, auto i,
 };
 
 template <typename Stream, sequence_container_t T>
-IGUANA_INLINE void to_json(Stream &s, T &&v) {
+IGUANA_INLINE void to_json(T &&v, Stream &s) {
   using U = typename std::decay_t<T>::value_type;
   s.push_back('[');
   const size_t size = v.size();
   for (size_t i = 0; i < size; i++) {
     if constexpr (is_reflection_v<U>) {
-      to_json(s, v[i]);
+      to_json(v[i], s);
     } else {
       render_json_value(s, v[i]);
     }
@@ -203,7 +203,7 @@ IGUANA_INLINE void to_json(Stream &s, T &&v) {
 }
 
 template <typename Stream, tuple_t T>
-IGUANA_INLINE void to_json(Stream &s, T &&t) {
+IGUANA_INLINE void to_json(T &&t, Stream &s) {
   using U = typename std::decay_t<T>;
   s.push_back('[');
   const size_t size = std::tuple_size_v<U>;
@@ -219,11 +219,11 @@ IGUANA_INLINE void to_json(Stream &s, T &&t) {
 
 template <typename Stream, tuple_t T>
 IGUANA_INLINE void render_json_value(Stream &ss, const T &v) {
-  to_json(ss, v);
+  to_json(v, ss);
 }
 
 template <typename Stream, refletable T>
-IGUANA_INLINE void to_json(Stream &s, T &&t) {
+IGUANA_INLINE void to_json(T &&t, Stream &s) {
   s.push_back('{');
   for_each(std::forward<T>(t),
            [&t, &s](const auto &v, auto i) IGUANA__INLINE_LAMBDA {
@@ -238,7 +238,7 @@ IGUANA_INLINE void to_json(Stream &s, T &&t) {
              if constexpr (!is_reflection<decltype(v)>::value) {
                render_json_value(s, t.*v);
              } else {
-               to_json(s, t.*v);
+               to_json(t.*v, s);
              }
 
              if (Idx < Count - 1)

@@ -38,13 +38,13 @@ void test_json() {
   iguana::from_json(p, json);
 
   iguana::string_stream ss;
-  iguana::to_json(ss, p);
+  iguana::to_json(p, ss);
   std::cout << ss << std::endl;
 
   one_t one = {2};
   composit_t composit = {1, {"tom", "jack"}, 3, {{2, 3}}, {{5, 6}}, 5.3, {one}};
   iguana::string_stream sst;
-  iguana::to_json(sst, composit);
+  iguana::to_json(composit, sst);
   std::cout << sst << std::endl;
 
   //	const char* str_comp = R"({"a":1, "b":["tom", "jack"], "c":3,
@@ -100,7 +100,7 @@ void test_json() {
 //	for (size_t i = 0; i < LEN; i++)
 //	{
 //		ss.clear();
-//		iguana::to_json(ss, obj);
+//		iguana::to_json(obj, ss);
 //	}
 //	std::cout << t.elapsed() << std::endl;
 // }

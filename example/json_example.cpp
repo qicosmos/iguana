@@ -27,7 +27,7 @@ REFLECTION(student, id, name, age);
 void test() {
   MyStruct p = {5566777755311};
   iguana::string_stream ss;
-  iguana::to_json(ss, p);
+  iguana::to_json(p, ss);
 
   MyStruct p2;
   iguana::from_json(p2, ss);
@@ -38,7 +38,7 @@ void test() {
 //{
 //	client::person p = { "zombie chow", -311 };
 //	std::tuple<int, std::string, double, client::person> tp(20, "tom", 2.5,
-// p); 	iguana::string_stream ss; 	iguana::to_json(ss, tp);
+// p); 	iguana::string_stream ss; 	iguana::to_json(tp, ss);
 //
 //	auto json_str = ss.str();
 //	std::cout << json_str << std::endl;
@@ -50,7 +50,7 @@ void test() {
 //	{
 //		std::tuple<int, std::string, std::vector<int>> tp(20, "tom",
 //{1,2,3}); 		iguana::string_stream ss;
-// iguana::to_json(ss, tp);
+// iguana::to_json(tp, ss);
 //
 //		auto json_str = ss.str();
 //		std::cout << json_str << std::endl;
@@ -90,7 +90,7 @@ void test_v() {
 
   std::vector<client::person> v{p1, p2, p3};
   iguana::string_stream ss;
-  iguana::to_json(ss, v);
+  iguana::to_json(v, ss);
   std::cout << ss << std::endl;
 
   std::vector<client::person> v1;
@@ -100,7 +100,7 @@ void test_v() {
 void test_disorder() {
   student s{1, "tom", 20};
   iguana::string_stream ss;
-  iguana::to_json(ss, s);
+  iguana::to_json(s, ss);
   std::cout << ss << std::endl;
 
   student s1{};
@@ -119,7 +119,7 @@ int main(void) {
   test();
   client::person p = {"zombie chow", -311};
   iguana::string_stream ss;
-  iguana::to_json(ss, p);
+  iguana::to_json(p, ss);
 
   std::cout << ss << std::endl;
 
