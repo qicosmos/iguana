@@ -13,18 +13,18 @@
 namespace iguana {
 
 template <class T>
-concept char_t = std::same_as < std::decay_t<T>,
-char > || std::same_as<std::decay_t<T>, char16_t> ||
-    std::same_as<std::decay_t<T>, char32_t> ||
-    std::same_as<std::decay_t<T>, wchar_t>;
+concept char_t = std::same_as<std::decay_t<T>, char> ||
+                 std::same_as<std::decay_t<T>, char16_t> ||
+                 std::same_as<std::decay_t<T>, char32_t> ||
+                 std::same_as<std::decay_t<T>, wchar_t>;
 
 template <class T>
-concept bool_t = std::same_as < std::decay_t<T>,
-bool > || std::same_as<std::decay_t<T>, std::vector<bool>::reference>;
+concept bool_t = std::same_as<std::decay_t<T>, bool> ||
+                 std::same_as<std::decay_t<T>, std::vector<bool>::reference>;
 
 template <class T>
-concept int_t =
-    std::integral<std::decay_t<T>> && !char_t<std::decay_t<T>> && !bool_t<T>;
+concept int_t = std::integral<std::decay_t<T>> && !
+char_t<std::decay_t<T>> && !bool_t<T>;
 
 template <class T>
 concept num_t = std::floating_point<std::decay_t<T>> || int_t<T>;
@@ -42,55 +42,57 @@ concept vector_container = is_std_vector_v<std::remove_reference_t<Type>>;
 
 template <typename Type>
 concept optional = requires(Type optional) {
-  optional.value();
-  optional.has_value();
-  optional.operator*();
-  typename std::remove_cvref_t<Type>::value_type;
-};
+                     optional.value();
+                     optional.has_value();
+                     optional.operator*();
+                     typename std::remove_cvref_t<Type>::value_type;
+                   };
 
 template <typename Type>
 concept container = requires(Type container) {
-  typename std::remove_cvref_t<Type>::value_type;
-  container.size();
-  container.begin();
-  container.end();
-};
+                      typename std::remove_cvref_t<Type>::value_type;
+                      container.size();
+                      container.begin();
+                      container.end();
+                    };
 
 template <typename Type>
-concept map_container = container<Type> && requires(Type container) {
-  typename std::remove_cvref_t<Type>::mapped_type;
-};
+concept map_container =
+    container<Type> && requires(Type container) {
+                         typename std::remove_cvref_t<Type>::mapped_type;
+                       };
 
 template <class T>
 concept c_array = std::is_array_v<std::remove_cvref_t<T>> &&
-                  std::extent_v<std::remove_cvref_t<T>> >
-0;
+                  std::extent_v<std::remove_cvref_t<T>> > 0;
 
 template <typename Type>
 concept array = requires(Type arr) {
-  arr.size();
-  std::tuple_size<std::remove_cvref_t<Type>>{};
-};
+                  arr.size();
+                  std::tuple_size<std::remove_cvref_t<Type>>{};
+                };
 
 template <typename Type>
 concept fixed_array = c_array<Type> || array<Type>;
 
 template <typename Type>
-concept tuple = !array<Type> && requires(Type tuple) {
-  std::get<0>(tuple);
-  sizeof(std::tuple_size<std::remove_cvref_t<Type>>);
-};
+concept tuple = !
+array<Type> &&requires(Type tuple) {
+                std::get<0>(tuple);
+                sizeof(std::tuple_size<std::remove_cvref_t<Type>>);
+              };
 
 template <typename Type>
 concept json_view = requires(Type container) {
-  container.size();
-  container.begin();
-  container.end();
-};
+                      container.size();
+                      container.begin();
+                      container.end();
+                    };
 
 template <typename T>
-concept json_byte = std::is_same_v<char, T> ||
-    std::is_same_v<unsigned char, T> || std::is_same_v<std::byte, T>;
+concept json_byte =
+    std::is_same_v<char, T> || std::is_same_v<unsigned char, T> ||
+    std::is_same_v<std::byte, T>;
 
 template <typename Type> constexpr inline bool is_std_list_v = false;
 template <typename... args>
@@ -102,18 +104,18 @@ constexpr inline bool is_std_deque_v<std::deque<args...>> = true;
 
 template <typename Type>
 concept sequence_container = is_std_list_v<std::remove_reference_t<Type>> ||
-    is_std_vector_v<std::remove_reference_t<Type>> ||
-    is_std_deque_v<std::remove_reference_t<Type>>;
+                             is_std_vector_v<std::remove_reference_t<Type>> ||
+                             is_std_deque_v<std::remove_reference_t<Type>>;
 
 template <class T>
 concept non_refletable = container<T> || c_array<T> || tuple<T> ||
-    optional<T> || std::is_fundamental_v<T>;
+                         optional<T> || std::is_fundamental_v<T>;
 
 template <refletable T, typename It>
-void from_json(T &value, It &&it, It &&end);
+errc from_json(T &value, It &&it, It &&end);
 
 template <num_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
 
   using T = std::remove_reference_t<U>;
@@ -122,18 +124,18 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     if constexpr (std::is_floating_point_v<T>) {
       const auto size = std::distance(it, end);
       if (size == 0) [[unlikely]]
-        throw std::runtime_error("Failed to parse number");
+        return errc::failed_parse_number;
       const auto start = &*it;
       auto [p, ec] = fast_float::from_chars(start, start + size, value);
       if (ec != std::errc{}) [[unlikely]]
-        throw std::runtime_error("Failed to parse number");
+        return errc::failed_parse_number;
       it += (p - &*it);
     } else {
       const auto size = std::distance(it, end);
       const auto start = &*it;
       auto [p, ec] = std::from_chars(start, start + size, value);
       if (ec != std::errc{}) [[unlikely]]
-        throw std::runtime_error("Failed to parse number");
+        return errc::failed_parse_number;
       it += (p - &*it);
     }
   } else {
@@ -142,19 +144,20 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     size_t i{};
     while (it != end && is_numeric(*it)) {
       if (i > 254) [[unlikely]]
-        throw std::runtime_error("Number is too long");
+        return errc::number_too_long;
       buffer[i] = *it++;
       ++i;
     }
     auto [p, ec] = fast_float::from_chars(buffer, buffer + i, num);
     if (ec != std::errc{}) [[unlikely]]
-      throw std::runtime_error("Failed to parse number");
+      return errc::failed_parse_number;
     value = static_cast<T>(num);
   }
+  return errc::ok;
 }
 
 template <str_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
+IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end, bool skip = false) {
   if (!skip) {
     skip_ws(it, end);
     match<'"'>(it, end);
@@ -164,33 +167,33 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
     const auto cend = value.cend();
     for (auto c = value.begin(); c < cend; ++c, ++it) {
       if (it == end) [[unlikely]]
-        throw std::runtime_error(R"(Expected ")");
+        return errc::lack_of_parenthesis;
       switch (*it) {
-        [[unlikely]] case '\\' : {
-          if (++it == end) [[unlikely]]
-            throw std::runtime_error(R"(Expected ")");
-          else [[likely]] {
-            *c = *it;
-          }
-          break;
+      [[unlikely]] case '\\' : {
+        if (++it == end) [[unlikely]]
+          return errc::lack_of_parenthesis;
+        else [[likely]] {
+          *c = *it;
         }
-        [[unlikely]] case '"' : {
-          ++it;
-          value.resize(std::distance(value.begin(), c));
-          return;
-        }
-        [[unlikely]] case 'u' : {
-          ++it;
-          auto start = it;
-          auto code_point = parse_unicode_hex4(it);
-          std::string str;
-          encode_utf8(str, code_point);
-          std::memcpy(value.data(), str.data(), str.size());
-          --it;
-          c += std::distance(start, it) - 1;
+        break;
+      }
+      [[unlikely]] case '"' : {
+        ++it;
+        value.resize(std::distance(value.begin(), c));
+        return errc::ok;
+      }
+      [[unlikely]] case 'u' : {
+        ++it;
+        auto start = it;
+        auto code_point = parse_unicode_hex4(it);
+        std::string str;
+        encode_utf8(str, code_point);
+        std::memcpy(value.data(), str.data(), str.size());
+        --it;
+        c += std::distance(start, it) - 1;
 
-          break;
-        }
+        break;
+      }
         [[likely]] default : *c = *it;
       }
     }
@@ -206,7 +209,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
       if (*it == '"') {
         value.append(&*start, static_cast<size_t>(std::distance(start, it)));
         ++it;
-        return;
+        return errc::ok;
       } else {
         // Must be an escape
         // TODO propperly handle this
@@ -227,46 +230,47 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
   } else {
     while (it != end) {
       switch (*it) {
-        [[unlikely]] case '\\' : {
-          if (++it == end) [[unlikely]]
-            throw std::runtime_error(R"(Expected ")");
-          else [[likely]] {
-            value.push_back(*it);
-          }
-          break;
+      [[unlikely]] case '\\' : {
+        if (++it == end) [[unlikely]]
+          return errc::lack_of_parenthesis;
+        else [[likely]] {
+          value.push_back(*it);
         }
-        [[unlikely]] case ']' : { return; }
-        [[unlikely]] case '"' : {
-          ++it;
-          return;
-        }
-        [[unlikely]] case 'u' : {
-          ++it;
-          auto code_point = parse_unicode_hex4(it);
-          encode_utf8(value, code_point);
-          break;
-        }
+        break;
+      }
+      [[unlikely]] case ']' : { return errc::ok; }
+      [[unlikely]] case '"' : {
+        ++it;
+        return errc::ok;
+      }
+      [[unlikely]] case 'u' : {
+        ++it;
+        auto code_point = parse_unicode_hex4(it);
+        encode_utf8(value, code_point);
+        break;
+      }
         [[likely]] default : value.push_back(*it);
       }
       ++it;
     }
   }
+  return errc::ok;
 }
 
 template <fixed_array U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
   using T = std::remove_reference_t<U>;
   skip_ws(it, end);
 
   match<'['>(it, end);
   skip_ws(it, end);
   if (it == end) {
-    throw std::runtime_error("Unexpected end");
+    return errc::unexpected_end;
   }
 
   if (*it == ']') [[unlikely]] {
     ++it;
-    return;
+    return errc::ok;
   }
 
   constexpr auto n = sizeof(T) / sizeof(decltype(std::declval<T>()[0]));
@@ -277,22 +281,23 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     parse_item(*value_it++, it, end);
     skip_ws(it, end);
     if (it == end) {
-      throw std::runtime_error("Unexpected end");
+      return errc::unexpected_end;
     }
     if (*it == ',') [[likely]] {
       ++it;
       skip_ws(it, end);
     } else if (*it == ']') {
       ++it;
-      return;
+      return errc::ok;
     } else [[unlikely]] {
-      throw std::runtime_error("Expected ]");
+      return errc::lack_of_bracket;
     }
   }
+  return errc::ok;
 }
 
 template <sequence_container U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
   value.clear();
   skip_ws(it, end);
 
@@ -301,7 +306,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   for (size_t i = 0; it != end; ++i) {
     if (*it == ']') [[unlikely]] {
       ++it;
-      return;
+      return errc::ok;
     }
     if (i > 0) [[likely]] {
       match<','>(it, end);
@@ -309,18 +314,23 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 
     using value_type = typename std::remove_cv_t<U>::value_type;
     if constexpr (refletable<value_type>) {
-      from_json(value.emplace_back(), it, end);
+      const auto ec = from_json(value.emplace_back(), it, end);
+      if (ec != errc::ok)
+        return ec;
     } else {
-      parse_item(value.emplace_back(), it, end);
+      const auto ec = parse_item(value.emplace_back(), it, end);
+      if (ec != errc::ok)
+        return ec;
     }
 
     skip_ws(it, end);
   }
-  throw std::runtime_error("Expected ]");
+
+  return errc::lack_of_bracket;
 }
 
 template <map_container U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
   using T = std::remove_reference_t<U>;
   skip_ws(it, end);
 
@@ -330,7 +340,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   while (it != end) {
     if (*it == '}') [[unlikely]] {
       ++it;
-      return;
+      return errc::ok;
     } else if (first) [[unlikely]]
       first = false;
     else [[likely]] {
@@ -338,24 +348,34 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     }
 
     static thread_local std::string key{};
-    parse_item(key, it, end);
+    const auto ec = parse_item(key, it, end);
+    if (ec != errc::ok)
+      return ec;
 
     skip_ws(it, end);
     match<':'>(it, end);
 
     if constexpr (std::is_same_v<typename T::key_type, std::string>) {
-      parse_item(value[key], it, end);
+      const auto ec = parse_item(value[key], it, end);
+      if (ec != errc::ok)
+        return ec;
     } else {
       static thread_local typename T::key_type key_value{};
-      parse_item(key_value, key.begin(), key.end());
-      parse_item(value[key_value], it, end);
+
+      auto ec = parse_item(key_value, key.begin(), key.end());
+      if (ec != errc::ok)
+        return ec;
+      ec = parse_item(value[key_value], it, end);
+      if (ec != errc::ok)
+        return ec;
     }
     skip_ws(it, end);
   }
+  return errc::ok;
 }
 
 template <tuple U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   match<'['>(it, end);
   skip_ws(it, end);
@@ -363,7 +383,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   for_each(value, [&](auto &v, auto i) IGUANA__INLINE_LAMBDA {
     constexpr auto I = decltype(i)::value;
     if (it == end || *it == ']') {
-      return;
+      return errc::ok;
     }
     if constexpr (I != 0) {
       match<','>(it, end);
@@ -371,9 +391,11 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     }
     parse_item(v, it, end);
     skip_ws(it, end);
+    return errc::ok;
   });
 
   match<']'>(it, end);
+  return errc::ok;
 }
 
 template <bool_t U, class It>
@@ -404,12 +426,13 @@ IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
 }
 
 template <optional U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   using T = std::remove_reference_t<U>;
   if (it == end) {
-    throw std::runtime_error("Unexexpected eof");
+    return errc::unexpected_eof;
   }
+
   if (*it == 'n') {
     ++it;
     match<"ull">(it, end);
@@ -419,33 +442,40 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   } else {
     if (!value) {
       typename T::value_type t;
-      parse_item(t, it, end);
+      const auto ec = parse_item(t, it, end);
+      if (ec != errc::ok)
+        return ec;
       value = std::move(t);
     }
   }
+  return errc::ok;
 }
 
 template <char_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
   // TODO: this does not handle escaped chars
   skip_ws(it, end);
   match<'"'>(it, end);
+
   if (it == end) [[unlikely]]
-    throw std::runtime_error("Unxpected end of buffer");
+    return errc::unexpected_end_of_buffer;
+
   if (*it == '\\') [[unlikely]]
     if (++it == end) [[unlikely]]
-      throw std::runtime_error("Unxpected end of buffer");
+      return errc::unexpected_end_of_buffer;
+
   value = *it++;
   match<'"'>(it, end);
+  return errc::ok;
 }
 
 template <refletable U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
-  from_json(value, it, end);
+IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
+  return from_json(value, it, end);
 }
 
 template <refletable T, typename It>
-IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
+IGUANA_INLINE errc from_json(T &value, It &&it, It &&end) {
   skip_ws(it, end);
 
   match<'{'>(it, end);
@@ -454,7 +484,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
   while (it != end) {
     if (*it == '}') [[unlikely]] {
       ++it;
-      return;
+      return errc::ok;
     } else if (first) [[unlikely]]
       first = false;
     else [[likely]] {
@@ -475,7 +505,9 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
           // compile time versions of keys
           it = start;
           static thread_local std::string static_key{};
-          parse_item(static_key, it, end, true);
+          const auto ec = parse_item(static_key, it, end, true);
+          if (ec != errc::ok)
+            return ec;
           key = static_key;
         } else [[likely]] {
           key = std::string_view{&*start,
@@ -484,7 +516,9 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
         }
       } else {
         static thread_local std::string static_key{};
-        parse_item(static_key, it, end, true);
+        const auto ec = parse_item(static_key, it, end, true);
+        if (ec != errc::ok)
+          return ec;
         key = static_key;
       }
 
@@ -498,36 +532,38 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
             [&](auto &&member_ptr) IGUANA__INLINE_LAMBDA {
               using V = std::decay_t<decltype(member_ptr)>;
               if constexpr (std::is_member_pointer_v<V>) {
-                parse_item(value.*member_ptr, it, end);
+                const auto ec = parse_item(value.*member_ptr, it, end);
+                if (ec != errc::ok)
+                  return ec;
               } else {
                 static_assert(!sizeof(V), "type not supported");
               }
+              return errc::ok;
             },
             member_it->second);
       } else [[unlikely]] {
-        throw std::runtime_error("Unknown key: " + std::string(key));
+        return errc::unknown_key;
       }
     }
     skip_ws(it, end);
   }
+  return errc::ok;
 }
 
 template <non_refletable T, typename It>
-IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
-  parse_item(value, it, end);
+IGUANA_INLINE errc from_json(T &value, It &&it, It &&end) {
+  return parse_item(value, it, end);
 }
 
 template <typename T>
-IGUANA_INLINE void from_json_file(T &value, const std::string &filename) {
+IGUANA_INLINE errc from_json_file(T &value, const std::string &filename) {
   std::error_code ec;
   uint64_t size = std::filesystem::file_size(filename, ec);
-  if (ec) {
-    throw std::runtime_error("file size error " + ec.message());
-  }
+  if (ec)
+    return errc::file_size_error;
 
-  if (size == 0) {
-    throw std::runtime_error("empty file");
-  }
+  if (size == 0)
+    return errc::empty_file;
 
   std::ifstream file(filename, std::ios::binary);
 
@@ -535,22 +571,22 @@ IGUANA_INLINE void from_json_file(T &value, const std::string &filename) {
   content.resize(size);
 
   file.read(content.data(), size);
-  from_json(value, content.begin(), content.end());
+  return from_json(value, content.begin(), content.end());
 }
 
 template <typename T, json_view View>
-IGUANA_INLINE void from_json(T &value, const View &view) {
-  from_json(value, std::begin(view), std::end(view));
+IGUANA_INLINE errc from_json(T &value, const View &view) {
+  return from_json(value, std::begin(view), std::end(view));
 }
 
 template <typename T, json_byte Byte>
-IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size) {
+IGUANA_INLINE errc from_json(T &value, const Byte *data, size_t size) {
   std::string_view buffer(data, size);
-  from_json(value, buffer);
+  return from_json(value, buffer);
 }
 
 template <typename T, typename It>
-IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
+IGUANA_INLINE errc from_json(T &value, It &&it, It &&end) {
   static_assert(!sizeof(T), "The type is not support, please check if you have "
                             "defined REFLECTION for the type, otherwise the "
                             "type is not supported now!");

@@ -22,7 +22,8 @@ TEST_CASE("test parse item num_t") {
   {
     std::string str{""};
     double p{};
-    CHECK_THROWS(iguana::parse_item(p, str.begin(), str.end()));
+    const auto ec = iguana::parse_item(p, str.begin(), str.end());
+    CHECK(ec == iguana::errc::failed_parse_number);
   }
   {
     std::string str{"1.0"};
@@ -40,7 +41,8 @@ TEST_CASE("test parse item num_t") {
     std::string str;
     str.append(300, '1');
     int p{};
-    CHECK_THROWS(iguana::parse_item(p, str.begin(), str.end()));
+    const auto ec = iguana::parse_item(p, str.begin(), str.end());
+    CHECK(ec == iguana::errc::failed_parse_number);
   }
   {
     std::list<char> arr{'[', '0', '.', '9', ']'};
@@ -59,7 +61,8 @@ TEST_CASE("test parse item num_t") {
     }
 
     double test = 0;
-    CHECK_THROWS(iguana::parse_item(test, arr.begin(), arr.end()));
+    const auto ec = iguana::parse_item(test, arr.begin(), arr.end());
+    CHECK(ec == iguana::errc::number_too_long);
   }
 }
 
