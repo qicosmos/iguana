@@ -393,7 +393,7 @@ TEST_CASE("test from_json_file") {
                   std::runtime_error);
 
   iguana::from_json_file(p, "not_exist.json", ec);
-  CHECK(!ec);
+  CHECK(ec);
 
   std::string cur_path = std::filesystem::current_path().string();
   std::filesystem::create_directories("dummy_test_dir");
