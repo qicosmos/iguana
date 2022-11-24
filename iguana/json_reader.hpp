@@ -110,10 +110,11 @@ concept non_refletable = container<T> || c_array<T> || tuple<T> ||
     optional<T> || std::is_fundamental_v<T>;
 
 template <refletable T, typename It>
-void from_json(T &value, It &&it, It &&end);
+errc from_json(T &value, It &&it, It &&end);
 
 template <num_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it,
+                                            It &&end) noexcept {
   skip_ws(it, end);
 
   using T = std::remove_reference_t<U>;
@@ -122,18 +123,19 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     if constexpr (std::is_floating_point_v<T>) {
       const auto size = std::distance(it, end);
       if (size == 0) [[unlikely]]
-        throw std::runtime_error("Failed to parse number");
+        return errc::failed_parse_number;
+
       const auto start = &*it;
       auto [p, ec] = fast_float::from_chars(start, start + size, value);
       if (ec != std::errc{}) [[unlikely]]
-        throw std::runtime_error("Failed to parse number");
+        return errc::failed_parse_number;
       it += (p - &*it);
     } else {
       const auto size = std::distance(it, end);
       const auto start = &*it;
       auto [p, ec] = std::from_chars(start, start + size, value);
       if (ec != std::errc{}) [[unlikely]]
-        throw std::runtime_error("Failed to parse number");
+        return errc::failed_parse_number;
       it += (p - &*it);
     }
   } else {
@@ -142,33 +144,39 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     size_t i{};
     while (it != end && is_numeric(*it)) {
       if (i > 254) [[unlikely]]
-        throw std::runtime_error("Number is too long");
+        return errc::number_is_too_long;
       buffer[i] = *it++;
       ++i;
     }
     auto [p, ec] = fast_float::from_chars(buffer, buffer + i, num);
     if (ec != std::errc{}) [[unlikely]]
-      throw std::runtime_error("Failed to parse number");
+      return errc::failed_parse_number;
     value = static_cast<T>(num);
   }
+
+  return errc::ok;
 }
 
 template <str_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end,
+                                            bool skip = false) {
   if (!skip) {
     skip_ws(it, end);
-    match<'"'>(it, end);
+    auto ec = match<'"'>(it, end);
+    if (ec != errc::ok) {
+      return ec;
+    }
   }
 
   if constexpr (!std::contiguous_iterator<std::decay_t<It>>) {
     const auto cend = value.cend();
     for (auto c = value.begin(); c < cend; ++c, ++it) {
       if (it == end) [[unlikely]]
-        throw std::runtime_error(R"(Expected ")");
+        return errc::lack_of_parenthesis;
       switch (*it) {
         [[unlikely]] case '\\' : {
           if (++it == end) [[unlikely]]
-            throw std::runtime_error(R"(Expected ")");
+            return errc::lack_of_parenthesis;
           else [[likely]] {
             *c = *it;
           }
@@ -177,7 +185,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
         [[unlikely]] case '"' : {
           ++it;
           value.resize(std::distance(value.begin(), c));
-          return;
+          return errc::ok;
         }
         [[unlikely]] case 'u' : {
           ++it;
@@ -202,11 +210,14 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
                    // as important
     auto start = it;
     while (it < end) {
-      skip_till_escape_or_qoute(it, end);
+      auto ec = skip_till_escape_or_qoute(it, end);
+      if (ec != errc::ok) [[unlikely]] {
+        return ec;
+      }
       if (*it == '"') {
         value.append(&*start, static_cast<size_t>(std::distance(start, it)));
         ++it;
-        return;
+        return errc::ok;
       } else {
         // Must be an escape
         // TODO propperly handle this
@@ -229,16 +240,16 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
       switch (*it) {
         [[unlikely]] case '\\' : {
           if (++it == end) [[unlikely]]
-            throw std::runtime_error(R"(Expected ")");
+            return errc::lack_of_parenthesis;
           else [[likely]] {
             value.push_back(*it);
           }
           break;
         }
-        [[unlikely]] case ']' : { return; }
+        [[unlikely]] case ']' : { return errc::ok; }
         [[unlikely]] case '"' : {
           ++it;
-          return;
+          return errc::ok;
         }
         [[unlikely]] case 'u' : {
           ++it;
@@ -251,22 +262,27 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
       ++it;
     }
   }
+
+  return errc::ok;
 }
 
 template <fixed_array U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
   using T = std::remove_reference_t<U>;
   skip_ws(it, end);
 
-  match<'['>(it, end);
+  auto ec = match<'['>(it, end);
+  if (ec != errc::ok) {
+    return ec;
+  }
   skip_ws(it, end);
   if (it == end) {
-    throw std::runtime_error("Unexpected end");
+    return errc::unexpected_end;
   }
 
   if (*it == ']') [[unlikely]] {
     ++it;
-    return;
+    return errc::ok;
   }
 
   constexpr auto n = sizeof(T) / sizeof(decltype(std::declval<T>()[0]));
@@ -274,123 +290,192 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   auto value_it = std::begin(value);
 
   for (size_t i = 0; i < n; ++i) {
-    parse_item(*value_it++, it, end);
+    ec = parse_item(*value_it++, it, end);
+    if (ec != errc::ok) [[unlikely]] {
+      return ec;
+    }
     skip_ws(it, end);
     if (it == end) {
-      throw std::runtime_error("Unexpected end");
+      return errc::unexpected_end;
     }
     if (*it == ',') [[likely]] {
       ++it;
       skip_ws(it, end);
     } else if (*it == ']') {
       ++it;
-      return;
+      return errc::ok;
     } else [[unlikely]] {
-      throw std::runtime_error("Expected ]");
+      return errc::lack_of_bracket;
     }
   }
+
+  return errc::ok;
 }
 
 template <sequence_container U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
   value.clear();
+  errc ec{};
   skip_ws(it, end);
 
-  match<'['>(it, end);
+  ec = match<'['>(it, end);
+  if (ec != errc::ok) [[unlikely]] {
+    return ec;
+  }
+
   skip_ws(it, end);
   for (size_t i = 0; it != end; ++i) {
     if (*it == ']') [[unlikely]] {
       ++it;
-      return;
+      return errc::ok;
     }
     if (i > 0) [[likely]] {
-      match<','>(it, end);
+      ec = match<','>(it, end);
+      if (ec != errc::ok) [[unlikely]] {
+        return ec;
+      }
     }
 
     using value_type = typename std::remove_cv_t<U>::value_type;
     if constexpr (refletable<value_type>) {
-      from_json(value.emplace_back(), it, end);
+      ec = from_json(value.emplace_back(), it, end);
     } else {
-      parse_item(value.emplace_back(), it, end);
+      ec = parse_item(value.emplace_back(), it, end);
+    }
+
+    if (ec != errc::ok) [[unlikely]] {
+      return ec;
     }
 
     skip_ws(it, end);
   }
-  throw std::runtime_error("Expected ]");
+
+  return errc::lack_of_bracket;
 }
 
 template <map_container U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
   using T = std::remove_reference_t<U>;
   skip_ws(it, end);
 
-  match<'{'>(it, end);
+  iguana::errc ec{};
+  ec = match<'{'>(it, end);
+  if (ec != errc::ok) {
+    return ec;
+  }
   skip_ws(it, end);
   bool first = true;
   while (it != end) {
     if (*it == '}') [[unlikely]] {
       ++it;
-      return;
+      return errc::ok;
     } else if (first) [[unlikely]]
       first = false;
     else [[likely]] {
-      match<','>(it, end);
+      ec = match<','>(it, end);
+      if (ec != errc::ok) {
+        return ec;
+      }
     }
 
     static thread_local std::string key{};
-    parse_item(key, it, end);
+    ec = parse_item(key, it, end);
+    if (ec != errc::ok) [[unlikely]] {
+      return ec;
+    }
 
     skip_ws(it, end);
-    match<':'>(it, end);
+    ec = match<':'>(it, end);
+    if (ec != errc::ok) [[unlikely]] {
+      return ec;
+    }
 
     if constexpr (std::is_same_v<typename T::key_type, std::string>) {
-      parse_item(value[key], it, end);
+      ec = parse_item(value[key], it, end);
+      if (ec != errc::ok) [[unlikely]] {
+        return ec;
+      }
     } else {
       static thread_local typename T::key_type key_value{};
-      parse_item(key_value, key.begin(), key.end());
-      parse_item(value[key_value], it, end);
+      ec = parse_item(key_value, key.begin(), key.end());
+      if (ec != errc::ok) [[unlikely]] {
+        return ec;
+      }
+      ec = parse_item(value[key_value], it, end);
+      if (ec != errc::ok) [[unlikely]] {
+        return ec;
+      }
     }
     skip_ws(it, end);
   }
+
+  return errc::ok;
 }
 
 template <tuple U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
-  match<'['>(it, end);
+  iguana::errc ec{};
+  ec = match<'['>(it, end);
+  if (ec != errc::ok) {
+    return ec;
+  }
   skip_ws(it, end);
 
   for_each(value, [&](auto &v, auto i) IGUANA__INLINE_LAMBDA {
+    if (ec != errc::ok) [[unlikely]] {
+      return;
+    }
     constexpr auto I = decltype(i)::value;
     if (it == end || *it == ']') {
       return;
     }
     if constexpr (I != 0) {
-      match<','>(it, end);
+      ec = match<','>(it, end);
+      if (ec != errc::ok) [[unlikely]] {
+        return;
+      }
       skip_ws(it, end);
     }
-    parse_item(v, it, end);
+    ec = parse_item(v, it, end);
+    if (ec != errc::ok) [[unlikely]] {
+      return;
+    }
     skip_ws(it, end);
   });
 
-  match<']'>(it, end);
+  if (ec != errc::ok) [[unlikely]] {
+    return ec;
+  }
+
+  ec = match<']'>(it, end);
+  if (ec != errc::ok) {
+    return ec;
+  }
+  return errc::ok;
 }
 
 template <bool_t U, class It>
-IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
-
+  iguana::errc ec{};
   if (it < end) [[likely]] {
     switch (*it) {
     case 't': {
       ++it;
-      match<"rue">(it, end);
+      ec = match<"rue">(it, end);
+      if (ec != errc::ok) {
+        return ec;
+      }
       value = true;
       break;
     }
     case 'f': {
       ++it;
-      match<"alse">(it, end);
+      ec = match<"alse">(it, end);
+      if (ec != errc::ok) {
+        return ec;
+      }
       value = false;
       break;
     }
@@ -404,61 +489,84 @@ IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
 }
 
 template <optional U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   using T = std::remove_reference_t<U>;
   if (it == end) {
-    throw std::runtime_error("Unexexpected eof");
+    return errc::unexpected_end;
   }
   if (*it == 'n') {
     ++it;
-    match<"ull">(it, end);
+    auto ec = match<"ull">(it, end);
+    if (ec != errc::ok) [[unlikely]] {
+      return ec;
+    }
     if constexpr (!std::is_pointer_v<T>) {
       value.reset();
     }
   } else {
     if (!value) {
       typename T::value_type t;
-      parse_item(t, it, end);
+      auto ec = parse_item(t, it, end);
+      if (ec != errc::ok) [[unlikely]] {
+        return ec;
+      }
       value = std::move(t);
     }
   }
+
+  return errc::ok;
 }
 
 template <char_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
   // TODO: this does not handle escaped chars
   skip_ws(it, end);
-  match<'"'>(it, end);
+  errc ec{};
+  ec = match<'"'>(it, end);
+  if (ec != errc::ok) [[unlikely]] {
+    return ec;
+  }
   if (it == end) [[unlikely]]
-    throw std::runtime_error("Unxpected end of buffer");
+    return errc::unexpected_end;
   if (*it == '\\') [[unlikely]]
     if (++it == end) [[unlikely]]
-      throw std::runtime_error("Unxpected end of buffer");
+      return errc::unexpected_end;
   value = *it++;
   match<'"'>(it, end);
+  if (ec != errc::ok) {
+    return ec;
+  }
+  return errc::ok;
 }
 
 template <refletable U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
-  from_json(value, it, end);
+[[nodiscard]] IGUANA_INLINE errc parse_item(U &value, It &&it, It &&end) {
+  return from_json(value, it, end);
 }
 
 template <refletable T, typename It>
-IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
+[[nodiscard]] IGUANA_INLINE errc from_json(T &value, It &&it, It &&end) {
   skip_ws(it, end);
 
-  match<'{'>(it, end);
+  errc ec{};
+  ec = match<'{'>(it, end);
+  if (ec != errc::ok) [[unlikely]] {
+    return errc::not_match_specific_chars;
+  }
   skip_ws(it, end);
   bool first = true;
   while (it != end) {
     if (*it == '}') [[unlikely]] {
       ++it;
-      return;
+      return errc::ok;
     } else if (first) [[unlikely]]
       first = false;
     else [[likely]] {
-      match<','>(it, end);
+      ec = match<','>(it, end);
+      if (ec != errc::ok) [[unlikely]] {
+        return errc::not_match_specific_chars;
+      }
     }
 
     if constexpr (refletable<T>) {
@@ -466,16 +574,25 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
       if constexpr (std::contiguous_iterator<std::decay_t<It>>) {
         // skip white space and escape characters and find the string
         skip_ws(it, end);
-        match<'"'>(it, end);
+        ec = match<'"'>(it, end);
+        if (ec != errc::ok) [[unlikely]] {
+          return errc::not_match_specific_chars;
+        }
         auto start = it;
-        skip_till_escape_or_qoute(it, end);
+        ec = skip_till_escape_or_qoute(it, end);
+        if (ec != errc::ok) [[unlikely]] {
+          return ec;
+        }
         if (*it == '\\') [[unlikely]] {
           // we dont' optimize this currently because it would increase binary
           // size significantly with the complexity of generating escaped
           // compile time versions of keys
           it = start;
           static thread_local std::string static_key{};
-          parse_item(static_key, it, end, true);
+          ec = parse_item(static_key, it, end, true);
+          if (ec != errc::ok) [[unlikely]] {
+            return ec;
+          }
           key = static_key;
         } else [[likely]] {
           key = std::string_view{&*start,
@@ -484,12 +601,18 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
         }
       } else {
         static thread_local std::string static_key{};
-        parse_item(static_key, it, end, true);
+        ec = parse_item(static_key, it, end, true);
+        if (ec != errc::ok) [[unlikely]] {
+          return ec;
+        }
         key = static_key;
       }
 
       skip_ws(it, end);
-      match<':'>(it, end);
+      ec = match<':'>(it, end);
+      if (ec != errc::ok) [[unlikely]] {
+        return errc::not_match_specific_chars;
+      }
 
       static constexpr auto frozen_map = get_iguana_struct_map<T>();
       const auto &member_it = frozen_map.find(key);
@@ -498,35 +621,40 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
             [&](auto &&member_ptr) IGUANA__INLINE_LAMBDA {
               using V = std::decay_t<decltype(member_ptr)>;
               if constexpr (std::is_member_pointer_v<V>) {
-                parse_item(value.*member_ptr, it, end);
+                ec = parse_item(value.*member_ptr, it, end);
               } else {
                 static_assert(!sizeof(V), "type not supported");
               }
             },
             member_it->second);
+        if (ec != errc::ok) [[unlikely]] {
+          return ec;
+        }
       } else [[unlikely]] {
-        throw std::runtime_error("Unknown key: " + std::string(key));
+        return errc::unknown_key;
       }
     }
     skip_ws(it, end);
   }
+  return errc::ok;
 }
 
 template <non_refletable T, typename It>
-IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
-  parse_item(value, it, end);
+[[nodiscard]] IGUANA_INLINE errc from_json(T &value, It &&it, It &&end) {
+  return parse_item(value, it, end);
 }
 
 template <typename T>
-IGUANA_INLINE void from_json_file(T &value, const std::string &filename) {
+[[nodiscard]] IGUANA_INLINE errc from_json_file(T &value,
+                                                const std::string &filename) {
   std::error_code ec;
   uint64_t size = std::filesystem::file_size(filename, ec);
   if (ec) {
-    throw std::runtime_error("file size error " + ec.message());
+    return errc::file_size_error;
   }
 
   if (size == 0) {
-    throw std::runtime_error("empty file");
+    return errc::empty_file;
   }
 
   std::ifstream file(filename, std::ios::binary);
@@ -535,25 +663,26 @@ IGUANA_INLINE void from_json_file(T &value, const std::string &filename) {
   content.resize(size);
 
   file.read(content.data(), size);
-  from_json(value, content.begin(), content.end());
+  return from_json(value, content.begin(), content.end());
 }
 
 template <typename T, json_view View>
-IGUANA_INLINE void from_json(T &value, const View &view) {
-  from_json(value, std::begin(view), std::end(view));
+[[nodiscard]] IGUANA_INLINE errc from_json(T &value, const View &view) {
+  return from_json(value, std::begin(view), std::end(view));
 }
 
 template <typename T, json_byte Byte>
-IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size) {
+IGUANA_INLINE errc from_json(T &value, const Byte *data, size_t size) {
   std::string_view buffer(data, size);
-  from_json(value, buffer);
+  return from_json(value, buffer);
 }
 
 template <typename T, typename It>
-IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
+IGUANA_INLINE errc from_json(T &value, It &&it, It &&end) {
   static_assert(!sizeof(T), "The type is not support, please check if you have "
                             "defined REFLECTION for the type, otherwise the "
                             "type is not supported now!");
+  return {};
 }
 
 } // namespace iguana

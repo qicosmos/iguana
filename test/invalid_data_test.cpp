@@ -18,15 +18,12 @@ TEST_CASE("test known fields") {
   std::string str = R"({"dummy": 0, "name":"tom", "age":20})";
 
   person_t p;
-  CHECK_THROWS_WITH(iguana::from_json(p, str.begin(), str.end()),
-                    "Unknown key: dummy");
-  CHECK_THROWS_WITH_AS(iguana::from_json(p, str.begin(), str.end()),
-                       "Unknown key: dummy", std::runtime_error);
+  CHECK(iguana::from_json(p, str.begin(), str.end()) ==
+        iguana::errc::unknown_key);
 
   std::string str1 = R"({"name":"tom", "age":20, })";
-
-  CHECK_THROWS_WITH(iguana::from_json(p, str1.begin(), str1.end()),
-                    "Expected:\"");
+  CHECK(iguana::from_json(p, str1.begin(), str1.end()) ==
+        iguana::errc::not_match_specific_chars);
 }
 
 // doctest comments

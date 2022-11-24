@@ -23,24 +23,20 @@ template <size_t N> struct string_literal {
   constexpr const std::string_view sv() const noexcept { return {value, size}; }
 };
 
-template <char c> IGUANA_INLINE void match(auto &&it, auto &&end) {
+template <char c> IGUANA_INLINE errc match(auto &&it, auto &&end) {
   if (it == end || *it != c) [[unlikely]] {
-    static constexpr char b[] = {c, '\0'};
-    //         static constexpr auto error = concat_arrays("Expected:", b);
-    std::string error = std::string("Expected:").append(b);
-    throw std::runtime_error(error);
+    return errc::not_match_specific_chars;
   } else [[likely]] {
     ++it;
   }
+
+  return errc::ok;
 }
 
-template <string_literal str> IGUANA_INLINE void match(auto &&it, auto &&end) {
+template <string_literal str> IGUANA_INLINE errc match(auto &&it, auto &&end) {
   const auto n = static_cast<size_t>(std::distance(it, end));
   if (n < str.size) [[unlikely]] {
-    // TODO: compile time generate this message, currently borken with
-    // MSVC
-    static constexpr auto error = "Unexpected end of buffer. Expected:";
-    throw std::runtime_error(error);
+    return errc::unexpected_end;
   }
   size_t i{};
   // clang and gcc will vectorize this loop
@@ -48,17 +44,16 @@ template <string_literal str> IGUANA_INLINE void match(auto &&it, auto &&end) {
     i += *it != *c;
   }
   if (i != 0) [[unlikely]] {
-    // TODO: compile time generate this message, currently borken with
-    // MSVC
-    static constexpr auto error = "Expected: ";
-    throw std::runtime_error(error);
+    return errc::not_match_specific_chars;
   }
+
+  return errc::ok;
 }
 
-IGUANA_INLINE void skip_comment(auto &&it, auto &&end) {
+IGUANA_INLINE errc skip_comment(auto &&it, auto &&end) {
   ++it;
   if (it == end) [[unlikely]]
-    throw std::runtime_error("Unexpected end, expected comment");
+    return errc::unexpected_end;
   else if (*it == '/') {
     while (++it != end && *it != '\n')
       ;
@@ -73,35 +68,31 @@ IGUANA_INLINE void skip_comment(auto &&it, auto &&end) {
         }
       }
     }
-  } else [[unlikely]]
-    throw std::runtime_error("Expected / or * after /");
+  } else [[unlikely]] {
+    return errc::lack_of_backslash;
+  }
+  return errc::ok;
 }
 
-IGUANA_INLINE void skip_ws(auto &&it, auto &&end) {
+IGUANA_INLINE errc skip_ws(auto &&it, auto &&end) {
   while (it != end) {
     // assuming ascii
     if (static_cast<uint8_t>(*it) < 33) {
       ++it;
     } else if (*it == '/') {
-      skip_comment(it, end);
+      auto ec = skip_comment(it, end);
+      if (ec != errc::ok) {
+        return ec;
+      }
     } else {
       break;
     }
   }
+
+  return errc::ok;
 }
 
-IGUANA_INLINE void skip_ws_no_comments(auto &&it, auto &&end) {
-  while (it != end) {
-    // assuming ascii
-    if (static_cast<uint8_t>(*it) < 33) {
-      ++it;
-    } else {
-      break;
-    }
-  }
-}
-
-IGUANA_INLINE void skip_till_escape_or_qoute(auto &&it, auto &&end) {
+IGUANA_INLINE errc skip_till_escape_or_qoute(auto &&it, auto &&end) {
   static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
 
   auto has_zero = [](uint64_t chunk) {
@@ -127,7 +118,7 @@ IGUANA_INLINE void skip_till_escape_or_qoute(auto &&it, auto &&end) {
       uint64_t test = has_qoute(chunk) | has_escape(chunk);
       if (test != 0) {
         it += (std::countr_zero(test) >> 3);
-        return;
+        return errc::ok;
       }
     }
   }
@@ -137,50 +128,12 @@ IGUANA_INLINE void skip_till_escape_or_qoute(auto &&it, auto &&end) {
     switch (*it) {
     case '\\':
     case '"':
-      return;
+      return errc::ok;
     }
     ++it;
   }
-  throw std::runtime_error("Expected \"");
-}
 
-IGUANA_INLINE void skip_string(auto &&it, auto &&end) noexcept {
-  ++it;
-  while (it < end) {
-    if (*it == '"') {
-      ++it;
-      break;
-    } else if (*it == '\\' && ++it == end) [[unlikely]]
-      break;
-    ++it;
-  }
-}
-
-template <char open, char close>
-IGUANA_INLINE void skip_until_closed(auto &&it, auto &&end) {
-  ++it;
-  size_t open_count = 1;
-  size_t close_count = 0;
-  while (it < end && open_count > close_count) {
-    switch (*it) {
-    case '/':
-      skip_comment(it, end);
-      break;
-    case '"':
-      skip_string(it, end);
-      break;
-    case open:
-      ++open_count;
-      ++it;
-      break;
-    case close:
-      ++close_count;
-      ++it;
-      break;
-    default:
-      ++it;
-    }
-  }
+  return errc::lack_of_quote;
 }
 
 IGUANA_INLINE constexpr bool is_numeric(const auto c) noexcept {
@@ -205,19 +158,4 @@ IGUANA_INLINE constexpr bool is_numeric(const auto c) noexcept {
   return false;
 }
 
-constexpr bool is_digit(char c) { return c <= '9' && c >= '0'; }
-
-constexpr size_t stoui(std::string_view s, size_t value = 0) {
-  if (s.empty()) {
-    return value;
-  }
-
-  else if (is_digit(s[0])) {
-    return stoui(s.substr(1), (s[0] - '0') + value * 10);
-  }
-
-  else {
-    throw std::runtime_error("not a digit");
-  }
-}
 } // namespace iguana

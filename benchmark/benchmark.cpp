@@ -198,12 +198,13 @@ constexpr int iterations = 100000;
 
 void test_from_json() {
   obj_t obj;
-  iguana::from_json(obj, std::begin(json0), std::end(json0));
+  [[maybe_unused]] auto ec =
+      iguana::from_json(obj, std::begin(json0), std::end(json0));
 
   {
     ScopedTimer timer("iguana   parse  json");
     for (int i = 0; i < iterations; ++i) {
-      iguana::from_json(obj, std::begin(json0), std::end(json0));
+      (void)iguana::from_json(obj, std::begin(json0), std::end(json0));
     }
   }
 

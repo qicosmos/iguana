@@ -30,7 +30,7 @@ void test() {
   iguana::to_json(ss, p);
 
   MyStruct p2;
-  iguana::from_json(p2, ss);
+  [[maybe_unused]] auto ec = iguana::from_json(p2, ss);
   std::cout << p2.a << std::endl;
 }
 
@@ -94,7 +94,7 @@ void test_v() {
   std::cout << ss << std::endl;
 
   std::vector<client::person> v1;
-  iguana::from_json(v1, ss);
+  [[maybe_unused]] auto ec = iguana::from_json(v1, ss);
 }
 
 void test_disorder() {

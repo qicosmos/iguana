@@ -35,7 +35,7 @@ REFLECTION(composit_t, a, b, c, d, e, f, g);
 void test_json() {
   person p;
   const std::string json = "{ \"name\" : \"tom\", \"age\" : 20}";
-  iguana::from_json(p, json);
+  [[maybe_unused]] auto ec = iguana::from_json(p, json);
 
   iguana::string_stream ss;
   iguana::to_json(ss, p);
@@ -52,7 +52,7 @@ void test_json() {
   const std::string str_comp =
       R"({"b":["tom", "jack"], "a":1, "c":3, "e":{"3":4}, "d":{"2":3,"5":6},"f":5.3,"g":[{"id":1},{"id":2}])";
   composit_t comp;
-  iguana::from_json(comp, str_comp);
+  [[maybe_unused]] auto ec1 = iguana::from_json(comp, str_comp);
   std::cout << comp.a << " " << comp.f << std::endl;
 }
 

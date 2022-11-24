@@ -159,14 +159,16 @@ TEST_CASE("test simple object") {
   std::string_view str = R"({"name": "tom", "ok":true})";
 
   person p{};
-  iguana::from_json(p, std::begin(str), std::end(str));
+  [[maybe_unused]] auto ec =
+      iguana::from_json(p, std::begin(str), std::end(str));
   CHECK(p.name == "tom");
   CHECK(p.ok == true);
 
   SUBCASE("random order of fields") {
     person p1{};
     std::string_view str1 = R"({"ok":false, "name": "tom"})";
-    iguana::from_json(p1, std::begin(str1), std::end(str1));
+    [[maybe_unused]] auto ec =
+        iguana::from_json(p1, std::begin(str1), std::end(str1));
     CHECK(p1.name == "tom");
     CHECK(p1.ok == false);
   }
@@ -179,7 +181,8 @@ TEST_CASE("test two_fields object") {
 
   std::string str = ss;
   two_fields_t p{};
-  iguana::from_json(p, std::begin(str), std::end(str));
+  [[maybe_unused]] auto ec =
+      iguana::from_json(p, std::begin(str), std::end(str));
   CHECK(p.v == obj.v);
 }
 
@@ -191,7 +194,8 @@ TEST_CASE("test simple nested object") {
 
   std::string str = ss;
   simple_nested_t p{};
-  iguana::from_json(p, std::begin(str), std::end(str));
+  [[maybe_unused]] auto ec =
+      iguana::from_json(p, std::begin(str), std::end(str));
 
   CHECK(t.id == p.id);
   CHECK(t.p.name == p.p.name);
@@ -205,17 +209,20 @@ TEST_CASE("test c array and std::array") {
   arr_t arr1{};
   std::string str = ss;
 
-  iguana::from_json(arr1, std::begin(str), std::end(str));
+  [[maybe_unused]] auto ec =
+      iguana::from_json(arr1, std::begin(str), std::end(str));
   CHECK(arr.arr[0] == arr1.arr[0]);
   CHECK(arr.arr[1] == arr1.arr[1]);
 
   std_array_t arr2{};
-  iguana::from_json(arr2, std::begin(str), std::end(str));
+  [[maybe_unused]] auto ec2 =
+      iguana::from_json(arr2, std::begin(str), std::end(str));
   CHECK(arr.arr[0] == arr2.arr[0]);
   CHECK(arr.arr[1] == arr2.arr[1]);
 
   vector_t vec;
-  iguana::from_json(vec, std::begin(str), std::end(str));
+  [[maybe_unused]] auto ec3 =
+      iguana::from_json(vec, std::begin(str), std::end(str));
   CHECK(vec.arr.size() == arr2.arr.size());
   CHECK(arr2.arr[0] == vec.arr[0]);
   CHECK(arr2.arr[1] == vec.arr[1]);
@@ -225,33 +232,38 @@ TEST_CASE("test bool, null, char, int, float") {
   {
     optional_t p{};
     std::string str = R"({"p": false})";
-    iguana::from_json(p, std::begin(str), std::end(str));
+    [[maybe_unused]] auto ec =
+        iguana::from_json(p, std::begin(str), std::end(str));
     CHECK(p.p.has_value());
     CHECK(*p.p == false);
 
     std::string str1 = R"({"p": null})";
     optional_t p1{};
-    iguana::from_json(p1, std::begin(str1), std::end(str1));
+    [[maybe_unused]] auto ec2 =
+        iguana::from_json(p1, std::begin(str1), std::end(str1));
     CHECK(!p1.p.has_value());
   }
   {
     char_t p{};
     std::string str = R"({"ch": "t"})";
-    iguana::from_json(p, std::begin(str), std::end(str));
+    [[maybe_unused]] auto ec =
+        iguana::from_json(p, std::begin(str), std::end(str));
     CHECK(p.ch == 't');
   }
 
   {
     bool_t p{};
     std::string str = R"({"ok": true})";
-    iguana::from_json(p, std::begin(str), std::end(str));
+    [[maybe_unused]] auto ec =
+        iguana::from_json(p, std::begin(str), std::end(str));
     CHECK(p.ok == true);
   }
 
   {
     point_t p{};
     std::string str = R"({"x" : 1, "y" : 2})";
-    iguana::from_json(p, std::begin(str), std::end(str));
+    [[maybe_unused]] auto ec =
+        iguana::from_json(p, std::begin(str), std::end(str));
     CHECK(p.x == 1);
     CHECK(p.y == double(2));
   }
@@ -259,7 +271,7 @@ TEST_CASE("test bool, null, char, int, float") {
   {
     std::string str = R"([1.0, 2.0])";
     std::vector<float> v;
-    iguana::from_json(v, str);
+    [[maybe_unused]] auto ec = iguana::from_json(v, str);
     CHECK(v[0] == 1.0);
     CHECK(v[1] == 2.0);
   }
@@ -272,7 +284,8 @@ TEST_CASE("test vector") {
 
   std::string str = ss;
   vector_t p{};
-  iguana::from_json(p, std::begin(str), std::end(str));
+  [[maybe_unused]] auto ec =
+      iguana::from_json(p, std::begin(str), std::end(str));
   CHECK(arr.arr == p.arr);
 }
 
@@ -285,7 +298,8 @@ TEST_CASE("test map") {
 
   std::string str = ss;
   map_t p{};
-  iguana::from_json(p, std::begin(str), std::end(str));
+  [[maybe_unused]] auto ec =
+      iguana::from_json(p, std::begin(str), std::end(str));
   CHECK(map.map1 == p.map1);
   CHECK(map.map2 == p.map2);
 }
@@ -299,7 +313,8 @@ TEST_CASE("test nested object") {
       })";
 
   nested_object_t obj{};
-  iguana::from_json(obj, std::begin(str), std::end(str));
+  [[maybe_unused]] auto ec =
+      iguana::from_json(obj, std::begin(str), std::end(str));
   CHECK(obj.id == "298728949872");
 }
 
@@ -311,7 +326,8 @@ TEST_CASE("test tuple") {
 
   std::string str = ss;
   tuple_t p{};
-  iguana::from_json(p, std::begin(str), std::end(str));
+  [[maybe_unused]] auto ec =
+      iguana::from_json(p, std::begin(str), std::end(str));
 
   CHECK(std::get<0>(t.tp) == std::get<0>(p.tp));
   CHECK(std::get<1>(t.tp) == std::get<1>(p.tp));
@@ -325,7 +341,8 @@ TEST_CASE("test list") {
 
   std::string str = ss;
   list_t p{};
-  iguana::from_json(p, std::begin(str), std::end(str));
+  [[maybe_unused]] auto ec =
+      iguana::from_json(p, std::begin(str), std::end(str));
   CHECK(list.lst == p.lst);
 }
 
@@ -336,7 +353,8 @@ TEST_CASE("test deque_t") {
 
   std::string str = ss;
   deque_t p{};
-  iguana::from_json(p, std::begin(str), std::end(str));
+  [[maybe_unused]] auto ec =
+      iguana::from_json(p, std::begin(str), std::end(str));
   CHECK(list.lst == p.lst);
 }
 
@@ -370,7 +388,8 @@ inline constexpr std::string_view json0 = R"(
 
 TEST_CASE("test complicated object") {
   obj_t obj;
-  iguana::from_json(obj, std::begin(json0), std::end(json0));
+  [[maybe_unused]] auto ec =
+      iguana::from_json(obj, std::begin(json0), std::end(json0));
   CHECK(obj.number == 3.14);
   CHECK(obj.string == "Hello world");
 }
@@ -384,7 +403,8 @@ TEST_CASE("test non-reflectable object") {
 
     std::string str = ss;
     std::tuple<int, double, std::string> p{};
-    iguana::from_json(p, std::begin(str), std::end(str));
+    [[maybe_unused]] auto ec =
+        iguana::from_json(p, std::begin(str), std::end(str));
 
     CHECK(std::get<0>(t) == std::get<0>(p));
     CHECK(std::get<1>(t) == std::get<1>(p));
@@ -394,15 +414,18 @@ TEST_CASE("test non-reflectable object") {
   {
     std::string str = "[1, 2, 3]";
     std::vector<int> p{};
-    iguana::from_json(p, std::begin(str), std::end(str));
+    [[maybe_unused]] auto ec =
+        iguana::from_json(p, std::begin(str), std::end(str));
     CHECK(p == std::vector<int>{1, 2, 3});
 
     std::array<int, 3> arr;
-    iguana::from_json(arr, std::begin(str), std::end(str));
+    [[maybe_unused]] auto ec2 =
+        iguana::from_json(arr, std::begin(str), std::end(str));
     CHECK(arr == std::array<int, 3>{1, 2, 3});
 
     int c_arr[3];
-    iguana::from_json(c_arr, std::begin(str), std::end(str));
+    [[maybe_unused]] auto ec3 =
+        iguana::from_json(c_arr, std::begin(str), std::end(str));
     CHECK(c_arr[0] == 1);
     CHECK(c_arr[1] == 2);
     CHECK(c_arr[2] == 3);
@@ -411,7 +434,8 @@ TEST_CASE("test non-reflectable object") {
   {
     std::string str = R"({"1":"tom"})";
     std::map<int, std::string> map;
-    iguana::from_json(map, std::begin(str), std::end(str));
+    [[maybe_unused]] auto ec =
+        iguana::from_json(map, std::begin(str), std::end(str));
     CHECK(map.size() == 1);
     CHECK(map.at(1) == "tom");
   }
@@ -424,7 +448,7 @@ TEST_CASE("test file interface") {
   out.close();
 
   obj_t obj;
-  iguana::from_json_file(obj, filename);
+  [[maybe_unused]] auto ec = iguana::from_json_file(obj, filename);
   CHECK(obj.number == 3.14);
   CHECK(obj.string == "Hello world");
 
@@ -435,11 +459,11 @@ TEST_CASE("test view and byte interface") {
   std::string_view str = R"({"name": "tom", "ok":true})";
 
   person p;
-  iguana::from_json(p, str);
+  [[maybe_unused]] auto ec1 = iguana::from_json(p, str);
 
   std::string str1 = {str.data(), str.size()};
   person p1;
-  iguana::from_json(p1, str1);
+  [[maybe_unused]] auto ec2 = iguana::from_json(p1, str1);
 
   CHECK(p == p1);
 
@@ -447,57 +471,57 @@ TEST_CASE("test view and byte interface") {
   v.resize(str.size());
   std::memcpy(v.data(), str.data(), str.size());
   person p2;
-  iguana::from_json(p2, v);
+  [[maybe_unused]] auto ec3 = iguana::from_json(p2, v);
   CHECK(p == p2);
 
   person p3;
-  iguana::from_json(p3, v.data(), v.size());
+  [[maybe_unused]] auto ec4 = iguana::from_json(p3, v.data(), v.size());
   CHECK(p2 == p3);
 }
 
 TEST_CASE("parse num") {
   std::string str = R"(["x"])";
   std::vector<float> v;
-  CHECK_THROWS_WITH(iguana::from_json(v, str), "Failed to parse number");
+  CHECK(iguana::from_json(v, str) == iguana::errc::failed_parse_number);
 
   std::vector<int> v1;
-  CHECK_THROWS_WITH(iguana::from_json(v1, str), "Failed to parse number");
+  CHECK(iguana::from_json(v1, str) == iguana::errc::failed_parse_number);
 }
 
 TEST_CASE("parse invalid array") {
   {
     std::string str = R"([1)";
     std::vector<int> v;
-    CHECK_THROWS_WITH(iguana::from_json(v, str), "Expected ]");
+    CHECK(iguana::from_json(v, str) == iguana::errc::lack_of_bracket);
 
     std::array<int, 1> arr;
-    CHECK_THROWS_WITH(iguana::from_json(arr, str), "Unexpected end");
+    CHECK(iguana::from_json(arr, str) == iguana::errc::unexpected_end);
   }
   {
     std::string str = R"([ )";
     std::array<int, 1> v;
-    CHECK_THROWS_WITH(iguana::from_json(v, str), "Unexpected end");
+    CHECK(iguana::from_json(v, str) == iguana::errc::unexpected_end);
   }
   {
     std::string str = R"([1})";
     std::vector<float> v;
-    CHECK_THROWS_AS(iguana::from_json(v, str), std::runtime_error);
+    CHECK(iguana::from_json(v, str) == iguana::errc::not_match_specific_chars);
 
     std::array<int, 1> arr;
-    CHECK_THROWS_WITH(iguana::from_json(arr, str), "Expected ]");
+    CHECK(iguana::from_json(arr, str) == iguana::errc::lack_of_bracket);
   }
 
   {
     std::string str = R"([])";
     std::array<int, 1> arr;
-    iguana::from_json(arr, str);
+    [[maybe_unused]] auto ec = iguana::from_json(arr, str);
   }
 }
 
 TEST_CASE("parse some other char") {
   std::string str = R"({"\name":"\tom", "ok":false})";
   person p;
-  iguana::from_json(p, str);
+  [[maybe_unused]] auto ec = iguana::from_json(p, str);
   CHECK(p.name == "tom");
 }
 
