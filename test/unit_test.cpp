@@ -328,6 +328,75 @@ TEST_CASE("test parse item optional") {
   }
 }
 
+struct optional_t {
+  std::optional<bool> p;
+};
+REFLECTION(optional_t, p);
+
+struct struct_test_t {
+  int32_t value;
+};
+REFLECTION(struct_test_t, value);
+
+struct struct_container_t {
+  std::vector<struct_test_t> values;
+};
+REFLECTION(struct_container_t, values);
+
+struct struct_container_1_t {
+  std::optional<struct_container_t> val;
+}; // entities_t
+REFLECTION(struct_container_1_t, val);
+
+TEST_CASE("test optional") {
+  {
+    struct_container_t container{};
+    container.values = {{1}, {2}, {3}};
+
+    struct_container_1_t t1{};
+    t1.val = container;
+
+    std::string str;
+    iguana::to_json(str, t1);
+    std::cout << str << "\n";
+
+    struct_container_1_t t2{};
+    iguana::from_json(t2, str);
+    std::cout << t2.val.has_value() << "\n";
+
+    CHECK(t1.val->values[0].value == t2.val->values[0].value);
+    CHECK(t1.val->values[1].value == t2.val->values[1].value);
+    CHECK(t1.val->values[2].value == t2.val->values[2].value);
+  }
+
+  {
+    optional_t p;
+    std::string str;
+    iguana::to_json(str, p);
+
+    optional_t p1;
+    iguana::from_json(p1, str);
+    CHECK(!p1.p.has_value());
+
+    p.p = false;
+
+    str.clear();
+    iguana::to_json(str, p);
+    std::cout << str << "\n";
+
+    iguana::from_json(p1, str);
+    CHECK(*p1.p == false);
+
+    p.p = true;
+    str.clear();
+    iguana::to_json(str, p);
+    std::cout << str << "\n";
+
+    iguana::from_json(p1, str);
+    CHECK(*p1.p == true);
+  }
+}
+
 TEST_CASE("test unknown fields") {
   std::string str = R"({"dummy":0, "name":"tom", "age":20})";
   person p;
