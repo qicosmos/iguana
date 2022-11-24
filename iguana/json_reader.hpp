@@ -112,6 +112,7 @@ concept non_refletable = container<T> || c_array<T> || tuple<T> ||
 template <refletable T, typename It>
 void from_json(T &value, It &&it, It &&end);
 
+namespace detail {
 template <refletable U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   from_json(value, it, end);
@@ -446,6 +447,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   value = *it++;
   match<'"'>(it, end);
 }
+} // namespace detail
 
 template <refletable T, typename It>
 IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
@@ -478,7 +480,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
           // compile time versions of keys
           it = start;
           static thread_local std::string static_key{};
-          parse_item(static_key, it, end, true);
+          detail::parse_item(static_key, it, end, true);
           key = static_key;
         } else [[likely]] {
           key = std::string_view{&*start,
@@ -487,7 +489,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
         }
       } else {
         static thread_local std::string static_key{};
-        parse_item(static_key, it, end, true);
+        detail::parse_item(static_key, it, end, true);
         key = static_key;
       }
 
@@ -501,7 +503,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
             [&](auto &&member_ptr) IGUANA__INLINE_LAMBDA {
               using V = std::decay_t<decltype(member_ptr)>;
               if constexpr (std::is_member_pointer_v<V>) {
-                parse_item(value.*member_ptr, it, end);
+                detail::parse_item(value.*member_ptr, it, end);
               } else {
                 static_assert(!sizeof(V), "type not supported");
               }
@@ -517,7 +519,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
 
 template <non_refletable T, typename It>
 IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
-  parse_item(value, it, end);
+  detail::parse_item(value, it, end);
 }
 
 template <typename T>
