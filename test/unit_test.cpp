@@ -383,8 +383,7 @@ TEST_CASE("test from_json_file") {
 
   std::string cur_path = std::filesystem::current_path().string();
   std::filesystem::create_directories("dummy_test_dir");
-  CHECK(iguana::from_json_file(p, "dummy_test_dir") ==
-        iguana::errc::file_size_error);
+  CHECK(iguana::from_json_file(p, "dummy_test_dir") != iguana::errc::ok);
   std::filesystem::remove("dummy_test_dir");
 
   std::ofstream out1("dummy_test_dir.json", std::ios::binary);
