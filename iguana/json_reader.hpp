@@ -32,6 +32,9 @@ template <class T>
 concept num_t = std::floating_point<std::decay_t<T>> || int_t<T>;
 
 template <class T>
+concept enum_type_t = std::is_enum_v<std::decay_t<T>>;
+
+template <class T>
 concept str_t = std::convertible_to<std::decay_t<T>, std::string_view>;
 
 template <typename Type> constexpr inline bool is_std_vector_v = false;
@@ -159,6 +162,11 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
       throw std::runtime_error("Failed to parse number");
     value = static_cast<T>(num);
   }
+}
+
+template <enum_type_t U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+  parse_item((int &)value, it, end);
 }
 
 template <str_t U, class It>
