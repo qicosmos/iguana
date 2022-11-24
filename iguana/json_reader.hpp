@@ -112,6 +112,11 @@ concept non_refletable = container<T> || c_array<T> || tuple<T> ||
 template <refletable T, typename It>
 void from_json(T &value, It &&it, It &&end);
 
+template <refletable U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+  from_json(value, it, end);
+}
+
 template <num_t U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
@@ -440,11 +445,6 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
       throw std::runtime_error("Unxpected end of buffer");
   value = *it++;
   match<'"'>(it, end);
-}
-
-template <refletable U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
-  from_json(value, it, end);
 }
 
 template <refletable T, typename It>
