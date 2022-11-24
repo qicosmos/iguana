@@ -525,7 +525,8 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
 }
 
 template <typename T, typename It>
-IGUANA_INLINE void from_json(T &value, It &&it, It &&end, std::error_code &ec) {
+IGUANA_INLINE void from_json(T &value, It &&it, It &&end,
+                             std::error_code &ec) noexcept {
   try {
     from_json(value, it, end);
     ec = {};
@@ -540,7 +541,8 @@ IGUANA_INLINE void from_json(T &value, const View &view) {
 }
 
 template <typename T, json_view View>
-IGUANA_INLINE void from_json(T &value, const View &view, std::error_code &ec) {
+IGUANA_INLINE void from_json(T &value, const View &view,
+                             std::error_code &ec) noexcept {
   try {
     from_json(value, view);
     ec = {};
@@ -557,7 +559,7 @@ IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size) {
 
 template <typename T, json_byte Byte>
 IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size,
-                             std::error_code &ec) {
+                             std::error_code &ec) noexcept {
   try {
     from_json(value, data, size);
     ec = {};
@@ -596,7 +598,7 @@ IGUANA_INLINE void from_json_file(T &value, const std::string &filename) {
 
 template <typename T>
 IGUANA_INLINE void from_json_file(T &value, const std::string &filename,
-                                  std::error_code &ec) {
+                                  std::error_code &ec) noexcept {
   try {
     from_json_file(value, filename);
     ec = {};
