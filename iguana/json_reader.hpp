@@ -412,8 +412,8 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 template <optional U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
-  if (*it == '"') {
-    match<'"'>(it, end);
+  if (it < end && *it == '"') {
+    ++it;
   }
   using T = std::remove_reference_t<U>;
   if (it == end) {
@@ -424,24 +424,19 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     match<"ull">(it, end);
     if constexpr (!std::is_pointer_v<T>) {
       value.reset();
-      if (*it == '"') {
-        match<'"'>(it, end);
+      if (it < end && *it == '"') {
+        ++it;
       }
     }
   } else {
-    if constexpr (optional<T>) {
-      typename T::value_type t;
-      if constexpr (refletable<decltype(t)>) {
-        from_json(t, it, end);
-      } else {
-        parse_item(t, it, end);
-      }
+    typename T::value_type t;
+    if constexpr (refletable<decltype(t)>) {
+      from_json(t, it, end);
+    } else {
+      parse_item(t, it, end);
+    }
 
-      value = std::move(t);
-    } else
-      throw std::runtime_error(
-          "Cannot read into unset nullable that is not "
-          "std::optional, std::unique_ptr, or std::shared_ptr");
+    value = std::move(t);
   }
 }
 

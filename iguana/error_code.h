@@ -21,7 +21,7 @@ public:
     return "unrecognized error";
   }
 
-  uint32_t add_message(const std::string &msg) {
+  int add_message(const std::string &msg) {
     if (auto it = err_map_.find(msg); it != err_map_.end()) {
       return it->second;
     } else {
@@ -31,11 +31,11 @@ public:
     }
   }
 
-  uint32_t err_ = 0;
-  std::map<std::string, uint32_t> err_map_;
+  int err_ = 0;
+  std::map<std::string, int> err_map_;
 };
 
-iguana::iguana_category &category() {
+inline iguana::iguana_category &category() {
   static iguana::iguana_category instance;
   return instance;
 }
