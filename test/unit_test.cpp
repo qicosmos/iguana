@@ -171,7 +171,10 @@ TEST_CASE("test parse item str_t") {
     std::string test{};
     test.resize(20);
     iguana::from_json(test, list);
+
+#ifdef __GNUC__
     CHECK(test == "老");
+#endif // __GNUC__
   }
 }
 
@@ -207,6 +210,26 @@ TEST_CASE("test parse item seq container") {
     std::list<int> test{};
     CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
   }
+}
+
+enum class ee {
+  aa,
+  bb,
+};
+
+struct ee_t {
+  ee e;
+};
+REFLECTION(ee_t, e);
+
+TEST_CASE("test enum") {
+  ee_t t{.e = ee::bb};
+  std::string str;
+  iguana::to_json(str, t);
+
+  ee_t t1;
+  iguana::from_json(t1, str);
+  CHECK(t1.e == ee::bb);
 }
 
 TEST_CASE("test parse item map container") {
@@ -418,22 +441,27 @@ TEST_CASE("test unicode") {
     std::string str2 = R"({"\name":"\u8001", "age":20})";
     person p2;
     iguana::from_json(p2, str2);
-
+#ifdef __GNUC__
     CHECK(p2.name == "老");
+#endif
   }
   {
     std::string str = R"("\u8001")";
 
     std::string t;
     iguana::from_json(t, str);
+#ifdef __GNUC__
     CHECK(t == "老");
+#endif
   }
   {
     std::list<char> str = {'[', '"', 'u', '8', '0', '0', '1', '"', ']'};
 
     std::list<std::string> list;
     iguana::from_json(list, str);
+#ifdef __GNUC__
     CHECK(*list.begin() == "老");
+#endif
   }
 }
 
