@@ -437,9 +437,10 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
       }
     }
   } else {
-    typename T::value_type t;
-    if constexpr (refletable<decltype(t)>) {
-      from_json(t, it, end);
+    using value_type = typename T::value_type;
+    value_type t;
+    if constexpr (str_t<value_type>) {
+      parse_item(t, it, end, true);
     } else {
       parse_item(t, it, end);
     }
