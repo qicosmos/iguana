@@ -577,6 +577,28 @@ namespace iguana::detail {
   MAKE_META_DATA_IMPL(STRUCT_NAME,                                             \
                       MAKE_ARG_LIST(N, &STRUCT_NAME::FIELD, __VA_ARGS__))
 
+#define MAKE_META_DATA_IMPL_EMPTY(STRUCT_NAME)                                 \
+  inline auto iguana_reflect_members(STRUCT_NAME const &) {                    \
+    struct reflect_members {                                                   \
+      constexpr decltype(auto) static apply_impl() {                           \
+        return std::make_tuple();                                              \
+      }                                                                        \
+      using size_type = std::integral_constant<size_t, 0>;                     \
+      constexpr static std::string_view name() {                               \
+        return std::string_view(#STRUCT_NAME, sizeof(#STRUCT_NAME) - 1);       \
+      }                                                                        \
+      constexpr static size_t value() { return size_type::value; }             \
+      constexpr static std::array<frozen::string, size_type::value> arr() {    \
+        return arr_##STRUCT_NAME;                                              \
+      }                                                                        \
+    };                                                                         \
+    return reflect_members{};                                                  \
+  }
+
+#define MAKE_META_DATA_EMPTY(STRUCT_NAME)                                      \
+  constexpr inline std::array<frozen::string, 0> arr_##STRUCT_NAME = {};       \
+  MAKE_META_DATA_IMPL_EMPTY(STRUCT_NAME)
+
 template <typename... Args> inline auto get_value_type(std::tuple<Args...>) {
   return std::variant<Args...>{};
 }
@@ -594,13 +616,19 @@ get_iguana_struct_map_impl(const std::array<frozen::string, sizeof...(Is)> &arr,
 namespace iguana {
 template <typename T> inline constexpr auto get_iguana_struct_map() {
   using reflect_members = decltype(iguana_reflect_members(std::declval<T>()));
-  return detail::get_iguana_struct_map_impl(
-      reflect_members::arr(), reflect_members::apply_impl(),
-      std::make_index_sequence<reflect_members::value()>{});
+  if constexpr (reflect_members::value() == 0) {
+    return std::array<int, 0>{};
+  } else {
+    return detail::get_iguana_struct_map_impl(
+        reflect_members::arr(), reflect_members::apply_impl(),
+        std::make_index_sequence<reflect_members::value()>{});
+  }
 }
 
 #define REFLECTION(STRUCT_NAME, ...)                                           \
   MAKE_META_DATA(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)
+
+#define REFLECTION_EMPTY(STRUCT_NAME) MAKE_META_DATA_EMPTY(STRUCT_NAME)
 
 template <typename T>
 using Reflect_members = decltype(iguana_reflect_members(std::declval<T>()));

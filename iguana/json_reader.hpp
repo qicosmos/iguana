@@ -512,20 +512,22 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
       match<':'>(it, end);
 
       static constexpr auto frozen_map = get_iguana_struct_map<T>();
-      const auto &member_it = frozen_map.find(key);
-      if (member_it != frozen_map.end()) {
-        std::visit(
-            [&](auto &&member_ptr) IGUANA__INLINE_LAMBDA {
-              using V = std::decay_t<decltype(member_ptr)>;
-              if constexpr (std::is_member_pointer_v<V>) {
-                detail::parse_item(value.*member_ptr, it, end);
-              } else {
-                static_assert(!sizeof(V), "type not supported");
-              }
-            },
-            member_it->second);
-      } else [[unlikely]] {
-        throw std::runtime_error("Unknown key: " + std::string(key));
+      if constexpr (frozen_map.size() > 0) {
+        const auto &member_it = frozen_map.find(key);
+        if (member_it != frozen_map.end()) {
+          std::visit(
+              [&](auto &&member_ptr) IGUANA__INLINE_LAMBDA {
+                using V = std::decay_t<decltype(member_ptr)>;
+                if constexpr (std::is_member_pointer_v<V>) {
+                  detail::parse_item(value.*member_ptr, it, end);
+                } else {
+                  static_assert(!sizeof(V), "type not supported");
+                }
+              },
+              member_it->second);
+        } else [[unlikely]] {
+          throw std::runtime_error("Unknown key: " + std::string(key));
+        }
       }
     }
     skip_ws(it, end);
