@@ -1,5 +1,6 @@
 #pragma once
 #include "iguana/reflection.hpp"
+#include <vector>
 
 struct MyClass1 {
   double member0;
@@ -32,3 +33,34 @@ struct person {
   int age;
 };
 REFLECTION(person, name, age);
+
+// canada.json
+struct Property {
+  std::string name;
+}; // Property
+REFLECTION(Property, name);
+
+struct Point {
+  double x;
+  double y;
+};
+REFLECTION(Point, x, y);
+
+struct Polygon {
+  std::string type;
+  std::vector<std::vector<std::array<double, 2>>> coordinates;
+}; // Polygon
+REFLECTION(Polygon, type, coordinates);
+
+struct Feature {
+  std::string type;
+  Property properties;
+  Polygon geometry;
+}; // Feature
+REFLECTION(Feature, type, properties, geometry);
+
+struct FeatureCollection {
+  std::string type;
+  std::vector<Feature> features;
+}; // FeatureCollection
+REFLECTION(FeatureCollection, type, features);
