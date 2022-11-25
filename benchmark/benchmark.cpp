@@ -225,13 +225,13 @@ void test_to_json() {
   obj_t obj = create_object();
 
   iguana::string_stream ss;
-  iguana::to_json(ss, obj);
+  iguana::to_json(obj, ss);
 
   {
     ScopedTimer timer("iguana   to  json");
     for (int i = 0; i < iterations; ++i) {
       ss.clear();
-      iguana::to_json(ss, obj);
+      iguana::to_json(obj, ss);
     }
   }
 

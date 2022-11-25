@@ -225,7 +225,7 @@ REFLECTION(ee_t, e);
 TEST_CASE("test enum") {
   ee_t t{.e = ee::bb};
   std::string str;
-  iguana::to_json(str, t);
+  iguana::to_json(t, str);
 
   ee_t t1;
   iguana::from_json(t1, str);
@@ -380,7 +380,7 @@ TEST_CASE("test optional") {
     t1.val = container;
 
     std::string str;
-    iguana::to_json(str, t1);
+    iguana::to_json(t1, str);
     std::cout << str << "\n";
 
     struct_container_1_t t2{};
@@ -395,7 +395,7 @@ TEST_CASE("test optional") {
   {
     optional_t p;
     std::string str;
-    iguana::to_json(str, p);
+    iguana::to_json(p, str);
 
     optional_t p1;
     iguana::from_json(p1, str);
@@ -404,7 +404,7 @@ TEST_CASE("test optional") {
     p.p = false;
 
     str.clear();
-    iguana::to_json(str, p);
+    iguana::to_json(p, str);
     std::cout << str << "\n";
 
     iguana::from_json(p1, str);
@@ -412,7 +412,7 @@ TEST_CASE("test optional") {
 
     p.p = true;
     str.clear();
-    iguana::to_json(str, p);
+    iguana::to_json(p, str);
     std::cout << str << "\n";
 
     iguana::from_json(p1, str);

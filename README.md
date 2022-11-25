@@ -39,7 +39,7 @@ Now let's serialize `person` to `json` string.
 	person p = { "tom", 28 };
 
 	iguana::string_stream ss;
-	iguana::to_json(ss, p);
+	iguana::to_json(p, ss);
 
 	std::cout << ss.str() << std::endl; 
 This example will output:
@@ -104,7 +104,7 @@ Then call the simple interface:
 	one_t one = { 2 };
 	composit_t composit = { 1,{ "tom", "jack" }, 3,{ { 2,3 } },{ { 5,6 } }, 5.3,{ one } };
 	iguana::string_stream ss;
-	iguana::to_json(ss, composit);
+	iguana::to_json(composit, ss);
 	std::cout << ss.str() << std::endl;
 
 	const char* str_comp = R"({"a":1, "b":["tom", "jack"], "c":3, "d":{"2":3,"5":6},"e":{"3":4},"f":5.3,"g":[{"id":1},{"id":2}])";
