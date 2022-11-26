@@ -39,13 +39,13 @@ TEST_CASE("test canada.json") {
   }
 
   FeatureCollection t;
-  iguana::from_json_file(t, "data/canada.json");
+  iguana::from_json_file(t, "../data/canada.json");
   std::cout << t.type << "\n";
 }
 
 TEST_CASE("test apache_builds.json") {
   apache_builds t;
-  iguana::from_json_file(t, "data/apache_builds.json");
+  iguana::from_json_file(t, "../data/apache_builds.json");
   std::cout << t.description << "\n";
   for (auto &v : t.views) {
     std::cout << v.name << ", " << v.url << "\n";
