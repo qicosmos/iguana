@@ -420,6 +420,18 @@ TEST_CASE("test optional") {
   }
 }
 
+struct empty_t {};
+REFLECTION_EMPTY(empty_t);
+
+TEST_CASE("test empty struct") {
+  empty_t t;
+  std::string str;
+  iguana::to_json(t, str);
+  std::cout << str << "\n";
+
+  iguana::from_json(t, str);
+}
+
 TEST_CASE("test unknown fields") {
   std::string str = R"({"dummy":0, "name":"tom", "age":20})";
   person p;
