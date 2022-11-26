@@ -81,7 +81,7 @@ TEST_CASE("test numbers.json") {
   writeSteam.close();
 
   std::vector<double> dummy;
-  iguana::from_json_file(numbers, jsonName);
+  iguana::from_json_file(dummy, jsonName);
 
   CHECK(dummy.size() == numbers.size());
   for (auto i = 0; i < numbers.size(); i++) {
