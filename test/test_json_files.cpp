@@ -97,6 +97,15 @@ TEST_CASE("test citm_catalog.json") {
   CHECK(t.venueNames.value().PLEYEL_PLEYEL == "Salle Pleyel");
 }
 
+TEST_CASE("test gsoc-2018.json") {
+  gsoc_object_t t;
+  iguana::from_json_file(t, "../data/gsoc-2018.json");
+  auto last = std::rbegin(t);
+  CHECK(last->second.author.type == "Person");
+  CHECK(last->second.author.name == "Oleg Serikov");
+  // CHECK(t.venueNames.value().PLEYEL_PLEYEL == "Salle Pleyel");
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007) int main(int argc, char **argv) {

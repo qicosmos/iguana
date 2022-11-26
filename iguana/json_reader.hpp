@@ -500,6 +500,9 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
         } else [[likely]] {
           key = std::string_view{&*start,
                                  static_cast<size_t>(std::distance(start, it))};
+          if (key[0] == '@') [[unlikely]] {
+            key = key.substr(1);
+          }
           ++it;
         }
       } else {

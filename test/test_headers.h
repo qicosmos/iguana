@@ -1,5 +1,6 @@
 #pragma once
 #include "iguana/reflection.hpp"
+#include <map>
 #include <optional>
 #include <vector>
 
@@ -167,3 +168,33 @@ struct citm_object_t {
 REFLECTION(citm_object_t, areaNames, audienceSubCategoryNames, blockNames,
            subjectNames, events, performances, seatCategoryNames, subTopicNames,
            topicNames, topicSubTopics, venueNames);
+
+// gsoc-2018.json
+struct sponsor_t {
+  std::string type; //@
+  std::string name;
+  std::string disambiguatingDescription;
+  std::string description;
+  std::string url;
+  std::string logo;
+};
+REFLECTION(sponsor_t, type, name, disambiguatingDescription, description, url,
+           logo);
+
+struct author_t {
+  std::string type; //@
+  std::string name;
+};
+REFLECTION(author_t, type, name);
+
+struct gsoc_element_t {
+  std::string context; //@
+  std::string type;    //@
+  std::string name;
+  std::string description;
+  sponsor_t sponsor;
+  author_t author;
+};
+REFLECTION(gsoc_element_t, context, type, name, description, sponsor, author);
+
+using gsoc_object_t = std::map<int, gsoc_element_t>;
