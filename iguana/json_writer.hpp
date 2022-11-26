@@ -81,6 +81,7 @@ IGUANA_INLINE void render_json_value(Stream &ss, uint64_t value) {
   ss.append(temp, p - temp);
 }
 
+#if defined __APPLE__
 template <typename Stream>
 IGUANA_INLINE void render_json_value(Stream &ss, long value) {
   render_json_value(ss, (int64_t)value);
@@ -90,6 +91,7 @@ template <typename Stream>
 IGUANA_INLINE void render_json_value(Stream &ss, unsigned long value) {
   render_json_value(ss, (uint64_t)value);
 }
+#endif
 
 template <typename Stream, float_t T>
 IGUANA_INLINE void render_json_value(Stream &ss, T &value) {
