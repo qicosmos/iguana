@@ -55,4 +55,4 @@ endif ()
 
 add_test(NAME test_some COMMAND test_some)
 add_test(NAME test_ut COMMAND test_ut)
-add_test(NAME test_exception COMMAND test_exception)
+add_test(NAME test_json_files COMMAND test_json_files)
