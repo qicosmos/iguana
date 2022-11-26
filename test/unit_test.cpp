@@ -423,7 +423,7 @@ TEST_CASE("test optional") {
 struct empty_t {};
 REFLECTION_EMPTY(empty_t);
 
-TEST_CASE("test canada.json") {
+TEST_CASE("test empty struct") {
   empty_t t;
   std::string str;
   iguana::to_json(t, str);
