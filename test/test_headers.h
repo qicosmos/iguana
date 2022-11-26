@@ -219,3 +219,35 @@ struct mesh_t {
 };
 REFLECTION(mesh_t, batches, colors, indices, influences, morphTargets, normals,
            positions, tex0);
+
+// random.json
+struct friend_t {
+  int id;
+  std::string name;
+  std::string phone;
+};
+REFLECTION(friend_t, id, name, phone);
+
+struct random_element_t {
+  int id;
+  std::string avatar;
+  int age;
+  bool admin;
+  std::string name;
+  std::string company;
+  std::string phone;
+  std::string email;
+  std::string birthDate;
+  std::vector<friend_t> friends;
+  std::string field;
+};
+REFLECTION(random_element_t, id, avatar, age, admin, name, company, phone,
+           email, birthDate, friends, field);
+
+struct random_t {
+  int id;
+  std::string jsonrpc;
+  int total;
+  std::vector<random_element_t> result;
+};
+REFLECTION(random_t, id, jsonrpc, total, result);

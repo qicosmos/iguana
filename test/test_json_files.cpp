@@ -111,6 +111,13 @@ TEST_CASE("test mesh.pretty.json") {
   CHECK(t.tex0.back() == 0);
 }
 
+TEST_CASE("test random.json") {
+  random_t t;
+  iguana::from_json_file(t, "../data/random.json");
+  CHECK(t.result.back().id == 1000);
+  CHECK(t.result.back().age == 32);
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007) int main(int argc, char **argv) {
