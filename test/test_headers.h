@@ -35,27 +35,27 @@ struct person {
 REFLECTION(person, name, age);
 
 // canada.json
-struct Property {
+struct property_t {
   std::string name;
 }; // Property
-REFLECTION(Property, name);
+REFLECTION(property_t, name);
 
-struct Polygon {
+struct polygon_t {
   std::string type;
   std::vector<std::vector<std::array<double, 2>>> coordinates;
 }; // Polygon
-REFLECTION(Polygon, type, coordinates);
+REFLECTION(polygon_t, type, coordinates);
 
-struct Feature {
+struct feature_t {
   std::string type;
-  Property properties;
-  Polygon geometry;
+  property_t properties;
+  polygon_t geometry;
 }; // Feature
-REFLECTION(Feature, type, properties, geometry);
+REFLECTION(feature_t, type, properties, geometry);
 
 struct FeatureCollection {
   std::string type;
-  std::vector<Feature> features;
+  std::vector<feature_t> features;
 }; // FeatureCollection
 REFLECTION(FeatureCollection, type, features);
 
