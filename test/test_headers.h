@@ -73,19 +73,19 @@ struct views_t {
 };
 REFLECTION(views_t, name, url);
 
-struct empty_t {};
-REFLECTION_EMPTY(empty_t);
+struct apache_empty_t {};
+REFLECTION_EMPTY(apache_empty_t);
 
 struct apache_builds {
-  std::vector<empty_t> assignedLabels;
+  std::vector<apache_empty_t> assignedLabels;
   std::string mode;
   std::string nodeDescription;
   std::string nodeName;
   int64_t numExecutors;
   std::string description;
   std::vector<jobs_t> jobs;
-  empty_t overallLoad;
-  empty_t unlabeledLoad;
+  apache_empty_t overallLoad;
+  apache_empty_t unlabeledLoad;
   views_t primaryView;
   bool quietingDown;
   int64_t slaveAgentPort;
