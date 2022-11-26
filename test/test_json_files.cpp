@@ -6,11 +6,11 @@
 #include "doctest.h"
 #include "iguana/json_reader.hpp"
 #include "test_headers.h"
+#include <filesystem>
 #include <iguana/json_util.hpp>
 #include <iguana/json_writer.hpp>
 #include <iostream>
 #include <limits>
-#include <filesystem>
 
 TEST_CASE("test canada.json") {
   std::cout << std::filesystem::current_path().string() << "\n";
@@ -53,8 +53,7 @@ TEST_CASE("test apache_builds.json") {
     std::cout << v.name << ", " << v.url << "\n";
   }
 }
-TEST_CASE("test numbers.json")
-{
+TEST_CASE("test numbers.json") {
   {
     std::string test_str = R"(
           [
@@ -65,8 +64,7 @@ TEST_CASE("test numbers.json")
 
     std::vector<double> numbers;
     iguana::from_json(numbers, test_str);
-    for (const auto& num : numbers)
-    {
+    for (const auto &num : numbers) {
       std::cout << std::fixed << std::setprecision(12) << num << "\n";
     }
   }
@@ -81,16 +79,15 @@ TEST_CASE("test numbers.json")
   writeSteam << ss;
   writeSteam.flush();
   writeSteam.close();
-  
+
   std::vector<double> dummy;
   iguana::from_json_file(numbers, jsonName);
 
   CHECK(dummy.size() == numbers.size());
-  for (auto i = 0; i < numbers.size(); i++)
-  {
+  for (auto i = 0; i < numbers.size(); i++) {
     CHECK(numbers[i] - dummy[i] < std::numeric_limits<double>::epsilon());
   }
-    if (std::filesystem::exists(jsonName))
+  if (std::filesystem::exists(jsonName))
     std::filesystem::remove(jsonName);
 }
 // doctest comments
