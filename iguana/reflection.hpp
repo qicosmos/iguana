@@ -603,13 +603,22 @@ template <typename... Args> inline auto get_value_type(std::tuple<Args...>) {
   return std::variant<Args...>{};
 }
 
+inline constexpr frozen::string filter_str(const frozen::string &str) {
+  if (str.size() > 2 && str[0] == '_' && str[1] == '_') {
+    auto ptr = str.data() + 2;
+    return frozen::string(ptr, str.size() - 2);
+  }
+  return str;
+}
+
 template <typename T, size_t... Is>
 inline constexpr auto
 get_iguana_struct_map_impl(const std::array<frozen::string, sizeof...(Is)> &arr,
                            T &&t, std::index_sequence<Is...>) {
   using ValueType = decltype(get_value_type(t));
   return frozen::unordered_map<frozen::string, ValueType, sizeof...(Is)>{
-      {arr[Is], ValueType{std::in_place_index<Is>, std::get<Is>(t)}}...};
+      {filter_str(arr[Is]),
+       ValueType{std::in_place_index<Is>, std::get<Is>(t)}}...};
 }
 } // namespace iguana::detail
 
