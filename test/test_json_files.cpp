@@ -79,7 +79,9 @@ TEST_CASE("test numbers.json")
   iguana::to_json(numbers, ss);
   std::ofstream writeSteam(jsonName, std::ios::out);
   writeSteam << ss;
-
+  writeSteam.flush();
+  writeSteam.close();
+  
   std::vector<double> dummy;
   iguana::from_json_file(numbers, jsonName);
 
@@ -88,6 +90,8 @@ TEST_CASE("test numbers.json")
   {
     CHECK(numbers[i] - dummy[i] < std::numeric_limits<double>::epsilon());
   }
+    if (std::filesystem::exists(jsonName))
+    std::filesystem::remove(jsonName);
 }
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
