@@ -40,12 +40,6 @@ struct Property {
 }; // Property
 REFLECTION(Property, name);
 
-struct Point {
-  double x;
-  double y;
-};
-REFLECTION(Point, x, y);
-
 struct Polygon {
   std::string type;
   std::vector<std::vector<std::array<double, 2>>> coordinates;
@@ -64,3 +58,42 @@ struct FeatureCollection {
   std::vector<Feature> features;
 }; // FeatureCollection
 REFLECTION(FeatureCollection, type, features);
+
+// apache_builds.json
+struct jobs_t {
+  std::string name;
+  std::string url;
+  std::string color;
+};
+REFLECTION(jobs_t, name, url, color);
+
+struct views_t {
+  std::string name;
+  std::string url;
+};
+REFLECTION(views_t, name, url);
+
+struct empty_t {};
+REFLECTION_EMPTY(empty_t);
+
+struct apache_builds {
+  std::vector<empty_t> assignedLabels;
+  std::string mode;
+  std::string nodeDescription;
+  std::string nodeName;
+  int64_t numExecutors;
+  std::string description;
+  std::vector<jobs_t> jobs;
+  empty_t overallLoad;
+  empty_t unlabeledLoad;
+  views_t primaryView;
+  bool quietingDown;
+  int64_t slaveAgentPort;
+  bool useCrumbs;
+  bool useSecurity;
+  std::vector<views_t> views;
+};
+REFLECTION(apache_builds, assignedLabels, mode, nodeDescription, nodeName,
+           numExecutors, description, jobs, overallLoad, unlabeledLoad,
+           primaryView, quietingDown, slaveAgentPort, useCrumbs, useSecurity,
+           views);
