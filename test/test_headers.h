@@ -1,5 +1,6 @@
 #pragma once
 #include "iguana/reflection.hpp"
+#include <optional>
 #include <vector>
 
 struct MyClass1 {
