@@ -72,7 +72,7 @@ TEST_CASE("test numbers.json")
   }
 
   std::vector<double> numbers;
-  iguana::from_json_file(numbers, "C:/code/iguana/data/numbers.json");
+  iguana::from_json_file(numbers, "../data/numbers.json");
 
   iguana::string_stream ss;
   const std::string jsonName = "temp.json";
