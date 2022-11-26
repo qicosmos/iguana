@@ -421,9 +421,7 @@
           "following_url": "https://api.github.com/users/lephyrius/following"
         },
         "url": "https://api.github.com/repos/pat/thinking-sphinx/issues/415",
-        "labels": [
-
-        ],
+        "labels": [],
         "html_url": "https://github.com/pat/thinking-sphinx/issues/415",
         "labels_url": "https://api.github.com/repos/pat/thinking-sphinx/issues/415/labels{/name}",
         "pull_request": {
@@ -510,9 +508,7 @@
           "following_url": "https://api.github.com/users/imsky/following"
         },
         "url": "https://api.github.com/repos/imsky/holder/issues/27",
-        "labels": [
-
-        ],
+        "labels": [],
         "html_url": "https://github.com/imsky/holder/issues/27",
         "labels_url": "https://api.github.com/repos/imsky/holder/issues/27/labels{/name}",
         "pull_request": {
@@ -972,9 +968,7 @@
           "following_url": "https://api.github.com/users/G1zm0/following"
         },
         "url": "https://api.github.com/repos/SynoCommunity/spksrc/issues/249",
-        "labels": [
-
-        ],
+        "labels": [],
         "html_url": "https://github.com/SynoCommunity/spksrc/issues/249",
         "labels_url": "https://api.github.com/repos/SynoCommunity/spksrc/issues/249/labels{/name}",
         "pull_request": {
