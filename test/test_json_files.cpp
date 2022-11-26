@@ -90,6 +90,13 @@ TEST_CASE("test numbers.json") {
   if (std::filesystem::exists(jsonName))
     std::filesystem::remove(jsonName);
 }
+
+TEST_CASE("test citm_catalog.json") {
+  citm_object_t t;
+  iguana::from_json_file(t, "../data/citm_catalog.json");
+  CHECK(t.venueNames.value().PLEYEL_PLEYEL == "Salle Pleyel");
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007) int main(int argc, char **argv) {
