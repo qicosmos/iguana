@@ -68,17 +68,27 @@ IGUANA_INLINE void render_json_value(Stream &ss, T value) {
 }
 
 template <typename Stream>
-IGUANA_INLINE void render_json_value(Stream &ss, int64_t &value) {
+IGUANA_INLINE void render_json_value(Stream &ss, int64_t value) {
   char temp[65];
   auto p = xtoa(value, temp, 10, 1);
   ss.append(temp, p - temp);
 }
 
 template <typename Stream>
-IGUANA_INLINE void render_json_value(Stream &ss, uint64_t &value) {
+IGUANA_INLINE void render_json_value(Stream &ss, uint64_t value) {
   char temp[65];
   auto p = xtoa(value, temp, 10, 0);
   ss.append(temp, p - temp);
+}
+
+template <typename Stream>
+IGUANA_INLINE void render_json_value(Stream &ss, long value) {
+  render_json_value(ss, (int64_t)value);
+}
+
+template <typename Stream>
+IGUANA_INLINE void render_json_value(Stream &ss, unsigned long value) {
+  render_json_value(ss, (uint64_t)value);
 }
 
 template <typename Stream, float_t T>

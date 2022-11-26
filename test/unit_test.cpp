@@ -451,6 +451,31 @@ TEST_CASE("test keyword") {
   CHECK(t2.__class == "class");
 }
 
+struct config_actor_type {
+  long id = 0;
+  std::string make;
+  std::string config;
+};
+REFLECTION(config_actor_type, id, make, config);
+
+struct config_app_json_type {
+  long id = 0;
+  int threads;
+  std::string loglevel;
+  std::vector<config_actor_type> actors;
+};
+REFLECTION(config_app_json_type, id, threads, loglevel, actors);
+
+TEST_CASE("test long") {
+  config_app_json_type app{1234};
+  std::string str;
+  iguana::to_json(app, str);
+
+  config_app_json_type app1;
+  iguana::from_json(app1, str);
+  CHECK(app1.id == 1234);
+}
+
 TEST_CASE("test unknown fields") {
   std::string str = R"({"dummy":0, "name":"tom", "age":20})";
   person p;
