@@ -198,3 +198,24 @@ struct gsoc_element_t {
 REFLECTION(gsoc_element_t, context, type, name, description, sponsor, author);
 
 using gsoc_object_t = std::map<int, gsoc_element_t>;
+
+// mesh.pretty.json
+struct mesh_element_t {
+  std::vector<int> indexRange;
+  std::vector<int> usedBones;
+  std::vector<int> vertexRange;
+};
+REFLECTION(mesh_element_t, indexRange, usedBones, vertexRange);
+
+struct mesh_t {
+  std::vector<mesh_element_t> batches;
+  std::vector<int64_t> colors;
+  std::vector<int> indices;
+  std::vector<std::vector<double>> influences;
+  apache_empty_t morphTargets;
+  std::vector<double> normals;
+  std::vector<double> positions;
+  std::vector<double> tex0;
+};
+REFLECTION(mesh_t, batches, colors, indices, influences, morphTargets, normals,
+           positions, tex0);

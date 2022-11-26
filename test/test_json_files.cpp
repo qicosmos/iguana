@@ -103,7 +103,12 @@ TEST_CASE("test gsoc-2018.json") {
   auto last = std::rbegin(t);
   CHECK(last->second.author.type == "Person");
   CHECK(last->second.author.name == "Oleg Serikov");
-  // CHECK(t.venueNames.value().PLEYEL_PLEYEL == "Salle Pleyel");
+}
+
+TEST_CASE("test mesh.pretty.json") {
+  mesh_t t;
+  iguana::from_json_file(t, "../data/mesh.pretty.json");
+  CHECK(t.tex0.back() == 0);
 }
 
 // doctest comments
