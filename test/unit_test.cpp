@@ -432,6 +432,25 @@ TEST_CASE("test empty struct") {
   iguana::from_json(t, str);
 }
 
+struct keyword_t {
+  std::string __private;
+  std::string __public;
+  std::string __protected;
+  std::string __class;
+};
+REFLECTION(keyword_t, __private, __protected, __public, __class);
+
+TEST_CASE("test keyword") {
+  std::string ss =
+      R"({"private":"private","protected":"protected","public":"public","class":"class"})";
+  keyword_t t2;
+  iguana::from_json(t2, ss);
+  CHECK(t2.__private == "private");
+  CHECK(t2.__protected == "protected");
+  CHECK(t2.__public == "public");
+  CHECK(t2.__class == "class");
+}
+
 TEST_CASE("test unknown fields") {
   std::string str = R"({"dummy":0, "name":"tom", "age":20})";
   person p;
