@@ -179,6 +179,17 @@ TEST_CASE("test github_events.json") {
   iguana::from_json_file(events, "../data/github_events.json");
 }
 
+TEST_CASE("test marine_ik.json") {
+  marine_ik::marine_ik_t t;
+  iguana::from_json_file(t, "../data/marine_ik.json");
+
+  CHECK(t.animations.size() == 1);
+  CHECK(t.animations[0].tracks.empty());
+
+  CHECK(t.object.children[0].matrix[0] == 1);
+  CHECK(t.geometries[0].uuid == "C5CA037C-30C8-3A8C-9678-8A4BF32D5D85");
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007) int main(int argc, char **argv) {

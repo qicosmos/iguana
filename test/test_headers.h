@@ -252,6 +252,7 @@ struct random_t {
   std::vector<random_element_t> result;
 };
 REFLECTION(random_t, id, jsonrpc, total, result);
+
 // github_events.json
 namespace githubEvents {
 struct user_t {
@@ -471,3 +472,161 @@ struct event_t {
 };
 REFLECTION(event_t, type, created_at, actor, org, repo, __public, payload, id);
 } // namespace githubEvents
+
+namespace marine_ik {
+struct image_element_t {
+  std::string url;
+  std::string uuid;
+  std::string name;
+};
+REFLECTION(image_element_t, url, uuid, name);
+
+struct item_t {
+  std::string name;
+  std::string type;
+  std::string uuid;
+};
+REFLECTION(item_t, name, type, uuid);
+
+struct key_element_t {
+  std::array<float, 3> pos;
+  float time{};
+  std::array<float, 4> rot;
+  std::array<float, 3> scl;
+};
+REFLECTION(key_element_t, pos, time, rot, scl);
+
+struct hierarchy_element_t {
+  int parent;
+  std::vector<key_element_t> keys;
+};
+REFLECTION(hierarchy_element_t, parent, keys);
+
+struct geo_anim_element_t {
+  std::vector<hierarchy_element_t> hierarchy;
+  float length{};
+  int fps{};
+  std::string name;
+};
+REFLECTION(geo_anim_element_t, hierarchy, length, fps, name);
+
+struct bone_element_t {
+  int parent;
+  std::array<float, 3> pos;
+  std::array<float, 4> rotq;
+  std::array<int, 3> scl;
+  std::string name;
+};
+REFLECTION(bone_element_t, parent, pos, rotq, scl, name);
+
+struct geo_meta_data_t {
+  int uvs;
+  int version;
+  int faces;
+  std::string generator;
+  int normals;
+  int bones;
+  int vertices;
+};
+REFLECTION(geo_meta_data_t, uvs, version, faces, generator, normals, bones,
+           vertices);
+
+struct geo_data_t {
+  std::vector<std::vector<float>> uvs;
+  std::vector<geo_anim_element_t> animations;
+  std::vector<float> vertices;
+  geo_meta_data_t metadata;
+  std::string name;
+  std::vector<float> skinWeights;
+  std::vector<int> skinIndices;
+  int influencesPerVertex{};
+  std::vector<float> normals;
+  std::vector<bone_element_t> bones;
+  std::vector<int> faces;
+};
+REFLECTION(geo_data_t, uvs, animations, vertices, metadata, name, skinWeights,
+           skinIndices, influencesPerVertex, normals, bones, faces);
+
+struct geometry_element_t {
+  std::string type;
+  std::string uuid;
+  geo_data_t data;
+};
+REFLECTION(geometry_element_t, type, uuid, data);
+
+struct texture_element_t {
+  std::array<int, 2> repeat;
+  std::array<int, 2> wrap;
+  int anisotropy{};
+  std::string image;
+  std::string name;
+  int mapping{};
+  int minFilter{};
+  std::string uuid;
+  int magFilter{};
+};
+REFLECTION(texture_element_t, repeat, wrap, anisotropy, image, name, mapping,
+           minFilter, uuid, magFilter);
+
+struct meta_data_t {
+  std::string sourceFile;
+  std::string generator;
+  std::string type;
+  float version{};
+};
+REFLECTION(meta_data_t, sourceFile, generator, type, version);
+
+struct material_element_t : item_t {
+  int vertexColors{};
+  std::string blending;
+  std::string map;
+  bool transparent{};
+  bool depthTest{};
+  int color;
+  int shininess;
+  int emissive;
+  bool depthWrite{};
+  int specular{};
+};
+REFLECTION(material_element_t, vertexColors, name, type, uuid, blending, map,
+           transparent, depthTest, color, shininess, emissive, depthWrite,
+           specular);
+
+struct obj_child_t : item_t {
+  std::array<float, 16> matrix;
+  bool visible{};
+  std::string material;
+  bool castShadow{};
+  bool receiveShadow{};
+  std::string geometry;
+};
+REFLECTION(obj_child_t, name, uuid, matrix, visible, type, material, castShadow,
+           receiveShadow, geometry);
+
+struct object_t {
+  std::vector<obj_child_t> children;
+  std::string type;
+  std::array<float, 16> matrix;
+  std::string uuid;
+};
+REFLECTION(object_t, children, type, matrix, uuid);
+
+struct animation_element_t {
+  std::vector<int> tracks;
+  int fps;
+  std::string name;
+};
+REFLECTION(animation_element_t, tracks, fps, name);
+
+struct marine_ik_t {
+  std::vector<image_element_t> images;
+  std::vector<geometry_element_t> geometries;
+  std::vector<texture_element_t> textures;
+  meta_data_t metadata;
+  std::vector<material_element_t> materials;
+  object_t object;
+  std::vector<animation_element_t> animations;
+};
+REFLECTION(marine_ik_t, images, geometries, textures, metadata, materials,
+           object, animations);
+} // namespace marine_ik
