@@ -593,8 +593,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
                             "type is not supported now!");
 }
 
-template <typename T>
-IGUANA_INLINE void from_json_file(T &value, const std::string &filename) {
+IGUANA_INLINE std::string json_file_content(const std::string &filename) {
   std::error_code ec;
   uint64_t size = std::filesystem::file_size(filename, ec);
   if (ec) {
@@ -605,12 +604,18 @@ IGUANA_INLINE void from_json_file(T &value, const std::string &filename) {
     throw std::runtime_error("empty file");
   }
 
-  std::ifstream file(filename, std::ios::binary);
-
   std::string content;
   content.resize(size);
 
-  file.read(content.data(), size);
+  std::ifstream file(filename, std::ios::binary);
+  file.read(content.data(), content.size());
+
+  return content;
+}
+
+template <typename T>
+IGUANA_INLINE void from_json_file(T &value, const std::string &filename) {
+  std::string content = json_file_content(filename);
   from_json(value, content.begin(), content.end());
 }
 
