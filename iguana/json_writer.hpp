@@ -8,6 +8,7 @@
 #include "detail/dragonbox_to_chars.h"
 #include "reflection.hpp"
 #include <math.h>
+#include <optional>
 
 namespace iguana {
 
