@@ -259,7 +259,7 @@ void test_parse() {
   using variant =
       std::variant<FeatureCollection, apache_builds, citm_object_t,
                    gsoc_object_t, mesh_t, random_t, githubEvents::events_t,
-                   marine_ik::marine_ik_t, std::vector<double>>;
+                   marine_ik::marine_ik_t, std::vector<double>, instruments_t>;
 
   std::map<std::string, variant> test_map{
       {"../data/canada.json", FeatureCollection{}},
@@ -271,6 +271,7 @@ void test_parse() {
       {"../data/github_events.json", githubEvents::events_t{}},
       {"../data/marine_ik.json", marine_ik::marine_ik_t{}},
       {"../data/numbers.json", std::vector<double>{}},
+      {"../data/instruments.json", instruments_t{}},
   };
 
   for (auto &pair : test_map) {

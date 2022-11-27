@@ -632,3 +632,126 @@ struct marine_ik_t {
 REFLECTION(marine_ik_t, images, geometries, textures, metadata, materials,
            object, animations);
 } // namespace marine_ik
+
+// instruments.json
+struct sample_element {
+  int c5_samplerate;
+  int global_volume;
+  std::string legacy_filename;
+  int length;
+  int loop_end;
+  int loop_start;
+  std::string name;
+  int pan;
+  int sustain_end;
+  int sustain_start;
+  int vibrato_depth;
+  int vibrato_rate;
+  int vibrato_sweep;
+  int vibrato_type;
+  int volume;
+};
+REFLECTION(sample_element, c5_samplerate, global_volume, legacy_filename,
+           length, loop_end, loop_start, name, pan, sustain_end, sustain_start,
+           vibrato_depth, vibrato_rate, vibrato_sweep, vibrato_type, volume);
+
+struct data_t {
+  int channel;
+  int fxcmd;
+  int fxparam;
+  int instr;
+  int note;
+  int row;
+  int volcmd;
+  int volval;
+};
+REFLECTION(data_t, channel, fxcmd, fxparam, instr, note, row, volcmd, volval);
+
+struct pattern_element {
+  std::optional<std::vector<data_t>> data;
+  std::string name;
+  int rows;
+  int rows_per_beat;
+  int rows_per_measure;
+};
+REFLECTION(pattern_element, data, name, rows, rows_per_beat, rows_per_measure);
+
+struct node_t {
+  int tick;
+  int value;
+};
+REFLECTION(node_t, tick, value);
+
+struct panning_envelope_t {
+  int loop_end;
+  int loop_start;
+  std::vector<node_t> nodes;
+  int release_node;
+  int sustain_end;
+  int sustain_start;
+};
+REFLECTION(panning_envelope_t, loop_end, loop_start, nodes, release_node,
+           sustain_end, sustain_start);
+
+struct instrument_element {
+  int default_filter_cutoff;
+  bool default_filter_cutoff_enabled;
+  int default_filter_mode;
+  int default_filter_resonance;
+  bool default_filter_resonance_enabled;
+  int default_pan;
+  int duplicate_check_type;
+  int duplicate_note_action;
+  int fadeout;
+  int global_volume;
+  int graph_insert;
+  std::string legacy_filename;
+  int midi_bank;
+  int midi_channel;
+  int midi_drum_set;
+  int midi_program;
+  std::string name;
+  int new_note_action;
+  std::optional<int> note_map;
+  panning_envelope_t panning_envelope;
+  panning_envelope_t pitch_envelope;
+
+  int pitch_pan_center;
+  int pitch_pan_separation;
+  int pitch_to_tempo_lock;
+  int random_cutoff_weight;
+  int random_pan_weight;
+  int random_resonance_weight;
+  int random_volume_weight;
+  std::optional<int> sample_map;
+  std::optional<int> tuning;
+
+  panning_envelope_t volume_envelope;
+  int volume_ramp_down;
+  int volume_ramp_up;
+};
+REFLECTION(instrument_element, default_filter_cutoff,
+           default_filter_cutoff_enabled, default_filter_mode,
+           default_filter_resonance, default_filter_resonance_enabled,
+           default_pan, duplicate_check_type, duplicate_note_action, fadeout,
+           global_volume, graph_insert, legacy_filename, midi_bank,
+           midi_channel, midi_drum_set, midi_program, name, new_note_action,
+           note_map, panning_envelope, pitch_envelope, pitch_pan_center,
+           pitch_pan_separation, pitch_to_tempo_lock, random_cutoff_weight,
+           random_pan_weight, random_resonance_weight, random_volume_weight,
+           sample_map, tuning, volume_envelope, volume_ramp_down,
+           volume_ramp_up);
+
+struct instruments_t {
+  std::optional<int> graphstate;
+  std::vector<instrument_element> instruments;
+  std::optional<std::string> message;
+  std::string name;
+  std::optional<std::string> orderlist;
+  std::vector<pattern_element> patterns;
+  std::optional<int> pluginstate;
+  std::vector<sample_element> samples;
+  int version;
+};
+REFLECTION(instruments_t, graphstate, instruments, message, name, orderlist,
+           patterns, pluginstate, samples, version);

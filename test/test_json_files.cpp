@@ -190,6 +190,12 @@ TEST_CASE("test marine_ik.json") {
   CHECK(t.geometries[0].uuid == "C5CA037C-30C8-3A8C-9678-8A4BF32D5D85");
 }
 
+TEST_CASE("test instruments.json") {
+  instruments_t t;
+  iguana::from_json_file(t, "../data/instruments.json");
+  CHECK(t.name == "epanos");
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007) int main(int argc, char **argv) {
