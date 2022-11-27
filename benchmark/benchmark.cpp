@@ -197,8 +197,6 @@ obj_t create_object() {
   return obj;
 }
 
-constexpr int iterations = 100000;
-
 void test_from_json(std::string filename, auto &obj, const auto &json_str,
                     const int size) {
   iguana::from_json(obj, std::begin(json_str), std::end(json_str));
@@ -207,7 +205,7 @@ void test_from_json(std::string filename, auto &obj, const auto &json_str,
 
   {
     ScopedTimer timer(iguana_str.data());
-    for (int i = 0; i < iterations; ++i) {
+    for (int i = 0; i < size; ++i) {
       iguana::from_json(obj, std::begin(json_str), std::end(json_str));
     }
   }
@@ -218,7 +216,7 @@ void test_from_json(std::string filename, auto &obj, const auto &json_str,
   std::string rapidjson_str = "rapidjson parse " + filename;
   {
     ScopedTimer timer(rapidjson_str.data());
-    for (int i = 0; i < iterations; ++i) {
+    for (int i = 0; i < size; ++i) {
       doc = {};
       doc.Parse(json_str.data(), json_str.size());
     }
@@ -227,6 +225,7 @@ void test_from_json(std::string filename, auto &obj, const auto &json_str,
 }
 
 void test_to_json() {
+  int iterations = 100000;
   obj_t obj = create_object();
 
   iguana::string_stream ss;
@@ -259,7 +258,7 @@ void test_to_json() {
 void test_parse() {
   using variant =
       std::variant<FeatureCollection, apache_builds, citm_object_t,
-                   gsoc_object_t, mesh_t, random_t, githubEvents::event_t>;
+                   gsoc_object_t, mesh_t, random_t, githubEvents::events_t>;
 
   std::map<std::string, variant> test_map{
       {"../data/canada.json", FeatureCollection{}},
@@ -268,19 +267,22 @@ void test_parse() {
       {"../data/gsoc-2018.json", gsoc_object_t{}},
       {"../data/mesh.pretty.json", mesh_t{}},
       {"../data/random.json", random_t{}},
-      {"../data/github_events.json", githubEvents::event_t{}}};
+      {"../data/github_events.json", githubEvents::events_t{}},
+  };
 
   for (auto &pair : test_map) {
     auto content = iguana::json_file_content(pair.first);
 
-    std::visit([&](auto &&arg) { test_from_json(pair.first, arg, content, 2); },
-               pair.second);
+    std::visit(
+        [&](auto &&arg) { test_from_json(pair.first, arg, content, 10); },
+        pair.second);
   }
 }
 
 int main() {
-  for (size_t i = 0; i < 2; i++) {
+  for (size_t i = 0; i < 5; i++) {
     test_parse();
+    std::cout << "====================\n";
   }
 
   for (int i = 0; i < 10; ++i) {
@@ -290,7 +292,7 @@ int main() {
 
   obj_t obj;
   for (int i = 0; i < 10; ++i) {
-    test_from_json("obj_t", obj, json0, iterations);
+    test_from_json("obj_t", obj, json0, 100000);
     std::cout << "====================\n";
   }
 }

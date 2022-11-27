@@ -471,6 +471,8 @@ struct event_t {
   std::string id;
 };
 REFLECTION(event_t, type, created_at, actor, org, repo, __public, payload, id);
+
+using events_t = std::vector<event_t>;
 } // namespace githubEvents
 
 namespace marine_ik {
