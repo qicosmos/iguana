@@ -2,6 +2,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
 #include "iguana/json_reader.hpp"
+#include "iguana/prettify.hpp"
 #include <iguana/json_util.hpp>
 #include <iguana/json_writer.hpp>
 #include <iostream>
@@ -162,6 +163,9 @@ TEST_CASE("test simple object") {
   iguana::from_json(p, std::begin(str), std::end(str));
   CHECK(p.name == "tom");
   CHECK(p.ok == true);
+
+  auto pretty_str = iguana::prettify(str);
+  std::cout << pretty_str << "\n";
 
   SUBCASE("random order of fields") {
     person p1{};
