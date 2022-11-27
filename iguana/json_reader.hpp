@@ -462,6 +462,36 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   value = *it++;
   match<'"'>(it, end);
 }
+
+inline void skip_object_value(auto &&it, auto &&end) {
+  skip_ws(it, end);
+  while (it != end) {
+    switch (*it) {
+    case '{':
+      skip_until_closed<'{', '}'>(it, end);
+      break;
+    case '[':
+      skip_until_closed<'[', ']'>(it, end);
+      break;
+    case '"':
+      skip_string(it, end);
+      break;
+    case '/':
+      skip_comment(it, end);
+      continue;
+    case ',':
+    case '}':
+    case ']':
+      break;
+    default: {
+      ++it;
+      continue;
+    }
+    }
+
+    break;
+  }
+}
 } // namespace detail
 
 template <refletable T, typename It>
@@ -529,7 +559,11 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
               },
               member_it->second);
         } else [[unlikely]] {
+#ifdef THROW_UNKNOWN_KEY
           throw std::runtime_error("Unknown key: " + std::string(key));
+#else
+          detail::skip_object_value(it, end);
+#endif
         }
       }
     }
