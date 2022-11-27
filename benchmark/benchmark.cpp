@@ -2,10 +2,13 @@
 #include "iguana/json_writer.hpp"
 #include <chrono>
 #include <iostream>
+#include <map>
+#include <tuple>
 #ifdef HAS_RAPIDJSON
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 #endif
+#include "../test/test_headers.h"
 
 class ScopedTimer {
 public:
@@ -194,34 +197,35 @@ obj_t create_object() {
   return obj;
 }
 
-constexpr int iterations = 100000;
+void test_from_json(std::string filename, auto &obj, const auto &json_str,
+                    const int size) {
+  iguana::from_json(obj, std::begin(json_str), std::end(json_str));
 
-void test_from_json() {
-  obj_t obj;
-  iguana::from_json(obj, std::begin(json0), std::end(json0));
+  std::string iguana_str = "iguana parse " + filename;
 
   {
-    ScopedTimer timer("iguana   parse  json");
-    for (int i = 0; i < iterations; ++i) {
-      iguana::from_json(obj, std::begin(json0), std::end(json0));
+    ScopedTimer timer(iguana_str.data());
+    for (int i = 0; i < size; ++i) {
+      iguana::from_json(obj, std::begin(json_str), std::end(json_str));
     }
   }
 
 #ifdef HAS_RAPIDJSON
   rapidjson::Document doc;
-  doc.Parse(json0.data(), json0.size());
-
+  doc.Parse(json_str.data(), json_str.size());
+  std::string rapidjson_str = "rapidjson parse " + filename;
   {
-    ScopedTimer timer("rapidjson parse json");
-    for (int i = 0; i < iterations; ++i) {
+    ScopedTimer timer(rapidjson_str.data());
+    for (int i = 0; i < size; ++i) {
       doc = {};
-      doc.Parse(json0.data(), json0.size());
+      doc.Parse(json_str.data(), json_str.size());
     }
   }
 #endif
 }
 
 void test_to_json() {
+  int iterations = 100000;
   obj_t obj = create_object();
 
   iguana::string_stream ss;
@@ -251,14 +255,48 @@ void test_to_json() {
 #endif
 }
 
+void test_parse() {
+  using variant =
+      std::variant<FeatureCollection, apache_builds, citm_object_t,
+                   gsoc_object_t, mesh_t, random_t, githubEvents::events_t,
+                   marine_ik::marine_ik_t, std::vector<double>, instruments_t>;
+
+  std::map<std::string, variant> test_map{
+      {"../data/canada.json", FeatureCollection{}},
+      {"../data/apache_builds.json", apache_builds{}},
+      {"../data/citm_catalog.json", citm_object_t{}},
+      {"../data/gsoc-2018.json", gsoc_object_t{}},
+      {"../data/mesh.pretty.json", mesh_t{}},
+      {"../data/random.json", random_t{}},
+      {"../data/github_events.json", githubEvents::events_t{}},
+      {"../data/marine_ik.json", marine_ik::marine_ik_t{}},
+      {"../data/numbers.json", std::vector<double>{}},
+      {"../data/instruments.json", instruments_t{}},
+  };
+
+  for (auto &pair : test_map) {
+    auto content = iguana::json_file_content(pair.first);
+
+    std::visit(
+        [&](auto &&arg) { test_from_json(pair.first, arg, content, 10); },
+        pair.second);
+  }
+}
+
 int main() {
+  for (size_t i = 0; i < 5; i++) {
+    test_parse();
+    std::cout << "====================\n";
+  }
+
   for (int i = 0; i < 10; ++i) {
     test_to_json();
     std::cout << "====================\n";
   }
 
+  obj_t obj;
   for (int i = 0; i < 10; ++i) {
-    test_from_json();
+    test_from_json("obj_t", obj, json0, 100000);
     std::cout << "====================\n";
   }
 }
