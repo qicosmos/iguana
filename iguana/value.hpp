@@ -1,7 +1,7 @@
 #pragma once
+#include <map>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -9,13 +9,12 @@
 namespace iguana {
 template <typename CharT>
 struct json_value
-    : std::variant<
-          std::monostate, std::nullptr_t, bool, double,
-          std::basic_string<CharT>, std::vector<json_value<CharT>>,
-          std::unordered_map<std::basic_string<CharT>, json_value<CharT>>> {
+    : std::variant<std::monostate, std::nullptr_t, bool, double,
+                   std::basic_string<CharT>, std::vector<json_value<CharT>>,
+                   std::map<std::basic_string<CharT>, json_value<CharT>>> {
   using string_type = std::basic_string<CharT>;
   using array_type = std::vector<json_value<CharT>>;
-  using object_type = std::unordered_map<string_type, json_value<CharT>>;
+  using object_type = std::map<string_type, json_value<CharT>>;
 
   using base_type = std::variant<std::monostate, std::nullptr_t, bool, double,
                                  string_type, array_type, object_type>;
