@@ -1,7 +1,6 @@
 #include <vector>
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
-#include "iguana/dom_parser.hpp"
 #include "iguana/json_reader.hpp"
 #include "iguana/prettify.hpp"
 #include "iguana/value.hpp"
@@ -142,12 +141,11 @@ TEST_CASE("test dom parse") {
   std::string_view str = R"({"name": "tom", "ok":true, "t": {"val":2.5}})";
   iguana::json_value<char> val;
   iguana::parse(val, str.begin(), str.end());
-  auto &map = std::get<typename iguana::json_value<char>::object_type>(val);
+  auto &map = std::get<iguana::json_object<char>>(val);
   CHECK(std::get<std::string>(map.at("name")) == "tom");
   CHECK(std::get<bool>(map.at("ok")) == true);
 
-  auto &sub_map =
-      std::get<typename iguana::json_value<char>::object_type>(map.at("t"));
+  auto &sub_map = std::get<iguana::json_object<char>>(map.at("t"));
   CHECK(std::get<double>(sub_map.at("val")) == 2.5);
 }
 

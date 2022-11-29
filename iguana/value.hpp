@@ -34,9 +34,9 @@ struct json_value
 template <typename CharT> using jarray = typename json_value<CharT>::array_type;
 
 template <typename CharT>
-using object = typename json_value<CharT>::object_type;
+using json_object = typename json_value<CharT>::object_type;
 
-template <typename CharT> using pair = typename object<CharT>::value_type;
+template <typename CharT> using pair = typename json_object<CharT>::value_type;
 
 template <typename CharT>
 void swap(json_value<CharT> &lhs, json_value<CharT> &rhs) noexcept {

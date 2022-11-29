@@ -627,7 +627,7 @@ void parse(json_value<CharT> &result, It &&it, It &&end) {
 
   match<'{'>(it, end);
   skip_ws(it, end);
-  result.template emplace<typename json_value<CharT>::object_type>();
+  result.template emplace<json_object<CharT>>();
 
   bool first = true;
   while (it != end) {
@@ -673,7 +673,7 @@ void parse(json_value<CharT> &result, It &&it, It &&end) {
     match<':'>(it, end);
     skip_ws(it, end);
 
-    auto &map = std::get<typename json_value<CharT>::object_type>(result);
+    auto &map = std::get<json_object<CharT>>(result);
     auto emplaced = map.emplace(key, json_value<CharT>{});
     if (!emplaced.second)
       throw std::runtime_error("duplicate key: " + std::string(key));
@@ -720,12 +720,6 @@ void parse(json_value<CharT> &result, It &&it, It &&end) {
     case '{': {
 
       parse(emplaced.first->second, it, end);
-
-      //              if (!pair.second) {
-      //                  throw std::runtime_error("duplicate key: " +
-      //                  std::string(key));
-      //              }
-      // parse(pair.first.second, it, end);
       break;
     }
     default:
