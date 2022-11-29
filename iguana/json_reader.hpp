@@ -621,11 +621,9 @@ IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size,
   }
 }
 
-template <typename CharT, typename It>
-void parse(json_value<CharT> &result, It &&it, It &&end);
+template <typename It> void parse(json_value &result, It &&it, It &&end);
 
-template <typename CharT, typename It>
-void parse_array(jarray<CharT> &result, It &&it, It &&end) {
+template <typename It> void parse_array(jarray &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'['>(it, end);
   if (*it == ']')
@@ -647,8 +645,7 @@ void parse_array(jarray<CharT> &result, It &&it, It &&end) {
   }
 }
 
-template <typename CharT, typename It>
-void parse_object(jobject<CharT> &result, It &&it, It &&end) {
+template <typename It> void parse_object(jobject &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'{'>(it, end);
   if (*it == '}') {
@@ -661,7 +658,7 @@ void parse_object(jobject<CharT> &result, It &&it, It &&end) {
     if (it == end) {
       break;
     }
-    std::basic_string<CharT> key;
+    std::string key;
     detail::parse_item(key, it, end);
 
     auto emplaced = result.try_emplace(key);
@@ -681,8 +678,7 @@ void parse_object(jobject<CharT> &result, It &&it, It &&end) {
   }
 }
 
-template <typename CharT, typename It>
-void parse(json_value<CharT> &result, It &&it, It &&end) {
+template <typename It> void parse(json_value &result, It &&it, It &&end) {
   skip_ws(it, end);
   switch (*it) {
   case 'n':
@@ -709,16 +705,16 @@ void parse(json_value<CharT> &result, It &&it, It &&end) {
     detail::parse_item(std::get<double>(result), it, end);
     break;
   case '"':
-    result.template emplace<std::basic_string<CharT>>();
-    detail::parse_item(std::get<std::basic_string<CharT>>(result), it, end);
+    result.template emplace<std::string>();
+    detail::parse_item(std::get<std::string>(result), it, end);
     break;
   case '[':
-    result.template emplace<jarray<CharT>>();
-    parse_array<CharT>(std::get<jarray<CharT>>(result), it, end);
+    result.template emplace<jarray>();
+    parse_array(std::get<jarray>(result), it, end);
     break;
   case '{': {
-    result.template emplace<jobject<CharT>>();
-    parse_object<CharT>(std::get<jobject<CharT>>(result), it, end);
+    result.template emplace<jobject>();
+    parse_object(std::get<jobject>(result), it, end);
     break;
   }
   default:
