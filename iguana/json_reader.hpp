@@ -637,18 +637,13 @@ void parse_array(jarray<CharT> &result, It &&it, It &&end) {
     result.emplace_back();
 
     parse(result.back(), it, end);
-    CharT c = *it;
 
-    switch (c) {
-    case ',':
-      ++it;
-      break;
-    case ']':
+    if (*it == ']') {
       ++it;
       return;
-    default:
-      throw std::runtime_error("parse failed: ");
     }
+
+    match<','>(it, end);
   }
 }
 
@@ -677,17 +672,12 @@ void parse_object(jobject<CharT> &result, It &&it, It &&end) {
 
     parse(emplaced.first->second, it, end);
 
-    CharT c = *it;
-
-    switch (c) {
-    case ',':
+    if (*it == '}') {
       ++it;
-      break;
-    case '}':
       return;
-    default:
-      throw std::runtime_error("parse failed ");
     }
+
+    match<','>(it, end);
   }
 }
 
@@ -701,15 +691,9 @@ void parse(json_value<CharT> &result, It &&it, It &&end) {
     break;
 
   case 'f':
-    match<"false">(it, end);
-    result.template emplace<bool>(false);
-    break;
-
   case 't':
-    match<"true">(it, end);
-    result.template emplace<bool>(true);
+    detail::parse_item(result.template emplace<bool>(), it, end);
     break;
-
   case '0':
   case '1':
   case '2':
@@ -738,7 +722,7 @@ void parse(json_value<CharT> &result, It &&it, It &&end) {
     break;
   }
   default:
-    throw std::runtime_error("parse failed: ");
+    throw std::runtime_error("parse failed");
   }
 
   skip_ws(it, end);

@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <string>
 #include <vector>
 #define DOCTEST_CONFIG_IMPLEMENT
@@ -139,6 +140,18 @@ struct test_double_t {
 REFLECTION(test_double_t, val);
 
 TEST_CASE("test dom parse") {
+  {
+    std::string_view str = R"(null)";
+    iguana::json_value<char> val;
+    iguana::parse(val, str.begin(), str.end());
+    CHECK(std::get<std::nullptr_t>(val) == std::nullptr_t{});
+  }
+  {
+    std::string_view str = R"(false)";
+    iguana::json_value<char> val;
+    iguana::parse(val, str.begin(), str.end());
+    CHECK(std::get<bool>(val) == false);
+  }
   {
     std::string_view str = R"({"name": "tom", "ok":true, "t": {"val":2.5}})";
     iguana::json_value<char> val;
