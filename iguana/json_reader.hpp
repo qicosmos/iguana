@@ -653,7 +653,7 @@ void parse_array(jarray<CharT> &result, It &&it, It &&end) {
 }
 
 template <typename CharT, typename It>
-void parse_object(json_object<CharT> &result, It &&it, It &&end) {
+void parse_object(jobject<CharT> &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'{'>(it, end);
   if (*it == '}') {
@@ -722,11 +722,8 @@ void parse(json_value<CharT> &result, It &&it, It &&end) {
   case '9':
   case '-':
     result.template emplace<double>();
-    return detail::parse_item(std::get<double>(result), it, end);
-
-    // emplaced.first->second.template emplace<double>();
-    // detail::parse_item(std::get<double>(emplaced.first->second), it, end);
-    // break;
+    detail::parse_item(std::get<double>(result), it, end);
+    break;
   case '"':
     result.template emplace<std::basic_string<CharT>>();
     detail::parse_item(std::get<std::basic_string<CharT>>(result), it, end);
@@ -736,8 +733,8 @@ void parse(json_value<CharT> &result, It &&it, It &&end) {
     parse_array<CharT>(std::get<jarray<CharT>>(result), it, end);
     break;
   case '{': {
-    result.template emplace<json_object<CharT>>();
-    parse_object<CharT>(std::get<json_object<CharT>>(result), it, end);
+    result.template emplace<jobject<CharT>>();
+    parse_object<CharT>(std::get<jobject<CharT>>(result), it, end);
     break;
   }
   default:
