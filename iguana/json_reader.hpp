@@ -11,6 +11,7 @@
 #include <type_traits>
 
 #include "error_code.h"
+#include "value.hpp"
 
 namespace iguana {
 
@@ -617,6 +618,121 @@ IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size,
     ec = {};
   } catch (std::runtime_error &e) {
     ec = iguana::make_error_code(e.what());
+  }
+}
+
+template <typename CharT, typename It>
+void parse(json_value<CharT> &result, It &&it, It &&end) {
+  skip_ws(it, end);
+
+  match<'{'>(it, end);
+  skip_ws(it, end);
+  result.template emplace<typename json_value<CharT>::object_type>();
+
+  bool first = true;
+  while (it != end) {
+    if (*it == '}') [[unlikely]] {
+      ++it;
+      return;
+    } else if (first) [[unlikely]]
+      first = false;
+    else [[likely]] {
+      match<','>(it, end);
+    }
+
+    std::string key;
+    if constexpr (std::contiguous_iterator<std::decay_t<It>>) {
+      // skip white space and escape characters and find the string
+      skip_ws(it, end);
+      match<'"'>(it, end);
+      auto start = it;
+      skip_till_escape_or_qoute(it, end);
+      if (*it == '\\') [[unlikely]] {
+        // we dont' optimize this currently because it would increase binary
+        // size significantly with the complexity of generating escaped
+        // compile time versions of keys
+        it = start;
+        static thread_local std::string static_key{};
+        detail::parse_item(static_key, it, end, true);
+        key = static_key;
+      } else [[likely]] {
+        key =
+            std::string{&*start, static_cast<size_t>(std::distance(start, it))};
+        if (key[0] == '@') [[unlikely]] {
+          key = key.substr(1);
+        }
+        ++it;
+      }
+    } else {
+      static thread_local std::string static_key{};
+      detail::parse_item(static_key, it, end, true);
+      key = static_key;
+    }
+
+    skip_ws(it, end);
+    match<':'>(it, end);
+    skip_ws(it, end);
+
+    auto &map = std::get<typename json_value<CharT>::object_type>(result);
+    auto emplaced = map.emplace(key, json_value<CharT>{});
+    if (!emplaced.second)
+      throw std::runtime_error("duplicate key: " + std::string(key));
+
+    switch (*it) {
+    case 'n':
+      match<"null">(it, end);
+      emplaced.first->second.template emplace<std::nullptr_t>();
+      break;
+
+    case 'f':
+      match<"false">(it, end);
+      emplaced.first->second.template emplace<bool>(false);
+      break;
+
+    case 't':
+      match<"true">(it, end);
+      emplaced.first->second.template emplace<bool>(true);
+      break;
+
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+    case '-':
+      emplaced.first->second.template emplace<double>();
+      detail::parse_item(std::get<double>(emplaced.first->second), it, end);
+      break;
+    case '"':
+      emplaced.first->second.template emplace<std::basic_string<CharT>>();
+      detail::parse_item(
+          std::get<std::basic_string<CharT>>(emplaced.first->second), it, end);
+      break;
+      //          case '[':
+      //              result.template emplace<json::array<CharT>>();
+      //              return parse_array(std::get<json::array<CharT>>(result));
+      //
+    case '{': {
+
+      parse(emplaced.first->second, it, end);
+
+      //              if (!pair.second) {
+      //                  throw std::runtime_error("duplicate key: " +
+      //                  std::string(key));
+      //              }
+      // parse(pair.first.second, it, end);
+      break;
+    }
+    default:
+      throw std::runtime_error("parse failed: " + std::string(key));
+    }
+
+    skip_ws(it, end);
   }
 }
 

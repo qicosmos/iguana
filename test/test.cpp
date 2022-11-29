@@ -1,8 +1,10 @@
 #include <vector>
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
+#include "iguana/dom_parser.hpp"
 #include "iguana/json_reader.hpp"
 #include "iguana/prettify.hpp"
+#include "iguana/value.hpp"
 #include <iguana/json_util.hpp>
 #include <iguana/json_writer.hpp>
 #include <iostream>
@@ -136,14 +138,17 @@ struct test_double_t {
 };
 REFLECTION(test_double_t, val);
 
-TEST_CASE("test double") {
-  //  test_double_t d{.val = 1.4806532964699196e-22};
-  //  iguana::string_stream ss;
-  //  iguana::to_json(d, ss);
-  //
-  //  test_double_t p{};
-  //  iguana::from_json(p, std::begin(ss), std::end(ss));
-  //  CHECK(d.val == p.val);
+TEST_CASE("test dom parse") {
+  std::string_view str = R"({"name": "tom", "ok":true, "t": {"val":2.5}})";
+  iguana::json_value<char> val;
+  iguana::parse(val, str.begin(), str.end());
+  auto &map = std::get<typename iguana::json_value<char>::object_type>(val);
+  CHECK(std::get<std::string>(map.at("name")) == "tom");
+  CHECK(std::get<bool>(map.at("ok")) == true);
+
+  auto &sub_map =
+      std::get<typename iguana::json_value<char>::object_type>(map.at("t"));
+  CHECK(std::get<double>(sub_map.at("val")) == 2.5);
 }
 
 TEST_CASE("test simple object") {
