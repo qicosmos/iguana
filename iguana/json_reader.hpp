@@ -622,112 +622,129 @@ IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size,
 }
 
 template <typename CharT, typename It>
-void parse(json_value<CharT> &result, It &&it, It &&end) {
-  skip_ws(it, end);
+void parse(json_value<CharT> &result, It &&it, It &&end);
 
-  match<'{'>(it, end);
+template <typename CharT, typename It>
+void parse_array(jarray<CharT> &result, It &&it, It &&end) {
   skip_ws(it, end);
-  result.template emplace<json_object<CharT>>();
+  match<'['>(it, end);
+  if (*it == ']')
+    return;
+  while (true) {
+    if (it == end) {
+      break;
+    }
+    result.emplace_back();
 
-  bool first = true;
-  while (it != end) {
-    if (*it == '}') [[unlikely]] {
+    parse(result.back(), it, end);
+    CharT c = *it;
+
+    switch (c) {
+    case ',':
+      ++it;
+      break;
+    case ']':
       ++it;
       return;
-    } else if (first) [[unlikely]]
-      first = false;
-    else [[likely]] {
-      match<','>(it, end);
-    }
-
-    std::string key;
-    if constexpr (std::contiguous_iterator<std::decay_t<It>>) {
-      // skip white space and escape characters and find the string
-      skip_ws(it, end);
-      match<'"'>(it, end);
-      auto start = it;
-      skip_till_escape_or_qoute(it, end);
-      if (*it == '\\') [[unlikely]] {
-        // we dont' optimize this currently because it would increase binary
-        // size significantly with the complexity of generating escaped
-        // compile time versions of keys
-        it = start;
-        static thread_local std::string static_key{};
-        detail::parse_item(static_key, it, end, true);
-        key = static_key;
-      } else [[likely]] {
-        key =
-            std::string{&*start, static_cast<size_t>(std::distance(start, it))};
-        if (key[0] == '@') [[unlikely]] {
-          key = key.substr(1);
-        }
-        ++it;
-      }
-    } else {
-      static thread_local std::string static_key{};
-      detail::parse_item(static_key, it, end, true);
-      key = static_key;
-    }
-
-    skip_ws(it, end);
-    match<':'>(it, end);
-    skip_ws(it, end);
-
-    auto &map = std::get<json_object<CharT>>(result);
-    auto emplaced = map.emplace(key, json_value<CharT>{});
-    if (!emplaced.second)
-      throw std::runtime_error("duplicate key: " + std::string(key));
-
-    switch (*it) {
-    case 'n':
-      match<"null">(it, end);
-      emplaced.first->second.template emplace<std::nullptr_t>();
-      break;
-
-    case 'f':
-      match<"false">(it, end);
-      emplaced.first->second.template emplace<bool>(false);
-      break;
-
-    case 't':
-      match<"true">(it, end);
-      emplaced.first->second.template emplace<bool>(true);
-      break;
-
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9':
-    case '-':
-      emplaced.first->second.template emplace<double>();
-      detail::parse_item(std::get<double>(emplaced.first->second), it, end);
-      break;
-    case '"':
-      emplaced.first->second.template emplace<std::basic_string<CharT>>();
-      detail::parse_item(
-          std::get<std::basic_string<CharT>>(emplaced.first->second), it, end);
-      break;
-      //          case '[':
-      //              result.template emplace<json::array<CharT>>();
-      //              return parse_array(std::get<json::array<CharT>>(result));
-      //
-    case '{': {
-
-      parse(emplaced.first->second, it, end);
-      break;
-    }
     default:
-      throw std::runtime_error("parse failed: " + std::string(key));
+      throw std::runtime_error("parse failed: ");
     }
-
-    skip_ws(it, end);
   }
+}
+
+template <typename CharT, typename It>
+void parse_object(json_object<CharT> &result, It &&it, It &&end) {
+  skip_ws(it, end);
+  match<'{'>(it, end);
+  if (*it == '}') {
+    return;
+  }
+
+  skip_ws(it, end);
+
+  while (true) {
+    if (it == end) {
+      break;
+    }
+    std::basic_string<CharT> key;
+    detail::parse_item(key, it, end);
+
+    auto emplaced = result.try_emplace(key);
+    if (!emplaced.second)
+      throw std::runtime_error("duplicated key " + key);
+
+    match<':'>(it, end);
+
+    parse(emplaced.first->second, it, end);
+
+    CharT c = *it;
+
+    switch (c) {
+    case ',':
+      ++it;
+      break;
+    case '}':
+      return;
+    default:
+      throw std::runtime_error("parse failed ");
+    }
+  }
+}
+
+template <typename CharT, typename It>
+void parse(json_value<CharT> &result, It &&it, It &&end) {
+  skip_ws(it, end);
+  switch (*it) {
+  case 'n':
+    match<"null">(it, end);
+    result.template emplace<std::nullptr_t>();
+    break;
+
+  case 'f':
+    match<"false">(it, end);
+    result.template emplace<bool>(false);
+    break;
+
+  case 't':
+    match<"true">(it, end);
+    result.template emplace<bool>(true);
+    break;
+
+  case '0':
+  case '1':
+  case '2':
+  case '3':
+  case '4':
+  case '5':
+  case '6':
+  case '7':
+  case '8':
+  case '9':
+  case '-':
+    result.template emplace<double>();
+    return detail::parse_item(std::get<double>(result), it, end);
+
+    // emplaced.first->second.template emplace<double>();
+    // detail::parse_item(std::get<double>(emplaced.first->second), it, end);
+    // break;
+  case '"':
+    result.template emplace<std::basic_string<CharT>>();
+    detail::parse_item(std::get<std::basic_string<CharT>>(result), it, end);
+    break;
+  case '[':
+    result.template emplace<jarray<CharT>>();
+    parse_array<CharT>(std::get<jarray<CharT>>(result), it, end);
+    break;
+  case '{': {
+    result.template emplace<json_object<CharT>>();
+    parse_object<CharT>(std::get<json_object<CharT>>(result), it, end);
+    break;
+  }
+  default:
+    throw std::runtime_error("parse failed: ");
+  }
+
+  skip_ws(it, end);
 }
 
 template <typename T, typename It>

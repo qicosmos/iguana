@@ -1,3 +1,4 @@
+#include <string>
 #include <vector>
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
@@ -138,15 +139,40 @@ struct test_double_t {
 REFLECTION(test_double_t, val);
 
 TEST_CASE("test dom parse") {
-  std::string_view str = R"({"name": "tom", "ok":true, "t": {"val":2.5}})";
-  iguana::json_value<char> val;
-  iguana::parse(val, str.begin(), str.end());
-  auto &map = std::get<iguana::json_object<char>>(val);
-  CHECK(std::get<std::string>(map.at("name")) == "tom");
-  CHECK(std::get<bool>(map.at("ok")) == true);
+  {
+    std::string_view str = R"({"name": "tom", "ok":true, "t": {"val":2.5}})";
+    iguana::json_value<char> val;
+    iguana::parse(val, str.begin(), str.end());
+    auto &map = std::get<iguana::json_object<char>>(val);
+    CHECK(std::get<std::string>(map.at("name")) == "tom");
+    CHECK(std::get<bool>(map.at("ok")) == true);
 
-  auto &sub_map = std::get<iguana::json_object<char>>(map.at("t"));
-  CHECK(std::get<double>(sub_map.at("val")) == 2.5);
+    auto &sub_map = std::get<iguana::json_object<char>>(map.at("t"));
+    CHECK(std::get<double>(sub_map.at("val")) == 2.5);
+  }
+
+  {
+    std::string json_str = R"({"a": [1, 2, 3]})";
+    iguana::json_value<char> val1;
+    iguana::parse(val1, json_str.begin(), json_str.end());
+    auto &map = std::get<iguana::json_object<char>>(val1);
+    auto &arr = std::get<iguana::jarray<char>>(map.at("a"));
+    iguana::json_value<char> &r = arr[0];
+    CHECK(std::get<double>(r) == 1);
+    CHECK(std::get<double>(r) == 2);
+    CHECK(std::get<double>(r) == 3);
+  }
+
+  {
+    std::string json_str = R"([1, 2, 3])";
+    iguana::json_value<char> val1;
+    iguana::parse(val1, json_str.begin(), json_str.end());
+    auto &arr = std::get<iguana::jarray<char>>(val1);
+    iguana::json_value<char> &r = arr[0];
+    CHECK(std::get<double>(r) == 1);
+    CHECK(std::get<double>(r) == 2);
+    CHECK(std::get<double>(r) == 3);
+  }
 }
 
 TEST_CASE("test simple object") {
