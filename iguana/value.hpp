@@ -1,7 +1,7 @@
 #pragma once
-#include <map>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -9,13 +9,14 @@
 namespace iguana {
 template <typename CharT>
 struct basic_json_value
-    : std::variant<
-          std::monostate, std::nullptr_t, bool, double,
-          std::basic_string<CharT>, std::vector<basic_json_value<CharT>>,
-          std::map<std::basic_string<CharT>, basic_json_value<CharT>>> {
+    : std::variant<std::monostate, std::nullptr_t, bool, double,
+                   std::basic_string<CharT>,
+                   std::vector<basic_json_value<CharT>>,
+                   std::unordered_map<std::basic_string<CharT>,
+                                      basic_json_value<CharT>>> {
   using string_type = std::basic_string<CharT>;
   using array_type = std::vector<basic_json_value<CharT>>;
-  using object_type = std::map<string_type, basic_json_value<CharT>>;
+  using object_type = std::unordered_map<string_type, basic_json_value<CharT>>;
 
   using base_type = std::variant<std::monostate, std::nullptr_t, bool, double,
                                  string_type, array_type, object_type>;
@@ -40,7 +41,7 @@ using basic_jobject = typename basic_json_value<CharT>::object_type;
 template <typename CharT>
 using basic_jpair = typename basic_jobject<CharT>::value_type;
 
-using json_value = basic_json_value<char>;
+using jvalue = basic_json_value<char>;
 using jarray = basic_jarray<char>;
 using jobject = basic_jobject<char>;
 using jpair = basic_jpair<char>;

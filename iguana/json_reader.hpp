@@ -621,7 +621,8 @@ IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size,
   }
 }
 
-template <typename It> void parse(json_value &result, It &&it, It &&end);
+template <typename It>
+void parse(jvalue &result, It &&it, It &&end);
 
 template <typename It> void parse_array(jarray &result, It &&it, It &&end) {
   skip_ws(it, end);
@@ -678,7 +679,8 @@ template <typename It> void parse_object(jobject &result, It &&it, It &&end) {
   }
 }
 
-template <typename It> void parse(json_value &result, It &&it, It &&end) {
+template <typename It>
+void parse(jvalue &result, It &&it, It &&end) {
   skip_ws(it, end);
   switch (*it) {
   case 'n':
