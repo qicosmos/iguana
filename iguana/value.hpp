@@ -7,16 +7,27 @@
 #include <vector>
 
 namespace iguana {
+
+#define GCC_COMPILER (defined(__GNUC__) && !defined(__clang__))
+
+#ifdef GCC_COMPILER
+#include <map>
+template <class Key, class T, typename... Args>
+using json_map = std::map<Key, T, Args...>;
+#else
+template <class Key, class T, typename... Args>
+using json_map = std::unordered_map<Key, T, Args...>;
+#endif
+
 template <typename CharT>
 struct basic_json_value
-    : std::variant<std::monostate, std::nullptr_t, bool, double, int,
-                   std::basic_string<CharT>,
-                   std::vector<basic_json_value<CharT>>,
-                   std::unordered_map<std::basic_string<CharT>,
-                                      basic_json_value<CharT>>> {
+    : std::variant<
+          std::monostate, std::nullptr_t, bool, double, int,
+          std::basic_string<CharT>, std::vector<basic_json_value<CharT>>,
+          json_map<std::basic_string<CharT>, basic_json_value<CharT>>> {
   using string_type = std::basic_string<CharT>;
   using array_type = std::vector<basic_json_value<CharT>>;
-  using object_type = std::unordered_map<string_type, basic_json_value<CharT>>;
+  using object_type = json_map<string_type, basic_json_value<CharT>>;
 
   using base_type = std::variant<std::monostate, std::nullptr_t, bool, double,
                                  int, string_type, array_type, object_type>;

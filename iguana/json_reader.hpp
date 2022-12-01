@@ -621,11 +621,10 @@ IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size,
   }
 }
 
-template <typename It>
-IGUANA_INLINE void parse(jvalue &result, It &&it, It &&end);
+template <typename It> void parse(jvalue &result, It &&it, It &&end);
 
 template <typename It>
-IGUANA_INLINE void parse_array(jarray &result, It &&it, It &&end) {
+inline void parse_array(jarray &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'['>(it, end);
   if (*it == ']')
@@ -648,7 +647,7 @@ IGUANA_INLINE void parse_array(jarray &result, It &&it, It &&end) {
 }
 
 template <typename It>
-IGUANA_INLINE void parse_object(jobject &result, It &&it, It &&end) {
+inline void parse_object(jobject &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'{'>(it, end);
   if (*it == '}') {
@@ -681,8 +680,7 @@ IGUANA_INLINE void parse_object(jobject &result, It &&it, It &&end) {
   }
 }
 
-template <typename It>
-IGUANA_INLINE void parse(jvalue &result, It &&it, It &&end) {
+template <typename It> inline void parse(jvalue &result, It &&it, It &&end) {
   skip_ws(it, end);
   switch (*it) {
   case 'n':
@@ -734,8 +732,7 @@ IGUANA_INLINE void parse(jvalue &result, It &&it, It &&end) {
 }
 
 template <typename It>
-IGUANA_INLINE void parse(jvalue &result, It &&it, It &&end,
-                         std::error_code &ec) {
+inline void parse(jvalue &result, It &&it, It &&end, std::error_code &ec) {
   try {
     parse(result, it, end);
     ec = {};
