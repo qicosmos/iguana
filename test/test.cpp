@@ -162,6 +162,7 @@ TEST_CASE("test dom parse") {
 
     auto &sub_map = std::get<iguana::jobject>(map.at("t"));
     CHECK(std::get<double>(sub_map.at("val")) == 2.5);
+    CHECK(val.isObject());
   }
 
   {
@@ -171,20 +172,77 @@ TEST_CASE("test dom parse") {
     auto &map = std::get<iguana::jobject>(val1);
     auto &arr = std::get<iguana::jarray>(map.at("a"));
 
-    CHECK(std::get<double>(arr[0]) == 1);
-    CHECK(std::get<double>(arr[1]) == 2);
-    CHECK(std::get<double>(arr[2]) == 3);
+    CHECK(std::get<int>(arr[0]) == 1);
+    CHECK(std::get<int>(arr[1]) == 2);
+    CHECK(std::get<int>(arr[2]) == 3);
+    CHECK(val1.isObject());
+    CHECK(val1.toObject().size() == 1);
   }
 
   {
-    std::string json_str = R"([1, 2, 3])";
+    std::string json_str = R"([0.5, 2.2, 3.3])";
     iguana::jvalue val1;
     iguana::parse(val1, json_str.begin(), json_str.end());
     auto &arr = std::get<iguana::jarray>(val1);
 
-    CHECK(std::get<double>(arr[0]) == 1);
-    CHECK(std::get<double>(arr[1]) == 2);
-    CHECK(std::get<double>(arr[2]) == 3);
+    CHECK(std::get<double>(arr[0]) == 0.5);
+    CHECK(std::get<double>(arr[1]) == 2.2);
+    CHECK(std::get<double>(arr[2]) == 3.3);
+
+    CHECK(val1.isArray());
+    const iguana::jarray &arr1 = val1.toArray();
+    CHECK(arr1.size() == 3);
+    CHECK(arr1[0].toDouble() == 0.5);
+    CHECK(val1.toObject().size() == 0);
+  }
+  {
+    std::string json_str = R"(709)";
+    iguana::jvalue val1;
+    iguana::parse(val1, json_str.begin(), json_str.end());
+    auto &num = std::get<int>(val1);
+    CHECK(num == 709);
+    CHECK_THROWS(std::get<double>(val1));
+    
+  }
+  {
+    std::string json_str = R"(-0.111)";
+    iguana::jvalue val1;
+    iguana::parse(val1, json_str.begin(), json_str.end());
+    auto &num = std::get<double>(val1);
+    CHECK(val1.isDouble());
+    CHECK(val1.isNumber());
+    CHECK(!val1.isArray());
+  }
+  {
+    std::string json_str = R"(true)";
+    iguana::jvalue val1;
+    iguana::parse(val1, json_str.begin(), json_str.end());
+    CHECK(val1.isBool());
+  }
+  {
+    std::string json_str = R"("true")";
+    iguana::jvalue val1;
+    iguana::parse(val1, json_str.begin(), json_str.end());
+    CHECK(val1.isString());
+  }
+  {
+    std::string json_str = R"(null)";
+    iguana::jvalue val1;
+    CHECK(val1.isUndefined());
+
+    iguana::parse(val1, json_str.begin(), json_str.end());
+    CHECK(val1.isNull());
+    CHECK(val1.toArray().size() == 0);
+    CHECK(val1.toObject().size() == 0);
+  }
+  {
+    // what should be filled back?
+    std::string json_str = R"("tr)";
+    iguana::jvalue val1;
+    std::error_code ec{};
+    CHECK_NOTHROW(iguana::parse(val1, json_str.begin(), json_str.end(), ec));
+    CHECK(!val1.isString());
+    CHECK(val1.isNull());
   }
 }
 

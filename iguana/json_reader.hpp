@@ -682,6 +682,7 @@ template <typename It> void parse_object(jobject &result, It &&it, It &&end) {
 template <typename It>
 void parse(jvalue &result, It &&it, It &&end) {
   skip_ws(it, end);
+  double d{};
   switch (*it) {
   case 'n':
     match<"null">(it, end);
@@ -703,8 +704,11 @@ void parse(jvalue &result, It &&it, It &&end) {
   case '8':
   case '9':
   case '-':
-    result.template emplace<double>();
-    detail::parse_item(std::get<double>(result), it, end);
+    detail::parse_item(d, it, end);
+    if (static_cast<int>(d) == d)
+      result.emplace<int>(d);
+    else
+      result.emplace<double>(d);
     break;
   case '"':
     result.template emplace<std::string>();
@@ -724,6 +728,17 @@ void parse(jvalue &result, It &&it, It &&end) {
   }
 
   skip_ws(it, end);
+}
+
+template <typename It>
+void parse(jvalue &result, It &&it, It &&end, std::error_code &ec) {
+  try {
+    parse(result, it, end);
+    ec = {};
+  } catch (const std::runtime_error &e) {
+    result.template emplace<std::nullptr_t>();
+    ec = iguana::make_error_code(e.what());
+  }
 }
 
 template <typename T, typename It>
