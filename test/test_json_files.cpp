@@ -172,7 +172,7 @@ TEST_CASE("test github_events.json") {
     CHECK(event.actor.value().gravatar_id ==
           "a7cec1f75a06a5f8ab53139515da5d99");
     CHECK(event.repo.url == "https://api.github.com/repos/jathanism/trigger");
-    CHECK(event.__public == true);
+    CHECK(event.___public == true);
     CHECK(event.id == "1652857722");
   }
   std::vector<githubEvents::event_t> events;
