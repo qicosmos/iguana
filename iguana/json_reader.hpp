@@ -682,7 +682,6 @@ template <typename It> void parse_object(jobject &result, It &&it, It &&end) {
 template <typename It>
 void parse(jvalue &result, It &&it, It &&end) {
   skip_ws(it, end);
-  double d{};
   switch (*it) {
   case 'n':
     match<"null">(it, end);
@@ -703,13 +702,15 @@ void parse(jvalue &result, It &&it, It &&end) {
   case '7':
   case '8':
   case '9':
-  case '-':
+  case '-': {
+    double d{};
     detail::parse_item(d, it, end);
     if (static_cast<int>(d) == d)
       result.emplace<int>(d);
     else
       result.emplace<double>(d);
     break;
+  }
   case '"':
     result.template emplace<std::string>();
     detail::parse_item(std::get<std::string>(result), it, end);

@@ -31,48 +31,48 @@ struct basic_json_value
   base_type &base() { return *this; }
   base_type const &base() const { return *this; }
 
-  bool isUndefined() const {
+  bool is_undefined() const {
     return std::holds_alternative<std::monostate>(*this);
   }
-  bool isNull() const { return std::holds_alternative<std::nullptr_t>(*this); }
-  bool isBool() const { return std::holds_alternative<bool>(*this); }
-  bool isDouble() const { return std::holds_alternative<double>(*this); }
-  bool isInt() const { return std::holds_alternative<int>(*this); }
-  bool isNumber() const { return isDouble() || isInt(); }
-  bool isString() const { return std::holds_alternative<string_type>(*this); }
-  bool isArray() const { return std::holds_alternative<array_type>(*this); }
-  bool isObject() const { return std::holds_alternative<object_type>(*this); }
+  bool is_null() const { return std::holds_alternative<std::nullptr_t>(*this); }
+  bool is_bool() const { return std::holds_alternative<bool>(*this); }
+  bool is_double() const { return std::holds_alternative<double>(*this); }
+  bool is_int() const { return std::holds_alternative<int>(*this); }
+  bool is_number() const { return is_double() || is_int(); }
+  bool is_string() const { return std::holds_alternative<string_type>(*this); }
+  bool is_array() const { return std::holds_alternative<array_type>(*this); }
+  bool is_object() const { return std::holds_alternative<object_type>(*this); }
 
-  array_type toArray() const {
-    if (isArray())
+  array_type to_array() const {
+    if (is_array())
       return std::get<array_type>(*this);
     return {};
   }
 
-  object_type toObject() const {
-    if (isObject())
+  object_type to_object() const {
+    if (is_object())
       return std::get<object_type>(*this);
     return {};
   }
 
-  double toDouble(bool *ok = nullptr) const {
+  double to_double(bool *ok = nullptr) const {
     if (ok)
       *ok = true;
-    if (isDouble())
+    if (is_double())
       return std::get<double>(*this);
-    if (isInt())
+    if (is_int())
       return static_cast<double>(std::get<int>(*this));
     if (ok)
       *ok = false;
     return {};
   }
 
-  double toInt(bool *ok = nullptr) const {
+  double to_int(bool *ok = nullptr) const {
     if (ok)
       *ok = true;
-    if (isDouble())
+    if (is_double())
       return static_cast<int>(std::get<double>(*this));
-    if (isInt())
+    if (is_int())
       return std::get<int>(*this);
     if (ok)
       *ok = false;
