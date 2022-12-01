@@ -433,22 +433,22 @@ TEST_CASE("test empty struct") {
 }
 
 struct keyword_t {
-  std::string __private;
-  std::string __public;
-  std::string __protected;
-  std::string __class;
+  std::string ___private;
+  std::string ___public;
+  std::string ___protected;
+  std::string ___class;
 };
-REFLECTION(keyword_t, __private, __protected, __public, __class);
+REFLECTION(keyword_t, ___private, ___protected, ___public, ___class);
 
 TEST_CASE("test keyword") {
   std::string ss =
       R"({"private":"private","protected":"protected","public":"public","class":"class"})";
   keyword_t t2;
   iguana::from_json(t2, ss);
-  CHECK(t2.__private == "private");
-  CHECK(t2.__protected == "protected");
-  CHECK(t2.__public == "public");
-  CHECK(t2.__class == "class");
+  CHECK(t2.___private == "private");
+  CHECK(t2.___protected == "protected");
+  CHECK(t2.___public == "public");
+  CHECK(t2.___class == "class");
 }
 
 struct config_actor_type {
@@ -519,6 +519,16 @@ TEST_CASE("test unicode") {
     CHECK(*list.begin() == "老");
 #endif
   }
+}
+
+TEST_CASE("test pmr") {
+#if __has_include(<memory_resource>)
+  iguana::string_stream str{&iguana::iguana_resource};
+#else
+  iguana::string_stream str
+#endif
+  person obj{.name = "tom", .age = 20};
+  iguana::to_json(obj, str);
 }
 
 TEST_CASE("test from_json_file") {
