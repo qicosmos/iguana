@@ -116,7 +116,7 @@ struct another_object_t {
 };
 REFLECTION(another_object_t, string, another_string, boolean, nested_object);
 
-struct obj_t {
+struct json0_obj_t {
   //   fixed_object_t fixed_object{};
   fixed_name_object_t fixed_name_object{};
   another_object_t another_object{};
@@ -126,7 +126,7 @@ struct obj_t {
   bool boolean{};
   bool another_bool{};
 };
-REFLECTION(obj_t, fixed_name_object, another_object, string_array, string,
+REFLECTION(json0_obj_t, fixed_name_object, another_object, string_array, string,
            number, boolean, another_bool);
 
 struct tuple_t {
@@ -472,7 +472,7 @@ inline constexpr std::string_view json0 = R"(
 )";
 
 TEST_CASE("test complicated object") {
-  obj_t obj;
+  json0_obj_t obj;
   iguana::from_json(obj, std::begin(json0), std::end(json0));
   CHECK(obj.number == 3.14);
   CHECK(obj.string == "Hello world");
@@ -526,7 +526,7 @@ TEST_CASE("test file interface") {
   out.write(json0.data(), json0.size());
   out.close();
 
-  obj_t obj;
+  json0_obj_t obj;
   iguana::from_json_file(obj, filename);
   CHECK(obj.number == 3.14);
   CHECK(obj.string == "Hello world");
