@@ -525,7 +525,7 @@ TEST_CASE("test pmr") {
 #if __has_include(<memory_resource>)
   iguana::string_stream str{&iguana::iguana_resource};
 #else
-  iguana::string_stream str
+  iguana::string_stream str;
 #endif
   person obj{.name = "tom", .age = 20};
   iguana::to_json(obj, str);
