@@ -304,7 +304,7 @@ struct forkee_t {
   std::string merges_url;
   int forks;
   std::string language;
-  bool __private;
+  bool ___private;
   std::string archive_url;
   std::string collaborators_url;
   std::string languages_url;
@@ -334,7 +334,7 @@ struct forkee_t {
   std::string ssh_url;
   std::string subscribers_url;
   std::optional<std::string> mirror_url;
-  bool __public;
+  bool ___public;
   bool has_wiki;
   std::string git_commits_url;
   std::string downloads_url;
@@ -360,13 +360,13 @@ struct forkee_t {
   std::string git_url;
 };
 REFLECTION(forkee_t, full_name, stargazers_url, clone_url, fork, url, tags_url,
-           description, merges_url, forks, language, __private, archive_url,
+           description, merges_url, forks, language, ___private, archive_url,
            collaborators_url, languages_url, owner, git_refs_url, labels_url,
            pushed_at, html_url, trees_url, forks_url, commits_url, branches_url,
            notifications_url, created_at, has_issues, blobs_url, issues_url,
            open_issues, contents_url, name, statuses_url, assignees_url,
            forks_count, updated_at, issue_events_url, ssh_url, subscribers_url,
-           mirror_url, __public, has_wiki, git_commits_url, downloads_url, id,
+           mirror_url, ___public, has_wiki, git_commits_url, downloads_url, id,
            pulls_url, has_downloads, issue_comment_url, watchers_count,
            homepage, hooks_url, subscription_url, milestones_url, events_url,
            svn_url, git_tags_url, teams_url, comments_url, open_issues_count,
@@ -466,11 +466,11 @@ struct event_t {
   std::optional<actor_org_t> actor;
   std::optional<actor_org_t> org;
   repo_t repo;
-  bool __public;
+  bool ___public;
   payload_t payload;
   std::string id;
 };
-REFLECTION(event_t, type, created_at, actor, org, repo, __public, payload, id);
+REFLECTION(event_t, type, created_at, actor, org, repo, ___public, payload, id);
 
 using events_t = std::vector<event_t>;
 } // namespace githubEvents
