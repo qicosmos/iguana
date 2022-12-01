@@ -621,7 +621,8 @@ IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size,
   }
 }
 
-template <typename It> void parse(json_value &result, It &&it, It &&end);
+template <typename It>
+void parse(jvalue &result, It &&it, It &&end);
 
 template <typename It> void parse_array(jarray &result, It &&it, It &&end) {
   skip_ws(it, end);
@@ -678,7 +679,8 @@ template <typename It> void parse_object(jobject &result, It &&it, It &&end) {
   }
 }
 
-template <typename It> void parse(json_value &result, It &&it, It &&end) {
+template <typename It>
+void parse(jvalue &result, It &&it, It &&end) {
   skip_ws(it, end);
   switch (*it) {
   case 'n':
@@ -700,10 +702,15 @@ template <typename It> void parse(json_value &result, It &&it, It &&end) {
   case '7':
   case '8':
   case '9':
-  case '-':
-    result.template emplace<double>();
-    detail::parse_item(std::get<double>(result), it, end);
+  case '-': {
+    double d{};
+    detail::parse_item(d, it, end);
+    if (static_cast<int>(d) == d)
+      result.emplace<int>(d);
+    else
+      result.emplace<double>(d);
     break;
+  }
   case '"':
     result.template emplace<std::string>();
     detail::parse_item(std::get<std::string>(result), it, end);
@@ -722,6 +729,17 @@ template <typename It> void parse(json_value &result, It &&it, It &&end) {
   }
 
   skip_ws(it, end);
+}
+
+template <typename It>
+void parse(jvalue &result, It &&it, It &&end, std::error_code &ec) {
+  try {
+    parse(result, it, end);
+    ec = {};
+  } catch (const std::runtime_error &e) {
+    result.template emplace<std::nullptr_t>();
+    ec = iguana::make_error_code(e.what());
+  }
 }
 
 template <typename T, typename It>

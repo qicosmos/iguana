@@ -142,19 +142,19 @@ REFLECTION(test_double_t, val);
 TEST_CASE("test dom parse") {
   {
     std::string_view str = R"(null)";
-    iguana::json_value val;
+    iguana::jvalue val;
     iguana::parse(val, str.begin(), str.end());
     CHECK(std::get<std::nullptr_t>(val) == std::nullptr_t{});
   }
   {
     std::string_view str = R"(false)";
-    iguana::json_value val;
+    iguana::jvalue val;
     iguana::parse(val, str.begin(), str.end());
     CHECK(std::get<bool>(val) == false);
   }
   {
     std::string_view str = R"({"name": "tom", "ok":true, "t": {"val":2.5}})";
-    iguana::json_value val;
+    iguana::jvalue val;
     iguana::parse(val, str.begin(), str.end());
     auto &map = std::get<iguana::jobject>(val);
     CHECK(std::get<std::string>(map.at("name")) == "tom");
@@ -162,29 +162,87 @@ TEST_CASE("test dom parse") {
 
     auto &sub_map = std::get<iguana::jobject>(map.at("t"));
     CHECK(std::get<double>(sub_map.at("val")) == 2.5);
+    CHECK(val.is_object());
   }
 
   {
     std::string json_str = R"({"a": [1, 2, 3]})";
-    iguana::json_value val1;
+    iguana::jvalue val1;
     iguana::parse(val1, json_str.begin(), json_str.end());
     auto &map = std::get<iguana::jobject>(val1);
     auto &arr = std::get<iguana::jarray>(map.at("a"));
 
-    CHECK(std::get<double>(arr[0]) == 1);
-    CHECK(std::get<double>(arr[1]) == 2);
-    CHECK(std::get<double>(arr[2]) == 3);
+    CHECK(std::get<int>(arr[0]) == 1);
+    CHECK(std::get<int>(arr[1]) == 2);
+    CHECK(std::get<int>(arr[2]) == 3);
+    CHECK(val1.is_object());
+    CHECK(val1.to_object().size() == 1);
   }
 
   {
-    std::string json_str = R"([1, 2, 3])";
-    iguana::json_value val1;
+    std::string json_str = R"([0.5, 2.2, 3.3])";
+    iguana::jvalue val1;
     iguana::parse(val1, json_str.begin(), json_str.end());
     auto &arr = std::get<iguana::jarray>(val1);
 
-    CHECK(std::get<double>(arr[0]) == 1);
-    CHECK(std::get<double>(arr[1]) == 2);
-    CHECK(std::get<double>(arr[2]) == 3);
+    CHECK(std::get<double>(arr[0]) == 0.5);
+    CHECK(std::get<double>(arr[1]) == 2.2);
+    CHECK(std::get<double>(arr[2]) == 3.3);
+
+    CHECK(val1.isArray());
+    const iguana::jarray &arr1 = val1.to_array();
+    CHECK(arr1.size() == 3);
+    CHECK(arr1[0].to_double() == 0.5);
+    CHECK(val1.to_object().size() == 0);
+  }
+  {
+    std::string json_str = R"(709)";
+    iguana::jvalue val1;
+    iguana::parse(val1, json_str.begin(), json_str.end());
+    auto &num = std::get<int>(val1);
+    CHECK(num == 709);
+    CHECK_THROWS(std::get<double>(val1));
+    
+  }
+  {
+    std::string json_str = R"(-0.111)";
+    iguana::jvalue val1;
+    iguana::parse(val1, json_str.begin(), json_str.end());
+    auto &num = std::get<double>(val1);
+    CHECK(val1.is_double());
+    CHECK(val1.is_number());
+    CHECK(!val1.is_array());
+  }
+  {
+    std::string json_str = R"(true)";
+    iguana::jvalue val1;
+    iguana::parse(val1, json_str.begin(), json_str.end());
+    CHECK(val1.is_bool());
+  }
+  {
+    std::string json_str = R"("true")";
+    iguana::jvalue val1;
+    iguana::parse(val1, json_str.begin(), json_str.end());
+    CHECK(val1.is_string());
+  }
+  {
+    std::string json_str = R"(null)";
+    iguana::jvalue val1;
+    CHECK(val1.is_undefined());
+
+    iguana::parse(val1, json_str.begin(), json_str.end());
+    CHECK(val1.is_null());
+    CHECK(val1.to_array().size() == 0);
+    CHECK(val1.to_object().size() == 0);
+  }
+  {
+    // what should be filled back?
+    std::string json_str = R"("tr)";
+    iguana::jvalue val1;
+    std::error_code ec{};
+    CHECK_NOTHROW(iguana::parse(val1, json_str.begin(), json_str.end(), ec));
+    CHECK(!val1.is_string());
+    CHECK(val1.is_null());
   }
 }
 
