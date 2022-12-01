@@ -189,7 +189,7 @@ TEST_CASE("test dom parse") {
     CHECK(std::get<double>(arr[1]) == 2.2);
     CHECK(std::get<double>(arr[2]) == 3.3);
 
-    CHECK(val1.isArray());
+    CHECK(val1.is_array());
     const iguana::jarray &arr1 = val1.to_array();
     CHECK(arr1.size() == 3);
     CHECK(arr1[0].to_double() == 0.5);
@@ -202,13 +202,12 @@ TEST_CASE("test dom parse") {
     auto &num = std::get<int>(val1);
     CHECK(num == 709);
     CHECK_THROWS(std::get<double>(val1));
-    
   }
   {
     std::string json_str = R"(-0.111)";
     iguana::jvalue val1;
     iguana::parse(val1, json_str.begin(), json_str.end());
-    auto &num = std::get<double>(val1);
+
     CHECK(val1.is_double());
     CHECK(val1.is_number());
     CHECK(!val1.is_array());
