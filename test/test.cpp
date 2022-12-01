@@ -181,9 +181,8 @@ TEST_CASE("test two_fields object") {
   iguana::string_stream ss;
   iguana::to_json(obj, ss);
 
-  std::string str = ss;
   two_fields_t p{};
-  iguana::from_json(p, std::begin(str), std::end(str));
+  iguana::from_json(p, std::begin(ss), std::end(ss));
   CHECK(p.v == obj.v);
 }
 
