@@ -139,6 +139,16 @@ struct test_double_t {
 };
 REFLECTION(test_double_t, val);
 
+template <typename T>
+void get_value_test_helper(const std::string &json_str, const T &expect) {
+  iguana::jvalue jv;
+  CHECK_NOTHROW(iguana::parse(jv, json_str.begin(), json_str.end()));
+  CHECK_NOTHROW(jv.get<T>());
+  T actual{};
+  CHECK_NOTHROW(jv.get_to(actual));
+  CHECK(actual == expect);
+}
+
 TEST_CASE("test dom parse") {
   {
     std::string_view str = R"(null)";
@@ -200,7 +210,10 @@ TEST_CASE("test dom parse") {
     const iguana::jarray &arr1 = val1.to_array();
     CHECK(arr1.size() == 3);
     CHECK(arr1[0].to_double() == 0.5);
-    CHECK(val1.to_object().size() == 0);
+
+    std::error_code ec;
+    CHECK_NOTHROW(val1.to_object(ec));
+    CHECK_THROWS(val1.to_object());
   }
   {
     std::string json_str = R"(709)";
@@ -209,6 +222,9 @@ TEST_CASE("test dom parse") {
     auto &num = std::get<int>(val1);
     CHECK(num == 709);
     CHECK_THROWS(std::get<double>(val1));
+
+    int expect = 709;
+    get_value_test_helper(json_str, 709);
   }
   {
     std::string json_str = R"(-0.111)";
@@ -224,12 +240,18 @@ TEST_CASE("test dom parse") {
     iguana::jvalue val1;
     iguana::parse(val1, json_str.begin(), json_str.end());
     CHECK(val1.is_bool());
+
+    bool expect = true;
+    get_value_test_helper(json_str, expect);
   }
   {
     std::string json_str = R"("true")";
     iguana::jvalue val1;
     iguana::parse(val1, json_str.begin(), json_str.end());
     CHECK(val1.is_string());
+
+    std::string expect("true");
+    get_value_test_helper(json_str, expect);
   }
   {
     std::string json_str = R"(null)";
@@ -238,8 +260,21 @@ TEST_CASE("test dom parse") {
 
     iguana::parse(val1, json_str.begin(), json_str.end());
     CHECK(val1.is_null());
-    CHECK(val1.to_array().size() == 0);
-    CHECK(val1.to_object().size() == 0);
+    // throw
+    CHECK_THROWS(val1.to_array());
+    CHECK_THROWS(val1.to_object());
+    CHECK_THROWS(val1.to_double());
+    CHECK_THROWS(val1.to_int());
+    CHECK_THROWS(val1.to_bool());
+    CHECK_THROWS(val1.to_string());
+    // no throw
+    std::error_code ec;
+    CHECK_NOTHROW(val1.to_array(ec));
+    CHECK_NOTHROW(val1.to_object(ec));
+    CHECK_NOTHROW(val1.to_double(ec));
+    CHECK_NOTHROW(val1.to_int(ec));
+    CHECK_NOTHROW(val1.to_bool(ec));
+    CHECK_NOTHROW(val1.to_string(ec));
   }
   {
     // what should be filled back?

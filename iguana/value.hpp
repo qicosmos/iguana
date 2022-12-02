@@ -61,43 +61,8 @@ struct basic_json_value
   bool is_array() const { return std::holds_alternative<array_type>(*this); }
   bool is_object() const { return std::holds_alternative<object_type>(*this); }
 
-  array_type to_array() const {
-    if (is_array())
-      return std::get<array_type>(*this);
-    return {};
-  }
-
-  object_type to_object() const {
-    if (is_object())
-      return std::get<object_type>(*this);
-    return {};
-  }
-
-  double to_double(bool *ok = nullptr) const {
-    if (ok)
-      *ok = true;
-    if (is_double())
-      return std::get<double>(*this);
-    if (is_int())
-      return static_cast<double>(std::get<int>(*this));
-    if (ok)
-      *ok = false;
-    return {};
-  }
-
-  double to_int(bool *ok = nullptr) const {
-    if (ok)
-      *ok = true;
-    if (is_double())
-      return static_cast<int>(std::get<double>(*this));
-    if (is_int())
-      return std::get<int>(*this);
-    if (ok)
-      *ok = false;
-    return {};
-  }
-
-  template <typename T> std::pair<std::error_code, T> get() {
+  template <typename T>
+  std::pair<std::error_code, T> get() const {
     std::error_code ec{};
     try {
       return std::make_pair(ec, std::get<T>(*this));
@@ -111,6 +76,58 @@ struct basic_json_value
       }
       return std::make_pair(ec, T{});
     }
+  }
+
+  template <typename T>
+  std::error_code get_to(T &v) const {
+    auto [ec, val] = get<T>();
+    if (ec.value() == 0)
+      v = val;
+    return ec;
+  }
+
+  template <typename T>
+  T _get_to_may_throw() const {
+    auto [ec, v] = get<T>();
+    if (ec.value())
+      throw(ec);
+    return v;
+  }
+
+  template <typename T>
+  T _get_to_no_throw(std::error_code &ec) const {
+    auto [code, v] = get<T>();
+    if (code.value())
+      ec = code;
+    return v;
+  }
+
+  object_type to_object() const { return _get_to_may_throw<object_type>(); }
+  object_type to_object(std::error_code &ec) const {
+    return _get_to_no_throw<object_type>(ec);
+  }
+
+  array_type to_array() const { return _get_to_may_throw<array_type>(); }
+  array_type to_array(std::error_code &ec) const {
+    return _get_to_no_throw<array_type>(ec);
+  }
+
+  double to_double() const { return _get_to_may_throw<double>(); }
+  double to_double(std::error_code &ec) const {
+    return _get_to_no_throw<double>(ec);
+  }
+
+  int to_int() const { return _get_to_may_throw<int>(); }
+  int to_int(std::error_code &ec) const { return _get_to_no_throw<int>(ec); }
+
+  bool to_bool() const { return _get_to_may_throw<bool>(); }
+  bool to_bool(std::error_code &ec) const { return _get_to_no_throw<bool>(ec); }
+
+  std::basic_string<CharT> to_string() const {
+    return _get_to_may_throw<std::basic_string<CharT>>();
+  }
+  std::basic_string<CharT> to_string(std::error_code &ec) const {
+    return _get_to_no_throw<std::basic_string<CharT>>(ec);
   }
 };
 
