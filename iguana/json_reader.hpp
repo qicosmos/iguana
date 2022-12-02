@@ -11,6 +11,7 @@
 #include <type_traits>
 
 #include "error_code.h"
+#include "value.hpp"
 
 namespace iguana {
 
@@ -616,6 +617,127 @@ IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size,
     from_json(value, data, size);
     ec = {};
   } catch (std::runtime_error &e) {
+    ec = iguana::make_error_code(e.what());
+  }
+}
+
+template <typename It> void parse(jvalue &result, It &&it, It &&end);
+
+template <typename It>
+inline void parse_array(jarray &result, It &&it, It &&end) {
+  skip_ws(it, end);
+  match<'['>(it, end);
+  if (*it == ']')
+    return;
+  while (true) {
+    if (it == end) {
+      break;
+    }
+    result.emplace_back();
+
+    parse(result.back(), it, end);
+
+    if (*it == ']') {
+      ++it;
+      return;
+    }
+
+    match<','>(it, end);
+  }
+}
+
+template <typename It>
+inline void parse_object(jobject &result, It &&it, It &&end) {
+  skip_ws(it, end);
+  match<'{'>(it, end);
+  if (*it == '}') {
+    return;
+  }
+
+  skip_ws(it, end);
+
+  while (true) {
+    if (it == end) {
+      break;
+    }
+    std::string key;
+    detail::parse_item(key, it, end);
+
+    auto emplaced = result.try_emplace(key);
+    if (!emplaced.second)
+      throw std::runtime_error("duplicated key " + key);
+
+    match<':'>(it, end);
+
+    parse(emplaced.first->second, it, end);
+
+    if (*it == '}') {
+      ++it;
+      return;
+    }
+
+    match<','>(it, end);
+  }
+}
+
+template <typename It> inline void parse(jvalue &result, It &&it, It &&end) {
+  skip_ws(it, end);
+  switch (*it) {
+  case 'n':
+    match<"null">(it, end);
+    result.template emplace<std::nullptr_t>();
+    break;
+
+  case 'f':
+  case 't':
+    detail::parse_item(result.template emplace<bool>(), it, end);
+    break;
+  case '0':
+  case '1':
+  case '2':
+  case '3':
+  case '4':
+  case '5':
+  case '6':
+  case '7':
+  case '8':
+  case '9':
+  case '-': {
+    double d{};
+    detail::parse_item(d, it, end);
+    if (static_cast<int>(d) == d)
+      result.emplace<int>(d);
+    else
+      result.emplace<double>(d);
+    break;
+  }
+  case '"':
+    result.template emplace<std::string>();
+    detail::parse_item(std::get<std::string>(result), it, end);
+    break;
+  case '[':
+    result.template emplace<jarray>();
+    parse_array(std::get<jarray>(result), it, end);
+    break;
+  case '{': {
+    result.template emplace<jobject>();
+    parse_object(std::get<jobject>(result), it, end);
+    break;
+  }
+  default:
+    throw std::runtime_error("parse failed");
+  }
+
+  skip_ws(it, end);
+}
+
+template <typename It>
+inline void parse(jvalue &result, It &&it, It &&end, std::error_code &ec) {
+  try {
+    parse(result, it, end);
+    ec = {};
+  } catch (const std::runtime_error &e) {
+    result.template emplace<std::nullptr_t>();
     ec = iguana::make_error_code(e.what());
   }
 }
