@@ -19,6 +19,8 @@ template <class Key, class T, typename... Args>
 using json_map = std::unordered_map<Key, T, Args...>;
 #endif
 
+enum dom_parse_error { ok, wrong_type };
+
 template <typename CharT>
 struct basic_json_value
     : std::variant<
@@ -33,6 +35,11 @@ struct basic_json_value
                                  int, string_type, array_type, object_type>;
 
   using base_type::base_type;
+
+  inline const static std::unordered_map<size_t, std::string> type_map_ = {
+      {0, "undefined type"}, {1, "null type"},  {2, "bool type"},
+      {3, "double type"},    {4, "int type"},   {5, "string type"},
+      {6, "array type"},     {7, "object type"}};
 
   basic_json_value() : base_type(std::in_place_type<std::monostate>) {}
 
@@ -88,6 +95,22 @@ struct basic_json_value
     if (ok)
       *ok = false;
     return {};
+  }
+
+  template <typename T> std::pair<std::error_code, T> get() {
+    std::error_code ec{};
+    try {
+      return std::make_pair(ec, std::get<T>(*this));
+    } catch (std::exception &e) {
+      auto it = type_map_.find(this->index());
+      if (it == type_map_.end()) {
+        ec = iguana::make_error_code(iguana::dom_errc::wrong_type,
+                                     "undefined type");
+      } else {
+        ec = iguana::make_error_code(iguana::dom_errc::wrong_type, it->second);
+      }
+      return std::make_pair(ec, T{});
+    }
   }
 };
 

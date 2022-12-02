@@ -144,13 +144,20 @@ TEST_CASE("test dom parse") {
     std::string_view str = R"(null)";
     iguana::jvalue val;
     iguana::parse(val, str.begin(), str.end());
-    CHECK(std::get<std::nullptr_t>(val) == std::nullptr_t{});
+    auto pair = val.get<int>();
+    if (pair.first) {
+      CHECK(pair.first.message() == "wrong type, real type is null type");
+    }
+    CHECK(val.get<std::nullptr_t>().second == std::nullptr_t{});
   }
   {
     std::string_view str = R"(false)";
     iguana::jvalue val;
     iguana::parse(val, str.begin(), str.end());
-    CHECK(std::get<bool>(val) == false);
+
+    auto pair = val.get<bool>();
+    CHECK(!pair.first);
+    CHECK(pair.second == false);
   }
   {
     std::string_view str = R"({"name": "tom", "ok":true, "t": {"val":2.5}})";
