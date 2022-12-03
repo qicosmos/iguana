@@ -114,6 +114,23 @@ struct basic_json_value
   std::basic_string<CharT> to_string(std::error_code &ec) const {
     return get<std::basic_string<CharT>>(ec);
   }
+  template <typename T> requires std::integral<T> basic_json_value& operator[](T idx) {
+    return std::get<array_type>(*this).operator[](idx);
+  }
+
+  template <typename T> requires std::integral<T> const basic_json_value& operator[](T idx) const {
+    return std::get<array_type>(*this).operator[](idx);
+  }
+
+  template <typename T, typename = std::enable_if_t<std::is_convertible_v<T, std::string>>>
+  basic_json_value operator[](const T& idx) {
+    return std::get<object_type>(*this).operator[](idx);
+  }
+
+  template <typename T, typename = std::enable_if_t<std::is_convertible_v<T, std::string>>>
+  const basic_json_value& operator[](const T& idx) const {
+    return std::get<object_type>(*this).operator[](idx);
+  }
 };
 
 template <typename CharT>

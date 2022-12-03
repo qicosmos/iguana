@@ -306,6 +306,17 @@ TEST_CASE("test dom parse") {
     CHECK(!val1.is_string());
     CHECK(val1.is_null());
   }
+  {
+    std::string_view str1 =
+      R"({"name": "tom", "ok":true, "t": {"val":[1, 2, 3]}})";
+    iguana::jvalue val1;
+    iguana::parse(val1, str1.begin(), str1.end());
+    auto name = val1["name"];
+    CHECK(std::get<std::string>(name) == "tom");
+    CHECK(std::get<bool>(val1["ok"]) == true);
+    auto arr = val1["t"]["val"][1];
+    CHECK(std::get<int>(arr) == 2);
+  }
 }
 
 TEST_CASE("test simple object") {
