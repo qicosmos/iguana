@@ -61,73 +61,58 @@ struct basic_json_value
   bool is_array() const { return std::holds_alternative<array_type>(*this); }
   bool is_object() const { return std::holds_alternative<object_type>(*this); }
 
-  template <typename T>
-  std::pair<std::error_code, T> get() const {
-    std::error_code ec{};
+  // if type is not match, will throw exception, if pass std::error_code, won't
+  // throw exception
+  template <typename T> T get() const {
     try {
-      return std::make_pair(ec, std::get<T>(*this));
+      return std::get<T>(*this);
     } catch (std::exception &e) {
       auto it = type_map_.find(this->index());
       if (it == type_map_.end()) {
-        ec = iguana::make_error_code(iguana::dom_errc::wrong_type,
-                                     "undefined type");
+        throw std::invalid_argument("undefined type");
       } else {
-        ec = iguana::make_error_code(iguana::dom_errc::wrong_type, it->second);
+        throw std::invalid_argument(it->second);
       }
-      return std::make_pair(ec, T{});
     }
   }
 
-  template <typename T>
-  std::error_code get_to(T &v) const {
-    auto [ec, val] = get<T>();
-    if (ec.value() == 0)
-      v = std::move(val);
+  template <typename T> T get(std::error_code &ec) const {
+    try {
+      return get<T>();
+    } catch (std::exception &e) {
+      ec = iguana::make_error_code(iguana::dom_errc::wrong_type, e.what());
+      return T{};
+    }
+  }
+
+  template <typename T> std::error_code get_to(T &v) const {
+    std::error_code ec;
+    v = get<T>(ec);
     return ec;
   }
 
-  template <typename T>
-  T _get_to_may_throw() const {
-    auto [ec, v] = get<T>();
-    if (ec.value())
-      throw(ec);
-    return v;
-  }
-
-  template <typename T>
-  T _get_to_no_throw(std::error_code &ec) const {
-    auto [code, v] = get<T>();
-    if (code.value())
-      ec = code;
-    return v;
-  }
-
-  object_type to_object() const { return _get_to_may_throw<object_type>(); }
+  object_type to_object() const { return get<object_type>(); }
   object_type to_object(std::error_code &ec) const {
-    return _get_to_no_throw<object_type>(ec);
+    return get<object_type>(ec);
   }
 
-  array_type to_array() const { return _get_to_may_throw<array_type>(); }
-  array_type to_array(std::error_code &ec) const {
-    return _get_to_no_throw<array_type>(ec);
-  }
+  array_type to_array() const { return get<array_type>(); }
+  array_type to_array(std::error_code &ec) const { return get<array_type>(ec); }
 
-  double to_double() const { return _get_to_may_throw<double>(); }
-  double to_double(std::error_code &ec) const {
-    return _get_to_no_throw<double>(ec);
-  }
+  double to_double() const { return get<double>(); }
+  double to_double(std::error_code &ec) const { return get<double>(ec); }
 
-  int to_int() const { return _get_to_may_throw<int>(); }
-  int to_int(std::error_code &ec) const { return _get_to_no_throw<int>(ec); }
+  int to_int() const { return get<int>(); }
+  int to_int(std::error_code &ec) const { return get<int>(ec); }
 
-  bool to_bool() const { return _get_to_may_throw<bool>(); }
-  bool to_bool(std::error_code &ec) const { return _get_to_no_throw<bool>(ec); }
+  bool to_bool() const { return get<bool>(); }
+  bool to_bool(std::error_code &ec) const { return get<bool>(ec); }
 
   std::basic_string<CharT> to_string() const {
-    return _get_to_may_throw<std::basic_string<CharT>>();
+    return get<std::basic_string<CharT>>();
   }
   std::basic_string<CharT> to_string(std::error_code &ec) const {
-    return _get_to_no_throw<std::basic_string<CharT>>(ec);
+    return get<std::basic_string<CharT>>(ec);
   }
 };
 

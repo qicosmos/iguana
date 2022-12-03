@@ -161,7 +161,8 @@ TEST_CASE("test from issues") {
   test test1;
   std::string str1 =
       R"({"username1": "test", "password":test, "id": 10.1, "error": false})";
-  CHECK_THROWS(iguana::from_json(test1, str1.c_str(), str1.length()));
+
+  CHECK_THROWS(iguana::from_json(test1, str1));
   std::cout << test1.username << std::endl;
   std::cout << test1.password << std::endl;
   std::cout << test1.id << std::endl;
@@ -173,20 +174,22 @@ TEST_CASE("test dom parse") {
     std::string_view str = R"(null)";
     iguana::jvalue val;
     iguana::parse(val, str.begin(), str.end());
-    auto pair = val.get<int>();
-    if (pair.first) {
-      CHECK(pair.first.message() == "wrong type, real type is null type");
+    std::error_code ec;
+    [[maybe_unused]] int i = val.get<int>(ec);
+    if (ec) {
+      CHECK(ec.message() == "wrong type, real type is null type");
     }
-    CHECK(val.get<std::nullptr_t>().second == std::nullptr_t{});
+    CHECK(val.get<std::nullptr_t>() == std::nullptr_t{});
   }
   {
     std::string_view str = R"(false)";
     iguana::jvalue val;
     iguana::parse(val, str.begin(), str.end());
 
-    auto pair = val.get<bool>();
-    CHECK(!pair.first);
-    CHECK(pair.second == false);
+    std::error_code ec;
+    auto b = val.get<bool>(ec);
+    CHECK(!ec);
+    CHECK(!b);
   }
   {
     std::string_view str = R"({"name": "tom", "ok":true, "t": {"val":2.5}})";
@@ -242,7 +245,6 @@ TEST_CASE("test dom parse") {
     CHECK(num == 709);
     CHECK_THROWS(std::get<double>(val1));
 
-    int expect = 709;
     get_value_test_helper(json_str, 709);
   }
   {
