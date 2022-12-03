@@ -123,7 +123,7 @@ struct basic_json_value
   }
 
   template <typename T, typename = std::enable_if_t<std::is_convertible_v<T, std::string>>>
-  basic_json_value operator[](const T& idx) {
+  basic_json_value& operator[](const T& idx) {
     return std::get<object_type>(*this).operator[](idx);
   }
 
