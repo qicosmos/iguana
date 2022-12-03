@@ -139,6 +139,14 @@ struct test_double_t {
 };
 REFLECTION(test_double_t, val);
 
+struct test {
+  std::string username;
+  std::string password;
+  long long id;
+  bool error;
+};
+REFLECTION(test, username, password, id, error);
+
 template <typename T>
 void get_value_test_helper(const std::string &json_str, const T &expect) {
   iguana::jvalue jv;
@@ -147,6 +155,17 @@ void get_value_test_helper(const std::string &json_str, const T &expect) {
   T actual{};
   CHECK_NOTHROW(jv.get_to(actual));
   CHECK(actual == expect);
+}
+
+TEST_CASE("test from issues") {
+  test test1;
+  std::string str1 =
+      R"({"username1": "test", "password":test, "id": 10.1, "error": false})";
+  CHECK_THROWS(iguana::from_json(test1, str1.c_str(), str1.length()));
+  std::cout << test1.username << std::endl;
+  std::cout << test1.password << std::endl;
+  std::cout << test1.id << std::endl;
+  std::cout << std::boolalpha << test1.error << std::endl;
 }
 
 TEST_CASE("test dom parse") {
