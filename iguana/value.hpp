@@ -82,7 +82,7 @@ struct basic_json_value
   std::error_code get_to(T &v) const {
     auto [ec, val] = get<T>();
     if (ec.value() == 0)
-      v = val;
+      v = std::move(val);
     return ec;
   }
 
