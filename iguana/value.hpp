@@ -91,6 +91,28 @@ struct basic_json_value
     return ec;
   }
 
+  template <typename T> T at(size_t idx) {
+    const auto &arr = get<array_type>();
+    if (idx >= arr.size()) {
+      throw std::out_of_range("idx is out of range");
+    }
+    return arr[idx].template get<T>();
+  }
+
+  template <typename T> T at(size_t idx, std::error_code &ec) {
+    const auto &arr = get<array_type>(ec);
+    if (ec) {
+      return T{};
+    }
+
+    if (idx >= arr.size()) {
+      ec = std::make_error_code(std::errc::result_out_of_range);
+      return T{};
+    }
+
+    return arr[idx].template get<T>(ec);
+  }
+
   object_type to_object() const { return get<object_type>(); }
   object_type to_object(std::error_code &ec) const {
     return get<object_type>(ec);
