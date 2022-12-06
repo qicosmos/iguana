@@ -435,81 +435,81 @@ TEST_CASE("test deque_t") {
   CHECK(list.lst == p.lst);
 }
 
-// inline constexpr std::string_view json0 = R"(
-// {
-//    "fixed_name_object": {
-//       "name0": "James",
-//       "name1": "Abraham",
-//       "name2": "Susan",
-//       "name3": "Frank",
-//       "name4": "Alicia"
-//    },
-//    "another_object": {
-//       "string": "here is some text",
-//       "another_string": "Hello World",
-//       "boolean": false,
-//       "nested_object": {
-//          "v3s": [[0.12345, 0.23456, 0.001345],
-//                   [0.3894675, 97.39827, 297.92387],
-//                   [18.18, 87.289, 2988.298]],
-//          "id": "298728949872"
-//       }
-//    },
-//    "string_array": ["Cat", "Dog", "Elephant", "Tiger"],
-//    "string": "Hello world",
-//    "number": 3.14,
-//    "boolean": true,
-//    "another_bool": false
-// }
-// )";
+inline constexpr std::string_view json0 = R"(
+{
+   "fixed_name_object": {
+      "name0": "James",
+      "name1": "Abraham",
+      "name2": "Susan",
+      "name3": "Frank",
+      "name4": "Alicia"
+   },
+   "another_object": {
+      "string": "here is some text",
+      "another_string": "Hello World",
+      "boolean": false,
+      "nested_object": {
+         "v3s": [[0.12345, 0.23456, 0.001345],
+                  [0.3894675, 97.39827, 297.92387],
+                  [18.18, 87.289, 2988.298]],
+         "id": "298728949872"
+      }
+   },
+   "string_array": ["Cat", "Dog", "Elephant", "Tiger"],
+   "string": "Hello world",
+   "number": 3.14,
+   "boolean": true,
+   "another_bool": false
+}
+)";
 
-// TEST_CASE("test complicated object") {
-//   json0_obj_t obj;
-//   iguana::from_json(obj, std::begin(json0), std::end(json0));
-//   CHECK(obj.number == 3.14);
-//   CHECK(obj.string == "Hello world");
-// }
+TEST_CASE("test complicated object") {
+  json0_obj_t obj;
+  iguana::from_json(obj, std::begin(json0), std::end(json0));
+  CHECK(obj.number == 3.14);
+  CHECK(obj.string == "Hello world");
+}
 
-// TEST_CASE("test non-reflectable object") {
-//   {
-//     std::tuple<int, double, std::string> t{1, 3.14, std::string("iguana")};
+TEST_CASE("test non-reflectable object") {
+  {
+    std::tuple<int, double, std::string> t{1, 3.14, std::string("iguana")};
 
-//     iguana::string_stream ss;
-//     iguana::to_json(t, ss);
+    iguana::string_stream ss;
+    iguana::to_json(t, ss);
 
-//     std::tuple<int, double, std::string> p{};
-//     iguana::from_json(p, std::begin(ss), std::end(ss));
+    std::tuple<int, double, std::string> p{};
+    iguana::from_json(p, std::begin(ss), std::end(ss));
 
-//     CHECK(std::get<0>(t) == std::get<0>(p));
-//     CHECK(std::get<1>(t) == std::get<1>(p));
-//     CHECK(std::get<2>(t) == std::get<2>(p));
-//   }
+    CHECK(std::get<0>(t) == std::get<0>(p));
+    CHECK(std::get<1>(t) == std::get<1>(p));
+    CHECK(std::get<2>(t) == std::get<2>(p));
+  }
 
-//   {
-//     std::string str = "[1, 2, 3]";
-//     std::vector<int> p{};
-//     iguana::from_json(p, std::begin(str), std::end(str));
-//     CHECK(p == std::vector<int>{1, 2, 3});
+  {
+    std::string str = "[1, 2, 3]";
+    std::vector<int> p{};
+    iguana::from_json(p, std::begin(str), std::end(str));
+    CHECK(p == std::vector<int>{1, 2, 3});
 
-//     std::array<int, 3> arr;
-//     iguana::from_json(arr, std::begin(str), std::end(str));
-//     CHECK(arr == std::array<int, 3>{1, 2, 3});
+    std::array<int, 3> arr;
+    iguana::from_json(arr, std::begin(str), std::end(str));
+    CHECK(arr == std::array<int, 3>{1, 2, 3});
 
-//     int c_arr[3];
-//     iguana::from_json(c_arr, std::begin(str), std::end(str));
-//     CHECK(c_arr[0] == 1);
-//     CHECK(c_arr[1] == 2);
-//     CHECK(c_arr[2] == 3);
-//   }
+    int c_arr[3];
+    iguana::from_json(c_arr, std::begin(str), std::end(str));
+    CHECK(c_arr[0] == 1);
+    CHECK(c_arr[1] == 2);
+    CHECK(c_arr[2] == 3);
+  }
 
-//   {
-//     std::string str = R"({"1":"tom"})";
-//     std::map<int, std::string> map;
-//     iguana::from_json(map, std::begin(str), std::end(str));
-//     CHECK(map.size() == 1);
-//     CHECK(map.at(1) == "tom");
-//   }
-// }
+  {
+    std::string str = R"({"1":"tom"})";
+    std::map<int, std::string> map;
+    iguana::from_json(map, std::begin(str), std::end(str));
+    CHECK(map.size() == 1);
+    CHECK(map.at(1) == "tom");
+  }
+}
 
 // TEST_CASE("test file interface") {
 //   std::string filename = "test.json";
