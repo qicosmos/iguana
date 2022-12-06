@@ -651,9 +651,11 @@ TEST_CASE("parse invalid array") {
     std::string str = R"([1})";
     std::vector<float> v;
     CHECK_THROWS_AS(iguana::from_json(v, str), std::runtime_error);
-
-    // std::array<int, 1> arr;
-    // CHECK_THROWS_WITH(iguana::from_json(arr, str), "Expected ]");
+  }
+  {
+    std::string str = R"([1}])";
+    std::array<int, 1> arr;
+    CHECK_THROWS_WITH(iguana::from_json(arr, str), "Expected ]");
   }
 
   {
