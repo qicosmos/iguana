@@ -663,12 +663,12 @@ TEST_CASE("parse invalid array") {
   }
 }
 
-// TEST_CASE("parse some other char") {
-//   std::string str = R"({"\name":"\tom", "ok":false})";
-//   person p;
-//   iguana::from_json(p, str);
-//   CHECK(p.name == "tom");
-// }
+TEST_CASE("parse some other char") {
+  std::string str = R"({"\name":"\tom", "ok":false})";
+  person p;
+  iguana::from_json(p, str);
+  CHECK(p.name == "tom");
+}
 
 // TEST_CASE("check some types") {
 //   using value_type = std::variant<int point_t::*, double point_t::*>;
