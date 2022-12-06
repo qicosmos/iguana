@@ -203,8 +203,10 @@ TEST_CASE("test dom parse") {
     CHECK(val.at<bool>("ok") == true);
 
     std::error_code ec;
-    val.at<bool>("no such", ec);
+    CHECK(val.at<bool>("no such", ec) == false);
     CHECK(ec);
+
+    CHECK_THROWS_WITH(val.at<int>("no ec"), "the key is unknown");
 
     auto sub_map = val.at<iguana::jobject>("t");
     CHECK(sub_map.at("val").get<double>() == 2.5);
@@ -229,7 +231,7 @@ TEST_CASE("test dom parse") {
   std::cout << "test dom parse part 2 ok\n";
 
   {
-    std::string json_str = R"([0.5, 2.2, 3.3])";
+    std::string json_str = R"([0.5, 2.2, 3.3, 4])";
     iguana::jvalue val1;
     iguana::parse(val1, json_str.begin(), json_str.end());
     auto &arr = std::get<iguana::jarray>(val1);
@@ -240,6 +242,13 @@ TEST_CASE("test dom parse") {
     val1.at<int>(1, ec1);
     CHECK(ec1);
     std::cout << ec1.message() << "\n";
+    
+    {
+      CHECK_THROWS_WITH(val1.at<double>(9), "idx is out of range");
+      std::error_code ec;
+      CHECK_NOTHROW(val1.at<double>(-1, ec));
+      CHECK(ec);
+    }
 
     CHECK(std::get<double>(arr[0]) == 0.5);
     CHECK(std::get<double>(arr[1]) == 2.2);
@@ -247,8 +256,9 @@ TEST_CASE("test dom parse") {
 
     CHECK(val1.is_array());
     const iguana::jarray &arr1 = val1.to_array();
-    CHECK(arr1.size() == 3);
+    CHECK(arr1.size() == 4);
     CHECK(arr1[0].to_double() == 0.5);
+    CHECK(arr1[3].is_int());
 
     std::error_code ec;
     CHECK_NOTHROW(val1.to_object(ec));
