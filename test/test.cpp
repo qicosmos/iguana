@@ -191,7 +191,7 @@ TEST_CASE("test dom parse") {
     CHECK(std::get<double>(arr[0]) == 0.5);
     CHECK(std::get<double>(arr[1]) == 2.2);
     CHECK(std::get<double>(arr[2]) == 3.3);
-    // CHECK(std::get<double>(arr[3]) == 4.0); // ? throw exception
+    CHECK(std::get<int>(arr[3]) == 4);
 
     CHECK(val1.is_array());
     const iguana::jarray &arr1 = val1.to_array();
