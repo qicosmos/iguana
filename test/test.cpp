@@ -195,12 +195,16 @@ TEST_CASE("test dom parse") {
     std::string_view str = R"({"name": "tom", "ok":true, "t": {"val":2.5}})";
     iguana::jvalue val;
     iguana::parse(val, str.begin(), str.end());
-    auto &map = std::get<iguana::jobject>(val);
-    CHECK(std::get<std::string>(map.at("name")) == "tom");
-    CHECK(std::get<bool>(map.at("ok")) == true);
 
-    auto &sub_map = std::get<iguana::jobject>(map.at("t"));
-    CHECK(std::get<double>(sub_map.at("val")) == 2.5);
+    CHECK(val.at<std::string>("name") == "tom");
+    CHECK(val.at<bool>("ok") == true);
+
+    std::error_code ec;
+    val.at<bool>("no such", ec);
+    CHECK(ec);
+
+    auto sub_map = val.at<iguana::jobject>("t");
+    CHECK(sub_map.at("val").get<double>() == 2.5);
     CHECK(val.is_object());
   }
 
@@ -208,6 +212,7 @@ TEST_CASE("test dom parse") {
     std::string json_str = R"({"a": [1, 2, 3]})";
     iguana::jvalue val1;
     iguana::parse(val1, json_str.begin(), json_str.end());
+
     auto &map = std::get<iguana::jobject>(val1);
     auto &arr = std::get<iguana::jarray>(map.at("a"));
 

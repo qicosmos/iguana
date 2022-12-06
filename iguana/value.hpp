@@ -91,6 +91,29 @@ struct basic_json_value
     return ec;
   }
 
+  template <typename T> T at(const std::string &key) {
+    const auto &map = get<object_type>();
+    auto it = map.find(key);
+    if (it == map.end()) {
+      throw std::invalid_argument("the key is unknown");
+    }
+    return it->second.template get<T>();
+  }
+
+  template <typename T> T at(const std::string &key, std::error_code &ec) {
+    const auto &map = get<object_type>(ec);
+    if (ec) {
+      return T{};
+    }
+
+    auto it = map.find(key);
+    if (it == map.end()) {
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return T{};
+    }
+    return it->second.template get<T>(ec);
+  }
+
   template <typename T> T at(size_t idx) {
     const auto &arr = get<array_type>();
     if (idx >= arr.size()) {
