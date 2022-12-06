@@ -9,7 +9,7 @@ namespace iguana {
 class iguana_category : public std::error_category {
 public:
   virtual const char *name() const noexcept override {
-    return "iguna::category";
+    return "iguana::category";
   }
   virtual std::string message(int err_val) const override {
     for (auto &pair : err_map_) {
