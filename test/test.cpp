@@ -663,6 +663,15 @@ TEST_CASE("parse invalid array") {
   // }
 }
 
+TEST_CASE("parse invalid array Unexpected end")
+{
+  {
+    std::string str = R"([ )";
+    std::array<int, 1> v;
+    CHECK_THROWS_WITH(iguana::from_json(v, str), "Unexpected end");
+  }
+}
+
 TEST_CASE("parse some other char") {
   std::string str = R"({"\name":"\tom", "ok":false})";
   person p;
