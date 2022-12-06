@@ -600,68 +600,68 @@ TEST_CASE("test file interface") {
   std::filesystem::remove(filename);
 }
 
-// TEST_CASE("test view and byte interface") {
-//   std::string_view str = R"({"name": "tom", "ok":true})";
+TEST_CASE("test view and byte interface") {
+  std::string_view str = R"({"name": "tom", "ok":true})";
 
-//   person p;
-//   iguana::from_json(p, str);
+  person p;
+  iguana::from_json(p, str);
 
-//   std::string str1 = {str.data(), str.size()};
-//   person p1;
-//   iguana::from_json(p1, str1);
+  std::string str1 = {str.data(), str.size()};
+  person p1;
+  iguana::from_json(p1, str1);
 
-//   CHECK(p == p1);
+  CHECK(p == p1);
 
-//   std::vector<char> v;
-//   v.resize(str.size());
-//   std::memcpy(v.data(), str.data(), str.size());
-//   person p2;
-//   iguana::from_json(p2, v);
-//   CHECK(p == p2);
+  std::vector<char> v;
+  v.resize(str.size());
+  std::memcpy(v.data(), str.data(), str.size());
+  person p2;
+  iguana::from_json(p2, v);
+  CHECK(p == p2);
 
-//   person p3;
-//   iguana::from_json(p3, v.data(), v.size());
-//   CHECK(p2 == p3);
-// }
+  person p3;
+  iguana::from_json(p3, v.data(), v.size());
+  CHECK(p2 == p3);
+}
 
-// TEST_CASE("parse num") {
-//   std::string str = R"(["x"])";
-//   std::vector<float> v;
-//   CHECK_THROWS_WITH(iguana::from_json(v, str), "Failed to parse number");
+TEST_CASE("parse num") {
+  std::string str = R"(["x"])";
+  std::vector<float> v;
+  CHECK_THROWS_WITH(iguana::from_json(v, str), "Failed to parse number");
 
-//   std::vector<int> v1;
-//   CHECK_THROWS_WITH(iguana::from_json(v1, str), "Failed to parse number");
-// }
+  std::vector<int> v1;
+  CHECK_THROWS_WITH(iguana::from_json(v1, str), "Failed to parse number");
+}
 
-// TEST_CASE("parse invalid array") {
-//   {
-//     std::string str = R"([1)";
-//     std::vector<int> v;
-//     CHECK_THROWS_WITH(iguana::from_json(v, str), "Expected ]");
+TEST_CASE("parse invalid array") {
+  {
+    std::string str = R"([1)";
+    std::vector<int> v;
+    CHECK_THROWS_WITH(iguana::from_json(v, str), "Expected ]");
 
-//     std::array<int, 1> arr;
-//     CHECK_THROWS_WITH(iguana::from_json(arr, str), "Unexpected end");
-//   }
-//   {
-//     std::string str = R"([ )";
-//     std::array<int, 1> v;
-//     CHECK_THROWS_WITH(iguana::from_json(v, str), "Unexpected end");
-//   }
-//   {
-//     std::string str = R"([1})";
-//     std::vector<float> v;
-//     CHECK_THROWS_AS(iguana::from_json(v, str), std::runtime_error);
+    std::array<int, 1> arr;
+    CHECK_THROWS_WITH(iguana::from_json(arr, str), "Unexpected end");
+  }
+  {
+    std::string str = R"([ )";
+    std::array<int, 1> v;
+    CHECK_THROWS_WITH(iguana::from_json(v, str), "Unexpected end");
+  }
+  {
+    std::string str = R"([1})";
+    std::vector<float> v;
+    CHECK_THROWS_AS(iguana::from_json(v, str), std::runtime_error);
 
-//     std::array<int, 1> arr;
-//     CHECK_THROWS_WITH(iguana::from_json(arr, str), "Expected ]");
-//   }
+    std::array<int, 1> arr;
+    CHECK_THROWS_WITH(iguana::from_json(arr, str), "Expected ]");
+  }
 
-//   {
-//     std::string str = R"([])";
-//     std::array<int, 1> arr;
-//     iguana::from_json(arr, str);
-//   }
-// }
+  {
+    std::string str = R"([])";
+    std::array<int, 1> arr;
+    iguana::from_json(arr, str);
+  }
+}
 
 // TEST_CASE("parse some other char") {
 //   std::string str = R"({"\name":"\tom", "ok":false})";
