@@ -1,4 +1,4 @@
-name:  macOS Monterey 12
+name: Ubuntu 20.04 (clang)
 
 on:
   push:
@@ -10,20 +10,23 @@ jobs:
   build:
     strategy:
       matrix:
-        mode: [ Debug, Release ]
-        
-    runs-on: macos-12
+        mode: [ Debug ]
+    runs-on: ubuntu-latest
     
     steps:
     - name: check out
       uses: actions/checkout@v3
       
+    - name: install depends
+      run: sudo apt-get install libboost-dev
+      
     - name: configure cmake
-      run:  CXX=clang++ CC=clang cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }}
+      run: CXX=clang++ CC=clang cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }}
       
     - name: build project
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.mode }}
       
     - name: test
       working-directory: ${{ github.workspace }}/build
-      run: ctest -C ${{ matrix.mode }} -j 1 `nproc` -V
+      run: ctest -C ${{ matrix.mode }} -j `nproc` -V
+  
