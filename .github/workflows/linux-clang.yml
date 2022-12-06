@@ -1,17 +1,17 @@
-name: Ubuntu 20.04 (clang)
+name: Ubuntu (clang)
 
 on:
   push:
-    branches: [ refactor_faster ]
+    branches: [ master ]
   pull_request:
-    branches: [ refactor_faster ]
+    branches: [ master ]
     
 jobs:
   build:
     strategy:
       matrix:
         mode: [ Debug, Release ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     
     steps:
     - name: check out
