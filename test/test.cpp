@@ -299,141 +299,141 @@ TEST_CASE("test simple nested object") {
   CHECK(t.p.ok == p.p.ok);
 }
 
-// TEST_CASE("test c array and std::array") {
-//   arr_t arr{{1, 2}};
-//   iguana::string_stream ss;
-//   iguana::to_json(arr, ss);
-//   arr_t arr1{};
+TEST_CASE("test c array and std::array") {
+  arr_t arr{{1, 2}};
+  iguana::string_stream ss;
+  iguana::to_json(arr, ss);
+  arr_t arr1{};
 
-//   iguana::from_json(arr1, std::begin(ss), std::end(ss));
-//   CHECK(arr.arr[0] == arr1.arr[0]);
-//   CHECK(arr.arr[1] == arr1.arr[1]);
+  iguana::from_json(arr1, std::begin(ss), std::end(ss));
+  CHECK(arr.arr[0] == arr1.arr[0]);
+  CHECK(arr.arr[1] == arr1.arr[1]);
 
-//   std_array_t arr2{};
-//   iguana::from_json(arr2, std::begin(ss), std::end(ss));
-//   CHECK(arr.arr[0] == arr2.arr[0]);
-//   CHECK(arr.arr[1] == arr2.arr[1]);
+  std_array_t arr2{};
+  iguana::from_json(arr2, std::begin(ss), std::end(ss));
+  CHECK(arr.arr[0] == arr2.arr[0]);
+  CHECK(arr.arr[1] == arr2.arr[1]);
 
-//   vector_t vec;
-//   iguana::from_json(vec, std::begin(ss), std::end(ss));
-//   CHECK(vec.arr.size() == arr2.arr.size());
-//   CHECK(arr2.arr[0] == vec.arr[0]);
-//   CHECK(arr2.arr[1] == vec.arr[1]);
-// }
+  vector_t vec;
+  iguana::from_json(vec, std::begin(ss), std::end(ss));
+  CHECK(vec.arr.size() == arr2.arr.size());
+  CHECK(arr2.arr[0] == vec.arr[0]);
+  CHECK(arr2.arr[1] == vec.arr[1]);
+}
 
-// TEST_CASE("test bool, null, char, int, float") {
-//   {
-//     optional_t p{};
-//     std::string str = R"({"p": false})";
-//     iguana::from_json(p, std::begin(str), std::end(str));
-//     CHECK(p.p.has_value());
-//     CHECK(*p.p == false);
+TEST_CASE("test bool, null, char, int, float") {
+  {
+    optional_t p{};
+    std::string str = R"({"p": false})";
+    iguana::from_json(p, std::begin(str), std::end(str));
+    CHECK(p.p.has_value());
+    CHECK(*p.p == false);
 
-//     std::string str1 = R"({"p": null})";
-//     optional_t p1{};
-//     iguana::from_json(p1, std::begin(str1), std::end(str1));
-//     CHECK(!p1.p.has_value());
-//   }
-//   {
-//     char_t p{};
-//     std::string str = R"({"ch": "t"})";
-//     iguana::from_json(p, std::begin(str), std::end(str));
-//     CHECK(p.ch == 't');
-//   }
+    std::string str1 = R"({"p": null})";
+    optional_t p1{};
+    iguana::from_json(p1, std::begin(str1), std::end(str1));
+    CHECK(!p1.p.has_value());
+  }
+  {
+    char_t p{};
+    std::string str = R"({"ch": "t"})";
+    iguana::from_json(p, std::begin(str), std::end(str));
+    CHECK(p.ch == 't');
+  }
 
-//   {
-//     bool_t p{};
-//     std::string str = R"({"ok": true})";
-//     iguana::from_json(p, std::begin(str), std::end(str));
-//     CHECK(p.ok == true);
-//   }
+  {
+    bool_t p{};
+    std::string str = R"({"ok": true})";
+    iguana::from_json(p, std::begin(str), std::end(str));
+    CHECK(p.ok == true);
+  }
 
-//   {
-//     point_t p{};
-//     std::string str = R"({"x" : 1, "y" : 2})";
-//     iguana::from_json(p, std::begin(str), std::end(str));
-//     CHECK(p.x == 1);
-//     CHECK(p.y == double(2));
-//   }
+  {
+    point_t p{};
+    std::string str = R"({"x" : 1, "y" : 2})";
+    iguana::from_json(p, std::begin(str), std::end(str));
+    CHECK(p.x == 1);
+    CHECK(p.y == double(2));
+  }
 
-//   {
-//     std::string str = R"([1.0, 2.0])";
-//     std::vector<float> v;
-//     iguana::from_json(v, str);
-//     CHECK(v[0] == 1.0);
-//     CHECK(v[1] == 2.0);
-//   }
-// }
+  {
+    std::string str = R"([1.0, 2.0])";
+    std::vector<float> v;
+    iguana::from_json(v, str);
+    CHECK(v[0] == 1.0);
+    CHECK(v[1] == 2.0);
+  }
+}
 
-// TEST_CASE("test vector") {
-//   vector_t arr{{1, 2}};
-//   iguana::string_stream ss;
-//   iguana::to_json(arr, ss);
+TEST_CASE("test vector") {
+  vector_t arr{{1, 2}};
+  iguana::string_stream ss;
+  iguana::to_json(arr, ss);
 
-//   vector_t p{};
-//   iguana::from_json(p, std::begin(ss), std::end(ss));
-//   CHECK(arr.arr == p.arr);
-// }
+  vector_t p{};
+  iguana::from_json(p, std::begin(ss), std::end(ss));
+  CHECK(arr.arr == p.arr);
+}
 
-// TEST_CASE("test map") {
-//   map_t map{};
-//   map.map1 = {{1, "hello"}, {2, "iguana"}};
-//   map.map2 = {{3, "this"}, {4, "hashmap"}};
-//   iguana::string_stream ss;
-//   iguana::to_json(map, ss);
+TEST_CASE("test map") {
+  map_t map{};
+  map.map1 = {{1, "hello"}, {2, "iguana"}};
+  map.map2 = {{3, "this"}, {4, "hashmap"}};
+  iguana::string_stream ss;
+  iguana::to_json(map, ss);
 
-//   map_t p{};
-//   iguana::from_json(p, std::begin(ss), std::end(ss));
-//   CHECK(map.map1 == p.map1);
-//   CHECK(map.map2 == p.map2);
-// }
+  map_t p{};
+  iguana::from_json(p, std::begin(ss), std::end(ss));
+  CHECK(map.map1 == p.map1);
+  CHECK(map.map2 == p.map2);
+}
 
-// TEST_CASE("test nested object") {
-//   std::string str = R"({
-//          "v3s": [[0.12345, 0.23456, 0.001345],
-//                   [0.3894675, 97.39827, 297.92387],
-//                   [18.18, 87.289, 2988.298]],
-//          "id": "298728949872"
-//       })";
+TEST_CASE("test nested object") {
+  std::string str = R"({
+         "v3s": [[0.12345, 0.23456, 0.001345],
+                  [0.3894675, 97.39827, 297.92387],
+                  [18.18, 87.289, 2988.298]],
+         "id": "298728949872"
+      })";
 
-//   nested_object_t obj{};
-//   iguana::from_json(obj, std::begin(str), std::end(str));
-//   CHECK(obj.id == "298728949872");
-// }
+  nested_object_t obj{};
+  iguana::from_json(obj, std::begin(str), std::end(str));
+  CHECK(obj.id == "298728949872");
+}
 
-// TEST_CASE("test tuple") {
-//   tuple_t t;
-//   t.tp = std::make_tuple(2, 3.14, "hello iguana");
-//   iguana::string_stream ss;
-//   iguana::to_json(t, ss);
+TEST_CASE("test tuple") {
+  tuple_t t;
+  t.tp = std::make_tuple(2, 3.14, "hello iguana");
+  iguana::string_stream ss;
+  iguana::to_json(t, ss);
 
-//   tuple_t p{};
-//   iguana::from_json(p, std::begin(ss), std::end(ss));
+  tuple_t p{};
+  iguana::from_json(p, std::begin(ss), std::end(ss));
 
-//   CHECK(std::get<0>(t.tp) == std::get<0>(p.tp));
-//   CHECK(std::get<1>(t.tp) == std::get<1>(p.tp));
-//   CHECK(std::get<2>(t.tp) == std::get<2>(p.tp));
-// }
+  CHECK(std::get<0>(t.tp) == std::get<0>(p.tp));
+  CHECK(std::get<1>(t.tp) == std::get<1>(p.tp));
+  CHECK(std::get<2>(t.tp) == std::get<2>(p.tp));
+}
 
-// TEST_CASE("test list") {
-//   list_t list{{1, 2, 3}};
-//   iguana::string_stream ss;
-//   iguana::to_json(list, ss);
+TEST_CASE("test list") {
+  list_t list{{1, 2, 3}};
+  iguana::string_stream ss;
+  iguana::to_json(list, ss);
 
-//   list_t p{};
-//   iguana::from_json(p, std::begin(ss), std::end(ss));
-//   CHECK(list.lst == p.lst);
-// }
+  list_t p{};
+  iguana::from_json(p, std::begin(ss), std::end(ss));
+  CHECK(list.lst == p.lst);
+}
 
-// TEST_CASE("test deque_t") {
-//   deque_t list{{1, 2, 3}};
-//   iguana::string_stream ss;
-//   iguana::to_json(list, ss);
+TEST_CASE("test deque_t") {
+  deque_t list{{1, 2, 3}};
+  iguana::string_stream ss;
+  iguana::to_json(list, ss);
 
-//   deque_t p{};
-//   iguana::from_json(p, std::begin(ss), std::end(ss));
-//   CHECK(list.lst == p.lst);
-// }
+  deque_t p{};
+  iguana::from_json(p, std::begin(ss), std::end(ss));
+  CHECK(list.lst == p.lst);
+}
 
 // inline constexpr std::string_view json0 = R"(
 // {
