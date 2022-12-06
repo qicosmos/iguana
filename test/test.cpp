@@ -139,6 +139,9 @@ struct test_double_t {
 };
 REFLECTION(test_double_t, val);
 
+struct test_empty_t {};
+REFLECTION_EMPTY(test_empty_t);
+
 TEST_CASE("test dom parse") {
   {
     std::string_view str = R"(null)";
@@ -180,7 +183,7 @@ TEST_CASE("test dom parse") {
   }
 
   {
-    std::string json_str = R"([0.5, 2.2, 3.3])";
+    std::string json_str = R"([0.5, 2.2, 3.3, 4, "double"])";
     iguana::jvalue val1;
     iguana::parse(val1, json_str.begin(), json_str.end());
     auto &arr = std::get<iguana::jarray>(val1);
@@ -188,11 +191,14 @@ TEST_CASE("test dom parse") {
     CHECK(std::get<double>(arr[0]) == 0.5);
     CHECK(std::get<double>(arr[1]) == 2.2);
     CHECK(std::get<double>(arr[2]) == 3.3);
+    // CHECK(std::get<double>(arr[3]) == 4.0); // ? throw exception
 
     CHECK(val1.is_array());
     const iguana::jarray &arr1 = val1.to_array();
-    CHECK(arr1.size() == 3);
+    CHECK(arr1.size() == 5);
     CHECK(arr1[0].to_double() == 0.5);
+    CHECK(arr1[3].to_double() == 4.0);
+    CHECK(arr1[4].to_double() == 0.0);
     CHECK(val1.to_object().size() == 0);
   }
   {
@@ -470,6 +476,14 @@ TEST_CASE("test complicated object") {
   CHECK(obj.string == "Hello world");
 }
 
+TEST_CASE("test empty object") {
+  test_empty_t empty_obj;
+
+  iguana::string_stream ss;
+  iguana::to_json(empty_obj, ss);
+  CHECK(ss == "{}");
+}
+
 TEST_CASE("test non-reflectable object") {
   {
     std::tuple<int, double, std::string> t{1, 3.14, std::string("iguana")};
@@ -512,17 +526,34 @@ TEST_CASE("test non-reflectable object") {
 }
 
 TEST_CASE("test file interface") {
-  std::string filename = "test.json";
-  std::ofstream out(filename, std::ios::binary);
-  out.write(json0.data(), json0.size());
-  out.close();
+  namespace fs = std::filesystem;
+  {
+    std::string filename = "test.json";
+    std::ofstream out(filename, std::ios::binary);
+    out.write(json0.data(), json0.size());
+    out.close();
 
-  json0_obj_t obj;
-  iguana::from_json_file(obj, filename);
-  CHECK(obj.number == 3.14);
-  CHECK(obj.string == "Hello world");
+    json0_obj_t obj;
+    iguana::from_json_file(obj, filename);
+    CHECK(obj.number == 3.14);
+    CHECK(obj.string == "Hello world");
 
-  std::filesystem::remove(filename);
+    fs::remove(filename);
+  }
+  {
+    fs::path p = "empty_file.bin";
+    std::ofstream{p};
+    std::cout << p << " size = " << fs::file_size(p) << '\n';
+    test_empty_t empty_obj;
+    CHECK_THROWS_WITH(iguana::from_json_file(empty_obj, p.string()),
+                      "empty file");
+
+    fs::remove(p);
+  }
+  {
+    test_empty_t empty_obj;
+    CHECK_THROWS(iguana::from_json_file(empty_obj, "/null"));
+  }
 }
 
 TEST_CASE("test view and byte interface") {
