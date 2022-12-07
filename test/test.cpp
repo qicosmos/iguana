@@ -231,11 +231,17 @@ TEST_CASE("test dom parse") {
 
     CHECK(val1.at<double>(1) == 2.2);
 
-    std::error_code ec1;
-    val1.at<int>(1, ec1);
-    CHECK(ec1);
-    std::string str = ec1.message();
-    std::cout << str.c_str() <<"\n";
+    try
+    {
+      std::error_code ec1;
+      val1.at<int>(1, ec1);
+      CHECK(ec1);
+      std::cout << ec1.message() <<"\n";
+    }
+    catch(...)
+    {
+      std::cout << "error error  error" << std::end;
+    }
 
     CHECK(std::get<double>(arr[0]) == 0.5);
     CHECK(std::get<double>(arr[1]) == 2.2);
