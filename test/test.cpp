@@ -229,7 +229,7 @@ TEST_CASE("test dom parse") {
     iguana::parse(val1, json_str.begin(), json_str.end());
     auto &arr = std::get<iguana::jarray>(val1);
 
-    // CHECK(val1.at<double>(1) == 2.2);
+    CHECK(val1.at<double>(1) == 2.2);
 
     // std::error_code ec1;
     // val1.at<int>(1, ec1);
