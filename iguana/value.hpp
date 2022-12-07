@@ -19,6 +19,8 @@ template <class Key, class T, typename... Args>
 using json_map = std::unordered_map<Key, T, Args...>;
 #endif
 
+enum dom_parse_error { ok, wrong_type };
+
 template <typename CharT>
 struct basic_json_value
     : std::variant<
@@ -33,6 +35,11 @@ struct basic_json_value
                                  int, string_type, array_type, object_type>;
 
   using base_type::base_type;
+
+  inline const static std::unordered_map<size_t, std::string> type_map_ = {
+      {0, "undefined type"}, {1, "null type"},  {2, "bool type"},
+      {3, "double type"},    {4, "int type"},   {5, "string type"},
+      {6, "array type"},     {7, "object type"}};
 
   basic_json_value() : base_type(std::in_place_type<std::monostate>) {}
 
@@ -54,40 +61,105 @@ struct basic_json_value
   bool is_array() const { return std::holds_alternative<array_type>(*this); }
   bool is_object() const { return std::holds_alternative<object_type>(*this); }
 
-  array_type to_array() const {
-    if (is_array())
-      return std::get<array_type>(*this);
-    return {};
+  // if type is not match, will throw exception, if pass std::error_code, won't
+  // throw exception
+  template <typename T> T get() const {
+    try {
+      return std::get<T>(*this);
+    } catch (std::exception &e) {
+      auto it = type_map_.find(this->index());
+      if (it == type_map_.end()) {
+        throw std::invalid_argument("undefined type");
+      } else {
+        throw std::invalid_argument(it->second);
+      }
+    } catch (...) {
+      throw std::invalid_argument("unknown exception");
+    }
   }
 
-  object_type to_object() const {
-    if (is_object())
-      return std::get<object_type>(*this);
-    return {};
+  template <typename T> T get(std::error_code &ec) const {
+    try {
+      return get<T>();
+    } catch (std::exception &e) {
+      ec = iguana::make_error_code(iguana::dom_errc::wrong_type, e.what());
+      return T{};
+    }
   }
 
-  double to_double(bool *ok = nullptr) const {
-    if (ok)
-      *ok = true;
-    if (is_double())
-      return std::get<double>(*this);
-    if (is_int())
-      return static_cast<double>(std::get<int>(*this));
-    if (ok)
-      *ok = false;
-    return {};
+  template <typename T> std::error_code get_to(T &v) const {
+    std::error_code ec;
+    v = get<T>(ec);
+    return ec;
   }
 
-  double to_int(bool *ok = nullptr) const {
-    if (ok)
-      *ok = true;
-    if (is_double())
-      return static_cast<int>(std::get<double>(*this));
-    if (is_int())
-      return std::get<int>(*this);
-    if (ok)
-      *ok = false;
-    return {};
+  template <typename T> T at(const std::string &key) {
+    const auto &map = get<object_type>();
+    auto it = map.find(key);
+    if (it == map.end()) {
+      throw std::invalid_argument("the key is unknown");
+    }
+    return it->second.template get<T>();
+  }
+
+  template <typename T> T at(const std::string &key, std::error_code &ec) {
+    const auto &map = get<object_type>(ec);
+    if (ec) {
+      return T{};
+    }
+
+    auto it = map.find(key);
+    if (it == map.end()) {
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return T{};
+    }
+    return it->second.template get<T>(ec);
+  }
+
+  template <typename T> T at(size_t idx) {
+    const auto &arr = get<array_type>();
+    if (idx >= arr.size()) {
+      throw std::out_of_range("idx is out of range");
+    }
+    return arr[idx].template get<T>();
+  }
+
+  template <typename T> T at(size_t idx, std::error_code &ec) {
+    const auto &arr = get<array_type>(ec);
+    if (ec) {
+      return T{};
+    }
+
+    if (idx >= arr.size()) {
+      ec = std::make_error_code(std::errc::result_out_of_range);
+      return T{};
+    }
+
+    return arr[idx].template get<T>(ec);
+  }
+
+  object_type to_object() const { return get<object_type>(); }
+  object_type to_object(std::error_code &ec) const {
+    return get<object_type>(ec);
+  }
+
+  array_type to_array() const { return get<array_type>(); }
+  array_type to_array(std::error_code &ec) const { return get<array_type>(ec); }
+
+  double to_double() const { return get<double>(); }
+  double to_double(std::error_code &ec) const { return get<double>(ec); }
+
+  int to_int() const { return get<int>(); }
+  int to_int(std::error_code &ec) const { return get<int>(ec); }
+
+  bool to_bool() const { return get<bool>(); }
+  bool to_bool(std::error_code &ec) const { return get<bool>(ec); }
+
+  std::basic_string<CharT> to_string() const {
+    return get<std::basic_string<CharT>>();
+  }
+  std::basic_string<CharT> to_string(std::error_code &ec) const {
+    return get<std::basic_string<CharT>>(ec);
   }
 };
 
