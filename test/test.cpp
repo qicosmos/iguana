@@ -240,7 +240,7 @@ TEST_CASE("test dom parse") {
     }
     catch(...)
     {
-      std::cout << "error error  error" << std::end;
+      std::cout << "error error  error\n";
     }
 
     CHECK(std::get<double>(arr[0]) == 0.5);
