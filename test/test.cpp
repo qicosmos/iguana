@@ -242,7 +242,7 @@ TEST_CASE("test dom parse") {
     val1.at<int>(1, ec1);
     CHECK(ec1);
     std::cout << ec1.message() << "\n";
-    
+
     {
       CHECK_THROWS_WITH(val1.at<double>(9), "idx is out of range");
       std::error_code ec;
