@@ -73,6 +73,8 @@ struct basic_json_value
       } else {
         throw std::invalid_argument(it->second);
       }
+    } catch (...) {
+      throw std::invalid_argument("unknown exception");
     }
   }
 
