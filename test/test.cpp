@@ -235,6 +235,7 @@ TEST_CASE("test dom parse") {
     val1.at<int>(1, ec1);
     CHECK(ec1);
     std::cout << ec1.value() << "\n";
+    std::cout << std::string(ec1.message()) <<"\n";
 
     CHECK(std::get<double>(arr[0]) == 0.5);
     CHECK(std::get<double>(arr[1]) == 2.2);
