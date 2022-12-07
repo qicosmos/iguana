@@ -158,7 +158,7 @@ void get_value_test_helper(const std::string &json_str, const T &expect) {
 }
 
 TEST_CASE("test from issues") {
-  test test1;
+  test test1{};
   std::string str1 =
       R"({"username1": "test", "password":test, "id": 10.1, "error": false})";
 
