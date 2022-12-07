@@ -234,8 +234,8 @@ TEST_CASE("test dom parse") {
     std::error_code ec1;
     val1.at<int>(1, ec1);
     CHECK(ec1);
-    std::cout << ec1.value() << "\n";
-    std::cout << std::string(ec1.message()) <<"\n";
+    std::string str = ec1.message();
+    std::cout << str <<"\n";
 
     CHECK(std::get<double>(arr[0]) == 0.5);
     CHECK(std::get<double>(arr[1]) == 2.2);
