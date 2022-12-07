@@ -207,7 +207,7 @@ TEST_CASE("test dom parse") {
     CHECK(sub_map.at("val").get<double>() == 2.5);
     CHECK(val.is_object());
   }
-
+  std::cout << "test dom parse part 1 ok\n";
   {
     std::string json_str = R"({"a": [1, 2, 3]})";
     iguana::jvalue val1;
@@ -222,6 +222,8 @@ TEST_CASE("test dom parse") {
     CHECK(val1.is_object());
     CHECK(val1.to_object().size() == 1);
   }
+
+  std::cout << "test dom parse part 2 ok\n";
 
   {
     std::string json_str = R"([0.5, 2.2, 3.3])";
@@ -259,6 +261,8 @@ TEST_CASE("test dom parse") {
 
     get_value_test_helper(json_str, 709);
   }
+
+  std::cout << "test get ok\n";
   {
     std::string json_str = R"(-0.111)";
     iguana::jvalue val1;
@@ -318,6 +322,8 @@ TEST_CASE("test dom parse") {
     CHECK(!val1.is_string());
     CHECK(val1.is_null());
   }
+
+  std::cout << "test dom parse ok\n";
 }
 
 TEST_CASE("test simple object") {
