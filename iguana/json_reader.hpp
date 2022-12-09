@@ -627,8 +627,10 @@ template <typename It>
 inline void parse_array(jarray &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'['>(it, end);
-  if (*it == ']')
+  if (*it == ']') [[unlikely]] {
+    ++it;
     return;
+  }
   while (true) {
     if (it == end) {
       break;
@@ -637,20 +639,22 @@ inline void parse_array(jarray &result, It &&it, It &&end) {
 
     parse(result.back(), it, end);
 
-    if (*it == ']') {
+    if (*it == ']') [[unlikely]] {
       ++it;
       return;
     }
 
     match<','>(it, end);
   }
+  throw std::runtime_error("Expected ]");
 }
 
 template <typename It>
 inline void parse_object(jobject &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'{'>(it, end);
-  if (*it == '}') {
+  if (*it == '}') [[unlikely]] {
+    ++it;
     return;
   }
 
@@ -671,7 +675,7 @@ inline void parse_object(jobject &result, It &&it, It &&end) {
 
     parse(emplaced.first->second, it, end);
 
-    if (*it == '}') {
+    if (*it == '}') [[unlikely]] {
       ++it;
       return;
     }

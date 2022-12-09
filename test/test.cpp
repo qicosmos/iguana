@@ -227,11 +227,16 @@ TEST_CASE("test dom parse") {
     CHECK(val1.is_object());
     CHECK(val1.to_object().size() == 1);
   }
+  {
+    std::string json_str = R"({ "b": [{}, {"c":1}] })";
+    iguana::jvalue val;
+    CHECK_NOTHROW(iguana::parse(val, json_str.begin(), json_str.end()));
+  }
 
   std::cout << "test dom parse part 2 ok\n";
 
   {
-    std::string json_str = R"([0.5, 2.2, 3.3, 4])";
+    std::string json_str = R"([0.5, 2.2, 3.3, 4, "6.7"])";
     iguana::jvalue val1;
     iguana::parse(val1, json_str.begin(), json_str.end());
     auto &arr = std::get<iguana::jarray>(val1);
@@ -253,10 +258,12 @@ TEST_CASE("test dom parse") {
     CHECK(std::get<double>(arr[0]) == 0.5);
     CHECK(std::get<double>(arr[1]) == 2.2);
     CHECK(std::get<double>(arr[2]) == 3.3);
+    // could arr elems be different type?
+    CHECK(std::get<std::string>(arr[4]) == "6.7");
 
     CHECK(val1.is_array());
     const iguana::jarray &arr1 = val1.to_array();
-    CHECK(arr1.size() == 4);
+    CHECK(arr1.size() == 5);
     CHECK(arr1[0].to_double() == 0.5);
     CHECK(arr1[3].is_int());
 
@@ -631,7 +638,6 @@ TEST_CASE("test file interface") {
   {
     fs::path p = "empty_file.bin";
     std::ofstream{p};
-    std::cout << p << " size = " << fs::file_size(p) << '\n';
     test_empty_t empty_obj;
     CHECK_THROWS_WITH(iguana::from_json_file(empty_obj, p.string()),
                       "empty file");
