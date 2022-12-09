@@ -6,6 +6,8 @@
 #include <variant>
 #include <vector>
 
+#include "error_code.h"
+
 namespace iguana {
 
 #define GCC_COMPILER (defined(__GNUC__) && !defined(__clang__))
