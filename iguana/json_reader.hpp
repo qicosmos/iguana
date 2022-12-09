@@ -464,7 +464,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   match<'"'>(it, end);
 }
 
-inline void skip_object_value(auto &&it, auto &&end) {
+IGUANA_INLINE void skip_object_value(auto &&it, auto &&end) {
   skip_ws(it, end);
   while (it != end) {
     switch (*it) {
@@ -624,7 +624,7 @@ IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size,
 template <typename It> void parse(jvalue &result, It &&it, It &&end);
 
 template <typename It>
-inline void parse_array(jarray &result, It &&it, It &&end) {
+IGUANA_INLINE void parse_array(jarray &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'['>(it, end);
   if (*it == ']') [[unlikely]] {
@@ -650,7 +650,7 @@ inline void parse_array(jarray &result, It &&it, It &&end) {
 }
 
 template <typename It>
-inline void parse_object(jobject &result, It &&it, It &&end) {
+IGUANA_INLINE void parse_object(jobject &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'{'>(it, end);
   if (*it == '}') [[unlikely]] {
@@ -684,7 +684,8 @@ inline void parse_object(jobject &result, It &&it, It &&end) {
   }
 }
 
-template <typename It> inline void parse(jvalue &result, It &&it, It &&end) {
+template <typename It>
+IGUANA_INLINE void parse(jvalue &result, It &&it, It &&end) {
   skip_ws(it, end);
   switch (*it) {
   case 'n':
@@ -736,12 +737,29 @@ template <typename It> inline void parse(jvalue &result, It &&it, It &&end) {
 }
 
 template <typename It>
-inline void parse(jvalue &result, It &&it, It &&end, std::error_code &ec) {
+IGUANA_INLINE void parse(jvalue &result, It &&it, It &&end,
+                         std::error_code &ec) {
   try {
     parse(result, it, end);
     ec = {};
   } catch (const std::runtime_error &e) {
     result.template emplace<std::nullptr_t>();
+    ec = iguana::make_error_code(e.what());
+  }
+}
+
+template <typename T, json_view View>
+IGUANA_INLINE void parse(T &result, const View &view) {
+  parse(result, std::begin(view), std::end(view));
+}
+
+template <typename T, json_view View>
+IGUANA_INLINE void parse(T &result, const View &view,
+                         std::error_code &ec) noexcept {
+  try {
+    parse(result, view);
+    ec = {};
+  } catch (std::runtime_error &e) {
     ec = iguana::make_error_code(e.what());
   }
 }
