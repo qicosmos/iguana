@@ -621,11 +621,10 @@ IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size,
   }
 }
 
-template <typename It>
-IGUANA_INLINE void parse(jvalue &result, It &&it, It &&end);
+template <typename It> void parse(jvalue &result, It &&it, It &&end);
 
 template <typename It>
-IGUANA_INLINE void parse_array(jarray &result, It &&it, It &&end) {
+inline void parse_array(jarray &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'['>(it, end);
   if (*it == ']') [[unlikely]] {
@@ -651,7 +650,7 @@ IGUANA_INLINE void parse_array(jarray &result, It &&it, It &&end) {
 }
 
 template <typename It>
-IGUANA_INLINE void parse_object(jobject &result, It &&it, It &&end) {
+inline void parse_object(jobject &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'{'>(it, end);
   if (*it == '}') [[unlikely]] {
@@ -685,8 +684,7 @@ IGUANA_INLINE void parse_object(jobject &result, It &&it, It &&end) {
   }
 }
 
-template <typename It>
-IGUANA_INLINE void parse(jvalue &result, It &&it, It &&end) {
+template <typename It> inline void parse(jvalue &result, It &&it, It &&end) {
   skip_ws(it, end);
   switch (*it) {
   case 'n':
@@ -738,8 +736,7 @@ IGUANA_INLINE void parse(jvalue &result, It &&it, It &&end) {
 }
 
 template <typename It>
-IGUANA_INLINE void parse(jvalue &result, It &&it, It &&end,
-                         std::error_code &ec) {
+inline void parse(jvalue &result, It &&it, It &&end, std::error_code &ec) {
   try {
     parse(result, it, end);
     ec = {};
@@ -750,13 +747,12 @@ IGUANA_INLINE void parse(jvalue &result, It &&it, It &&end,
 }
 
 template <typename T, json_view View>
-IGUANA_INLINE void parse(T &result, const View &view) {
+inline void parse(T &result, const View &view) {
   parse(result, std::begin(view), std::end(view));
 }
 
 template <typename T, json_view View>
-IGUANA_INLINE void parse(T &result, const View &view,
-                         std::error_code &ec) noexcept {
+inline void parse(T &result, const View &view, std::error_code &ec) noexcept {
   try {
     parse(result, view);
     ec = {};
