@@ -464,7 +464,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   match<'"'>(it, end);
 }
 
-inline void skip_object_value(auto &&it, auto &&end) {
+IGUANA_INLINE void skip_object_value(auto &&it, auto &&end) {
   skip_ws(it, end);
   while (it != end) {
     switch (*it) {
@@ -627,8 +627,10 @@ template <typename It>
 inline void parse_array(jarray &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'['>(it, end);
-  if (*it == ']')
+  if (*it == ']') [[unlikely]] {
+    ++it;
     return;
+  }
   while (true) {
     if (it == end) {
       break;
@@ -637,20 +639,22 @@ inline void parse_array(jarray &result, It &&it, It &&end) {
 
     parse(result.back(), it, end);
 
-    if (*it == ']') {
+    if (*it == ']') [[unlikely]] {
       ++it;
       return;
     }
 
     match<','>(it, end);
   }
+  throw std::runtime_error("Expected ]");
 }
 
 template <typename It>
 inline void parse_object(jobject &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'{'>(it, end);
-  if (*it == '}') {
+  if (*it == '}') [[unlikely]] {
+    ++it;
     return;
   }
 
@@ -671,7 +675,7 @@ inline void parse_object(jobject &result, It &&it, It &&end) {
 
     parse(emplaced.first->second, it, end);
 
-    if (*it == '}') {
+    if (*it == '}') [[unlikely]] {
       ++it;
       return;
     }
@@ -738,6 +742,21 @@ inline void parse(jvalue &result, It &&it, It &&end, std::error_code &ec) {
     ec = {};
   } catch (const std::runtime_error &e) {
     result.template emplace<std::nullptr_t>();
+    ec = iguana::make_error_code(e.what());
+  }
+}
+
+template <typename T, json_view View>
+inline void parse(T &result, const View &view) {
+  parse(result, std::begin(view), std::end(view));
+}
+
+template <typename T, json_view View>
+inline void parse(T &result, const View &view, std::error_code &ec) noexcept {
+  try {
+    parse(result, view);
+    ec = {};
+  } catch (std::runtime_error &e) {
     ec = iguana::make_error_code(e.what());
   }
 }
