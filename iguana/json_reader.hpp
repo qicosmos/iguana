@@ -621,7 +621,8 @@ IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size,
   }
 }
 
-template <typename It> void parse(jvalue &result, It &&it, It &&end);
+template <typename It>
+IGUANA_INLINE void parse(jvalue &result, It &&it, It &&end);
 
 template <typename It>
 IGUANA_INLINE void parse_array(jarray &result, It &&it, It &&end) {
