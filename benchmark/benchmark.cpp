@@ -270,9 +270,9 @@ void test_to_json() {
 }
 
 using variant =
-    std::variant<FeatureCollection, apache_builds, citm_object_t,
-                  gsoc_object_t, mesh_t, random_t, githubEvents::events_t,
-                  marine_ik::marine_ik_t, std::vector<double>, instruments_t>;
+    std::variant<FeatureCollection, apache_builds, citm_object_t, gsoc_object_t,
+                 mesh_t, random_t, githubEvents::events_t,
+                 marine_ik::marine_ik_t, std::vector<double>, instruments_t>;
 
 static std::map<std::string, variant> test_map{
     {"../data/canada.json", FeatureCollection{}},
