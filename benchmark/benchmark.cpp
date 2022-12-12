@@ -269,40 +269,48 @@ void test_to_json() {
 #endif
 }
 
-void test_parse() {
-  using variant =
-      std::variant<FeatureCollection, apache_builds, citm_object_t,
-                   gsoc_object_t, mesh_t, random_t, githubEvents::events_t,
-                   marine_ik::marine_ik_t, std::vector<double>, instruments_t>;
+using variant =
+    std::variant<FeatureCollection, apache_builds, citm_object_t,
+                  gsoc_object_t, mesh_t, random_t, githubEvents::events_t,
+                  marine_ik::marine_ik_t, std::vector<double>, instruments_t>;
 
-  std::map<std::string, variant> test_map{
-      {"../data/canada.json", FeatureCollection{}},
-      {"../data/apache_builds.json", apache_builds{}},
-      {"../data/citm_catalog.json", citm_object_t{}},
-      {"../data/gsoc-2018.json", gsoc_object_t{}},
-      {"../data/mesh.pretty.json", mesh_t{}},
-      {"../data/random.json", random_t{}},
-      {"../data/github_events.json", githubEvents::events_t{}},
-      {"../data/marine_ik.json", marine_ik::marine_ik_t{}},
-      {"../data/numbers.json", std::vector<double>{}},
-      {"../data/instruments.json", instruments_t{}},
-  };
+static std::map<std::string, variant> test_map{
+    {"../data/canada.json", FeatureCollection{}},
+    {"../data/apache_builds.json", apache_builds{}},
+    {"../data/citm_catalog.json", citm_object_t{}},
+    {"../data/gsoc-2018.json", gsoc_object_t{}},
+    {"../data/mesh.pretty.json", mesh_t{}},
+    {"../data/random.json", random_t{}},
+    {"../data/github_events.json", githubEvents::events_t{}},
+    {"../data/marine_ik.json", marine_ik::marine_ik_t{}},
+    {"../data/numbers.json", std::vector<double>{}},
+    {"../data/instruments.json", instruments_t{}},
+};
 
-  iguana::jvalue val;
+void test_from_json_file() {
   for (auto &pair : test_map) {
     auto content = iguana::json_file_content(pair.first);
-
     std::visit(
         [&](auto &&arg) { test_from_json(pair.first, arg, content, 10); },
         pair.second);
+  }
+}
 
+void test_dom_parse_file() {
+  for (auto &pair : test_map) {
+    auto content = iguana::json_file_content(pair.first);
     test_dom_parse(pair.first, content, 10);
   }
 }
 
 int main() {
   for (size_t i = 0; i < 5; i++) {
-    test_parse();
+    test_from_json_file();
+    std::cout << "====================\n";
+  }
+
+  for (size_t i = 0; i < 5; i++) {
+    test_dom_parse_file();
     std::cout << "====================\n";
   }
 
