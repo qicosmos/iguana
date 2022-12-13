@@ -130,6 +130,80 @@ We can slove the problem1 easily with c++17:
 
 - https://github.com/qicosmos/iguana/blob/master/example/example.cpp
 
+### Scripts
+
+Automatically generate `REFLECTION` macros based by struct.
+
+To get a list of basic options and switches use:
+```
+python automatic_macro_generator.py -h
+```
+
+basic example:
+
+The content of the test_macro_generator.cpp is as follows:
+
+	struct person {
+		std::string name;
+		int age;
+	};
+
+	char *iguana = NULL;
+
+	struct composit_t { int a; std::vector<std::string> b; int c; std::map<int, int> d; std::unordered_map<int, int> e; double f;};
+
+	char *iguana_test = NULL;
+
+	struct composit_t2
+	{
+		int a;
+		std::vector<std::string> b;
+		int iguana;
+		std::map<int, int> example_test;
+		std::unordered_map<int, int> random_name__;
+		double __f__number__complex;
+	};
+
+
+execute script:
+```
+python automatic_macro_generator.py -i test_macro_generator.cpp
+```
+
+After processing by the automatic_macro_generator.py script,test_macro_generator.cpp change into:
+
+	struct person {
+		std::string name;
+		int age;
+	};
+	REFLECTION(person, name, age);
+	char *iguana = NULL;
+
+	struct composit_t { int a; std::vector<std::string> b; int c; std::map<int, int> d; std::unordered_map<int, int> e; double f;};
+	REFLECTION(composit_t, a, b, c, d, e, f);
+
+	struct composit_t2
+	{
+		int a;
+		std::vector<std::string> b;
+		int iguana;
+		std::map<int, int> example_test;
+		std::unordered_map<int, int> random_name__;
+		double __f__number__complex;
+	};
+	REFLECTION(composit_t2, a, b, iguana, example_test, random_name__, __f__number__complex);
+
+other example:
+```
+python automatic_macro_generator.py -i test_macro_generator.cpp -o have_macro.cpp
+```
+test_macro_generator.cpp will be unchanged, have_macro.cpp will be changed to source file with REFLECTION macro.
+
+scripts works out of the box with Python version 2.7 and 3.x on any platform.
+
+Notes: In Python3,Will prompt `DeprecationWarning: 'U' mode is deprecated`.Ignore it.
+
+
 ### F.A.Q
 
 - **Question**: Why is the library called *iguana*?
