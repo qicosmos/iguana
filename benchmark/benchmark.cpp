@@ -1,5 +1,6 @@
 #include "iguana/json_reader.hpp"
 #include "iguana/json_writer.hpp"
+#include "iguana/value.hpp"
 #include <chrono>
 #include <iostream>
 #include <map>
@@ -24,7 +25,8 @@ public:
     if (m_ns)
       *m_ns = dur.count();
     else
-      std::cout << m_name << " : " << dur.count() << " ns\n";
+      std::cout << std::left << std::setw(45) << m_name << " : " << std::right
+                << std::setw(12) << dur.count() << " ns\n";
   }
 
 private:
@@ -201,7 +203,7 @@ void test_from_json(std::string filename, auto &obj, const auto &json_str,
                     const int size) {
   iguana::from_json(obj, std::begin(json_str), std::end(json_str));
 
-  std::string iguana_str = "iguana parse " + filename;
+  std::string iguana_str = "iguana from_json " + filename;
 
   {
     ScopedTimer timer(iguana_str.data());
@@ -222,6 +224,18 @@ void test_from_json(std::string filename, auto &obj, const auto &json_str,
     }
   }
 #endif
+}
+
+void test_dom_parse(std::string filename, const auto &json_str,
+                    const int size) {
+  std::string iguana_str = "iguana parse " + filename;
+  iguana::jvalue val;
+  {
+    ScopedTimer timer(iguana_str.data());
+    for (int i = 0; i < size; ++i) {
+      iguana::parse(val, json_str);
+    }
+  }
 }
 
 void test_to_json() {
@@ -255,37 +269,48 @@ void test_to_json() {
 #endif
 }
 
-void test_parse() {
-  using variant =
-      std::variant<FeatureCollection, apache_builds, citm_object_t,
-                   gsoc_object_t, mesh_t, random_t, githubEvents::events_t,
-                   marine_ik::marine_ik_t, std::vector<double>, instruments_t>;
+using variant =
+    std::variant<FeatureCollection, apache_builds, citm_object_t, gsoc_object_t,
+                 mesh_t, random_t, githubEvents::events_t,
+                 marine_ik::marine_ik_t, std::vector<double>, instruments_t>;
 
-  std::map<std::string, variant> test_map{
-      {"../data/canada.json", FeatureCollection{}},
-      {"../data/apache_builds.json", apache_builds{}},
-      {"../data/citm_catalog.json", citm_object_t{}},
-      {"../data/gsoc-2018.json", gsoc_object_t{}},
-      {"../data/mesh.pretty.json", mesh_t{}},
-      {"../data/random.json", random_t{}},
-      {"../data/github_events.json", githubEvents::events_t{}},
-      {"../data/marine_ik.json", marine_ik::marine_ik_t{}},
-      {"../data/numbers.json", std::vector<double>{}},
-      {"../data/instruments.json", instruments_t{}},
-  };
+static std::map<std::string, variant> test_map{
+    {"../data/canada.json", FeatureCollection{}},
+    {"../data/apache_builds.json", apache_builds{}},
+    {"../data/citm_catalog.json", citm_object_t{}},
+    {"../data/gsoc-2018.json", gsoc_object_t{}},
+    {"../data/mesh.pretty.json", mesh_t{}},
+    {"../data/random.json", random_t{}},
+    {"../data/github_events.json", githubEvents::events_t{}},
+    {"../data/marine_ik.json", marine_ik::marine_ik_t{}},
+    {"../data/numbers.json", std::vector<double>{}},
+    {"../data/instruments.json", instruments_t{}},
+};
 
+void test_from_json_file() {
   for (auto &pair : test_map) {
     auto content = iguana::json_file_content(pair.first);
-
     std::visit(
         [&](auto &&arg) { test_from_json(pair.first, arg, content, 10); },
         pair.second);
   }
 }
 
+void test_dom_parse_file() {
+  for (auto &pair : test_map) {
+    auto content = iguana::json_file_content(pair.first);
+    test_dom_parse(pair.first, content, 10);
+  }
+}
+
 int main() {
   for (size_t i = 0; i < 5; i++) {
-    test_parse();
+    test_from_json_file();
+    std::cout << "====================\n";
+  }
+
+  for (size_t i = 0; i < 5; i++) {
+    test_dom_parse_file();
     std::cout << "====================\n";
   }
 
@@ -297,6 +322,12 @@ int main() {
   obj_t obj;
   for (int i = 0; i < 10; ++i) {
     test_from_json("obj_t", obj, json0, 100000);
+    std::cout << "====================\n";
+  }
+
+  iguana::jvalue val;
+  for (int i = 0; i < 10; ++i) {
+    test_dom_parse("obj_t", json0, 100000);
     std::cout << "====================\n";
   }
 }
