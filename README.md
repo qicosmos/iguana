@@ -38,7 +38,7 @@ Now let's serialize `person` to `json` string.
 
 	person p = { "tom", 28 };
 
-	iguana::string_stream ss;
+	iguana::string_stream ss; // here use std::string is also ok
 	iguana::to_json(p, ss);
 
 	std::cout << ss.str() << std::endl; 
@@ -49,11 +49,27 @@ Serializing person to `json` string is also very simple, just need to call `to_j
 
 How about deserialization of `json`? Look at the follow example.
 
-	const char * json = "{ \"name\" : \"tom\", \"age\" : 28}";
+	std::string json = "{ \"name\" : \"tom\", \"age\" : 28}";
 
 	person p;
 	iguana::from_json(p, json);
-It's as simple as serialization, just need to call `from_json` method.
+It's as simple as serialization, just need to call `from_json` method. 
+
+You can also use parse interface to do dom parsing:
+```c++
+    std::string_view str = R"(false)";
+    iguana::jvalue val;
+    iguana::parse(val, str.begin(), str.end());
+
+    std::error_code ec;
+    auto b = val.get<bool>(ec);
+    CHECK(!ec);
+    CHECK(!b);
+    
+    // or
+    b = val.get<bool>(); // this interface maybe throw exception
+    CHECK(!b);
+```
 
 ### Serialization of xml
 Serialization of `xml` is similar to `json`. The first step is also defining meta data as above. This is a complete example.
@@ -107,7 +123,7 @@ Then call the simple interface:
 	iguana::to_json(composit, ss);
 	std::cout << ss.str() << std::endl;
 
-	const char* str_comp = R"({"a":1, "b":["tom", "jack"], "c":3, "d":{"2":3,"5":6},"e":{"3":4},"f":5.3,"g":[{"id":1},{"id":2}])";
+	std::string str_comp = R"({"a":1, "b":["tom", "jack"], "c":3, "d":{"2":3,"5":6},"e":{"3":4},"f":5.3,"g":[{"id":1},{"id":2}])";
 	composit_t comp;
 	iguana::from_json(comp, str_comp);
 	
