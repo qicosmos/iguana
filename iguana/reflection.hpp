@@ -652,7 +652,7 @@ struct is_reflection<T, std::void_t<decltype(Reflect_members<T>::arr())>>
 template <typename T>
 inline constexpr bool is_reflection_v = is_reflection<T>::value;
 
-#if (__cplusplus >= 202002L)
+#if _MSC_VER || (__cplusplus >= 202002L)
 template <class T>
 concept refletable = is_reflection_v<std::remove_cvref_t<T>>;
 #endif
