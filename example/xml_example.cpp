@@ -136,11 +136,55 @@ void test_parse_response() {
   std::cout << t.status.owner << "\n";
 }
 
+struct optional_t {
+  int a;
+  std::optional<int> b;
+  std::optional<std::string> c;
+  bool d;
+  char e;
+};
+REFLECTION(optional_t, a, b, c, d, e);
+
+void test_optional() {
+  optional_t op{1, 2};
+  op.d = true;
+  op.e = 'o';
+  std::string ss;
+  iguana::xml::to_xml(ss, op);
+  std::cout << ss << "\n";
+
+  optional_t op1;
+  iguana::from_xml(op1, ss.data());
+  if (op1.b) {
+    std::cout << *op1.b << "\n";
+  }
+  if (op1.c) {
+    std::cout << *op1.c << "\n";
+  }
+
+  std::cout << op1.d << "\n";
+  std::cout << op1.e << "\n";
+}
+
+// struct list_t {
+//     std::vector<optional_t> list;
+//     int id;
+// };
+// REFLECTION(list_t, list, id);
+// void test_list(){
+//     list_t l;
+//     l.list.push_back(optional_t{1,2});
+//
+//     std::string ss;
+//     iguana::xml::to_xml(ss, l);
+// }
+
 int main(void) {
   test_parse_status();
   test_parse_response();
   test_to_xml();
   test_from_xml();
+  test_optional();
 
   return 0;
 }

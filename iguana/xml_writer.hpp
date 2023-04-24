@@ -32,6 +32,18 @@ render_xml_value(Stream &ss, T value) {
   ss.append(temp);
 }
 
+template <typename Stream> inline void render_xml_value(Stream &ss, bool s) {
+  if (s) {
+    ss.append("1");
+  } else {
+    ss.append("0");
+  }
+}
+
+template <typename Stream> inline void render_xml_value(Stream &ss, char s) {
+  ss.push_back(s);
+}
+
 template <typename Stream>
 inline void render_xml_value(Stream &ss, const std::string &s) {
   ss.append(s.c_str(), s.size());
@@ -40,6 +52,13 @@ inline void render_xml_value(Stream &ss, const std::string &s) {
 template <typename Stream>
 inline void render_xml_value(Stream &ss, const char *s) {
   ss.append(s, strlen(s));
+}
+
+template <typename Stream, typename T>
+inline void render_xml_value(Stream &ss, std::optional<T> &s) {
+  if (s.has_value()) {
+    render_xml_value(ss, *s);
+  }
 }
 
 template <typename Stream, typename T>
