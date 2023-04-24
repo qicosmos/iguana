@@ -1,4 +1,4 @@
-#include "iguana/xml_reader.hpp"
+#include <iguana/xml_reader.hpp>
 #include <iguana/xml_writer.hpp>
 #include <rapidxml_print.hpp>
 
@@ -109,6 +109,7 @@ void test_parse_status() {
   status_t t{};
   iguana::from_xml(t, str.data());
   std::cout << t.owner << "\n";
+  std::cout << t.storagePolicy << "\n";
 }
 
 void test_parse_response() {

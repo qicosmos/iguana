@@ -34,9 +34,9 @@ render_xml_value(Stream &ss, T value) {
 
 template <typename Stream> inline void render_xml_value(Stream &ss, bool s) {
   if (s) {
-    ss.append("1");
+    ss.append("true");
   } else {
-    ss.append("0");
+    ss.append("false");
   }
 }
 
@@ -97,7 +97,7 @@ inline void to_xml_impl(Stream &s, T &&t, std::string name = "") {
   if (name.empty()) {
     name = iguana::get_name<T>();
   }
-  s.append("<").append(name).append(">\n");
+  s.append("<").append(name).append(">");
   for_each(std::forward<T>(t), [&t, &s](const auto v, auto i) {
     using M = decltype(iguana_reflect_members(std::forward<T>(t)));
     constexpr auto Idx = decltype(i)::value;
