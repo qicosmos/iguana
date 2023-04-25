@@ -54,8 +54,34 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
       parse_item(node, opt, value);
       t = std::move(opt);
     }
+  } else if constexpr (std::is_same_v<
+                           std::unordered_map<std::string, std::string>, U>) {
+    rapidxml::xml_attribute<> *attr = node->first_attribute();
+    while (attr != nullptr) {
+      t.emplace(attr->name(), attr->value());
+      attr = attr->next_attribute();
+    }
   } else {
     static_assert(!sizeof(T), "don't support this type!!");
+  }
+}
+
+template <typename T>
+inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
+  using U = std::remove_reference_t<T>;
+  if constexpr (is_std_optinal_v<U>) {
+    using value_type = typename U::value_type;
+    value_type opt;
+    parse_attribute(node, opt);
+    t = std::move(opt);
+  }
+  if constexpr (std::is_same_v<std::unordered_map<std::string, std::string>,
+                               U>) {
+    rapidxml::xml_attribute<> *attr = node->first_attribute();
+    while (attr != nullptr) {
+      t.emplace(attr->name(), attr->value());
+      attr = attr->next_attribute();
+    }
   }
 }
 
@@ -67,6 +93,21 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
   for (auto &[key, value] : frozen_map) {
     std::string_view str = key.data();
     auto n = node->first_node(key.data());
+
+    if (key == std::string_view("_attribute")) {
+      std::visit(
+          [&, str](auto &&member_ptr) {
+            using V = std::decay_t<decltype(member_ptr)>;
+            if constexpr (std::is_member_pointer_v<V>) {
+              parse_attribute(node, t.*member_ptr);
+            } else {
+              static_assert(!sizeof(V), "type not supported");
+            }
+          },
+          value);
+      continue;
+    }
+
     if (!n) {
       continue;
     }

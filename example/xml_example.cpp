@@ -192,6 +192,35 @@ void test_list() {
   std::cout << s << '\n';
 }
 
+struct book {
+  std::string title;
+  std::string author;
+  std::optional<std::unordered_map<std::string, std::string>> _attribute;
+};
+REFLECTION(book, title, author, _attribute);
+
+void test_attribute() {
+  std::string str = R"(
+  <book id="1234" language="en" edition="1">
+    <title>Harry Potter and the Philosopher's Stone</title>
+    <author>J.K. Rowling</author>
+  </book>
+)";
+
+  book b{};
+  iguana::from_xml(b, str.data());
+  if (b._attribute) {
+    std::cout << "book attribute : " << std::endl;
+    for (auto &[k, v] : *b._attribute) {
+      std::cout << "[ " << k << " : " << v << "]"
+                << " ";
+    }
+    std::cout << std::endl;
+  }
+  std::cout << "author : " << b.author << std::endl;
+  std::cout << "title : " << b.title << std::endl;
+}
+
 int main(void) {
   test_parse_response();
   test_parse_status();
@@ -199,6 +228,6 @@ int main(void) {
   test_to_xml();
   test_from_xml();
   test_optional();
-
+  test_attribute();
   return 0;
 }
