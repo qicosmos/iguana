@@ -13,6 +13,16 @@
 
 namespace iguana::xml {
 // to xml
+template <class, class = void> struct is_container : std::false_type {};
+
+template <class T>
+struct is_container<
+    T, std::void_t<decltype(std::declval<T>().size(), std::declval<T>().begin(),
+                            std::declval<T>().end())>> : std::true_type {};
+
+template <typename Stream, typename T>
+inline void to_xml_impl(Stream &s, T &&t, std::string_view name = "");
+
 template <typename Stream, typename T>
 inline std::enable_if_t<!std::is_floating_point<T>::value &&
                         (std::is_integral<T>::value ||
@@ -55,10 +65,20 @@ inline void render_xml_value(Stream &ss, const char *s) {
 }
 
 template <typename Stream, typename T>
-inline void render_xml_value(Stream &ss, std::optional<T> &s) {
+inline void render_xml_value(Stream &ss, const std::optional<T> &s) {
   if (s.has_value()) {
     render_xml_value(ss, *s);
   }
+}
+
+template <typename Stream, typename T>
+inline void render_xml_value0(Stream &ss, const T &v, std::string_view name) {
+  for (auto &item : v) {
+    to_xml_impl(ss, item, name);
+  }
+  //        if (s.has_value()) {
+  //            render_xml_value(ss, *s);
+  //        }
 }
 
 template <typename Stream, typename T>
@@ -91,9 +111,8 @@ template <typename Stream> inline void render_head(Stream &ss, const char *s) {
   ss.push_back('>');
 }
 
-template <typename Stream, typename T,
-          typename = std::enable_if_t<is_reflection<T>::value>>
-inline void to_xml_impl(Stream &s, T &&t, std::string name = "") {
+template <typename Stream, typename T>
+inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
   if (name.empty()) {
     name = iguana::get_name<T>();
   }
@@ -106,9 +125,16 @@ inline void to_xml_impl(Stream &s, T &&t, std::string name = "") {
 
     using type_v = decltype(std::declval<T>().*std::declval<decltype(v)>());
     if constexpr (!is_reflection<type_v>::value) {
-      render_head(s, get_name<T, Idx>().data());
-      render_xml_value(s, t.*v);
-      render_tail(s, get_name<T, Idx>().data());
+      if constexpr (!std::is_same_v<std::string,
+                                    typename std::remove_cvref<type_v>::type> &&
+                    is_container<type_v>::value) {
+        std::string_view sv = get_name<T, Idx>().data();
+        render_xml_value0(s, t.*v, sv);
+      } else {
+        render_head(s, get_name<T, Idx>().data());
+        render_xml_value(s, t.*v);
+        render_tail(s, get_name<T, Idx>().data());
+      }
     } else {
       to_xml_impl(s, t.*v, get_name<T, Idx>().data());
     }
@@ -122,12 +148,12 @@ inline void to_xml(Stream &s, T &&t) {
   to_xml_impl(s, std::forward<T>(t));
 }
 
-template <typename Stream, typename T,
+template <int Flags = 0, typename Stream, typename T,
           typename = std::enable_if_t<is_reflection<T>::value>>
 inline void to_xml_pretty(Stream &s, T &&t) {
   to_xml_impl(s, std::forward<T>(t));
   rapidxml::xml_document<> doc;
-  doc.parse<0>(s.data());
+  doc.parse<Flags>(s.data());
   std::string ss;
   rapidxml::print(std::back_inserter(ss), doc);
   s = std::move(ss);

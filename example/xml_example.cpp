@@ -73,8 +73,8 @@ struct status_t {
   int permission;
   std::string owner;
   std::string ownerGroup;
-  std::string mtime;
-  std::string atime;   // uint64?
+  uint64_t mtime;
+  uint64_t atime;
   std::string symlink; // optional
   bool isDir;
   int storagePolicy;
@@ -109,6 +109,7 @@ void test_parse_status() {
   status_t t{};
   iguana::from_xml(t, str.data());
   std::cout << t.owner << "\n";
+  std::cout << t.mtime << ", " << t.atime << "\n";
   std::cout << t.storagePolicy << "\n";
 }
 
@@ -167,20 +168,26 @@ void test_optional() {
   std::cout << op1.e << "\n";
 }
 
-// struct list_t {
-//     std::vector<optional_t> list;
-//     int id;
-// };
-// REFLECTION(list_t, list, id);
-// void test_list(){
-//     list_t l;
-//     l.list.push_back(optional_t{1,2});
-//
-//     std::string ss;
-//     iguana::xml::to_xml(ss, l);
-// }
+struct list_t {
+  std::vector<optional_t> list;
+  int id;
+};
+REFLECTION(list_t, list, id);
+void test_list() {
+  list_t l;
+  l.list.push_back(optional_t{1, 2, {}, 0, 'o'});
+  l.list.push_back(optional_t{3, 4, {}, 0, 'k'});
+
+  std::string ss;
+  iguana::xml::to_xml(ss, l);
+  std::cout << ss << "\n";
+
+  iguana::xml::to_xml_pretty(ss, l);
+  std::cout << ss << '\n';
+}
 
 int main(void) {
+  test_list();
   test_parse_status();
   test_parse_response();
   test_to_xml();
