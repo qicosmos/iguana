@@ -122,12 +122,12 @@ inline void to_xml(Stream &s, T &&t) {
   to_xml_impl(s, std::forward<T>(t));
 }
 
-template <typename Stream, typename T,
+template <int Flags = 0, typename Stream, typename T,
           typename = std::enable_if_t<is_reflection<T>::value>>
 inline void to_xml_pretty(Stream &s, T &&t) {
   to_xml_impl(s, std::forward<T>(t));
   rapidxml::xml_document<> doc;
-  doc.parse<0>(s.data());
+  doc.parse<Flags>(s.data());
   std::string ss;
   rapidxml::print(std::back_inserter(ss), doc);
   s = std::move(ss);

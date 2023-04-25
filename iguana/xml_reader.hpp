@@ -73,11 +73,12 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
   }
 }
 
-template <typename T, typename = std::enable_if_t<is_reflection<T>::value>>
+template <int Flags = 0, typename T,
+          typename = std::enable_if_t<is_reflection<T>::value>>
 inline bool from_xml(T &&t, char *buf) {
   try {
     rapidxml::xml_document<> doc;
-    doc.parse<0>(buf);
+    doc.parse<Flags>(buf);
 
     auto fisrt_node = doc.first_node();
     if (fisrt_node)
