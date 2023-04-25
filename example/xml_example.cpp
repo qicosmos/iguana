@@ -192,14 +192,28 @@ void test_list() {
   std::cout << s << '\n';
 }
 
-struct book {
+struct book_t {
   std::string title;
   std::string author;
   std::optional<std::unordered_map<std::string, std::string>> _attribute;
 };
-REFLECTION(book, title, author, _attribute);
+std::ostream &operator<<(std::ostream &os, const book_t &b) {
+  if (b._attribute) {
+    os << "book attribute : " << std::endl;
+    for (auto &[k, v] : *b._attribute) {
+      os << "[ " << k << " : " << v << "]"
+         << " ";
+    }
+    os << std::endl;
+  }
+  os << "author : " << b.author << std::endl;
+  os << "title : " << b.title << std::endl;
+  return os;
+}
+REFLECTION(book_t, title, author, _attribute);
 
 void test_attribute() {
+  std::cout << "********** test_attribute ************" << std::endl;
   std::string str = R"(
   <book id="1234" language="en" edition="1">
     <title>Harry Potter and the Philosopher's Stone</title>
@@ -207,18 +221,37 @@ void test_attribute() {
   </book>
 )";
 
-  book b{};
-  iguana::from_xml(b, str.data());
-  if (b._attribute) {
-    std::cout << "book attribute : " << std::endl;
-    for (auto &[k, v] : *b._attribute) {
+  book_t book{};
+  iguana::from_xml(book, str.data());
+  std::cout << book;
+}
+struct library_t {
+  book_t book;
+  std::optional<std::unordered_map<std::string, std::string>> _attribute;
+};
+REFLECTION(library_t, book, _attribute);
+
+void test_nested_attribute() {
+  std::cout << "********** test_nested_attribute ************" << std::endl;
+  std::string str = R"(
+  <library name="UESTC library">
+    <book id="1234" language="en" edition="1">
+      <title>Harry Potter and the Philosopher's Stone</title>
+      <author>J.K. Rowling</author>
+      </book>
+  </library>
+)";
+  library_t library;
+  iguana::from_xml(library, str.data());
+  if (library._attribute) {
+    std::cout << "library attribute" << std::endl;
+    for (auto &[k, v] : *library._attribute) {
       std::cout << "[ " << k << " : " << v << "]"
                 << " ";
     }
     std::cout << std::endl;
   }
-  std::cout << "author : " << b.author << std::endl;
-  std::cout << "title : " << b.title << std::endl;
+  std::cout << "\nbook\n" << library.book;
 }
 
 int main(void) {
@@ -229,5 +262,7 @@ int main(void) {
   test_from_xml();
   test_optional();
   test_attribute();
+  test_nested_attribute();
+
   return 0;
 }

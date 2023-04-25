@@ -96,7 +96,7 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
 
     if (key == std::string_view("_attribute")) {
       std::visit(
-          [&, str](auto &&member_ptr) {
+          [&node, &t](auto &&member_ptr) {
             using V = std::decay_t<decltype(member_ptr)>;
             if constexpr (std::is_member_pointer_v<V>) {
               parse_attribute(node, t.*member_ptr);
