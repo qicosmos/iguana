@@ -17,6 +17,18 @@ template <typename T> constexpr inline bool is_std_optinal_v = false;
 template <typename T>
 constexpr inline bool is_std_optinal_v<std::optional<T>> = true;
 
+template <typename T, typename C, typename K> struct is_variant_member {
+  static constexpr bool value = false;
+};
+
+template <typename T, typename C, typename... Args>
+struct is_variant_member<T, C, std::variant<Args...>> {
+  static constexpr bool value =
+      (... ||
+       std::is_same<T, std::remove_cvref_t<decltype(std::declval<C>().*
+                                                    std::declval<Args>())>>{});
+};
+
 template <typename T> void do_read(rapidxml::xml_node<char> *node, T &&t);
 
 template <typename T>
@@ -94,20 +106,25 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
     std::string_view str = key.data();
     auto n = node->first_node(key.data());
 
-    if (key == std::string_view("_attribute")) {
-      std::visit(
-          [&node, &t](auto &&member_ptr) {
-            using V = std::decay_t<decltype(member_ptr)>;
-            if constexpr (std::is_member_pointer_v<V>) {
-              parse_attribute(node, t.*member_ptr);
-            } else {
-              static_assert(!sizeof(V), "type not supported");
-            }
-          },
-          value);
-      continue;
+    if constexpr (is_variant_member<
+                      std::optional<
+                          std::unordered_map<std::string, std::string>>,
+                      std::remove_cvref_t<T>,
+                      std::remove_cvref_t<decltype(value)>>::value) {
+      if (key == std::string_view("attr")) {
+        std::visit(
+            [&node, &t](auto &&member_ptr) {
+              using V = std::decay_t<decltype(member_ptr)>;
+              if constexpr (std::is_member_pointer_v<V>) {
+                parse_attribute(node, t.*member_ptr);
+              } else {
+                static_assert(!sizeof(V), "type not supported");
+              }
+            },
+            value);
+        continue;
+      }
     }
-
     if (!n) {
       continue;
     }

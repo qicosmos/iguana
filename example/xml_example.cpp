@@ -195,12 +195,12 @@ void test_list() {
 struct book_t {
   std::string title;
   std::string author;
-  std::optional<std::unordered_map<std::string, std::string>> _attribute;
+  std::optional<std::unordered_map<std::string, std::string>> attr;
 };
 std::ostream &operator<<(std::ostream &os, const book_t &b) {
-  if (b._attribute) {
+  if (b.attr) {
     os << "book attribute : " << std::endl;
-    for (auto &[k, v] : *b._attribute) {
+    for (auto &[k, v] : *b.attr) {
       os << "[ " << k << " : " << v << "]"
          << " ";
     }
@@ -210,7 +210,7 @@ std::ostream &operator<<(std::ostream &os, const book_t &b) {
   os << "title : " << b.title << std::endl;
   return os;
 }
-REFLECTION(book_t, title, author, _attribute);
+REFLECTION(book_t, title, author, attr);
 
 void test_attribute() {
   std::cout << "********** test_attribute ************" << std::endl;
@@ -227,9 +227,9 @@ void test_attribute() {
 }
 struct library_t {
   book_t book;
-  std::optional<std::unordered_map<std::string, std::string>> _attribute;
+  std::optional<std::unordered_map<std::string, std::string>> attr;
 };
-REFLECTION(library_t, book, _attribute);
+REFLECTION(library_t, book, attr);
 
 void test_nested_attribute() {
   std::cout << "********** test_nested_attribute ************" << std::endl;
@@ -243,9 +243,9 @@ void test_nested_attribute() {
 )";
   library_t library;
   iguana::from_xml(library, str.data());
-  if (library._attribute) {
+  if (library.attr) {
     std::cout << "library attribute" << std::endl;
-    for (auto &[k, v] : *library._attribute) {
+    for (auto &[k, v] : *library.attr) {
       std::cout << "[ " << k << " : " << v << "]"
                 << " ";
     }
