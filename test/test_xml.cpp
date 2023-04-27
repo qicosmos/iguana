@@ -42,15 +42,26 @@ TEST_CASE("test to xml") {
   // pretty xml
   std::string ss;
   iguana::xml::to_xml_pretty(ss, contents);
-  std::cout << ss << "\n";
+  std::string expected_xml_str = "<Contents>\n"
+                                 "\t<Key>key</Key>\n"
+                                 "\t<LastModified>ddd</LastModified>\n"
+                                 "\t<ETag>ccc</ETag>\n"
+                                 "\t<Type>aaa</Type>\n"
+                                 "\t<Size>123</Size>\n"
+                                 "\t<StorageClass>aaa</StorageClass>\n"
+                                 "\t<Owner>\n"
+                                 "\t\t<ID>bbb</ID>\n"
+                                 "\t\t<DisplayName>sss</DisplayName>\n"
+                                 "\t</Owner>\n"
+                                 "</Contents>\n\n";
+  CHECK(ss == expected_xml_str);
 
   // non pretty xml
   std::string s;
   iguana::xml::to_xml(s, contents);
-  CHECK(s == "<Contents><Key>key</Key><LastModified>ddd</"
-             "LastModified><ETag>ccc</ETag><Type>aaa</Type><Size>123</"
-             "Size><StorageClass>aaa</StorageClass><Owner><ID>bbb</"
-             "ID><DisplayName>sss</DisplayName></Owner></Contents>");
+  CHECK(
+      s ==
+      R"(<Contents><Key>key</Key><LastModified>ddd</LastModified><ETag>ccc</ETag><Type>aaa</Type><Size>123</Size><StorageClass>aaa</StorageClass><Owner><ID>bbb</ID><DisplayName>sss</DisplayName></Owner></Contents>)");
 }
 
 // doctest comments
