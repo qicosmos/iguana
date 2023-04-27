@@ -60,7 +60,7 @@ void test_from_xml() {
   std::cout << ss << "\n";
 
   Contents contents2{"test"};
-  iguana::from_xml(contents2, ss.data());
+  iguana::xml::from_xml(contents2, ss.data());
   std::cout << contents2.Size << "\n";
   std::cout << contents2.Owner.DisplayName << "\n";
   assert(contents == contents2);
@@ -107,7 +107,7 @@ void test_parse_status() {
 )";
 
   status_t t{};
-  iguana::from_xml(t, str.data());
+  iguana::xml::from_xml(t, str.data());
   std::cout << t.owner << "\n";
   std::cout << t.mtime << ", " << t.atime << "\n";
   std::cout << t.storagePolicy << "\n";
@@ -134,7 +134,7 @@ void test_parse_response() {
 )";
 
   response t{};
-  iguana::from_xml(t, str.data());
+  iguana::xml::from_xml(t, str.data());
   std::cout << t.status.owner << "\n";
 }
 
@@ -156,7 +156,7 @@ void test_optional() {
   std::cout << ss << "\n";
 
   optional_t op1;
-  iguana::from_xml(op1, ss.data());
+  iguana::xml::from_xml(op1, ss.data());
   if (op1.b) {
     std::cout << *op1.b << "\n";
   }
@@ -177,19 +177,25 @@ void test_list() {
   list_t l;
   l.list.push_back(optional_t{1, 2, {}, 0, 'o'});
   l.list.push_back(optional_t{3, 4, {}, 0, 'k'});
+  l.list.push_back(optional_t{5, 6, {}, 0, 'l'});
 
   std::string ss;
   iguana::xml::to_xml(ss, l);
   std::cout << ss << "\n";
 
-  iguana::xml::to_xml_pretty(ss, l);
-  std::cout << ss << '\n';
+  list_t l1;
+  iguana::xml::from_xml(l1, ss.data());
+  std::cout << l1.list.size() << "\n";
+
+  std::string s;
+  iguana::xml::to_xml_pretty(s, l);
+  std::cout << s << '\n';
 }
 
 int main(void) {
-  test_list();
-  test_parse_status();
   test_parse_response();
+  test_parse_status();
+  test_list();
   test_to_xml();
   test_from_xml();
   test_optional();
