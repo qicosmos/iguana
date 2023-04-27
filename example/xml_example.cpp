@@ -195,22 +195,20 @@ void test_list() {
 struct book_t {
   std::string title;
   std::string author;
-  std::optional<std::unordered_map<std::string, std::string>> attr;
+  std::unordered_map<std::string, std::string> __attr;
 };
 std::ostream &operator<<(std::ostream &os, const book_t &b) {
-  if (b.attr) {
-    os << "book attribute : " << std::endl;
-    for (auto &[k, v] : *b.attr) {
-      os << "[ " << k << " : " << v << "]"
-         << " ";
-    }
-    os << std::endl;
+  os << "book attribute : " << std::endl;
+  for (auto &[k, v] : b.__attr) {
+    os << "[ " << k << " : " << v << "]"
+       << " ";
   }
+  os << std::endl;
   os << "author : " << b.author << std::endl;
   os << "title : " << b.title << std::endl;
   return os;
 }
-REFLECTION(book_t, title, author, attr);
+REFLECTION(book_t, title, author, __attr);
 
 void test_attribute() {
   std::cout << "********** test_attribute ************" << std::endl;
@@ -222,14 +220,14 @@ void test_attribute() {
 )";
 
   book_t book{};
-  iguana::from_xml(book, str.data());
+  iguana::xml::from_xml(book, str.data());
   std::cout << book;
 }
 struct library_t {
   book_t book;
-  std::optional<std::unordered_map<std::string, std::string>> attr;
+  std::unordered_map<std::string, std::string> __attr;
 };
-REFLECTION(library_t, book, attr);
+REFLECTION(library_t, book, __attr);
 
 void test_nested_attribute() {
   std::cout << "********** test_nested_attribute ************" << std::endl;
@@ -242,15 +240,13 @@ void test_nested_attribute() {
   </library>
 )";
   library_t library;
-  iguana::from_xml(library, str.data());
-  if (library.attr) {
-    std::cout << "library attribute" << std::endl;
-    for (auto &[k, v] : *library.attr) {
-      std::cout << "[ " << k << " : " << v << "]"
-                << " ";
-    }
-    std::cout << std::endl;
+  iguana::xml::from_xml(library, str.data());
+  std::cout << "library attribute" << std::endl;
+  for (auto &[k, v] : library.__attr) {
+    std::cout << "[ " << k << " : " << v << "]"
+              << " ";
   }
+  std::cout << std::endl;
   std::cout << "\nbook\n" << library.book;
 }
 

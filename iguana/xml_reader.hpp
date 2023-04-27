@@ -17,18 +17,6 @@ template <typename T> constexpr inline bool is_std_optinal_v = false;
 template <typename T>
 constexpr inline bool is_std_optinal_v<std::optional<T>> = true;
 
-template <typename T, typename C, typename K> struct is_variant_member {
-  static constexpr bool value = false;
-};
-
-template <typename T, typename C, typename... Args>
-struct is_variant_member<T, C, std::variant<Args...>> {
-  static constexpr bool value =
-      (... ||
-       std::is_same<T, std::remove_cvref_t<decltype(std::declval<C>().*
-                                                    std::declval<Args>())>>{});
-};
-
 template <typename T> void do_read(rapidxml::xml_node<char> *node, T &&t);
 
 template <typename T>
@@ -66,13 +54,6 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
       parse_item(node, opt, value);
       t = std::move(opt);
     }
-  } else if constexpr (std::is_same_v<
-                           std::unordered_map<std::string, std::string>, U>) {
-    rapidxml::xml_attribute<> *attr = node->first_attribute();
-    while (attr != nullptr) {
-      t.emplace(attr->name(), attr->value());
-      attr = attr->next_attribute();
-    }
   } else {
     static_assert(!sizeof(T), "don't support this type!!");
   }
@@ -80,20 +61,30 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
 
 template <typename T>
 inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
-  using U = std::remove_reference_t<T>;
-  if constexpr (is_std_optinal_v<U>) {
-    using value_type = typename U::value_type;
-    value_type opt;
-    parse_attribute(node, opt);
-    t = std::move(opt);
-  }
-  if constexpr (std::is_same_v<std::unordered_map<std::string, std::string>,
-                               U>) {
-    rapidxml::xml_attribute<> *attr = node->first_attribute();
-    while (attr != nullptr) {
-      t.emplace(attr->name(), attr->value());
-      attr = attr->next_attribute();
+  using U = std::remove_cvref_t<T>;
+  static_assert(is_map_container<U>::value, "must be map container");
+  using key_type = typename U::key_type;
+  using value_type = typename U::mapped_type;
+  static_assert(std::is_same_v<key_type, std::string>);
+  rapidxml::xml_attribute<> *attr = node->first_attribute();
+  while (attr != nullptr) {
+    value_type value_item;
+    std::string_view value = attr->value();
+    if constexpr (std::is_same_v<std::string, value_type>) {
+      value_item = attr->value();
+    } else if constexpr (std::is_arithmetic_v<value_type> &&
+                         !std::is_same_v<bool, value_type>) {
+      double num;
+      auto [p, ec] = fast_float::from_chars(value.data(),
+                                            value.data() + value.size(), num);
+      if (ec != std::errc{})
+        throw std::invalid_argument("Failed to parse number");
+      value_item = static_cast<value_type>(num);
+    } else {
+      static_assert(!sizeof(value_type), "value type not supported");
     }
+    t.emplace(attr->name(), std::move(value_item));
+    attr = attr->next_attribute();
   }
 }
 
@@ -101,30 +92,46 @@ template <typename T>
 inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
   static_assert(is_reflection_v<std::remove_reference_t<T>>,
                 "must be refletable object");
-  for_each(std::forward<T>(t), [&t, &node](const auto v, auto i) {
-    using MemberType = std::remove_cvref_t<decltype(v)>;
-    using AttrType =
-        std::optional<std::unordered_map<std::string, std::string>>;
-    if constexpr (std::is_member_pointer_v<MemberType>) {
+  for_each(std::forward<T>(t), [&t, &node](const auto member_ptr, auto i) {
+    using member_ptr_type = std::remove_cvref_t<decltype(member_ptr)>;
+    using type_v =
+        decltype(std::declval<T>().*std::declval<decltype(member_ptr)>());
+    using item_type = std::remove_cvref_t<type_v>;
+
+    if constexpr (std::is_member_pointer_v<member_ptr_type>) {
       using M = decltype(iguana_reflect_members(std::forward<T>(t)));
       constexpr auto Idx = decltype(i)::value;
       constexpr auto Count = M::value();
       static_assert(Idx < Count);
       constexpr auto key = M::arr()[Idx];
-      if constexpr (std::is_same_v<AttrType,
-                                   std::remove_cvref_t<decltype(t.*v)>>) {
-        if (key == std::string_view("attr")) { // delete this?
-          parse_attribute(node, t.*v);
-        }
+      std::string_view str = key.data();
+      if constexpr (is_map_container<item_type>::value) { // attr
+        parse_attribute(node, t.*member_ptr);
       } else {
         auto n = node->first_node(key.data());
         if (n) {
-          parse_item(node, t.*v, std::string_view(n->value(), n->value_size()),
-                     key.data());
+          if constexpr (!std::is_same_v<std::string, item_type> &&
+                        is_container<item_type>::value) {
+            using value_type = typename item_type::value_type;
+            value_type item;
+            while (n) {
+              if (n->name() != str) {
+                break;
+              }
+              parse_item(n, item,
+                         std::string_view(n->value(), n->value_size()));
+              (t.*member_ptr).push_back(item);
+              n = n->next_sibling();
+            }
+
+          } else {
+            parse_item(node->first_node(str.data()), t.*member_ptr,
+                       std::string_view(n->value(), n->value_size()));
+          }
         }
       }
     } else {
-      static_assert(!sizeof(MemberType), "type not supported");
+      static_assert(!sizeof(member_ptr_type), "type not supported");
     }
   });
 }
