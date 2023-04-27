@@ -119,7 +119,7 @@ void test_xml() {
   std::cout << ss << std::endl;
 
   two t1;
-  iguana::from_xml(t1, ss.data());
+  iguana::xml::from_xml(t1, ss.data());
   std::cout << t1.age << "\n";
 }
 

@@ -5,6 +5,7 @@
 #ifndef IGUANA_XML17_HPP
 #define IGUANA_XML17_HPP
 #include "reflection.hpp"
+#include "type_traits.hpp"
 #include <algorithm>
 #include <cctype>
 #include <functional>
@@ -13,13 +14,6 @@
 
 namespace iguana::xml {
 // to xml
-template <class, class = void> struct is_container : std::false_type {};
-
-template <class T>
-struct is_container<
-    T, std::void_t<decltype(std::declval<T>().size(), std::declval<T>().begin(),
-                            std::declval<T>().end())>> : std::true_type {};
-
 template <typename Stream, typename T>
 inline void to_xml_impl(Stream &s, T &&t, std::string_view name = "");
 
@@ -76,9 +70,6 @@ inline void render_xml_value0(Stream &ss, const T &v, std::string_view name) {
   for (auto &item : v) {
     to_xml_impl(ss, item, name);
   }
-  //        if (s.has_value()) {
-  //            render_xml_value(ss, *s);
-  //        }
 }
 
 template <typename Stream, typename T>

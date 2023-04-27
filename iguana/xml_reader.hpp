@@ -1,6 +1,7 @@
 #pragma once
 #include "detail/fast_float.h"
 #include "reflection.hpp"
+#include "type_traits.hpp"
 #include <algorithm>
 #include <cctype>
 #include <charconv>
@@ -10,7 +11,7 @@
 #include <string>
 #include <type_traits>
 
-namespace iguana {
+namespace iguana::xml {
 template <typename T> constexpr inline bool is_std_optinal_v = false;
 
 template <typename T>
@@ -20,7 +21,7 @@ template <typename T> void do_read(rapidxml::xml_node<char> *node, T &&t);
 
 template <typename T>
 inline void parse_item(rapidxml::xml_node<char> *node, T &t,
-                       std::string_view value, std::string_view key) {
+                       std::string_view value) {
   using U = std::remove_reference_t<T>;
   if constexpr (std::is_same_v<char, U>) {
     if (!value.empty())
@@ -36,8 +37,8 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
       }
     } else {
       double num;
-      auto [p, ec] =
-          fast_float::from_chars(value.data(), value.data() + value.size(), num);
+      auto [p, ec] = fast_float::from_chars(value.data(),
+                                            value.data() + value.size(), num);
       if (ec != std::errc{})
         throw std::invalid_argument("Failed to parse number");
       t = static_cast<T>(num);
@@ -45,12 +46,12 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
   } else if constexpr (std::is_same_v<std::string, U>) {
     t = value;
   } else if constexpr (is_reflection_v<U>) {
-    do_read(node->first_node(key.data()), t);
+    do_read(node, t);
   } else if constexpr (is_std_optinal_v<U>) {
     if (!value.empty()) {
       using value_type = typename U::value_type;
       value_type opt;
-      parse_item(node, opt, value, key);
+      parse_item(node, opt, value);
       t = std::move(opt);
     }
   } else {
@@ -73,9 +74,29 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
     std::visit(
         [&, str](auto &&member_ptr) {
           using V = std::decay_t<decltype(member_ptr)>;
+          using type_v =
+              decltype(std::declval<T>().*std::declval<decltype(member_ptr)>());
+          using item_type = std::remove_cvref_t<type_v>;
+
           if constexpr (std::is_member_pointer_v<V>) {
-            parse_item(node, t.*member_ptr,
-                       std::string_view(n->value(), n->value_size()), str);
+            if constexpr (!std::is_same_v<std::string, item_type> &&
+                          is_container<item_type>::value) {
+              using value_type = typename item_type::value_type;
+              value_type item;
+              while (n) {
+                if (n->name() != str) {
+                  break;
+                }
+                parse_item(n, item,
+                           std::string_view(n->value(), n->value_size()));
+                (t.*member_ptr).push_back(item);
+                n = n->next_sibling();
+              }
+
+            } else {
+              parse_item(node->first_node(str.data()), t.*member_ptr,
+                         std::string_view(n->value(), n->value_size()));
+            }
           } else {
             static_assert(!sizeof(V), "type not supported");
           }
@@ -102,4 +123,4 @@ inline bool from_xml(T &&t, char *buf) {
 
   return false;
 }
-} // namespace iguana
+} // namespace iguana::xml
