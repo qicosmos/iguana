@@ -101,66 +101,32 @@ template <typename T>
 inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
   static_assert(is_reflection_v<std::remove_reference_t<T>>,
                 "must be refletable object");
-  static constexpr auto frozen_map = get_iguana_struct_map<T>();
-  for (auto &[key, value] : frozen_map) {
-    std::string_view str = key.data();
-    auto n = node->first_node(key.data());
-
-    if constexpr (is_variant_member<
-                      std::optional<
-                          std::unordered_map<std::string, std::string>>,
-                      std::remove_cvref_t<T>,
-                      std::remove_cvref_t<decltype(value)>>::value) {
-      if (key == std::string_view("attr")) {
-        std::visit(
-            [&node, &t](auto &&member_ptr) {
-              using V = std::decay_t<decltype(member_ptr)>;
-              if constexpr (std::is_member_pointer_v<V>) {
-                parse_attribute(node, t.*member_ptr);
-              } else {
-                static_assert(!sizeof(V), "type not supported");
-              }
-            },
-            value);
-        continue;
+  for_each(std::forward<T>(t), [&t, &node](const auto v, auto i) {
+    using MemberType = std::remove_cvref_t<decltype(v)>;
+    using AttrType =
+        std::optional<std::unordered_map<std::string, std::string>>;
+    if constexpr (std::is_member_pointer_v<MemberType>) {
+      using M = decltype(iguana_reflect_members(std::forward<T>(t)));
+      constexpr auto Idx = decltype(i)::value;
+      constexpr auto Count = M::value();
+      static_assert(Idx < Count);
+      constexpr auto key = M::arr()[Idx];
+      if constexpr (std::is_same_v<AttrType,
+                                   std::remove_cvref_t<decltype(t.*v)>>) {
+        if (key == std::string_view("attr")) { // delete this?
+          parse_attribute(node, t.*v);
+        }
+      } else {
+        auto n = node->first_node(key.data());
+        if (n) {
+          parse_item(node, t.*v, std::string_view(n->value(), n->value_size()),
+                     key.data());
+        }
       }
+    } else {
+      static_assert(!sizeof(MemberType), "type not supported");
     }
-    if (!n) {
-      continue;
-    }
-
-    std::visit(
-        [&, str](auto &&member_ptr) {
-          using V = std::decay_t<decltype(member_ptr)>;
-          using type_v =
-              decltype(std::declval<T>().*std::declval<decltype(member_ptr)>());
-          using item_type = std::remove_cvref_t<type_v>;
-
-          if constexpr (std::is_member_pointer_v<V>) {
-            if constexpr (!std::is_same_v<std::string, item_type> &&
-                          is_container<item_type>::value) {
-              using value_type = typename item_type::value_type;
-              value_type item;
-              while (n) {
-                if (n->name() != str) {
-                  break;
-                }
-                parse_item(n, item,
-                           std::string_view(n->value(), n->value_size()));
-                (t.*member_ptr).push_back(item);
-                n = n->next_sibling();
-              }
-
-            } else {
-              parse_item(node->first_node(str.data()), t.*member_ptr,
-                         std::string_view(n->value(), n->value_size()));
-            }
-          } else {
-            static_assert(!sizeof(V), "type not supported");
-          }
-        },
-        value);
-  }
+  });
 }
 
 template <int Flags = 0, typename T,
