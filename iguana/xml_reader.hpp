@@ -12,11 +12,6 @@
 #include <type_traits>
 
 namespace iguana::xml {
-template <typename T> constexpr inline bool is_std_optinal_v = false;
-
-template <typename T>
-constexpr inline bool is_std_optinal_v<std::optional<T>> = true;
-
 template <typename T> void do_read(rapidxml::xml_node<char> *node, T &&t);
 
 template <typename T>
@@ -80,6 +75,32 @@ inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
       if (ec != std::errc{})
         throw std::invalid_argument("Failed to parse number");
       value_item = static_cast<value_type>(num);
+    } else if constexpr (is_std_variant_v<value_type>) {
+      using value_item_type =
+          typename variant_first_match<value_type, double, float, long long,
+                                       int, std::string>::type;
+      if constexpr (!std::is_void_v<value_item_type>) {
+        if constexpr (std::is_arithmetic_v<value_item_type>) {
+          double num;
+          auto [p, ec] = fast_float::from_chars(
+              value.data(), value.data() + value.size(), num);
+          if (ec == std::errc{}) {
+            value_item = static_cast<value_item_type>(num);
+          } else {
+            if constexpr (is_variant_contains_type<std::string,
+                                                   value_type>::value) {
+              value_item = attr->value();
+            } else {
+              throw std::invalid_argument("Failed to parse number");
+            }
+          }
+        } else {
+          value_item = attr->value();
+        }
+      } else {
+        static_assert(!sizeof(value_item_type),
+                      "variant type not support"); // value_item_type is void
+      }
     } else {
       static_assert(!sizeof(value_type), "value type not supported");
     }

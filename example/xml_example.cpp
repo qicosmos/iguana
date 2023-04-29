@@ -249,6 +249,37 @@ void test_nested_attribute() {
   std::cout << std::endl;
   std::cout << "\nbook\n" << library.book;
 }
+struct movie_t {
+  std::string title;
+  std::string director;
+  std::unordered_map<std::string, std::variant<std::string, int, float>> __attr;
+};
+REFLECTION(movie_t, title, director, __attr);
+void test_variant_attribute() {
+  std::cout << "********** test attribute with variant ************"
+            << std::endl;
+  std::string str = R"(
+  <movie id="1" time="2.3" price="32.8" language="en">
+    <title>Harry Potter and the Philosopher's Stone</title>
+    <director>Chris Columbus</director>
+  </movie>
+)";
+  movie_t movie;
+  iguana::xml::from_xml(movie, str.data());
+  std::cout << "movie attribute :" << std::endl;
+  for (auto &[key, value] : movie.__attr) {
+    std::string_view str = key.data();
+    std::visit(
+        [str](auto &&attr_value) {
+          if (str != "language")
+            assert(typeid(attr_value) == typeid(float));
+          std::cout << "[ " << str << " : " << attr_value << "]"
+                    << typeid(attr_value).name() << " ";
+        },
+        value);
+  }
+  std::cout << std::endl;
+}
 
 int main(void) {
   test_parse_response();
@@ -259,6 +290,7 @@ int main(void) {
   test_optional();
   test_attribute();
   test_nested_attribute();
+  test_variant_attribute();
 
   return 0;
 }
