@@ -192,6 +192,64 @@ void test_list() {
   std::cout << s << '\n';
 }
 
+struct book_t {
+  std::string title;
+  std::string author;
+  std::unordered_map<std::string, std::string> __attr;
+};
+std::ostream &operator<<(std::ostream &os, const book_t &b) {
+  os << "book attribute : " << std::endl;
+  for (auto &[k, v] : b.__attr) {
+    os << "[ " << k << " : " << v << "]"
+       << " ";
+  }
+  os << std::endl;
+  os << "author : " << b.author << std::endl;
+  os << "title : " << b.title << std::endl;
+  return os;
+}
+REFLECTION(book_t, title, author, __attr);
+
+void test_attribute() {
+  std::cout << "********** test_attribute ************" << std::endl;
+  std::string str = R"(
+  <book id="1234" language="en" edition="1">
+    <title>Harry Potter and the Philosopher's Stone</title>
+    <author>J.K. Rowling</author>
+  </book>
+)";
+
+  book_t book{};
+  iguana::xml::from_xml(book, str.data());
+  std::cout << book;
+}
+struct library_t {
+  book_t book;
+  std::unordered_map<std::string, std::string> __attr;
+};
+REFLECTION(library_t, book, __attr);
+
+void test_nested_attribute() {
+  std::cout << "********** test_nested_attribute ************" << std::endl;
+  std::string str = R"(
+  <library name="UESTC library">
+    <book id="1234" language="en" edition="1">
+      <title>Harry Potter and the Philosopher's Stone</title>
+      <author>J.K. Rowling</author>
+      </book>
+  </library>
+)";
+  library_t library;
+  iguana::xml::from_xml(library, str.data());
+  std::cout << "library attribute" << std::endl;
+  for (auto &[k, v] : library.__attr) {
+    std::cout << "[ " << k << " : " << v << "]"
+              << " ";
+  }
+  std::cout << std::endl;
+  std::cout << "\nbook\n" << library.book;
+}
+
 int main(void) {
   test_parse_response();
   test_parse_status();
@@ -199,6 +257,8 @@ int main(void) {
   test_to_xml();
   test_from_xml();
   test_optional();
+  test_attribute();
+  test_nested_attribute();
 
   return 0;
 }
