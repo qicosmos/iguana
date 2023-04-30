@@ -15,7 +15,12 @@
 namespace iguana::xml {
 // to xml
 template <typename Stream, typename T>
-inline void to_xml_impl(Stream &s, T &&t, std::string_view name = "");
+inline std::enable_if_t<is_reflection<T>::value, void>
+to_xml_impl(Stream &s, T &&t, std::string_view name = "");
+
+template <typename Stream, typename T>
+inline std::enable_if_t<!is_reflection<T>::value, void>
+to_xml_impl(Stream &s, T &&t, std::string_view name);
 
 template <typename Stream, typename T>
 inline std::enable_if_t<!std::is_floating_point<T>::value &&
@@ -103,7 +108,22 @@ template <typename Stream> inline void render_head(Stream &ss, const char *s) {
 }
 
 template <typename Stream, typename T>
-inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
+inline std::enable_if_t<!is_reflection<T>::value, void>
+to_xml_impl(Stream &s, T &&t, std::string_view name) {
+  if constexpr (!std::is_same_v<std::string, std::remove_cvref_t<T>> &&
+                is_container<std::remove_cvref_t<T>>::value) {
+    std::string_view sv = name.data();
+    render_xml_value0(s, t, sv);
+  } else {
+    render_head(s, name.data());
+    render_xml_value(s, t);
+    render_tail(s, name.data());
+  }
+}
+
+template <typename Stream, typename T>
+inline std::enable_if_t<is_reflection<T>::value, void>
+to_xml_impl(Stream &s, T &&t, std::string_view name) {
   if (name.empty()) {
     name = iguana::get_name<T>();
   }
