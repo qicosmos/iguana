@@ -57,6 +57,62 @@ TEST_CASE("test optinal and vector") {
   CHECK_MESSAGE(newbook == book, "the newer must be same as the older");
 }
 
+struct library_t {
+  std::vector<book_t> book;
+  int sum;
+};
+REFLECTION(library_t, book, sum);
+TEST_CASE("test nested vector") {
+  std::string str = R"(
+    <library>
+    <book>
+      <title>C++ templates</title>
+      <edition>2</edition>
+      <author>David Vandevoorde</author>
+      <author>Nicolai M. Josuttis</author>
+      <author>Douglas Gregor</author>
+      <description>talking about how to use template</description>
+    </book>
+    <book>
+      <title>C++ primer</title>
+      <edition>6</edition>
+      <author>Stanley B. Lippman</author>
+      <author>Josée Lajoie</author>
+      <author>Barbara E. Moo</author>
+      <description></description>
+    </book>
+    <sum>2</sum>
+    </library>
+  )";
+  library_t library;
+  iguana::xml::from_xml(library, str.data());
+  CHECK(library.sum == 2);
+  CHECK(library.book[0].title == "C++ templates");
+  CHECK(library.book[1].title == "C++ primer");
+  if (library.book[1].title == "C++ primer") {
+    CHECK(!library.book[1].description);
+    std::vector<std::string> author = {"Stanley B. Lippman", "Josée Lajoie",
+                                       "Barbara E. Moo"};
+    auto t1 = library.book[1].author;
+    CHECK(t1.size() == 3);
+    sort(t1.begin(), t1.end());
+    sort(author.begin(), author.end());
+    CHECK(t1 == author);
+  }
+
+  std::string xml_str;
+  iguana::xml::to_xml(xml_str, library);
+  library_t newlibrary;
+  iguana::xml::from_xml(newlibrary, xml_str.data());
+  if (newlibrary.book[0].title == library.book[0].title) {
+    CHECK(newlibrary.book[0] == library.book[0]);
+    CHECK(newlibrary.book[1] == library.book[1]);
+  } else {
+    CHECK(newlibrary.book[1] == library.book[0]);
+    CHECK(newlibrary.book[0] == library.book[1]);
+  }
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007) int main(int argc, char **argv) {
