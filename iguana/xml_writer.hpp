@@ -15,12 +15,7 @@
 namespace iguana::xml {
 // to xml
 template <typename Stream, typename T>
-inline std::enable_if_t<is_reflection<T>::value, void>
-to_xml_impl(Stream &s, T &&t, std::string_view name = "");
-
-template <typename Stream, typename T>
-inline std::enable_if_t<!is_reflection<T>::value, void>
-to_xml_impl(Stream &s, T &&t, std::string_view name);
+inline void to_xml_impl(Stream &s, T &&t, std::string_view name = "");
 
 template <typename Stream, typename T>
 inline std::enable_if_t<!std::is_floating_point<T>::value &&
@@ -70,12 +65,6 @@ inline void render_xml_value(Stream &ss, const std::optional<T> &s) {
   }
 }
 
-template <typename Stream, typename T>
-inline void render_xml_value0(Stream &ss, const T &v, std::string_view name) {
-  for (auto &item : v) {
-    to_xml_impl(ss, item, name);
-  }
-}
 
 template <typename Stream, typename T>
 inline std::enable_if_t<std::is_arithmetic<T>::value> render_key(Stream &ss,
@@ -108,22 +97,22 @@ template <typename Stream> inline void render_head(Stream &ss, const char *s) {
 }
 
 template <typename Stream, typename T>
-inline std::enable_if_t<!is_reflection<T>::value, void>
-to_xml_impl(Stream &s, T &&t, std::string_view name) {
-  if constexpr (!std::is_same_v<std::string, std::remove_cvref_t<T>> &&
-                is_container<std::remove_cvref_t<T>>::value) {
-    std::string_view sv = name.data();
-    render_xml_value0(s, t, sv);
-  } else {
-    render_head(s, name.data());
-    render_xml_value(s, t);
-    render_tail(s, name.data());
+inline void render_xml_value0(Stream& ss, const T& v, std::string_view name) {
+  for (auto& item : v) {
+    using item_type = std::remove_cvref_t<decltype(item)>;
+    if constexpr (is_reflection_v<item_type>) {
+      to_xml_impl(ss, item, name);
+    }
+    else {
+      render_head(ss, name.data());
+      render_xml_value(ss, item);
+      render_tail(ss, name.data());
+    }
   }
 }
 
 template <typename Stream, typename T>
-inline std::enable_if_t<is_reflection<T>::value, void>
-to_xml_impl(Stream &s, T &&t, std::string_view name) {
+inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
   if (name.empty()) {
     name = iguana::get_name<T>();
   }
