@@ -130,7 +130,7 @@ inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
       to_xml_impl(s, t.*v, get_name<T, Idx>().data());
     }
   });
-  s.append("</").append(name).append(">");
+  s.append("</").append(name).append(">\n");
 }
 
 template <typename Stream, typename T,
