@@ -249,6 +249,47 @@ void test_nested_attribute() {
   std::cout << std::endl;
   std::cout << "\nbook\n" << library.book;
 }
+struct movie_t {
+  std::string title;
+  std::string director;
+  std::unordered_map<std::string, iguana::xml::any_t> __attr;
+};
+REFLECTION(movie_t, title, director, __attr);
+void test_any_attribute() {
+  std::cout << "********** test attribute with any ************" << std::endl;
+  std::string str = R"(
+  <movie id="1" time="2.3" price="32.8" language="en">
+    <title>Harry Potter and the Philosopher's Stone</title>
+    <director>Chris Columbus</director>
+  </movie>
+)";
+  movie_t movie;
+  iguana::xml::from_xml(movie, str.data());
+  std::cout << "movie attribute :" << std::endl;
+  auto &attr = movie.__attr;
+  {
+    auto [isok, value] = attr["id"].get<int>();
+    assert(isok == true);
+    std::cout << "[ "
+              << "id"
+              << " : " << value << "]";
+  }
+  {
+    auto [isok, value] = attr["price"].get<float>();
+    assert(isok == true);
+    std::cout << "[ "
+              << "id"
+              << " : " << value << "]";
+  }
+  {
+    auto [isok, value] = attr["language"].get<std::string>();
+    assert(isok == true);
+    std::cout << "[ "
+              << "language"
+              << " : " << value << "]";
+  }
+  std::cout << std::endl;
+}
 
 int main(void) {
   test_parse_response();
@@ -259,6 +300,7 @@ int main(void) {
   test_optional();
   test_attribute();
   test_nested_attribute();
+  test_any_attribute();
 
   return 0;
 }

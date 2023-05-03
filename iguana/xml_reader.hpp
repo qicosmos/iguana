@@ -12,12 +12,31 @@
 #include <type_traits>
 
 namespace iguana::xml {
-template <typename T> constexpr inline bool is_std_optinal_v = false;
-
-template <typename T>
-constexpr inline bool is_std_optinal_v<std::optional<T>> = true;
-
 template <typename T> void do_read(rapidxml::xml_node<char> *node, T &&t);
+
+class any_t {
+public:
+  explicit any_t(std::string_view value) : value_(value) {}
+  explicit any_t() {}
+  template <typename T> std::pair<bool, T> get() const {
+    if constexpr (std::is_same_v<T, std::string> ||
+                  std::is_same_v<T, std::string_view>) {
+      return std::make_pair(true, T{value_});
+    } else if constexpr (std::is_arithmetic_v<T>) {
+      double num;
+      auto [p, ec] = fast_float::from_chars(value_.data(),
+                                            value_.data() + value_.size(), num);
+      if (ec != std::errc{})
+        return std::make_pair(false, T{});
+      return std::make_pair(true, static_cast<T>(num));
+    } else {
+      static_assert(!sizeof(T), "don't support this type!!");
+    }
+  }
+
+private:
+  std::string_view value_;
+};
 
 template <typename T>
 inline void parse_item(rapidxml::xml_node<char> *node, T &t,
@@ -70,8 +89,9 @@ inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
   while (attr != nullptr) {
     value_type value_item;
     std::string_view value = attr->value();
-    if constexpr (std::is_same_v<std::string, value_type>) {
-      value_item = attr->value();
+    if constexpr (std::is_same_v<std::string, value_type> ||
+                  std::is_same_v<any_t, value_type>) {
+      value_item = value_type{attr->value()};
     } else if constexpr (std::is_arithmetic_v<value_type> &&
                          !std::is_same_v<bool, value_type>) {
       double num;
@@ -105,7 +125,7 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
       static_assert(Idx < Count);
       constexpr auto key = M::arr()[Idx];
       std::string_view str = key.data();
-      if constexpr (is_map_container<item_type>::value) { // attr
+      if constexpr (is_map_container<item_type>::value) {
         parse_attribute(node, t.*member_ptr);
       } else {
         auto n = node->first_node(key.data());

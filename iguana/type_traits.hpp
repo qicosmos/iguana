@@ -16,4 +16,9 @@ struct is_map_container<
     T, std::void_t<decltype(std::declval<typename T::mapped_type>())>>
     : public is_container<T> {};
 
+template <typename T> constexpr inline bool is_std_optinal_v = false;
+
+template <typename T>
+constexpr inline bool is_std_optinal_v<std::optional<T>> = true;
+
 } // namespace iguana
