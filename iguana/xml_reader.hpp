@@ -14,6 +14,33 @@
 namespace iguana::xml {
 template <typename T> void do_read(rapidxml::xml_node<char> *node, T &&t);
 
+class any_t {
+public:
+  explicit any_t(std::string_view value) : value_(value) {}
+  explicit any_t() {}
+  template <typename T> std::pair<bool, T> get() const {
+    if constexpr (std::is_same_v<T, std::string>) {
+      return std::make_pair(true, std::string(value_));
+    } else if constexpr (std::is_arithmetic_v<T>) {
+      double num;
+      auto [p, ec] = fast_float::from_chars(value_.data(),
+                                            value_.data() + value_.size(), num);
+      if (ec != std::errc{})
+        return std::make_pair(false, T{});
+      return std::make_pair(true, static_cast<T>(num));
+    } else {
+      static_assert(!sizeof(T), "don't support this type!!");
+    }
+  }
+  any_t &operator=(const std::string_view str) {
+    value_ = str;
+    return *this;
+  }
+
+private:
+  std::string_view value_;
+};
+
 template <typename T>
 inline void parse_item(rapidxml::xml_node<char> *node, T &t,
                        std::string_view value) {
@@ -65,7 +92,8 @@ inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
   while (attr != nullptr) {
     value_type value_item;
     std::string_view value = attr->value();
-    if constexpr (std::is_same_v<std::string, value_type>) {
+    if constexpr (std::is_same_v<std::string, value_type> ||
+                  std::is_same_v<any_t, value_type>) {
       value_item = attr->value();
     } else if constexpr (std::is_arithmetic_v<value_type> &&
                          !std::is_same_v<bool, value_type>) {
@@ -75,32 +103,6 @@ inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
       if (ec != std::errc{})
         throw std::invalid_argument("Failed to parse number");
       value_item = static_cast<value_type>(num);
-    } else if constexpr (is_std_variant_v<value_type>) {
-      using value_item_type =
-          typename variant_first_match<value_type, double, float, long long,
-                                       int, std::string>::type;
-      if constexpr (!std::is_void_v<value_item_type>) {
-        if constexpr (std::is_arithmetic_v<value_item_type>) {
-          double num;
-          auto [p, ec] = fast_float::from_chars(
-              value.data(), value.data() + value.size(), num);
-          if (ec == std::errc{}) {
-            value_item = static_cast<value_item_type>(num);
-          } else {
-            if constexpr (is_variant_contains_type<std::string,
-                                                   value_type>::value) {
-              value_item = attr->value();
-            } else {
-              throw std::invalid_argument("Failed to parse number");
-            }
-          }
-        } else {
-          value_item = attr->value();
-        }
-      } else {
-        static_assert(!sizeof(value_item_type),
-                      "variant type not support"); // value_item_type is void
-      }
     } else {
       static_assert(!sizeof(value_type), "value type not supported");
     }
@@ -126,7 +128,7 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
       static_assert(Idx < Count);
       constexpr auto key = M::arr()[Idx];
       std::string_view str = key.data();
-      if constexpr (is_map_container<item_type>::value) { // attr
+      if constexpr (is_map_container<item_type>::value) {
         parse_attribute(node, t.*member_ptr);
       } else {
         auto n = node->first_node(key.data());

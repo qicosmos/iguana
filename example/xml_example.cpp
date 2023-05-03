@@ -252,12 +252,11 @@ void test_nested_attribute() {
 struct movie_t {
   std::string title;
   std::string director;
-  std::unordered_map<std::string, std::variant<std::string, int, float>> __attr;
+  std::unordered_map<std::string, iguana::xml::any_t> __attr;
 };
 REFLECTION(movie_t, title, director, __attr);
-void test_variant_attribute() {
-  std::cout << "********** test attribute with variant ************"
-            << std::endl;
+void test_any_attribute() {
+  std::cout << "********** test attribute with any ************" << std::endl;
   std::string str = R"(
   <movie id="1" time="2.3" price="32.8" language="en">
     <title>Harry Potter and the Philosopher's Stone</title>
@@ -267,16 +266,27 @@ void test_variant_attribute() {
   movie_t movie;
   iguana::xml::from_xml(movie, str.data());
   std::cout << "movie attribute :" << std::endl;
-  for (auto &[key, value] : movie.__attr) {
-    std::string_view str = key.data();
-    std::visit(
-        [str](auto &&attr_value) {
-          if (str != "language")
-            assert(typeid(attr_value) == typeid(float));
-          std::cout << "[ " << str << " : " << attr_value << "]"
-                    << typeid(attr_value).name() << " ";
-        },
-        value);
+  auto &attr = movie.__attr;
+  {
+    auto [isok, value] = attr["id"].get<int>();
+    assert(isok == true);
+    std::cout << "[ "
+              << "id"
+              << " : " << value << "]";
+  }
+  {
+    auto [isok, value] = attr["price"].get<float>();
+    assert(isok == true);
+    std::cout << "[ "
+              << "id"
+              << " : " << value << "]";
+  }
+  {
+    auto [isok, value] = attr["language"].get<std::string>();
+    assert(isok == true);
+    std::cout << "[ "
+              << "language"
+              << " : " << value << "]";
   }
   std::cout << std::endl;
 }
@@ -290,7 +300,7 @@ int main(void) {
   test_optional();
   test_attribute();
   test_nested_attribute();
-  test_variant_attribute();
+  test_any_attribute();
 
   return 0;
 }
