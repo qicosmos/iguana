@@ -32,10 +32,6 @@ public:
       static_assert(!sizeof(T), "don't support this type!!");
     }
   }
-  any_t &operator=(const std::string_view str) {
-    value_ = str;
-    return *this;
-  }
 
 private:
   std::string_view value_;
@@ -94,7 +90,7 @@ inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
     std::string_view value = attr->value();
     if constexpr (std::is_same_v<std::string, value_type> ||
                   std::is_same_v<any_t, value_type>) {
-      value_item = attr->value();
+      value_item = value_type{attr->value()};
     } else if constexpr (std::is_arithmetic_v<value_type> &&
                          !std::is_same_v<bool, value_type>) {
       double num;

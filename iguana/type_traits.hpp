@@ -21,6 +21,4 @@ template <typename T> constexpr inline bool is_std_optinal_v = false;
 template <typename T>
 constexpr inline bool is_std_optinal_v<std::optional<T>> = true;
 
-template <typename T> constexpr inline bool is_std_variant_v = false;
-
 } // namespace iguana
