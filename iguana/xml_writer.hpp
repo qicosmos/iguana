@@ -96,6 +96,13 @@ template <typename Stream> inline void render_head(Stream &ss, const char *s) {
   ss.push_back('>');
 }
 
+template <typename Stream, typename T> 
+inline void render_xml_node(Stream &ss, std::string_view name, T &&item) {
+  render_head(ss, name.data());
+  render_xml_value(ss, std::forward<T>(item));
+  render_tail(ss, name.data());
+}
+
 template <typename Stream, typename T>
 inline void render_xml_value0(Stream& ss, const T& v, std::string_view name) {
   for (auto& item : v) {
@@ -104,9 +111,7 @@ inline void render_xml_value0(Stream& ss, const T& v, std::string_view name) {
       to_xml_impl(ss, item, name);
     }
     else {
-      render_head(ss, name.data());
-      render_xml_value(ss, item);
-      render_tail(ss, name.data());
+      render_xml_node(ss, name, item);
     }
   }
 }
@@ -131,9 +136,7 @@ inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
         std::string_view sv = get_name<T, Idx>().data();
         render_xml_value0(s, t.*v, sv);
       } else {
-        render_head(s, get_name<T, Idx>().data());
-        render_xml_value(s, t.*v);
-        render_tail(s, get_name<T, Idx>().data());
+        render_xml_node(s, get_name<T, Idx>().data(), t.*v);
       }
     } else {
       to_xml_impl(s, t.*v, get_name<T, Idx>().data());
