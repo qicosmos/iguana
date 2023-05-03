@@ -65,7 +65,6 @@ inline void render_xml_value(Stream &ss, const std::optional<T> &s) {
   }
 }
 
-
 template <typename Stream, typename T>
 inline std::enable_if_t<std::is_arithmetic<T>::value> render_key(Stream &ss,
                                                                  T t) {
@@ -96,7 +95,7 @@ template <typename Stream> inline void render_head(Stream &ss, const char *s) {
   ss.push_back('>');
 }
 
-template <typename Stream, typename T> 
+template <typename Stream, typename T>
 inline void render_xml_node(Stream &ss, std::string_view name, T &&item) {
   render_head(ss, name.data());
   render_xml_value(ss, std::forward<T>(item));
@@ -104,13 +103,12 @@ inline void render_xml_node(Stream &ss, std::string_view name, T &&item) {
 }
 
 template <typename Stream, typename T>
-inline void render_xml_value0(Stream& ss, const T& v, std::string_view name) {
-  for (auto& item : v) {
+inline void render_xml_value0(Stream &ss, const T &v, std::string_view name) {
+  for (auto &item : v) {
     using item_type = std::remove_cvref_t<decltype(item)>;
     if constexpr (is_reflection_v<item_type>) {
       to_xml_impl(ss, item, name);
-    }
-    else {
+    } else {
       render_xml_node(ss, name, item);
     }
   }
