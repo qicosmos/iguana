@@ -19,8 +19,9 @@ public:
   explicit any_t(std::string_view value) : value_(value) {}
   explicit any_t() {}
   template <typename T> std::pair<bool, T> get() const {
-    if constexpr (std::is_same_v<T, std::string>) {
-      return std::make_pair(true, std::string(value_));
+    if constexpr (std::is_same_v<T, std::string> ||
+                  std::is_same_v<T, std::string_view>) {
+      return std::make_pair(true, T{value_});
     } else if constexpr (std::is_arithmetic_v<T>) {
       double num;
       auto [p, ec] = fast_float::from_chars(value_.data(),
