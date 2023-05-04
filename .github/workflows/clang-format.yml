@@ -2,9 +2,9 @@ name: Clang Format Diff
 
 on:
   push:
-    branches: [ master fullsupport_xml]
+    branches: [ master, fullsupport_xml]
   pull_request:
-    branches: [ master fullsupport_xml]
+    branches: [ master, fullsupport_xml]
     
 jobs:
   build:
