@@ -50,10 +50,21 @@ add_executable(test_ut 	${TEST_UT})
 add_executable(test_json_files 	${TEST_JSON_FILES})
 add_executable(benchmark 	${BENCHMARK})
 
+# unit test
 option(BUILD_UNIT_TESTS "Build unit tests" ON)
 if (BUILD_UNIT_TESTS)
     enable_testing()
 endif ()
+
+# coverage test
+option(COVERAGE_TEST "Build with unit test coverage" OFF)
+if(COVERAGE_TEST)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage --coverage")
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-instr-generate -fcoverage-mapping")
+    endif()
+endif()
 
 add_test(NAME test_some COMMAND test_some)
 add_test(NAME test_ut COMMAND test_ut)
