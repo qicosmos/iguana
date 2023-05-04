@@ -4,6 +4,7 @@
 
 #ifndef IGUANA_XML17_HPP
 #define IGUANA_XML17_HPP
+#include "detail/dragonbox_to_chars.h"
 #include "reflection.hpp"
 #include "type_traits.hpp"
 #include <algorithm>
@@ -28,12 +29,25 @@ render_xml_value(Stream &ss, T value) {
   ss.append(temp, p - temp);
 }
 
+template <typename Stream> void render_xml_value(Stream &ss, int64_t value) {
+  char temp[65];
+  auto p = xtoa(value, temp, 10, 1);
+  ss.append(temp, p - temp);
+}
+
+template <typename Stream> void render_xml_value(Stream &ss, uint64_t value) {
+  char temp[65];
+  auto p = xtoa(value, temp, 10, 0);
+  ss.append(temp, p - temp);
+}
+
 template <typename Stream, typename T>
 inline std::enable_if_t<std::is_floating_point<T>::value>
-render_xml_value(Stream &ss, T value) {
-  char temp[20];
-  sprintf(temp, "%f", value);
-  ss.append(temp);
+render_xml_value(Stream &ss, T &value) {
+  char temp[40];
+  const auto end = jkj::dragonbox::to_chars(value, temp);
+  const auto n = std::distance(temp, end);
+  ss.append(temp, n);
 }
 
 template <typename Stream> inline void render_xml_value(Stream &ss, bool s) {

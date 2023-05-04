@@ -111,6 +111,9 @@ void test_parse_status() {
   std::cout << t.owner << "\n";
   std::cout << t.mtime << ", " << t.atime << "\n";
   std::cout << t.storagePolicy << "\n";
+
+  std::string ss;
+  iguana::xml::to_xml(ss, t);
 }
 
 void test_parse_response() {
