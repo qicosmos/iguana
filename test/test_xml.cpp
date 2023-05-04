@@ -119,6 +119,24 @@ TEST_CASE("test nested vector") {
   }
 }
 
+struct book_attr_t {
+  std::map<std::string, float> __attr;
+  std::string title;
+};
+REFLECTION(book_attr_t, __attr, title);
+TEST_CASE("test attribute with map") {
+  std::string str = R"(
+    <book_attr_t id="5" pages="392" price="79.9">
+      <title>C++ templates</title>
+    </book_with_attr_t>
+  )";
+  book_attr_t b;
+  iguana::xml::from_xml(b, str.data());
+  CHECK(b.__attr["id"] == 5);
+  CHECK(b.__attr["pages"] == 392.0f);
+  CHECK(b.__attr["price"] == 79.9f);
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
