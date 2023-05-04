@@ -71,7 +71,7 @@ struct status_t {
   uint32_t length;
   std::string path;
   int permission;
-  std::string owner;
+  std::string_view owner;
   std::string ownerGroup;
   uint64_t mtime;
   uint64_t atime;

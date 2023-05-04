@@ -1,4 +1,5 @@
 #pragma once
+#include "detail/CharConv.h"
 #include "detail/fast_float.h"
 #include "reflection.hpp"
 #include "type_traits.hpp"
@@ -14,6 +15,44 @@
 namespace iguana::xml {
 template <typename T> void do_read(rapidxml::xml_node<char> *node, T &&t);
 
+template <typename T> inline auto get_num(T &num) {
+  if constexpr (sizeof(T) < sizeof(uint32_t)) {
+    if constexpr (std::is_signed_v<T>) {
+      return uint32_t(num);
+    } else {
+      return int32_t(num);
+    }
+  } else {
+    return num;
+  }
+}
+
+template <typename T> inline T parse_num(std::string_view value) {
+  if constexpr (std::is_floating_point_v<T>) {
+    T num;
+    auto [p, ec] =
+        fast_float::from_chars(value.data(), value.data() + value.size(), num);
+    if (__builtin_expect(ec != std::errc{}, 0))
+      throw std::invalid_argument("Failed to parse float number");
+
+    return num;
+  } else if constexpr (std::is_integral_v<T>) {
+    T val;
+    auto num = get_num<T>(val);
+    auto [p, ec] =
+        rigtorp::from_chars(value.data(), value.data() + value.size(), num);
+    if (__builtin_expect(ec != std::errc{}, 0))
+      throw std::invalid_argument("Failed to parse integral number");
+    if constexpr (sizeof(T) < sizeof(uint32_t)) {
+      return static_cast<T>(num);
+    } else {
+      return num;
+    }
+  } else {
+    static_assert(!sizeof(T), "don't support this type");
+  }
+}
+
 class any_t {
 public:
   explicit any_t(std::string_view value) : value_(value) {}
@@ -23,12 +62,14 @@ public:
                   std::is_same_v<T, std::string_view>) {
       return std::make_pair(true, T{value_});
     } else if constexpr (std::is_arithmetic_v<T>) {
-      double num;
-      auto [p, ec] = fast_float::from_chars(value_.data(),
-                                            value_.data() + value_.size(), num);
-      if (ec != std::errc{})
+      T num;
+      try {
+        num = parse_num<T>(value_);
+        return std::make_pair(true, static_cast<T>(num));
+      } catch (std::exception &e) {
+        std::cout << "parse num failed, reason: " << e.what() << "\n";
         return std::make_pair(false, T{});
-      return std::make_pair(true, static_cast<T>(num));
+      }
     } else {
       static_assert(!sizeof(T), "don't support this type!!");
     }
@@ -55,14 +96,9 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
         throw std::invalid_argument("Failed to parse bool");
       }
     } else {
-      double num;
-      auto [p, ec] = fast_float::from_chars(value.data(),
-                                            value.data() + value.size(), num);
-      if (ec != std::errc{})
-        throw std::invalid_argument("Failed to parse number");
-      t = static_cast<T>(num);
+      t = parse_num<U>(value);
     }
-  } else if constexpr (std::is_same_v<std::string, U>) {
+  } else if constexpr (is_str_v<U>) {
     t = value;
   } else if constexpr (is_reflection_v<U>) {
     do_read(node, t);
@@ -89,17 +125,11 @@ inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
   while (attr != nullptr) {
     value_type value_item;
     std::string_view value = attr->value();
-    if constexpr (std::is_same_v<std::string, value_type> ||
-                  std::is_same_v<any_t, value_type>) {
+    if constexpr (is_str_v<value_type> || std::is_same_v<any_t, value_type>) {
       value_item = value_type{attr->value()};
     } else if constexpr (std::is_arithmetic_v<value_type> &&
                          !std::is_same_v<bool, value_type>) {
-      double num;
-      auto [p, ec] = fast_float::from_chars(value.data(),
-                                            value.data() + value.size(), num);
-      if (ec != std::errc{})
-        throw std::invalid_argument("Failed to parse number");
-      value_item = static_cast<value_type>(num);
+      value_item = parse_num<value_type>(value);
     } else {
       static_assert(!sizeof(value_type), "value type not supported");
     }
@@ -130,7 +160,7 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
       } else {
         auto n = node->first_node(key.data());
         if (n) {
-          if constexpr (!std::is_same_v<std::string, item_type> &&
+          if constexpr (!is_str_v<item_type> &&
                         is_container<item_type>::value) {
             using value_type = typename item_type::value_type;
             while (n) {
