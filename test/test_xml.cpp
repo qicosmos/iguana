@@ -205,6 +205,14 @@ TEST_CASE("test attribute with map") {
   CHECK(b.__attr["id"] == 5);
   CHECK(b.__attr["pages"] == 392.0f);
   CHECK(b.__attr["price"] == 79.9f);
+
+  std::string ss;
+  iguana::xml::to_xml_pretty(ss, b);
+  book_attr_t b2;
+  iguana::xml::from_xml(b2, ss.data());
+  CHECK(b2.__attr["id"] == 5);
+  CHECK(b2.__attr["pages"] == 392.0f);
+  CHECK(b2.__attr["price"] == 79.9f);
 }
 
 struct book_attr_any_t {
@@ -221,6 +229,18 @@ TEST_CASE("test attribute with any") {
   book_attr_any_t b;
   iguana::xml::from_xml(b, str.data());
   auto &map = b.__attr;
+  CHECK(map["id"].get<int>().first);
+  CHECK(map["id"].get<int>().second == 5);
+  CHECK(map["language"].get<std::string_view>().first);
+  CHECK(map["language"].get<std::string_view>().second == "en");
+  CHECK(map["price"].get<float>().first);
+  CHECK(map["price"].get<float>().second == 79.9f);
+
+  std::string ss;
+  iguana::xml::to_xml(ss, b);
+  book_attr_any_t b1;
+  iguana::xml::from_xml(b1, ss.data());
+  map = b1.__attr;
   CHECK(map["id"].get<int>().first);
   CHECK(map["id"].get<int>().second == 5);
   CHECK(map["language"].get<std::string_view>().first);
@@ -245,7 +265,7 @@ TEST_CASE("Test nested attribute with any") {
   library_attr_t library;
   iguana::xml::from_xml(library, str.data());
 
-  auto &map = library.__attr;
+  auto map = library.__attr;
   CHECK(map["code"].get<int>().first);
   CHECK(map["code"].get<int>().second == 102);
   CHECK(map["name"].get<std::string>().second == "UESTC");
@@ -254,6 +274,27 @@ TEST_CASE("Test nested attribute with any") {
   CHECK(map["time"].get<float>().second == 3.2f);
 
   map = library.book.__attr;
+  CHECK(map["id"].get<int>().first);
+  CHECK(map["id"].get<int>().second == 5);
+  CHECK(map["language"].get<std::string_view>().first);
+  CHECK(map["language"].get<std::string_view>().second == "en");
+  CHECK(map["price"].get<float>().first);
+  CHECK(map["price"].get<float>().second == 79.9f);
+
+  std::string ss;
+  iguana::xml::to_xml_pretty(ss, library);
+  std::cout << ss << std::endl;
+  library_attr_t library1;
+  iguana::xml::from_xml(library1, ss.data());
+  map = library1.__attr;
+  CHECK(map["code"].get<int>().first);
+  CHECK(map["code"].get<int>().second == 102);
+  CHECK(map["name"].get<std::string>().second == "UESTC");
+  CHECK(map["name"].get<std::string_view>().second == "UESTC");
+  CHECK(map["time"].get<float>().first);
+  CHECK(map["time"].get<float>().second == 3.2f);
+
+  map = library1.book.__attr;
   CHECK(map["id"].get<int>().first);
   CHECK(map["id"].get<int>().second == 5);
   CHECK(map["language"].get<std::string_view>().first);
