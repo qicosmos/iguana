@@ -1,0 +1,27 @@
+name: Upload CodeCov Report
+
+on: [ push, pull_request ]
+
+jobs:
+  build:
+  
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: check out
+      uses: actions/checkout@v3
+          
+    - name: Configure cmake
+      run:  cmake -B${{github.workspace}}/build -DCOVERAGE_TEST=ON -DCMAKE_BUILD_TYPE=Debug
+
+    - name: Build
+      run:  cmake --build ${{github.workspace}}/build --config Debug
+      
+    - name: Test
+      working-directory: ${{github.workspace}}/build
+      env:
+        CTEST_OUTPUT_ON_FAILURE: 1
+      run: ctest -C ${{ matrix.configuration }} -j `nproc` -V
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
