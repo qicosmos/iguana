@@ -4,12 +4,12 @@
 
 #ifndef IGUANA_XML17_HPP
 #define IGUANA_XML17_HPP
-#include "detail/dragonbox_to_chars.h"
 #include "reflection.hpp"
 #include "type_traits.hpp"
 #include <algorithm>
 #include <cctype>
 #include <functional>
+#include <msstl/charconv.hpp>
 #include <rapidxml_print.hpp>
 #include <string.h>
 
@@ -19,34 +19,11 @@ template <typename Stream, typename T>
 inline void to_xml_impl(Stream &s, T &&t, std::string_view name = "");
 
 template <typename Stream, typename T>
-inline std::enable_if_t<!std::is_floating_point<T>::value &&
-                        (std::is_integral<T>::value ||
-                         std::is_unsigned<T>::value ||
-                         std::is_signed<T>::value)>
-render_xml_value(Stream &ss, T value) {
-  char temp[20];
-  auto p = itoa_fwd(value, temp);
-  ss.append(temp, p - temp);
-}
-
-template <typename Stream> void render_xml_value(Stream &ss, int64_t value) {
-  char temp[65];
-  auto p = xtoa(value, temp, 10, 1);
-  ss.append(temp, p - temp);
-}
-
-template <typename Stream> void render_xml_value(Stream &ss, uint64_t value) {
-  char temp[65];
-  auto p = xtoa(value, temp, 10, 0);
-  ss.append(temp, p - temp);
-}
-
-template <typename Stream, typename T>
-inline std::enable_if_t<std::is_floating_point<T>::value>
-render_xml_value(Stream &ss, T &value) {
+inline std::enable_if_t<std::is_arithmetic_v<T>> render_xml_value(Stream &ss,
+                                                                  T &value) {
   char temp[40];
-  const auto end = jkj::dragonbox::to_chars(value, temp);
-  const auto n = std::distance(temp, end);
+  auto [p, ec] = msstl::to_chars(temp, temp + sizeof(temp), value);
+  const auto n = std::distance(temp, p);
   ss.append(temp, n);
 }
 

@@ -1,12 +1,10 @@
 #pragma once
-#include "detail/CharConv.h"
-#include "detail/fast_float.h"
 #include "reflection.hpp"
 #include "type_traits.hpp"
 #include <algorithm>
 #include <cctype>
-#include <charconv>
 #include <functional>
+#include <msstl/charconv.hpp>
 #include <optional>
 #include <rapidxml.hpp>
 #include <string>
@@ -15,47 +13,19 @@
 namespace iguana::xml {
 template <typename T> void do_read(rapidxml::xml_node<char> *node, T &&t);
 
-template <typename T> inline auto get_num(T &num) {
-  if constexpr (sizeof(T) < sizeof(uint32_t)) {
-    if constexpr (std::is_signed_v<T>) {
-      return uint32_t(num);
-    } else {
-      return int32_t(num);
-    }
-  } else {
-    return num;
-  }
-}
-
 template <typename T> inline T parse_num(std::string_view value) {
-  if constexpr (std::is_floating_point_v<T>) {
+  if constexpr (std::is_arithmetic_v<T>) {
     T num;
     auto [p, ec] =
-        fast_float::from_chars(value.data(), value.data() + value.size(), num);
+        msstl::from_chars(value.data(), value.data() + value.size(), num);
 #if defined(_MSC_VER)
     if (ec != std::errc{})
 #else
     if (__builtin_expect(ec != std::errc{}, 0))
 #endif
-      throw std::invalid_argument("Failed to parse float number");
+      throw std::invalid_argument("Failed to parse number");
 
     return num;
-  } else if constexpr (std::is_integral_v<T>) {
-    T val;
-    auto num = get_num<T>(val);
-    auto [p, ec] =
-        rigtorp::from_chars(value.data(), value.data() + value.size(), num);
-#if defined(_MSC_VER)
-    if (ec != std::errc{})
-#else
-    if (__builtin_expect(ec != std::errc{}, 0))
-#endif
-      throw std::invalid_argument("Failed to parse integral number");
-    if constexpr (sizeof(T) < sizeof(uint32_t)) {
-      return static_cast<T>(num);
-    } else {
-      return num;
-    }
   } else {
     static_assert(!sizeof(T), "don't support this type");
   }
