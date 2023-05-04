@@ -2,9 +2,9 @@ name: Ubuntu (gcc)
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master fullsupport_xml]
   pull_request:
-    branches: [ master ]
+    branches: [ master fullsupport_xml]
     
 jobs:
   build:
