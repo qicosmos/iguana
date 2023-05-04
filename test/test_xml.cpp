@@ -137,6 +137,59 @@ TEST_CASE("test attribute with map") {
   CHECK(b.__attr["price"] == 79.9f);
 }
 
+struct book_attr_any_t {
+  std::unordered_map<std::string, iguana::xml::any_t> __attr;
+  std::string title;
+};
+REFLECTION(book_attr_any_t, __attr, title);
+TEST_CASE("test attribute with any") {
+  std::string str = R"(
+    <book_attr_any_t id="5" language="en" price="79.9">
+      <title>C++ templates</title>
+    </book_attr_any_t>
+  )";
+  book_attr_any_t b;
+  iguana::xml::from_xml(b, str.data());
+  auto &map = b.__attr;
+  CHECK(map["id"].get<int>().first);
+  CHECK(map["id"].get<int>().second == 5);
+  CHECK(!map["language"].get<int>().first);
+  CHECK(map["price"].get<float>().first);
+  CHECK(map["price"].get<float>().second == 79.9f);
+}
+
+struct library_attr_t {
+  book_attr_any_t book;
+  std::unordered_map<std::string, iguana::xml::any_t> __attr;
+};
+REFLECTION(library_attr_t, book, __attr);
+TEST_CASE("Test nested attribute with any") {
+  std::string str = R"(
+    <library_attr_t code="102" name="UESTC" time="3.2">
+      <book id="5" language="en" price="79.9">
+        <title>C++ templates</title>
+      </book>
+    </library_attr_t>
+  )";
+  library_attr_t library;
+  iguana::xml::from_xml(library, str.data());
+
+  auto &map = library.__attr;
+  CHECK(map["code"].get<int>().first);
+  CHECK(map["code"].get<int>().second == 102);
+  CHECK(map["name"].get<std::string>().second == "UESTC");
+  CHECK(map["name"].get<std::string_view>().second == "UESTC");
+  CHECK(map["time"].get<float>().first);
+  CHECK(map["time"].get<float>().second == 3.2f);
+
+  map = library.book.__attr;
+  CHECK(map["id"].get<int>().first);
+  CHECK(map["id"].get<int>().second == 5);
+  CHECK(!map["language"].get<int>().first);
+  CHECK(map["price"].get<float>().first);
+  CHECK(map["price"].get<float>().second == 79.9f);
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
