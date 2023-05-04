@@ -51,6 +51,35 @@ TEST_CASE("test simple xml") {
   CHECK(*sfrom2.e == "optional?");
 }
 
+struct nested_t {
+  simple_t simple;
+  int code;
+};
+REFLECTION(nested_t, simple, code);
+TEST_CASE("test simple nested") {
+  std::string str = R"(
+    <nested_t>
+    <simple><a>1</a><a>2</a><a>3</a><b>|</b><c>False</c><d>True</d><e></e></simple>
+    <code>10086</code>
+    </nested_t>
+  )";
+  nested_t nest;
+  iguana::xml::from_xml(nest, str.data());
+  simple_t res{{1, 2, 3}, '|', 0, 1};
+  CHECK(res == nest.simple);
+  CHECK(nest.code == 10086);
+
+  std::string toxmlstr;
+  iguana::xml::to_xml_pretty(toxmlstr, nest);
+  nested_t nest2;
+  iguana::xml::from_xml(nest2, toxmlstr.data());
+  CHECK(nest2.simple == nest.simple);
+
+  nest2.simple.a = std::vector<int>();
+  std::string ss;
+  iguana::xml::to_xml(ss, nest2);
+}
+
 struct book_t {
   std::string title;
   int edition;
@@ -194,7 +223,8 @@ TEST_CASE("test attribute with any") {
   auto &map = b.__attr;
   CHECK(map["id"].get<int>().first);
   CHECK(map["id"].get<int>().second == 5);
-  CHECK(!map["language"].get<int>().first);
+  CHECK(map["language"].get<std::string_view>().first);
+  CHECK(map["language"].get<std::string_view>().second == "en");
   CHECK(map["price"].get<float>().first);
   CHECK(map["price"].get<float>().second == 79.9f);
 }
@@ -226,7 +256,8 @@ TEST_CASE("Test nested attribute with any") {
   map = library.book.__attr;
   CHECK(map["id"].get<int>().first);
   CHECK(map["id"].get<int>().second == 5);
-  CHECK(!map["language"].get<int>().first);
+  CHECK(map["language"].get<std::string_view>().first);
+  CHECK(map["language"].get<std::string_view>().second == "en");
   CHECK(map["price"].get<float>().first);
   CHECK(map["price"].get<float>().second == 79.9f);
 }
