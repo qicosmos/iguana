@@ -47,9 +47,9 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
       t = value.back();
   } else if constexpr (std::is_arithmetic_v<U>) {
     if constexpr (std::is_same_v<bool, U>) {
-      if (value == "true") {
+      if (value == "true" || value == "True") {
         t = true;
-      } else if (value == "false") {
+      } else if (value == "false" || value == "False") {
         t = false;
       } else {
         throw std::invalid_argument("Failed to parse bool");
