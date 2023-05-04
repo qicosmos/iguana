@@ -133,14 +133,14 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
           if constexpr (!std::is_same_v<std::string, item_type> &&
                         is_container<item_type>::value) {
             using value_type = typename item_type::value_type;
-            value_type item;
             while (n) {
               if (n->name() != str) {
                 break;
               }
+              value_type item;
               parse_item(n, item,
                          std::string_view(n->value(), n->value_size()));
-              (t.*member_ptr).push_back(item);
+              (t.*member_ptr).push_back(std::move(item));
               n = n->next_sibling();
             }
 

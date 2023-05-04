@@ -291,6 +291,21 @@ void test_any_attribute() {
   std::cout << std::endl;
 }
 
+struct person_t {
+  std::vector<std::string> name;
+};
+REFLECTION(person_t, name);
+void test_vector() {
+  std::cout << "********** test vector toxml ************" << std::endl;
+  person_t p;
+  p.name.push_back("David");
+  p.name.push_back("Bob");
+  p.name.push_back("bbg");
+  std::string ss;
+  iguana::xml::to_xml(ss, p);
+  std::cout << ss << std::endl;
+}
+
 int main(void) {
   test_parse_response();
   test_parse_status();
@@ -301,6 +316,7 @@ int main(void) {
   test_attribute();
   test_nested_attribute();
   test_any_attribute();
+  test_vector();
 
   return 0;
 }

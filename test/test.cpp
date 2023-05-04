@@ -634,7 +634,7 @@ TEST_CASE("test file interface") {
     CHECK(obj.string == "Hello world");
 
     fs::remove(filename);
-  }
+  } // namespace fs=std::filesystem;
   {
     fs::path p = "empty_file.bin";
     std::ofstream{p};

@@ -66,13 +66,6 @@ inline void render_xml_value(Stream &ss, const std::optional<T> &s) {
 }
 
 template <typename Stream, typename T>
-inline void render_xml_value0(Stream &ss, const T &v, std::string_view name) {
-  for (auto &item : v) {
-    to_xml_impl(ss, item, name);
-  }
-}
-
-template <typename Stream, typename T>
 inline std::enable_if_t<std::is_arithmetic<T>::value> render_key(Stream &ss,
                                                                  T t) {
   ss.push_back('<');
@@ -103,6 +96,25 @@ template <typename Stream> inline void render_head(Stream &ss, const char *s) {
 }
 
 template <typename Stream, typename T>
+inline void render_xml_node(Stream &ss, std::string_view name, T &&item) {
+  render_head(ss, name.data());
+  render_xml_value(ss, std::forward<T>(item));
+  render_tail(ss, name.data());
+}
+
+template <typename Stream, typename T>
+inline void render_xml_value0(Stream &ss, const T &v, std::string_view name) {
+  for (auto &item : v) {
+    using item_type = std::remove_cvref_t<decltype(item)>;
+    if constexpr (is_reflection_v<item_type>) {
+      to_xml_impl(ss, item, name);
+    } else {
+      render_xml_node(ss, name, item);
+    }
+  }
+}
+
+template <typename Stream, typename T>
 inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
   if (name.empty()) {
     name = iguana::get_name<T>();
@@ -122,15 +134,13 @@ inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
         std::string_view sv = get_name<T, Idx>().data();
         render_xml_value0(s, t.*v, sv);
       } else {
-        render_head(s, get_name<T, Idx>().data());
-        render_xml_value(s, t.*v);
-        render_tail(s, get_name<T, Idx>().data());
+        render_xml_node(s, get_name<T, Idx>().data(), t.*v);
       }
     } else {
       to_xml_impl(s, t.*v, get_name<T, Idx>().data());
     }
   });
-  s.append("</").append(name).append(">\n");
+  s.append("</").append(name).append(">");
 }
 
 template <typename Stream, typename T,
