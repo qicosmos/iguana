@@ -56,23 +56,6 @@ inline void render_xml_value(Stream &ss, const std::optional<T> &s) {
   }
 }
 
-template <typename Stream, typename T>
-inline std::enable_if_t<std::is_arithmetic<T>::value> render_key(Stream &ss,
-                                                                 T t) {
-  ss.push_back('<');
-  render_xml_value(ss, t);
-  ss.push_back('>');
-}
-
-template <typename Stream>
-inline void render_key(Stream &ss, const std::string &s) {
-  render_xml_value(ss, s);
-}
-
-template <typename Stream> inline void render_key(Stream &ss, const char *s) {
-  render_xml_value(ss, s);
-}
-
 template <typename Stream> inline void render_tail(Stream &ss, const char *s) {
   ss.push_back('<');
   ss.push_back('/');
