@@ -151,13 +151,22 @@ inline void to_xml(Stream &s, T &&t) {
 
 template <int Flags = 0, typename Stream, typename T,
           typename = std::enable_if_t<is_reflection<T>::value>>
-inline void to_xml_pretty(Stream &s, T &&t) {
+inline bool to_xml_pretty(Stream &s, T &&t) {
   to_xml_impl(s, std::forward<T>(t));
-  rapidxml::xml_document<> doc;
-  doc.parse<Flags>(s.data());
-  std::string ss;
-  rapidxml::print(std::back_inserter(ss), doc);
-  s = std::move(ss);
+
+  bool r = true;
+  try {
+    rapidxml::xml_document<> doc;
+    doc.parse<Flags>(s.data());
+    std::string ss;
+    rapidxml::print(std::back_inserter(ss), doc);
+    s = std::move(ss);
+  } catch (std::exception &e) {
+    r = false;
+    std::cerr << e.what() << "\n";
+  }
+
+  return r;
 }
 } // namespace iguana::xml
 #endif // IGUANA_XML17_HPP
