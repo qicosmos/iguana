@@ -32,7 +32,11 @@ template <typename T> inline T parse_num(std::string_view value) {
     T num;
     auto [p, ec] =
         fast_float::from_chars(value.data(), value.data() + value.size(), num);
+#if defined(_MSC_VER)
+    if (ec != std::errc{})
+#else
     if (__builtin_expect(ec != std::errc{}, 0))
+#endif
       throw std::invalid_argument("Failed to parse float number");
 
     return num;
@@ -41,7 +45,11 @@ template <typename T> inline T parse_num(std::string_view value) {
     auto num = get_num<T>(val);
     auto [p, ec] =
         rigtorp::from_chars(value.data(), value.data() + value.size(), num);
+#if defined(_MSC_VER)
+    if (ec != std::errc{})
+#else
     if (__builtin_expect(ec != std::errc{}, 0))
+#endif
       throw std::invalid_argument("Failed to parse integral number");
     if constexpr (sizeof(T) < sizeof(uint32_t)) {
       return static_cast<T>(num);
