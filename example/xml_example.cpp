@@ -225,7 +225,11 @@ void test_attribute() {
   book_t book{};
   iguana::xml::from_xml(book, str.data());
   std::cout << book;
+  std::string ss;
+  iguana::xml::to_xml(ss, book);
+  std::cout << "attr to_xml: " << ss << std::endl;
 }
+
 struct library_t {
   book_t book;
   std::unordered_map<std::string, std::string> __attr;
@@ -251,6 +255,10 @@ void test_nested_attribute() {
   }
   std::cout << std::endl;
   std::cout << "\nbook\n" << library.book;
+
+  std::string ss;
+  iguana::xml::to_xml(ss, library);
+  std::cout << "library to_xml: " << ss << std::endl;
 }
 struct movie_t {
   std::string title;

@@ -14,6 +14,21 @@
 #include <string.h>
 
 namespace iguana::xml {
+
+template <typename T, typename C, size_t Is = 0>
+constexpr inline size_t get_variant_map_index() {
+  if constexpr (Is < std::variant_size_v<T>) {
+    using M = std::variant_alternative_t<Is, T>;
+    using V = std::decay_t<decltype(std::declval<C>().*std::declval<M>())>;
+    if constexpr (is_map_container<V>::value) {
+      return Is;
+    } else {
+      return get_variant_map_index<T, C, Is + 1>();
+    }
+  } else {
+    return std::variant_size_v<T>;
+  }
+}
 // to xml
 template <typename Stream, typename T>
 inline void to_xml_impl(Stream &s, T &&t, std::string_view name = "");
@@ -93,7 +108,17 @@ inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
   if (name.empty()) {
     name = iguana::get_name<T>();
   }
-  s.append("<").append(name).append(">");
+  s.append("<").append(name);
+  using MapValueType = std::remove_cvref_t<
+      typename decltype(get_iguana_struct_map<T>())::mapped_type>;
+  constexpr auto Idx = get_variant_map_index<MapValueType, std::remove_cvref_t<T>>();
+  if constexpr (Idx != std::variant_size_v<MapValueType>) { //has map
+    auto attr_value = get<Idx>(t);
+    for (auto &[k, v] : attr_value) {
+      s.append(" ").append(k).append("=\"").append(v).append("\"");
+    }
+  }
+  s.append(">");
   for_each(std::forward<T>(t), [&t, &s](const auto v, auto i) {
     using M = decltype(iguana_reflect_members(std::forward<T>(t)));
     constexpr auto Idx = decltype(i)::value;
@@ -102,7 +127,9 @@ inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
 
     using type_v = decltype(std::declval<T>().*std::declval<decltype(v)>());
     if constexpr (!is_reflection<type_v>::value) {
-      if constexpr (!std::is_same_v<std::string,
+      if constexpr (is_map_container<std::decay_t<type_v>>::value) {
+        return;
+      } else if constexpr (!std::is_same_v<std::string,
                                     typename std::remove_cvref<type_v>::type> &&
                     is_container<type_v>::value) {
         std::string_view sv = get_name<T, Idx>().data();
