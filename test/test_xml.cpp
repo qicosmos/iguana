@@ -10,6 +10,47 @@
 #include <iostream>
 #include <optional>
 
+struct simple_t {
+  std::vector<int> a;
+  char b;
+  bool c;
+  bool d;
+  std::optional<std::string> e;
+  bool operator==(const simple_t &other) const {
+    if ((b == other.b) && (c == other.c) && (d == other.d) && (e == other.e)) {
+      auto t1 = a;
+      auto t2 = other.a;
+      sort(t1.begin(), t1.end());
+      sort(t2.begin(), t2.end());
+      return t1 == t2;
+    }
+    return false;
+  }
+};
+REFLECTION(simple_t, a, b, c, d, e);
+TEST_CASE("test simple xml") {
+  simple_t simple{{1, 2, 3}, '|', 0, 1};
+  std::string str;
+  iguana::xml::to_xml_pretty(str, simple);
+
+  simple_t sfrom;
+  iguana::xml::from_xml(sfrom, str.data());
+  CHECK(sfrom == simple);
+
+  std::string xmlstr = R"(
+    <simple_t><a>1</a><a>2</a><a>3</a><b>|</b><c>False</c><d>True</d><e>optional?</e></simple_t>
+  )";
+  simple_t sfrom2;
+  iguana::xml::from_xml(sfrom2, xmlstr.data());
+  auto t = sfrom2.a;
+  sort(t.begin(), t.end());
+  CHECK(t == std::vector{1, 2, 3});
+  CHECK(sfrom2.b == '|');
+  CHECK(!sfrom2.c);
+  CHECK(sfrom2.d);
+  CHECK(*sfrom2.e == "optional?");
+}
+
 struct book_t {
   std::string title;
   int edition;
