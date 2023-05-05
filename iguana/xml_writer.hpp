@@ -101,11 +101,9 @@ inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
     name = iguana::get_name<T>();
   }
   s.append("<").append(name);
-  using MapValueType = std::remove_cvref_t<
-      typename decltype(get_iguana_struct_map<T>())::mapped_type>;
   constexpr auto Idx =
       get_type_index<is_map_container, std::remove_cvref_t<T>>();
-  if constexpr (Idx != std::variant_size_v<MapValueType>) {
+  if constexpr (Idx != iguana::get_value<std::remove_cvref_t<T>>()) {
     auto attr_value = get<Idx>(t);
     for (auto &[k, v] : attr_value) {
       s.append(" ").append(k).append("=\"");
