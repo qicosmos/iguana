@@ -96,7 +96,7 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
 
 template <typename T>
 inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
-  using U = std::remove_cvref_t<T>;
+  using U = std::decay_t<T>;
   static_assert(is_map_container<U>::value, "must be map container");
   using key_type = typename U::key_type;
   using value_type = typename U::mapped_type;
@@ -123,10 +123,10 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
   static_assert(is_reflection_v<std::remove_reference_t<T>>,
                 "must be refletable object");
   for_each(std::forward<T>(t), [&t, &node](const auto member_ptr, auto i) {
-    using member_ptr_type = std::remove_cvref_t<decltype(member_ptr)>;
+    using member_ptr_type = std::decay_t<decltype(member_ptr)>;
     using type_v =
         decltype(std::declval<T>().*std::declval<decltype(member_ptr)>());
-    using item_type = std::remove_cvref_t<type_v>;
+    using item_type = std::decay_t<type_v>;
 
     if constexpr (std::is_member_pointer_v<member_ptr_type>) {
       using M = decltype(iguana_reflect_members(std::forward<T>(t)));

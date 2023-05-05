@@ -315,6 +315,10 @@ TEST_CASE("test exception") {
   )";
   CHECK_NOTHROW(
       iguana::xml::from_xml(simple, str2.data())); // Failed to parse bool
+  simple_t simple2{{1, 2, 3}, '|', 0, 1};
+  std::string ss = "<<dd>>";
+  CHECK_FALSE(
+      iguana::xml::to_xml_pretty(ss, simple2)); // unexpected end of data
 }
 
 // doctest comments

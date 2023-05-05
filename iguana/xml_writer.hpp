@@ -86,7 +86,7 @@ inline void render_xml_node(Stream &ss, std::string_view name, T &&item) {
 template <typename Stream, typename T>
 inline void render_xml_value0(Stream &ss, const T &v, std::string_view name) {
   for (auto &item : v) {
-    using item_type = std::remove_cvref_t<decltype(item)>;
+    using item_type = std::decay_t<decltype(item)>;
     if constexpr (is_reflection_v<item_type>) {
       to_xml_impl(ss, item, name);
     } else {
@@ -101,9 +101,8 @@ inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
     name = iguana::get_name<T>();
   }
   s.append("<").append(name);
-  constexpr auto Idx =
-      get_type_index<is_map_container, std::remove_cvref_t<T>>();
-  if constexpr (Idx != iguana::get_value<std::remove_cvref_t<T>>()) {
+  constexpr auto Idx = get_type_index<is_map_container, std::decay_t<T>>();
+  if constexpr (Idx != iguana::get_value<std::decay_t<T>>()) {
     auto attr_value = get<Idx>(t);
     for (auto &[k, v] : attr_value) {
       s.append(" ").append(k).append("=\"");
@@ -122,9 +121,7 @@ inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
     if constexpr (!is_reflection<type_v>::value) {
       if constexpr (is_map_container<std::decay_t<type_v>>::value) {
         return;
-      } else if constexpr (!std::is_same_v<
-                               std::string,
-                               typename std::remove_cvref<type_v>::type> &&
+      } else if constexpr (!std::is_same_v<std::string, std::decay_t<type_v>> &&
                            is_container<type_v>::value) {
         std::string_view sv = get_name<T, Idx>().data();
         render_xml_value0(s, t.*v, sv);

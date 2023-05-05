@@ -660,7 +660,7 @@ constexpr int element_index_helper() {
   } else {
     using type_v = decltype(std::declval<Owner>().*
                             std::declval<std::tuple_element_t<index, Tuple>>());
-    using item_type = std::remove_cvref_t<type_v>;
+    using item_type = std::decay_t<type_v>;
 
     return Condition<item_type>::value
                ? index
