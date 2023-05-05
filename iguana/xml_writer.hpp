@@ -73,6 +73,11 @@ inline void render_xml_value(Stream &ss, const std::optional<T> &s) {
   }
 }
 
+template <typename Stream>
+inline void render_xml_value(Stream &ss, const any_t &t) {
+  ss.append(t.get_value().data(), t.get_value().size());
+}
+
 template <typename Stream> inline void render_tail(Stream &ss, const char *s) {
   ss.push_back('<');
   ss.push_back('/');
