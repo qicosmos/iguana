@@ -652,7 +652,8 @@ struct is_reflection<T, std::void_t<decltype(Reflect_members<T>::arr())>>
 template <typename T>
 inline constexpr bool is_reflection_v = is_reflection<T>::value;
 
-template <std::size_t index, typename Type, typename Tuple, typename Owner>
+template <std::size_t index, template <typename...> typename Condition,
+          typename Tuple, typename Owner>
 constexpr int element_index_helper() {
   if constexpr (index == std::tuple_size_v<Tuple>) {
     return index;
@@ -661,16 +662,17 @@ constexpr int element_index_helper() {
                             std::declval<std::tuple_element_t<index, Tuple>>());
     using item_type = std::remove_cvref_t<type_v>;
 
-    return std::is_same_v<Type, item_type>
+    return Condition<item_type>::value
                ? index
-               : element_index_helper<index + 1, Type, Tuple, Owner>();
+               : element_index_helper<index + 1, Condition, Tuple, Owner>();
   }
 }
 
-template <typename Type, typename T> constexpr int tuple_element_index() {
+template <template <typename...> typename Condition, typename T>
+constexpr int tuple_element_index() {
   using M = decltype(iguana_reflect_members(std::declval<T>()));
   using Tuple = decltype(M::apply_impl());
-  return element_index_helper<0, Type, Tuple, T>();
+  return element_index_helper<0, Condition, Tuple, T>();
 }
 
 #if _MSC_VER || (__cplusplus >= 202002L)
@@ -691,8 +693,9 @@ template <size_t I, typename T> constexpr decltype(auto) get(T &&t) {
     return std::forward<T>(t).*(std::get<I>(M::apply_impl()));
 }
 
-template <typename Type, typename T> constexpr size_t get_type_index() {
-  return tuple_element_index<Type, T>();
+template <template <typename...> typename Condition, typename T>
+constexpr size_t get_type_index() {
+  return tuple_element_index<Condition, T>();
 }
 
 template <typename T, size_t... Is>
