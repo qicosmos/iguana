@@ -53,6 +53,8 @@ public:
     }
   }
 
+  const std::string_view get_value() const { return value_; }
+
 private:
   std::string_view value_;
 };

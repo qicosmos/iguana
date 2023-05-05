@@ -18,6 +18,8 @@ namespace iguana::xml {
 template <typename Stream, typename T>
 inline void to_xml_impl(Stream &s, T &&t, std::string_view name = "");
 
+class any_t;
+
 template <typename Stream, typename T>
 inline std::enable_if_t<std::is_arithmetic_v<T>> render_xml_value(Stream &ss,
                                                                   T &value) {
@@ -54,6 +56,11 @@ inline void render_xml_value(Stream &ss, const std::optional<T> &s) {
   if (s.has_value()) {
     render_xml_value(ss, *s);
   }
+}
+
+template <typename Stream>
+inline void render_xml_value(Stream &ss, const any_t &t) {
+  ss.append(t.get_value().data(), t.get_value().size());
 }
 
 template <typename Stream> inline void render_tail(Stream &ss, const char *s) {
@@ -93,7 +100,20 @@ inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
   if (name.empty()) {
     name = iguana::get_name<T>();
   }
-  s.append("<").append(name).append(">");
+  s.append("<").append(name);
+  using MapValueType = std::remove_cvref_t<
+      typename decltype(get_iguana_struct_map<T>())::mapped_type>;
+  constexpr auto Idx =
+      get_type_index<is_map_container, std::remove_cvref_t<T>>();
+  if constexpr (Idx != std::variant_size_v<MapValueType>) {
+    auto attr_value = get<Idx>(t);
+    for (auto &[k, v] : attr_value) {
+      s.append(" ").append(k).append("=\"");
+      render_xml_value(s, v);
+      s.append("\"");
+    }
+  }
+  s.append(">");
   for_each(std::forward<T>(t), [&t, &s](const auto v, auto i) {
     using M = decltype(iguana_reflect_members(std::forward<T>(t)));
     constexpr auto Idx = decltype(i)::value;
@@ -102,9 +122,12 @@ inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
 
     using type_v = decltype(std::declval<T>().*std::declval<decltype(v)>());
     if constexpr (!is_reflection<type_v>::value) {
-      if constexpr (!std::is_same_v<std::string,
-                                    typename std::remove_cvref<type_v>::type> &&
-                    is_container<type_v>::value) {
+      if constexpr (is_map_container<std::decay_t<type_v>>::value) {
+        return;
+      } else if constexpr (!std::is_same_v<
+                               std::string,
+                               typename std::remove_cvref<type_v>::type> &&
+                           is_container<type_v>::value) {
         std::string_view sv = get_name<T, Idx>().data();
         render_xml_value0(s, t.*v, sv);
       } else {
