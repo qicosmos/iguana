@@ -301,6 +301,20 @@ TEST_CASE("Test nested attribute with any") {
   CHECK(map["language"].get<std::string_view>().second == "en");
   CHECK(map["price"].get<float>().first);
   CHECK(map["price"].get<float>().second == 79.9f);
+  CHECK_FALSE(map["language"].get<int>().first); // parse num failed
+}
+
+TEST_CASE("test exception") {
+  simple_t simple;
+  std::string str = R"(
+    <simple_t><a>1</a><a>2</a><a>3</a><b>|</b><c>False</c><d>True</d><e></e></
+  )";
+  CHECK_FALSE(iguana::xml::from_xml(simple, str.data())); // expected >
+  std::string str2 = R"(
+    <simple_t><a>1</a><a>2</a><a>3</a><b>|</b><c>Flase</c><d>tru</d><e></e></simple_t>
+  )";
+  CHECK_NOTHROW(
+      iguana::xml::from_xml(simple, str2.data())); // Failed to parse bool
 }
 
 // doctest comments
