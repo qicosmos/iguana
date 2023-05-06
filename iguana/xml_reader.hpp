@@ -127,16 +127,17 @@ inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
   rapidxml::xml_attribute<> *attr = node->first_attribute();
   while (attr != nullptr) {
     value_type value_item;
-    std::string_view value = attr->value();
+    std::string_view value(attr->value(), attr->value_size());
     if constexpr (is_str_v<value_type> || std::is_same_v<any_t, value_type>) {
-      value_item = value_type{attr->value()};
+      value_item = value_type{value};
     } else if constexpr (std::is_arithmetic_v<value_type> &&
                          !std::is_same_v<bool, value_type>) {
       value_item = parse_num<value_type>(value);
     } else {
       static_assert(!sizeof(value_type), "value type not supported");
     }
-    t.emplace(attr->name(), std::move(value_item));
+    t.emplace(std::string(attr->name(), attr->name_size()),
+              std::move(value_item));
     attr = attr->next_attribute();
   }
 }
@@ -177,7 +178,7 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
                         is_container<item_type>::value) {
             using value_type = typename item_type::value_type;
             while (n) {
-              if (n->name() != str) {
+              if (std::string_view(n->name(), n->name_size()) != str) {
                 break;
               }
               value_type item;
