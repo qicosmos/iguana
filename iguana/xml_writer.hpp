@@ -19,6 +19,8 @@ template <typename Stream, typename T>
 inline void to_xml_impl(Stream &s, T &&t, std::string_view name = "");
 
 class any_t;
+class namespace_t;
+constexpr inline size_t find_underline(const char *);
 
 template <typename Stream, typename T>
 inline std::enable_if_t<std::is_arithmetic_v<T>> render_xml_value(Stream &ss,
@@ -76,11 +78,23 @@ template <typename Stream> inline void render_head(Stream &ss, const char *s) {
   ss.push_back('>');
 }
 
-template <typename Stream, typename T>
+template <
+    typename Stream, typename T,
+    typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, namespace_t>>>
 inline void render_xml_node(Stream &ss, std::string_view name, T &&item) {
   render_head(ss, name.data());
   render_xml_value(ss, std::forward<T>(item));
   render_tail(ss, name.data());
+}
+template <typename Stream>
+inline void render_xml_node(Stream &ss, std::string_view name,
+                            const namespace_t &item) {
+  auto index_ul = find_underline(name.data());
+  std::string ns(name.data(), name.size());
+  ns[index_ul] = ':';
+  render_head(ss, ns.data());
+  render_xml_value(ss, item.get_value());
+  render_tail(ss, ns.data());
 }
 
 template <typename Stream, typename T>

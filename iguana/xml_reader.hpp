@@ -13,6 +13,16 @@
 namespace iguana::xml {
 template <typename T> void do_read(rapidxml::xml_node<char> *node, T &&t);
 
+constexpr inline size_t find_underline(const char *str) {
+  const char *c = str;
+  for (; *c != '\0'; ++c) {
+    if (*c == '_') {
+      break;
+    }
+  }
+  return c - str;
+}
+
 template <typename T> inline T parse_num(std::string_view value) {
   if constexpr (std::is_arithmetic_v<T>) {
     T num;
@@ -53,10 +63,23 @@ public:
     }
   }
 
-  const std::string_view get_value() const { return value_; }
+  std::string_view get_value() const { return value_; }
 
 private:
   std::string_view value_;
+};
+
+class namespace_t {
+public:
+  explicit namespace_t(std::string_view value) : value_(value) {}
+  explicit namespace_t() {}
+  template <typename T> std::pair<bool, T> get() const {
+    return value_.get<T>();
+  }
+  any_t get_value() const { return value_; }
+
+private:
+  any_t value_;
 };
 
 template <typename T>
@@ -78,8 +101,8 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
     } else {
       t = parse_num<U>(value);
     }
-  } else if constexpr (is_str_v<U>) {
-    t = value;
+  } else if constexpr (is_str_v<U> || std::is_same_v<namespace_t, U>) {
+    t = U{value};
   } else if constexpr (is_reflection_v<U>) {
     do_read(node, t);
   } else if constexpr (is_std_optinal_v<U>) {
@@ -138,7 +161,17 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
       if constexpr (is_map_container<item_type>::value) {
         parse_attribute(node, t.*member_ptr);
       } else {
-        auto n = node->first_node(key.data());
+        rapidxml::xml_node<char> *n = nullptr;
+        if constexpr (std::is_same_v<item_type, namespace_t>) {
+          constexpr auto index_ul = find_underline(key.data());
+          static_assert(index_ul < key.size(),
+                        "'_' is needed in namesapce_t value name");
+          std::string ns(key.data(), key.size());
+          ns[index_ul] = ':';
+          n = node->first_node(ns.data());
+        } else {
+          n = node->first_node(str.data());
+        }
         if (n) {
           if constexpr (!is_str_v<item_type> &&
                         is_container<item_type>::value) {

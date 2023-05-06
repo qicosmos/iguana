@@ -317,6 +317,30 @@ void test_vector() {
   std::cout << ss << std::endl;
 }
 
+struct item_t {
+  iguana::xml::namespace_t itunes_author;
+  iguana::xml::namespace_t itunes_subtitle;
+};
+REFLECTION(item_t, itunes_author, itunes_subtitle);
+void test_namespace() {
+  std::cout << "********** test namespace ************" << std::endl;
+  std::string str = R"(
+    <item>
+      <itunes:author>Jupiter Broadcasting</itunes:author>
+      <itunes:subtitle>Linux enthusiasts talk top news stories, subtitle</itunes:subtitle>
+    </item>
+  )";
+  item_t it;
+  iguana::xml::from_xml(it, str.data());
+  std::cout << "author : " << it.itunes_author.get<std::string_view>().second
+            << std::endl;
+  std::cout << "subtitle : "
+            << it.itunes_subtitle.get<std::string_view>().second << std::endl;
+  std::string ss;
+  iguana::xml::to_xml(ss, it);
+  std::cout << "to_xml" << std::endl << ss << std::endl;
+}
+
 int main(void) {
   test_parse_response();
   test_parse_status();
@@ -328,6 +352,7 @@ int main(void) {
   test_nested_attribute();
   test_any_attribute();
   test_vector();
+  test_namespace();
 
   return 0;
 }
