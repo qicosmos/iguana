@@ -336,6 +336,9 @@ void test_namespace() {
             << std::endl;
   std::cout << "subtitle : "
             << it.itunes_subtitle.get<std::string_view>().second << std::endl;
+  std::string ss;
+  iguana::xml::to_xml(ss, it);
+  std::cout << "to_xml" << std::endl << ss << std::endl;
 }
 
 int main(void) {

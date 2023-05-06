@@ -63,7 +63,7 @@ public:
     }
   }
 
-  const std::string_view get_value() const { return value_; }
+  std::string_view get_value() const { return value_; }
 
 private:
   std::string_view value_;
@@ -76,6 +76,7 @@ public:
   template <typename T> std::pair<bool, T> get() const {
     return value_.get<T>();
   }
+  any_t get_value() const { return value_; }
 
 private:
   any_t value_;
