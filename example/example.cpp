@@ -1,6 +1,7 @@
 #include <iguana/json_reader.hpp>
 #include <iguana/json_writer.hpp>
-#include <iguana/xml.hpp>
+#include <iguana/xml_reader.hpp>
+#include <iguana/xml_writer.hpp>
 #include <iostream>
 
 struct person {
@@ -117,11 +118,9 @@ void test_xml() {
 
   std::cout << ss << std::endl;
 
-  std::string xml =
-      "			<?xml version=\"1.0\" encoding=\"UTF-8\">  "
-      "<name>buke</name> <one><id>1</id></one>  <age>2</age>";
   two t1;
-  iguana::xml::from_xml(t1, xml.data(), xml.length());
+  iguana::xml::from_xml(t1, ss.data());
+  std::cout << t1.age << "\n";
 }
 
 int main() {
