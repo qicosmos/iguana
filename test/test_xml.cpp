@@ -321,6 +321,42 @@ TEST_CASE("test exception") {
       iguana::xml::to_xml_pretty(ss, simple2)); // unexpected end of data
 }
 
+struct item_t {
+  iguana::xml::namespace_t itunes_author;
+  iguana::xml::namespace_t itunes_subtitle;
+  iguana::xml::namespace_t itunes_user;
+};
+REFLECTION(item_t, itunes_author, itunes_subtitle, itunes_user);
+TEST_CASE("test xml namespace") {
+  item_t item;
+  std::string str = R"(
+    <item>
+      <itunes:author>Jupiter Broadcasting</itunes:author>
+      <itunes:subtitle>Linux enthusiasts talk top news stories, subtitle</itunes:subtitle>
+      <itunes:user>10086</itunes:user>
+    </item>
+  )";
+  item_t it;
+  iguana::xml::from_xml(it, str.data());
+  CHECK(it.itunes_author.get<std::string_view>().first);
+  CHECK(it.itunes_author.get<std::string_view>().second ==
+        "Jupiter Broadcasting");
+  CHECK(it.itunes_subtitle.get<std::string_view>().first);
+  CHECK(it.itunes_user.get<int>().first);
+  CHECK(it.itunes_user.get<int>().second == 10086);
+
+  std::string ss;
+  iguana::xml::to_xml(ss, it);
+  item_t it2;
+  iguana::xml::from_xml(it2, ss.data());
+  CHECK(it2.itunes_author.get<std::string_view>().first);
+  CHECK(it2.itunes_author.get<std::string_view>().second ==
+        "Jupiter Broadcasting");
+  CHECK(it2.itunes_subtitle.get<std::string_view>().first);
+  CHECK(it2.itunes_user.get<int>().first);
+  CHECK(it2.itunes_user.get<int>().second == 10086);
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
