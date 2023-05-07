@@ -44,6 +44,7 @@ set(TEST_UT test/unit_test.cpp)
 set(TEST_JSON_FILES test/test_json_files.cpp)
 set(TEST_XML test/test_xml.cpp)
 set(BENCHMARK benchmark/benchmark.cpp)
+set(XMLBENCH  benchmark/xml_benchmark.cpp)
 
 add_executable(example 	${EXAMPLE})
 add_executable(json_example 	${JSON_EXAMPLE})
@@ -53,6 +54,7 @@ add_executable(test_ut 	${TEST_UT})
 add_executable(test_json_files 	${TEST_JSON_FILES})
 add_executable(test_xml ${TEST_XML})
 add_executable(benchmark 	${BENCHMARK})
+add_executable(xml_benchmark ${XMLBENCH})
 
 # unit test
 option(BUILD_UNIT_TESTS "Build unit tests" ON)
