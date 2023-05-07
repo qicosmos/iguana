@@ -136,7 +136,7 @@ inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
     } else {
       static_assert(!sizeof(value_type), "value type not supported");
     }
-    t.emplace(std::string(attr->name(), attr->name_size()),
+    t.emplace(std::string_view(attr->name(), attr->name_size()),
               std::move(value_item));
     attr = attr->next_attribute();
   }
