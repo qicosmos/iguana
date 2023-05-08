@@ -43,9 +43,10 @@ template <typename Stream> inline void render_xml_value(Stream &ss, char s) {
   ss.push_back(s);
 }
 
-template <typename Stream>
-inline void render_xml_value(Stream &ss, const std::string &s) {
-  ss.append(s.c_str(), s.size());
+template <typename Stream, typename T>
+inline std::enable_if_t<is_str_v<std::decay_t<T>>> render_xml_value(Stream &ss,
+                                                                    T &&s) {
+  ss.append(s.data(), s.size());
 }
 
 template <typename Stream>
@@ -135,7 +136,7 @@ inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
     if constexpr (!is_reflection<type_v>::value) {
       if constexpr (is_map_container<std::decay_t<type_v>>::value) {
         return;
-      } else if constexpr (!std::is_same_v<std::string, std::decay_t<type_v>> &&
+      } else if constexpr (!is_str_v<std::decay_t<type_v>> &&
                            is_container<type_v>::value) {
         std::string_view sv = get_name<T, Idx>().data();
         render_xml_value0(s, t.*v, sv);

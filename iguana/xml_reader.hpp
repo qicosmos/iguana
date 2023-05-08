@@ -123,7 +123,7 @@ inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
   static_assert(is_map_container<U>::value, "must be map container");
   using key_type = typename U::key_type;
   using value_type = typename U::mapped_type;
-  static_assert(std::is_same_v<key_type, std::string>);
+  static_assert(is_str_v<key_type>, " key of attribute map must be str");
   rapidxml::xml_attribute<> *attr = node->first_attribute();
   while (attr != nullptr) {
     value_type value_item;
@@ -136,8 +136,7 @@ inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
     } else {
       static_assert(!sizeof(value_type), "value type not supported");
     }
-    t.emplace(std::string_view(attr->name(), attr->name_size()),
-              std::move(value_item));
+    t.emplace(key_type(attr->name(), attr->name_size()), std::move(value_item));
     attr = attr->next_attribute();
   }
 }
@@ -189,7 +188,7 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
             }
 
           } else {
-            parse_item(node->first_node(str.data()), t.*member_ptr,
+            parse_item(n, t.*member_ptr,
                        std::string_view(n->value(), n->value_size()));
           }
         }
