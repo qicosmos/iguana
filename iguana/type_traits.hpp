@@ -34,4 +34,12 @@ template <typename T> constexpr inline bool is_std_pair_v = false;
 template <typename T, typename K>
 constexpr inline bool is_std_pair_v<std::pair<T, K>> = true;
 
+namespace xml {
+template <typename T> class namespace_t;
+template <typename T> constexpr inline bool is_namespace_v = false;
+
+template <typename T>
+constexpr inline bool is_namespace_v<namespace_t<T>> = true;
+} // namespace xml
+
 } // namespace iguana

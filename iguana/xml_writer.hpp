@@ -19,7 +19,6 @@ template <typename Stream, typename T>
 inline void to_xml_impl(Stream &s, T &&t, std::string_view name = "");
 
 class any_t;
-class namespace_t;
 constexpr inline size_t find_underline(const char *);
 
 template <typename Stream, typename T>
@@ -95,14 +94,7 @@ inline void render_xml_attr(Stream &ss, std::string_view name, T &&attr) {
 template <typename Stream, typename T>
 inline void render_xml_node(Stream &ss, std::string_view name, T &&item) {
   using U = std::decay_t<T>;
-  if constexpr (std::is_same_v<U, namespace_t>) {
-    auto index_ul = find_underline(name.data());
-    std::string ns(name.data(), name.size());
-    ns[index_ul] = ':';
-    render_head(ss, ns.data());
-    render_xml_value(ss, item.get_value());
-    render_tail(ss, ns.data());
-  } else if constexpr (is_std_pair_v<U>) {
+  if constexpr (is_std_pair_v<U>) {
     render_xml_attr(ss, name, item.second);
     render_xml_value(ss, item.first);
     render_tail(ss, name.data());
@@ -144,11 +136,21 @@ inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
     static_assert(Idx < Count);
 
     using type_v = decltype(std::declval<T>().*std::declval<decltype(v)>());
+    using type_u = std::decay_t<type_v>;
     if constexpr (!is_reflection<type_v>::value) {
-      if constexpr (is_map_container<std::decay_t<type_v>>::value) {
+      if constexpr (is_map_container<type_u>::value) {
         return;
-      } else if constexpr (!is_str_v<std::decay_t<type_v>> &&
-                           is_container<type_v>::value) {
+      } else if constexpr (is_namespace_v<type_u>) {
+        constexpr auto name = get_name<T, Idx>();
+        auto index_ul = find_underline(name.data());
+        std::string ns(name.data(), name.size());
+        ns[index_ul] = ':';
+        if constexpr (is_reflection<typename type_u::value_type>::value) {
+          to_xml_impl(s, (t.*v).get(), ns);
+        } else {
+          render_xml_node(s, ns, (t.*v).get());
+        }
+      } else if constexpr (!is_str_v<type_u> && is_container<type_u>::value) {
         std::string_view sv = get_name<T, Idx>().data();
         render_xml_value0(s, t.*v, sv);
       } else {
