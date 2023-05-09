@@ -366,7 +366,9 @@ void test_leafnode_attribute() {
     std::cout << "[ " << k << " : " << v << "]  ";
   }
   std::cout << "\nchangelog value : \n" << package.changelog.first << "\n";
-  
+  std::string ss;
+  iguana::xml::to_xml(ss, package);
+  std::cout << "to_xml : \n" << ss << "\n";
 }
 
 int main(void) {
