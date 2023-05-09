@@ -341,6 +341,34 @@ void test_namespace() {
   std::cout << "to_xml" << std::endl << ss << std::endl;
 }
 
+struct package_t {
+  std::pair<std::string, std::unordered_map<std::string, std::string>> version;
+  std::pair<std::string, std::unordered_map<std::string, std::string>>
+      changelog;
+  std::unordered_map<std::string, std::string> __attr;
+};
+REFLECTION(package_t, version, changelog, __attr);
+void test_leafnode_attribute() {
+  std::string str = R"(
+    <package name="apr-util-ldap" arch="x86_64">
+      <version epoch="0" ver="1.6.1" rel="6.el8"/>
+      <changelog author="Lubo" date="1508932800">new version 1.6.1</changelog>
+    </package>
+  )";
+  package_t package;
+  iguana::xml::from_xml(package, str.data());
+  std::cout << "package attr : \n";
+  for (auto &[k, v] : package.__attr) {
+    std::cout << "[ " << k << " : " << v << "]  ";
+  }
+  std::cout << "\nchangelog attr : \n";
+  for (auto &[k, v] : package.changelog.second) {
+    std::cout << "[ " << k << " : " << v << "]  ";
+  }
+  std::cout << "\nchangelog value : \n" << package.changelog.first << "\n";
+  
+}
+
 int main(void) {
   test_parse_response();
   test_parse_status();
@@ -353,6 +381,6 @@ int main(void) {
   test_any_attribute();
   test_vector();
   test_namespace();
-
+  test_leafnode_attribute();
   return 0;
 }
