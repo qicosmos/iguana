@@ -43,9 +43,10 @@ template <typename Stream> inline void render_xml_value(Stream &ss, char s) {
   ss.push_back(s);
 }
 
-template <typename Stream>
-inline void render_xml_value(Stream &ss, const std::string &s) {
-  ss.append(s.c_str(), s.size());
+template <typename Stream, typename T>
+inline std::enable_if_t<is_str_v<std::decay_t<T>>> render_xml_value(Stream &ss,
+                                                                    T &&s) {
+  ss.append(s.data(), s.size());
 }
 
 template <typename Stream>
@@ -78,23 +79,38 @@ template <typename Stream> inline void render_head(Stream &ss, const char *s) {
   ss.push_back('>');
 }
 
-template <
-    typename Stream, typename T,
-    typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, namespace_t>>>
-inline void render_xml_node(Stream &ss, std::string_view name, T &&item) {
-  render_head(ss, name.data());
-  render_xml_value(ss, std::forward<T>(item));
-  render_tail(ss, name.data());
+template <typename Stream, typename T>
+inline void render_xml_attr(Stream &ss, std::string_view name, T &&attr) {
+  static_assert(is_map_container<std::decay_t<T>>::value,
+                "must be map container");
+  ss.append("<").append(name);
+  for (auto &[k, v] : attr) {
+    ss.append(" ").append(k).append("=\"");
+    render_xml_value(ss, v);
+    ss.append("\"");
+  }
+  ss.append(">");
 }
-template <typename Stream>
-inline void render_xml_node(Stream &ss, std::string_view name,
-                            const namespace_t &item) {
-  auto index_ul = find_underline(name.data());
-  std::string ns(name.data(), name.size());
-  ns[index_ul] = ':';
-  render_head(ss, ns.data());
-  render_xml_value(ss, item.get_value());
-  render_tail(ss, ns.data());
+
+template <typename Stream, typename T>
+inline void render_xml_node(Stream &ss, std::string_view name, T &&item) {
+  using U = std::decay_t<T>;
+  if constexpr (std::is_same_v<U, namespace_t>) {
+    auto index_ul = find_underline(name.data());
+    std::string ns(name.data(), name.size());
+    ns[index_ul] = ':';
+    render_head(ss, ns.data());
+    render_xml_value(ss, item.get_value());
+    render_tail(ss, ns.data());
+  } else if constexpr (is_std_pair_v<U>) {
+    render_xml_attr(ss, name, item.second);
+    render_xml_value(ss, item.first);
+    render_tail(ss, name.data());
+  } else {
+    render_head(ss, name.data());
+    render_xml_value(ss, std::forward<T>(item));
+    render_tail(ss, name.data());
+  }
 }
 
 template <typename Stream, typename T>
@@ -114,17 +130,13 @@ inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
   if (name.empty()) {
     name = iguana::get_name<T>();
   }
-  s.append("<").append(name);
   constexpr auto Idx = get_type_index<is_map_container, std::decay_t<T>>();
   if constexpr (Idx != iguana::get_value<std::decay_t<T>>()) {
     auto attr_value = get<Idx>(t);
-    for (auto &[k, v] : attr_value) {
-      s.append(" ").append(k).append("=\"");
-      render_xml_value(s, v);
-      s.append("\"");
-    }
+    render_xml_attr(s, name, attr_value);
+  } else {
+    s.append("<").append(name).append(">");
   }
-  s.append(">");
   for_each(std::forward<T>(t), [&t, &s](const auto v, auto i) {
     using M = decltype(iguana_reflect_members(std::forward<T>(t)));
     constexpr auto Idx = decltype(i)::value;
@@ -135,7 +147,7 @@ inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
     if constexpr (!is_reflection<type_v>::value) {
       if constexpr (is_map_container<std::decay_t<type_v>>::value) {
         return;
-      } else if constexpr (!std::is_same_v<std::string, std::decay_t<type_v>> &&
+      } else if constexpr (!is_str_v<std::decay_t<type_v>> &&
                            is_container<type_v>::value) {
         std::string_view sv = get_name<T, Idx>().data();
         render_xml_value0(s, t.*v, sv);

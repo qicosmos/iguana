@@ -44,35 +44,26 @@ void test_deserialize() {
   int iterations = 1000;
 
   std::cout << "============ deserialize rpm_filelists.xml  ===============\n";
-  std::vector<std::string> xmlfilelist(iterations);
-  for (int i = 0; i < iterations; ++i) {
-    xmlfilelist[i] = xml_file_content("../data/rpm_filelists.xml");
-  }
-
-  std::vector<filelists_t> list;
-  list.resize(iterations);
-
+  std::string xmlfilelist = xml_file_content("../data/rpm_filelists.xml");
   {
+
     ScopedTimer timer("test deserialize rpm_filelists.xml");
     for (int i = 0; i < iterations; ++i) {
-      iguana::xml::from_xml<rapidxml::parse_fastest>(list[i],
-                                                     xmlfilelist[i].data());
+      filelists_t filelist;
+      iguana::xml::from_xml<rapidxml::parse_fastest>(filelist,
+                                                     xmlfilelist.data());
     }
   }
-
   std::cout << "============ deserialize sample_rss.xml    ===============\n";
-  std::vector<std::string> xmlrss(iterations);
-  for (int i = 0; i < iterations; ++i) {
-    xmlrss[i] = xml_file_content("../data/sample_rss.xml");
-  }
 
-  std::vector<rss_t> rss_list;
-  rss_list.resize(iterations);
+  std::string xmlrss = xml_file_content("../data/sample_rss.xml");
   {
+
     ScopedTimer timer("test deserialize sample_rss.xml");
     for (int i = 0; i < iterations; ++i) {
-      iguana::xml::from_xml<rapidxml::parse_fastest>(rss_list[i],
-                                                     xmlrss[i].data());
+      rss_t rss;
+      iguana::xml::from_xml<rapidxml::parse_fastest>(rss, xmlrss.data());
+      // assert(rss.channel.item.size() == 99);
     }
   }
 }

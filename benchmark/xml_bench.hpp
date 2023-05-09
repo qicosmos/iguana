@@ -29,7 +29,6 @@ REFLECTION(filelists_t, package);
 
 struct item_t {
   std::string_view title;
-  std::string_view link;
   std::string_view description; // CDATA
   std::string_view pubDate;
   std::string_view enclosure;
@@ -42,7 +41,7 @@ struct item_t {
   std::string_view itunes_summary;
   std::string_view itunes_keywords;
 };
-REFLECTION(item_t, title, link, description, pubDate, enclosure, guid,
+REFLECTION(item_t, title, description, pubDate, enclosure, guid,
            itunes_explicit, dc_creator, media_thumbnail, media_content,
            itunes_subtitle, itunes_summary, itunes_keywords)
 
@@ -51,23 +50,15 @@ struct itunes_owner_t {
 };
 REFLECTION(itunes_owner_t, itunes_email);
 
-struct image_t {
-  std::string_view link;
-  std::string_view url;
-  std::string_view title;
-};
-REFLECTION(image_t, link, url, title);
-
 struct channel_t {
   std::string_view title;
   std::string_view link;
-  std::string_view description; // CDATA
+  std::string_view description;
   std::string_view generator;
   std::string_view docs;
   std::string_view language;
   std::string_view pubDate;
   std::string_view lastBuildDate;
-  image_t image;
   std::string_view itunes_author;
   std::string_view itunes_subtitle;
   std::string_view itunes_summary;
@@ -75,7 +66,6 @@ struct channel_t {
   std::string_view itunes_image;
   std::string_view itunes_explicit;
   std::string_view itunes_block;
-  std::string_view atom10_link;
   std::string_view xmlns_feedburner;
   std::string_view media_thumbnail;
   std::string_view media_keywords;
@@ -84,10 +74,10 @@ struct channel_t {
   std::vector<item_t> item;
 };
 REFLECTION(channel_t, title, link, description, generator, docs, language,
-           pubDate, lastBuildDate, image, itunes_author, itunes_subtitle,
+           pubDate, lastBuildDate, itunes_author, itunes_subtitle,
            itunes_summary, itunes_keywords, itunes_image, itunes_explicit,
-           itunes_block, atom10_link, xmlns_feedburner, media_thumbnail,
-           media_keywords, media_category, itunes_owner, item);
+           itunes_block, xmlns_feedburner, media_thumbnail, media_keywords,
+           media_category, itunes_owner, item);
 
 struct rss_t {
   channel_t channel;

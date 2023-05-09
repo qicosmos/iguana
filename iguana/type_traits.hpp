@@ -3,6 +3,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 namespace iguana {
 template <class, class = void> struct is_container : std::false_type {};
@@ -27,4 +28,10 @@ constexpr inline bool is_std_optinal_v<std::optional<T>> = true;
 template <typename T>
 constexpr inline bool is_str_v =
     std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>;
+
+template <typename T> constexpr inline bool is_std_pair_v = false;
+
+template <typename T, typename K>
+constexpr inline bool is_std_pair_v<std::pair<T, K>> = true;
+
 } // namespace iguana

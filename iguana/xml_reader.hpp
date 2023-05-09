@@ -83,6 +83,30 @@ private:
 };
 
 template <typename T>
+inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
+  using U = std::decay_t<T>;
+  static_assert(is_map_container<U>::value, "must be map container");
+  using key_type = typename U::key_type;
+  using value_type = typename U::mapped_type;
+  static_assert(is_str_v<key_type>, " key of attribute map must be str");
+  rapidxml::xml_attribute<> *attr = node->first_attribute();
+  while (attr != nullptr) {
+    value_type value_item;
+    std::string_view value(attr->value(), attr->value_size());
+    if constexpr (is_str_v<value_type> || std::is_same_v<any_t, value_type>) {
+      value_item = value_type{value};
+    } else if constexpr (std::is_arithmetic_v<value_type> &&
+                         !std::is_same_v<bool, value_type>) {
+      value_item = parse_num<value_type>(value);
+    } else {
+      static_assert(!sizeof(value_type), "value type not supported");
+    }
+    t.emplace(key_type(attr->name(), attr->name_size()), std::move(value_item));
+    attr = attr->next_attribute();
+  }
+}
+
+template <typename T>
 inline void parse_item(rapidxml::xml_node<char> *node, T &t,
                        std::string_view value) {
   using U = std::remove_reference_t<T>;
@@ -112,33 +136,11 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
       parse_item(node, opt, value);
       t = std::move(opt);
     }
+  } else if constexpr (is_std_pair_v<U>) {
+    parse_item(node, t.first, value);
+    parse_attribute(node, t.second);
   } else {
     static_assert(!sizeof(T), "don't support this type!!");
-  }
-}
-
-template <typename T>
-inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
-  using U = std::decay_t<T>;
-  static_assert(is_map_container<U>::value, "must be map container");
-  using key_type = typename U::key_type;
-  using value_type = typename U::mapped_type;
-  static_assert(std::is_same_v<key_type, std::string>);
-  rapidxml::xml_attribute<> *attr = node->first_attribute();
-  while (attr != nullptr) {
-    value_type value_item;
-    std::string_view value(attr->value(), attr->value_size());
-    if constexpr (is_str_v<value_type> || std::is_same_v<any_t, value_type>) {
-      value_item = value_type{value};
-    } else if constexpr (std::is_arithmetic_v<value_type> &&
-                         !std::is_same_v<bool, value_type>) {
-      value_item = parse_num<value_type>(value);
-    } else {
-      static_assert(!sizeof(value_type), "value type not supported");
-    }
-    t.emplace(std::string_view(attr->name(), attr->name_size()),
-              std::move(value_item));
-    attr = attr->next_attribute();
   }
 }
 
@@ -189,7 +191,7 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
             }
 
           } else {
-            parse_item(node->first_node(str.data()), t.*member_ptr,
+            parse_item(n, t.*member_ptr,
                        std::string_view(n->value(), n->value_size()));
           }
         }
