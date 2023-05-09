@@ -50,8 +50,7 @@ void test_deserialize() {
     ScopedTimer timer("test deserialize rpm_filelists.xml");
     for (int i = 0; i < iterations; ++i) {
       filelists_t filelist;
-      iguana::xml::from_xml<rapidxml::parse_fastest>(filelist,
-                                                     xmlfilelist.data());
+      iguana::from_xml<rapidxml::parse_fastest>(filelist, xmlfilelist.data());
     }
   }
   std::cout << "============ deserialize sample_rss.xml    ===============\n";
@@ -62,7 +61,7 @@ void test_deserialize() {
     ScopedTimer timer("test deserialize sample_rss.xml");
     for (int i = 0; i < iterations; ++i) {
       rss_t rss;
-      iguana::xml::from_xml<rapidxml::parse_fastest>(rss, xmlrss.data());
+      iguana::from_xml<rapidxml::parse_fastest>(rss, xmlrss.data());
       // assert(rss.channel.item.size() == 99);
     }
   }

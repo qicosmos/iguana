@@ -10,7 +10,7 @@
 #include <string>
 #include <type_traits>
 
-namespace iguana::xml {
+namespace iguana {
 template <typename T> void do_read(rapidxml::xml_node<char> *node, T &&t);
 
 constexpr inline size_t find_underline(const char *str) {
@@ -227,4 +227,4 @@ inline bool from_xml(T &&t, char *buf) {
 
   return false;
 }
-} // namespace iguana::xml
+} // namespace iguana
