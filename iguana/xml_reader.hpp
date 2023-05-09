@@ -69,17 +69,15 @@ private:
   std::string_view value_;
 };
 
-class namespace_t {
+template <typename T> class namespace_t {
 public:
-  explicit namespace_t(std::string_view value) : value_(value) {}
+  using value_type = T;
+  explicit namespace_t(T &&value) : value_(std::forward<T>(value)) {}
   explicit namespace_t() {}
-  template <typename T> std::pair<bool, T> get() const {
-    return value_.get<T>();
-  }
-  any_t get_value() const { return value_; }
+  const T &get() const { return value_; }
 
 private:
-  any_t value_;
+  T value_;
 };
 
 template <typename T>
@@ -125,7 +123,7 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
     } else {
       t = parse_num<U>(value);
     }
-  } else if constexpr (is_str_v<U> || std::is_same_v<namespace_t, U>) {
+  } else if constexpr (is_str_v<U>) {
     t = U{value};
   } else if constexpr (is_reflection_v<U>) {
     do_read(node, t);
@@ -139,6 +137,15 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
   } else if constexpr (is_std_pair_v<U>) {
     parse_item(node, t.first, value);
     parse_attribute(node, t.second);
+  } else if constexpr (is_namespace_v<U>) {
+    using value_type = typename U::value_type;
+    value_type ns;
+    if constexpr (is_reflection_v<value_type>) {
+      do_read(node, ns);
+    } else {
+      parse_item(node, ns, value);
+    }
+    t = T{std::move(ns)};
   } else {
     static_assert(!sizeof(T), "don't support this type!!");
   }
@@ -165,7 +172,7 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
         parse_attribute(node, t.*member_ptr);
       } else {
         rapidxml::xml_node<char> *n = nullptr;
-        if constexpr (std::is_same_v<item_type, namespace_t>) {
+        if constexpr (is_namespace_v<item_type>) {
           constexpr auto index_ul = find_underline(key.data());
           static_assert(index_ul < key.size(),
                         "'_' is needed in namesapce_t value name");
