@@ -79,12 +79,12 @@ Serialization of `xml` is similar to `json`. The first step is also defining met
 	person p = {"admin", 20};
 
 	iguana::string_stream ss;
-	iguana::xml::to_xml(ss, p);
+	iguana::to_xml(ss, p);
 
 	std::cout << ss.str() << std::endl;
 
 	std::string xml = "<?xml version=\"1.0\" encoding=\"UTF-8\">  <name>buke</name> <id>1</id>";
-	iguana::xml::from_xml(p, xml.data(), xml.length());
+	iguana::from_xml(p, xml.data(), xml.length());
 
 ### A complicated example
 *iguana* can deal with objects which contain another objects and containers. Here is the example:

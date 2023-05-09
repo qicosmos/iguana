@@ -42,12 +42,12 @@ void test_to_xml() {
 
   // pretty xml
   std::string ss;
-  iguana::xml::to_xml_pretty(ss, contents);
+  iguana::to_xml_pretty(ss, contents);
   std::cout << ss << "\n";
 
   // non pretty xml
   std::string s;
-  iguana::xml::to_xml(s, contents);
+  iguana::to_xml(s, contents);
   std::cout << s << "\n";
 }
 
@@ -56,11 +56,11 @@ void test_from_xml() {
 
   // pretty xml
   std::string ss;
-  iguana::xml::to_xml_pretty(ss, contents);
+  iguana::to_xml_pretty(ss, contents);
   std::cout << ss << "\n";
 
   Contents contents2{"test"};
-  iguana::xml::from_xml(contents2, ss.data());
+  iguana::from_xml(contents2, ss.data());
   std::cout << contents2.Size << "\n";
   std::cout << contents2.Owner.DisplayName << "\n";
   assert(contents == contents2);
@@ -107,13 +107,13 @@ void test_parse_status() {
 )";
 
   status_t t{};
-  iguana::xml::from_xml(t, str.data());
+  iguana::from_xml(t, str.data());
   std::cout << t.owner << "\n";
   std::cout << t.mtime << ", " << t.atime << "\n";
   std::cout << t.storagePolicy << "\n";
 
   std::string ss;
-  iguana::xml::to_xml(ss, t);
+  iguana::to_xml(ss, t);
 }
 
 void test_parse_response() {
@@ -137,7 +137,7 @@ void test_parse_response() {
 )";
 
   response t{};
-  iguana::xml::from_xml(t, str.data());
+  iguana::from_xml(t, str.data());
   std::cout << t.status.owner << "\n";
 }
 
@@ -155,11 +155,11 @@ void test_optional() {
   op.d = true;
   op.e = 'o';
   std::string ss;
-  iguana::xml::to_xml(ss, op);
+  iguana::to_xml(ss, op);
   std::cout << ss << "\n";
 
   optional_t op1;
-  iguana::xml::from_xml(op1, ss.data());
+  iguana::from_xml(op1, ss.data());
   if (op1.b) {
     std::cout << *op1.b << "\n";
   }
@@ -183,15 +183,15 @@ void test_list() {
   l.list.push_back(optional_t{5, 6, {}, 0, 'l'});
 
   std::string ss;
-  iguana::xml::to_xml(ss, l);
+  iguana::to_xml(ss, l);
   std::cout << ss << "\n";
 
   list_t l1;
-  iguana::xml::from_xml(l1, ss.data());
+  iguana::from_xml(l1, ss.data());
   std::cout << l1.list.size() << "\n";
 
   std::string s;
-  iguana::xml::to_xml_pretty(s, l);
+  iguana::to_xml_pretty(s, l);
   std::cout << s << '\n';
 }
 
@@ -223,10 +223,10 @@ void test_attribute() {
 )";
 
   book_t book{};
-  iguana::xml::from_xml(book, str.data());
+  iguana::from_xml(book, str.data());
   std::cout << book;
   std::string ss;
-  iguana::xml::to_xml(ss, book);
+  iguana::to_xml(ss, book);
   std::cout << "attr to_xml: " << ss << std::endl;
 }
 
@@ -247,7 +247,7 @@ void test_nested_attribute() {
   </library>
 )";
   library_t library;
-  iguana::xml::from_xml(library, str.data());
+  iguana::from_xml(library, str.data());
   std::cout << "library attribute" << std::endl;
   for (auto &[k, v] : library.__attr) {
     std::cout << "[ " << k << " : " << v << "]"
@@ -257,13 +257,13 @@ void test_nested_attribute() {
   std::cout << "\nbook\n" << library.book;
 
   std::string ss;
-  iguana::xml::to_xml(ss, library);
+  iguana::to_xml(ss, library);
   std::cout << "library to_xml: " << ss << std::endl;
 }
 struct movie_t {
   std::string title;
   std::string director;
-  std::unordered_map<std::string, iguana::xml::any_t> __attr;
+  std::unordered_map<std::string, iguana::any_t> __attr;
 };
 REFLECTION(movie_t, title, director, __attr);
 void test_any_attribute() {
@@ -275,7 +275,7 @@ void test_any_attribute() {
   </movie>
 )";
   movie_t movie;
-  iguana::xml::from_xml(movie, str.data());
+  iguana::from_xml(movie, str.data());
   std::cout << "movie attribute :" << std::endl;
   auto &attr = movie.__attr;
   {
@@ -313,18 +313,18 @@ void test_vector() {
   p.name.push_back("Bob");
   p.name.push_back("bbg");
   std::string ss;
-  iguana::xml::to_xml(ss, p);
+  iguana::to_xml(ss, p);
   std::cout << ss << std::endl;
 }
 
 struct item_itunes_t {
-  iguana::xml::namespace_t<std::string_view> itunes_author;
-  iguana::xml::namespace_t<std::string_view> itunes_subtitle;
-  iguana::xml::namespace_t<int> itunes_user;
+  iguana::namespace_t<std::string_view> itunes_author;
+  iguana::namespace_t<std::string_view> itunes_subtitle;
+  iguana::namespace_t<int> itunes_user;
 };
 REFLECTION(item_itunes_t, itunes_author, itunes_subtitle, itunes_user);
 struct item_t {
-  iguana::xml::namespace_t<item_itunes_t> item_itunes;
+  iguana::namespace_t<item_itunes_t> item_itunes;
 };
 REFLECTION(item_t, item_itunes);
 void test_namespace() {
@@ -339,13 +339,13 @@ void test_namespace() {
     </item>
   )";
   item_t it;
-  iguana::xml::from_xml(it, str.data());
+  iguana::from_xml(it, str.data());
   auto itunes = it.item_itunes.get();
   std::cout << "author : " << itunes.itunes_author.get() << "\n";
   std::cout << "subtitle : " << itunes.itunes_subtitle.get() << "\n";
   std::cout << "user : " << itunes.itunes_user.get() << "\n";
   std::string ss;
-  iguana::xml::to_xml(ss, it);
+  iguana::to_xml(ss, it);
   std::cout << "to_xml" << std::endl << ss << "\n";
 }
 
@@ -364,7 +364,7 @@ void test_leafnode_attribute() {
     </package>
   )";
   package_t package;
-  iguana::xml::from_xml(package, str.data());
+  iguana::from_xml(package, str.data());
   std::cout << "package attr : \n";
   for (auto &[k, v] : package.__attr) {
     std::cout << "[ " << k << " : " << v << "]  ";
@@ -375,7 +375,7 @@ void test_leafnode_attribute() {
   }
   std::cout << "\nchangelog value : \n" << package.changelog.first << "\n";
   std::string ss;
-  iguana::xml::to_xml(ss, package);
+  iguana::to_xml(ss, package);
   std::cout << "to_xml : \n" << ss << "\n";
 }
 

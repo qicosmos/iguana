@@ -109,17 +109,17 @@ void test_json() {
 void test_xml() {
   person p = {"admin", 20};
   iguana::string_stream ss;
-  iguana::xml::to_xml(ss, p);
+  iguana::to_xml(ss, p);
   std::cout << ss << std::endl;
 
   ss.clear();
   two t = {"test", {2}, 4};
-  iguana::xml::to_xml(ss, t);
+  iguana::to_xml(ss, t);
 
   std::cout << ss << std::endl;
 
   two t1;
-  iguana::xml::from_xml(t1, ss.data());
+  iguana::from_xml(t1, ss.data());
   std::cout << t1.age << "\n";
 }
 

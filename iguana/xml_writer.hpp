@@ -13,7 +13,7 @@
 #include <rapidxml_print.hpp>
 #include <string.h>
 
-namespace iguana::xml {
+namespace iguana {
 // to xml
 template <typename Stream, typename T>
 inline void to_xml_impl(Stream &s, T &&t, std::string_view name = "");
@@ -188,5 +188,5 @@ inline bool to_xml_pretty(Stream &s, T &&t) {
 
   return r;
 }
-} // namespace iguana::xml
+} // namespace iguana
 #endif // IGUANA_XML17_HPP
