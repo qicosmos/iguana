@@ -342,11 +342,8 @@ void test_namespace() {
   iguana::xml::from_xml(it, str.data());
   auto itunes = it.item_itunes.get();
   std::cout << "author : " << itunes.itunes_author.get() << "\n";
-  ;
   std::cout << "subtitle : " << itunes.itunes_subtitle.get() << "\n";
-  ;
   std::cout << "user : " << itunes.itunes_user.get() << "\n";
-  ;
   std::string ss;
   iguana::xml::to_xml(ss, it);
   std::cout << "to_xml" << std::endl << ss << "\n";
