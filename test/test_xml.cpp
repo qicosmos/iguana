@@ -357,6 +357,42 @@ TEST_CASE("test xml namespace") {
   CHECK(it2.itunes_user.get<int>().second == 10086);
 }
 
+struct package_t {
+  std::pair<std::string, std::unordered_map<std::string, std::string>> version;
+  std::pair<std::string, std::unordered_map<std::string, std::string>>
+      changelog;
+  std::unordered_map<std::string, std::string> __attr;
+};
+REFLECTION(package_t, version, changelog, __attr);
+TEST_CASE("test leafnode attribute") {
+  std::string str = R"(
+    <package name="apr-util-ldap" arch="x86_64">
+      <version epoch="0" ver="1.6.1" rel="6.el8"/>
+      <changelog author="Lubo" date="1508932800">new version 1.6.1</changelog>
+    </package>
+  )";
+  package_t package;
+  iguana::xml::from_xml(package, str.data());
+  using mp = std::unordered_map<std::string, std::string>;
+  mp p_attr = {{"name", "apr-util-ldap"}, {"arch", "x86_64"}};
+  mp v_attr = {{"epoch", "0"}, {"ver", "1.6.1"}, {"rel", "6.el8"}};
+  mp c_attr = {{"author", "Lubo"}, {"date", "1508932800"}};
+  CHECK(p_attr == package.__attr);
+  CHECK(v_attr == package.version.second);
+  CHECK(c_attr == package.changelog.second);
+  CHECK(package.changelog.first == "new version 1.6.1");
+  CHECK(package.version.first.empty());
+  std::string ss;
+  iguana::xml::to_xml(ss, package);
+  package_t package2;
+  iguana::xml::from_xml(package2, ss.data());
+  CHECK(p_attr == package2.__attr);
+  CHECK(v_attr == package2.version.second);
+  CHECK(c_attr == package2.changelog.second);
+  CHECK(package2.changelog.first == "new version 1.6.1");
+  CHECK(package2.version.first.empty());
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
