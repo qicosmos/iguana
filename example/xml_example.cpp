@@ -317,28 +317,39 @@ void test_vector() {
   std::cout << ss << std::endl;
 }
 
-struct item_t {
-  iguana::xml::namespace_t itunes_author;
-  iguana::xml::namespace_t itunes_subtitle;
+struct item_itunes_t {
+  iguana::xml::namespace_t<std::string_view> itunes_author;
+  iguana::xml::namespace_t<std::string_view> itunes_subtitle;
+  iguana::xml::namespace_t<int> itunes_user;
 };
-REFLECTION(item_t, itunes_author, itunes_subtitle);
+REFLECTION(item_itunes_t, itunes_author, itunes_subtitle, itunes_user);
+struct item_t {
+  iguana::xml::namespace_t<item_itunes_t> item_itunes;
+};
+REFLECTION(item_t, item_itunes);
 void test_namespace() {
   std::cout << "********** test namespace ************" << std::endl;
   std::string str = R"(
     <item>
-      <itunes:author>Jupiter Broadcasting</itunes:author>
-      <itunes:subtitle>Linux enthusiasts talk top news stories, subtitle</itunes:subtitle>
+      <item:itunes>
+        <itunes:author>Jupiter Broadcasting</itunes:author>
+        <itunes:subtitle>Linux enthusiasts talk top news stories, subtitle</itunes:subtitle>
+        <itunes:user>10086</itunes:user>       
+      </item:itunes>
     </item>
   )";
   item_t it;
   iguana::xml::from_xml(it, str.data());
-  std::cout << "author : " << it.itunes_author.get<std::string_view>().second
-            << std::endl;
-  std::cout << "subtitle : "
-            << it.itunes_subtitle.get<std::string_view>().second << std::endl;
+  auto itunes = it.item_itunes.get();
+  std::cout << "author : " << itunes.itunes_author.get() << "\n";
+  ;
+  std::cout << "subtitle : " << itunes.itunes_subtitle.get() << "\n";
+  ;
+  std::cout << "user : " << itunes.itunes_user.get() << "\n";
+  ;
   std::string ss;
   iguana::xml::to_xml(ss, it);
-  std::cout << "to_xml" << std::endl << ss << std::endl;
+  std::cout << "to_xml" << std::endl << ss << "\n";
 }
 
 struct package_t {
