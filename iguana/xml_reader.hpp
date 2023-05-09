@@ -201,6 +201,8 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
             parse_item(n, t.*member_ptr,
                        std::string_view(n->value(), n->value_size()));
           }
+        } else {
+          std::cout << str << " not found\n";
         }
       }
     } else {
