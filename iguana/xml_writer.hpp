@@ -98,6 +98,8 @@ inline void render_xml_node(Stream &ss, std::string_view name, T &&item) {
     render_xml_attr(ss, name, item.second);
     render_xml_value(ss, item.first);
     render_tail(ss, name.data());
+  } else if constexpr (is_cdata_v<U>) {
+    ss.append("<![CDATA[").append(item.get()).append("]]>");
   } else {
     render_head(ss, name.data());
     render_xml_value(ss, std::forward<T>(item));

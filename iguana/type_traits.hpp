@@ -40,4 +40,9 @@ template <typename T> constexpr inline bool is_namespace_v = false;
 template <typename T>
 constexpr inline bool is_namespace_v<namespace_t<T>> = true;
 
+template <typename T = std::string_view> class cdata_t;
+template <typename T> constexpr inline bool is_cdata_v = false;
+
+template <typename T> constexpr inline bool is_cdata_v<cdata_t<T>> = true;
+
 } // namespace iguana

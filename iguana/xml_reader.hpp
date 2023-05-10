@@ -83,6 +83,18 @@ private:
   T value_;
 };
 
+template <typename T> class cdata_t {
+public:
+  using value_type = T;
+  explicit cdata_t(T &&value = T{}) : value_(std::forward<T>(value)) {
+    static_assert(is_str_v<T>, "cdata must be string type");
+  }
+  const T &get() const { return value_; }
+
+private:
+  T value_;
+};
+
 template <typename T>
 inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
   using U = std::decay_t<T>;
@@ -105,6 +117,16 @@ inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
     t.emplace(key_type(attr->name(), attr->name_size()), std::move(value_item));
     attr = attr->next_attribute();
   }
+}
+
+rapidxml::xml_node<char> *find_cdata(rapidxml::xml_node<char> *node) {
+  for (auto cn = node->first_node(); cn; cn = cn->next_sibling()) {
+    if (cn->type() == rapidxml::node_cdata) {
+      return cn;
+    }
+  }
+  std::cout << "cdata not found\n";
+  return nullptr;
 }
 
 template <typename T>
@@ -206,6 +228,13 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
       std::string_view str = key.data();
       if constexpr (is_map_container<item_type>::value) {
         parse_attribute(node, t.*member_ptr);
+      } else if constexpr (is_cdata_v<item_type>) {
+        using c_type = typename item_type::value_type;
+        auto c_node = find_cdata(node);
+        if (c_node) {
+          t.*member_ptr =
+              item_type(c_type(c_node->value(), c_node->value_size()));
+        }
       } else {
         rapidxml::xml_node<char> *n = nullptr;
         if constexpr (is_namespace_v<item_type>) {
