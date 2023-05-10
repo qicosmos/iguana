@@ -31,7 +31,7 @@ REFLECTION(simple_t, a, b, c, d, e);
 TEST_CASE("test simple xml") {
   simple_t simple{{1, 2, 3}, '|', 0, 1};
   std::string str;
-  iguana::to_xml_pretty(str, simple);
+  iguana::to_xml_pretty(simple, str);
 
   simple_t sfrom;
   iguana::from_xml(sfrom, str.data());
@@ -70,14 +70,14 @@ TEST_CASE("test simple nested") {
   CHECK(nest.code == 10086);
 
   std::string toxmlstr;
-  iguana::to_xml_pretty(toxmlstr, nest);
+  iguana::to_xml_pretty(nest, toxmlstr);
   nested_t nest2;
   iguana::from_xml(nest2, toxmlstr.data());
   CHECK(nest2.simple == nest.simple);
 
   nest2.simple.a = std::vector<int>();
   std::string ss;
-  iguana::to_xml(ss, nest2);
+  iguana::to_xml(nest2, ss);
 }
 
 struct book_t {
@@ -127,7 +127,7 @@ TEST_CASE("test optinal and vector") {
   CHECK(*book.description == "talking about how to use template");
 
   std::string xml_str;
-  iguana::to_xml(xml_str, book);
+  iguana::to_xml(book, xml_str);
   book_t newbook;
   iguana::from_xml(newbook, xml_str.data());
   CHECK_MESSAGE(newbook == book, "the newer must be same as the older");
@@ -177,7 +177,7 @@ TEST_CASE("test nested vector") {
   }
 
   std::string xml_str;
-  iguana::to_xml(xml_str, library);
+  iguana::to_xml(library, xml_str);
   library_t newlibrary;
   iguana::from_xml(newlibrary, xml_str.data());
   if (newlibrary.book[0].title == library.book[0].title) {
@@ -207,7 +207,7 @@ TEST_CASE("test attribute with map") {
   CHECK(b.__attr["price"] == 79.9f);
 
   std::string ss;
-  iguana::to_xml_pretty(ss, b);
+  iguana::to_xml_pretty(b, ss);
   book_attr_t b2;
   iguana::from_xml(b2, ss.data());
   CHECK(b2.__attr["id"] == 5);
@@ -237,7 +237,7 @@ TEST_CASE("test attribute with any") {
   CHECK(map["price"].get<float>().second == 79.9f);
 
   std::string ss;
-  iguana::to_xml(ss, b);
+  iguana::to_xml(b, ss);
   book_attr_any_t b1;
   iguana::from_xml(b1, ss.data());
   map = b1.__attr;
@@ -282,7 +282,7 @@ TEST_CASE("Test nested attribute with any") {
   CHECK(map["price"].get<float>().second == 79.9f);
 
   std::string ss;
-  iguana::to_xml_pretty(ss, library);
+  iguana::to_xml_pretty(library, ss);
   std::cout << ss << std::endl;
   library_attr_t library1;
   iguana::from_xml(library1, ss.data());
@@ -316,7 +316,7 @@ TEST_CASE("test exception") {
   CHECK_NOTHROW(iguana::from_xml(simple, str2.data())); // Failed to parse bool
   simple_t simple2{{1, 2, 3}, '|', 0, 1};
   std::string ss = "<<dd>>";
-  CHECK_FALSE(iguana::to_xml_pretty(ss, simple2)); // unexpected end of data
+  CHECK_FALSE(iguana::to_xml_pretty(simple2, ss)); // unexpected end of data
 }
 
 struct item_itunes_t {
@@ -346,7 +346,7 @@ TEST_CASE("test xml namespace") {
   CHECK(itunes.itunes_user.get() == 10086);
 
   std::string ss;
-  iguana::to_xml(ss, it);
+  iguana::to_xml(it, ss);
   item_t it2;
   iguana::from_xml(it2, ss.data());
   auto itunes2 = it2.item_itunes.get();
@@ -380,7 +380,7 @@ TEST_CASE("test leafnode attribute") {
   CHECK(package.changelog.first == "new version 1.6.1");
   CHECK(package.version.first.empty());
   std::string ss;
-  iguana::to_xml(ss, package);
+  iguana::to_xml(package, ss);
   package_t package2;
   iguana::from_xml(package2, ss.data());
   CHECK(p_attr == package2.__attr);
