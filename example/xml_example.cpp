@@ -379,7 +379,17 @@ void test_leafnode_attribute() {
   std::cout << "to_xml : \n" << ss << "\n";
 }
 
+void parse_error() {
+  std::string str = "error xml";
+  person_t p;
+  bool r = iguana::from_xml(p, str.data());
+  if (!r) {
+    std::cout << iguana::get_last_err() << "\n";
+  }
+}
+
 int main(void) {
+  parse_error();
   test_parse_response();
   test_parse_status();
   test_list();

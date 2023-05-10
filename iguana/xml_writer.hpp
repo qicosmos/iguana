@@ -14,7 +14,7 @@
 #include <string.h>
 
 namespace iguana {
-// to xml
+inline std::string g_xml_write_err;
 template <typename Stream, typename T>
 inline void to_xml_impl(Stream &s, T &&t, std::string_view name = "");
 
@@ -183,10 +183,13 @@ inline bool to_xml_pretty(T &&t, Stream &s) {
     s = std::move(ss);
   } catch (std::exception &e) {
     r = false;
+    g_xml_write_err = e.what();
     std::cerr << e.what() << "\n";
   }
 
   return r;
 }
+
+inline std::string get_last_write_err() { return g_xml_write_err; }
 } // namespace iguana
 #endif // IGUANA_XML17_HPP

@@ -390,6 +390,50 @@ TEST_CASE("test leafnode attribute") {
   CHECK(package2.version.first.empty());
 }
 
+TEST_CASE("parse error") {
+  std::string str = "error xml";
+  simple_t p;
+  bool r = iguana::from_xml(p, str.data());
+  CHECK(!r);
+  CHECK(!iguana::get_last_read_err().empty());
+
+  std::string xml_str = R"(
+    <book_t>
+      <title>C++ templates</title>
+      <edition>invalid number</edition>
+      <author>David Vandevoorde</author>
+      <author>Nicolai M. Josuttis</author>
+    </book_t>
+  )";
+  book_t book;
+  r = iguana::from_xml(book, xml_str.data());
+  CHECK(!r);
+  CHECK(!iguana::get_last_read_err().empty());
+
+  std::string xmlstr = R"(
+    <simple_t><a>1</a><a>2</a><a>3</a><b>|</b><c>False</c><d>True</d><e>optional?</e></simple_t>
+  )";
+
+  simple_t simple2{{1, 2, 3}, '|', 0, 1};
+  std::string ss = "<<dd>>";
+  CHECK_FALSE(iguana::to_xml_pretty(simple2, ss)); // unexpected end of data
+  CHECK(!iguana::get_last_write_err().empty());
+}
+
+TEST_CASE("field not found") {
+  std::string xml_str = R"(
+    <book_t>
+      <title>C++ templates</title>
+      <edition2>2</edition2>
+      <author>David Vandevoorde</author>
+      <author>Nicolai M. Josuttis</author>
+    </book_t>
+  )";
+  book_t book;
+  bool r = iguana::from_xml(book, xml_str.data());
+  CHECK(r);
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)

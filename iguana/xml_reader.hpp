@@ -11,6 +11,7 @@
 #include <type_traits>
 
 namespace iguana {
+inline std::string g_xml_read_err;
 template <typename T> void do_read(rapidxml::xml_node<char> *node, T &&t);
 
 constexpr inline size_t find_underline(const char *str) {
@@ -55,6 +56,7 @@ public:
         num = parse_num<T>(value_);
         return std::make_pair(true, static_cast<T>(num));
       } catch (std::exception &e) {
+        g_xml_read_err = e.what();
         std::cout << "parse num failed, reason: " << e.what() << "\n";
         return std::make_pair(false, T{});
       }
@@ -202,7 +204,9 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
                        std::string_view(n->value(), n->value_size()));
           }
         } else {
-          std::cout << str << " not found\n";
+          if constexpr (!is_std_optinal_v<item_type>) {
+            std::cout << str << " not found\n";
+          }
         }
       }
     } else {
@@ -214,6 +218,9 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
 template <int Flags = 0, typename T,
           typename = std::enable_if_t<is_reflection<T>::value>>
 inline bool from_xml(T &&t, char *buf) {
+  if (!g_xml_read_err.empty()) {
+    g_xml_read_err.clear();
+  }
   try {
     rapidxml::xml_document<> doc;
     doc.parse<Flags>(buf);
@@ -224,9 +231,12 @@ inline bool from_xml(T &&t, char *buf) {
 
     return true;
   } catch (std::exception &e) {
+    g_xml_read_err = e.what();
     std::cout << e.what() << "\n";
   }
 
   return false;
 }
+
+inline std::string get_last_read_err() { return g_xml_read_err; }
 } // namespace iguana
