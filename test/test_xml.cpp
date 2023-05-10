@@ -515,6 +515,41 @@ TEST_CASE("required fields") {
   CHECK(!iguana::get_last_read_err().empty());
 }
 
+struct description_t {
+  iguana::cdata_t<> cdata;
+};
+REFLECTION(description_t, cdata);
+struct node_t {
+  std::string title;
+  description_t description;
+  iguana::cdata_t<> cdata;
+};
+REFLECTION(node_t, title, description, cdata);
+TEST_CASE("test cdata node") {
+  std::string str = R"(
+    <node_t>
+      <title>what's the cdata</title>
+      <description>
+        <![CDATA[<p>nest cdata node</p>]]>
+      </description>
+      <![CDATA[<p>this is a  cdata node</p>]]>
+    </node_t>
+  )";
+  node_t node;
+  iguana::from_xml(node, str.data());
+  CHECK(node.title == "what's the cdata");
+  CHECK(node.description.cdata.get() == "<p>nest cdata node</p>");
+  CHECK(node.cdata.get() == "<p>this is a  cdata node</p>");
+
+  std::string ss;
+  iguana::to_xml(ss, node);
+  node_t node1;
+  iguana::from_xml(node1, ss.data());
+  CHECK(node1.title == "what's the cdata");
+  CHECK(node1.description.cdata.get() == "<p>nest cdata node</p>");
+  CHECK(node1.cdata.get() == "<p>this is a  cdata node</p>");
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
