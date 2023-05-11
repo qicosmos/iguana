@@ -384,7 +384,7 @@ void parse_error() {
   person_t p;
   bool r = iguana::from_xml(p, str.data());
   if (!r) {
-    std::cout << iguana::get_last_err() << "\n";
+    std::cout << iguana::get_last_read_err() << "\n";
   }
 }
 

@@ -189,6 +189,63 @@ TEST_CASE("test nested vector") {
   }
 }
 
+struct library_t2 {
+  std::optional<std::vector<book_t>> book;
+  int sum;
+};
+REFLECTION(library_t2, book, sum);
+TEST_CASE("test optional nested vector") {
+  std::string str = R"(
+    <library>
+    <book>
+      <title>C++ templates</title>
+      <edition>2</edition>
+      <author>David Vandevoorde</author>
+      <author>Nicolai M. Josuttis</author>
+      <author>Douglas Gregor</author>
+      <description>talking about how to use template</description>
+    </book>
+    <book>
+      <title>C++ primer</title>
+      <edition>6</edition>
+      <author>Stanley B. Lippman</author>
+      <author>Josée Lajoie</author>
+      <author>Barbara E. Moo</author>
+      <description></description>
+    </book>
+    <sum>2</sum>
+    </library>
+  )";
+  library_t2 library;
+  iguana::from_xml(library, str.data());
+  CHECK(library.sum == 2);
+  auto books = *library.book;
+  CHECK(books[0].title == "C++ templates");
+  CHECK(books[1].title == "C++ primer");
+  if (books[1].title == "C++ primer") {
+    CHECK(!books[1].description);
+    std::vector<std::string> author = {"Stanley B. Lippman", "Josée Lajoie",
+                                       "Barbara E. Moo"};
+    auto t1 = books[1].author;
+    CHECK(t1.size() == 3);
+    sort(t1.begin(), t1.end());
+    sort(author.begin(), author.end());
+    CHECK(t1 == author);
+  }
+
+  std::string xml_str;
+  iguana::to_xml(library, xml_str);
+  library_t newlibrary;
+  iguana::from_xml(newlibrary, xml_str.data());
+  if (newlibrary.book[0].title == books[0].title) {
+    CHECK(newlibrary.book[0] == books[0]);
+    CHECK(newlibrary.book[1] == books[1]);
+  } else {
+    CHECK(newlibrary.book[1] == books[0]);
+    CHECK(newlibrary.book[0] == books[1]);
+  }
+}
+
 struct book_attr_t {
   std::map<std::string, float> __attr;
   std::string title;

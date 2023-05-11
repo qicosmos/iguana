@@ -115,9 +115,11 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
       t = value.back();
   } else if constexpr (std::is_arithmetic_v<U>) {
     if constexpr (std::is_same_v<bool, U>) {
-      if (value == "true" || value == "True") {
+      if (value == "true" || value == "1" || value == "True" ||
+          value == "TRUE") {
         t = true;
-      } else if (value == "false" || value == "False") {
+      } else if (value == "false" || value == "0" || value == "False" ||
+                 value == "FALSE") {
         t = false;
       } else {
         throw std::invalid_argument("Failed to parse bool");
@@ -153,6 +155,37 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
   }
 }
 
+template <typename item_type, typename T>
+inline void parse_node(rapidxml::xml_node<char> *n, T &&t,
+                       std::string_view str) {
+  if constexpr (is_std_optinal_v<
+                    item_type>) { // std::optional<std::vector<some_object>>
+    using op_value_type = typename item_type::value_type;
+    if constexpr (!is_str_v<op_value_type> &&
+                  is_container<op_value_type>::value) {
+      op_value_type op_val;
+      parse_node<op_value_type>(n, op_val, str);
+      t = std::move(op_val);
+    } else {
+      parse_item(n, t, std::string_view(n->value(), n->value_size()));
+    }
+  } else if constexpr (!is_str_v<item_type> && is_container<item_type>::value) {
+    using value_type = typename item_type::value_type;
+    while (n) {
+      if (std::string_view(n->name(), n->name_size()) != str) {
+        break;
+      }
+      value_type item;
+      parse_item(n, item, std::string_view(n->value(), n->value_size()));
+      t.push_back(std::move(item));
+      n = n->next_sibling();
+    }
+
+  } else {
+    parse_item(n, t, std::string_view(n->value(), n->value_size()));
+  }
+}
+
 template <typename T>
 inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
   static_assert(is_reflection_v<std::remove_reference_t<T>>,
@@ -185,24 +218,7 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
           n = node->first_node(str.data());
         }
         if (n) {
-          if constexpr (!is_str_v<item_type> &&
-                        is_container<item_type>::value) {
-            using value_type = typename item_type::value_type;
-            while (n) {
-              if (std::string_view(n->name(), n->name_size()) != str) {
-                break;
-              }
-              value_type item;
-              parse_item(n, item,
-                         std::string_view(n->value(), n->value_size()));
-              (t.*member_ptr).push_back(std::move(item));
-              n = n->next_sibling();
-            }
-
-          } else {
-            parse_item(n, t.*member_ptr,
-                       std::string_view(n->value(), n->value_size()));
-          }
+          parse_node<item_type>(n, t.*member_ptr, str);
         } else {
           if constexpr (!is_std_optinal_v<item_type>) {
             std::cout << str << " not found\n";
