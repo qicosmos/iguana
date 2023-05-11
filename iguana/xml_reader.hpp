@@ -119,7 +119,8 @@ inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
   }
 }
 
-rapidxml::xml_node<char> *find_cdata(const rapidxml::xml_node<char> *node) {
+inline rapidxml::xml_node<char> *
+find_cdata(const rapidxml::xml_node<char> *node) {
   for (auto cn = node->first_node(); cn; cn = cn->next_sibling()) {
     if (cn->type() == rapidxml::node_cdata) {
       return cn;
@@ -178,9 +179,10 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
   }
 }
 
-template <typename item_type, typename T>
-inline void parse_node(rapidxml::xml_node<char> *node, T &&t,
+template <typename T, typename member_type>
+inline void parse_node(rapidxml::xml_node<char> *node, member_type &&t,
                        std::string_view name) {
+  using item_type = std::decay_t<member_type>;
   if constexpr (is_cdata_v<item_type>) {
     auto c_node = find_cdata(node);
     if (c_node) {
@@ -193,7 +195,7 @@ inline void parse_node(rapidxml::xml_node<char> *node, T &&t,
                    is_container<op_value_type>::value) ||
                   is_cdata_v<op_value_type>) {
       op_value_type op_val;
-      parse_node<op_value_type>(node, op_val, name);
+      parse_node<T>(node, op_val, name);
       t = std::move(op_val);
     } else {
       auto n = node->first_node(name.data());
@@ -212,7 +214,6 @@ inline void parse_node(rapidxml::xml_node<char> *node, T &&t,
     } else {
       auto n = node->first_node(name.data());
       if (n) {
-        using value_type = typename item_type::value_type;
         while (n) {
           if (std::string_view(n->name(), n->name_size()) != name) {
             break;
@@ -222,12 +223,30 @@ inline void parse_node(rapidxml::xml_node<char> *node, T &&t,
           t.push_back(std::move(item));
           n = n->next_sibling();
         }
+      } else {
+        if constexpr (!is_std_optinal_v<item_type>) {
+          std::cout << name << " not found\n";
+          if (iguana::is_required<T>(name)) {
+            std::string err = "required filed ";
+            err.append(name).append(" not found!");
+            throw std::invalid_argument(err);
+          }
+        }
       }
     }
   } else {
     auto n = node->first_node(name.data());
     if (n) {
       parse_item(n, t, std::string_view(n->value(), n->value_size()));
+    } else {
+      if constexpr (!is_std_optinal_v<item_type>) {
+        std::cout << name << " not found\n";
+        if (iguana::is_required<T>(name)) {
+          std::string err = "required filed ";
+          err.append(name).append(" not found!");
+          throw std::invalid_argument(err);
+        }
+      }
     }
   }
 }
@@ -257,9 +276,9 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
                       "'_' is needed in namesapce_t value name");
         std::string ns(key.data(), key.size());
         ns[index_ul] = ':';
-        parse_node<item_type>(node, t.*member_ptr, ns);
+        parse_node<T>(node, t.*member_ptr, ns);
       } else {
-        parse_node<item_type>(node, t.*member_ptr, str);
+        parse_node<T>(node, t.*member_ptr, str);
       }
     } else {
       static_assert(!sizeof(member_ptr_type), "type not supported");
