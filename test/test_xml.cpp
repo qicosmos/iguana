@@ -374,6 +374,18 @@ TEST_CASE("test exception") {
   simple_t simple2{{1, 2, 3}, '|', 0, 1};
   std::string ss = "<<dd>>";
   CHECK_FALSE(iguana::to_xml_pretty(simple2, ss)); // unexpected end of data
+
+  std::string str3 = R"(
+    <nested_t>
+    <simple><b>|</b><c>False</c><e></e></simple>
+    <code></code>
+    </nested_t>
+  )";
+  nested_t nest;
+  nest.code = 10;
+  iguana::from_xml(nest, str3.data()); // a not found, d not found
+  CHECK(nest.simple.a.size() == 0);    // vector is empty
+  CHECK(nest.code == 10);              // should never touch it
 }
 
 struct item_itunes_t {
@@ -535,6 +547,7 @@ TEST_CASE("test cdata node") {
     <node_t>
       <title>what's the cdata</title>
       <description>
+        <a>what's the cdata</a>
         <![CDATA[<p>nest cdata node</p>]]>
       </description>
       <option>
@@ -560,6 +573,14 @@ TEST_CASE("test cdata node") {
   CHECK((*(node1.option.cdata)).get() == "<p>this is a option cdata</p>");
   CHECK(node1.cdata[0].get() == "<p>this is a  cdata node</p>");
   CHECK(node1.cdata[1].get() == "<p>this is a  cdata node</p>");
+
+  std::string str2 = R"(
+    <description>
+    </description>
+  )";
+  description_t dscrp;
+  iguana::from_xml(dscrp, str2.data());
+  CHECK(dscrp.cdata.get().empty());
 }
 
 // doctest comments

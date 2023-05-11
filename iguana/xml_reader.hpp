@@ -229,7 +229,7 @@ inline void parse_node(rapidxml::xml_node<char> *node, member_type &&t,
           n = n->next_sibling();
         }
       } else {
-        if constexpr (!is_std_optinal_v<item_type>) {
+        if constexpr (!is_std_optinal_v<value_type>) {
           missing_node_handler<T>(name);
         }
       }
