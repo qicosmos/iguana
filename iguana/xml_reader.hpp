@@ -24,6 +24,15 @@ constexpr inline size_t find_underline(const char *str) {
   return c - str;
 }
 
+template <typename T> inline void missing_node_handler(std::string_view name) {
+  std::cout << name << " not found\n";
+  if (iguana::is_required<T>(name)) {
+    std::string err = "required filed ";
+    err.append(name).append(" not found!");
+    throw std::invalid_argument(err);
+  }
+}
+
 template <typename T> inline void parse_num(T &num, std::string_view value) {
   if (value.empty()) {
     return;
@@ -126,7 +135,6 @@ find_cdata(const rapidxml::xml_node<char> *node) {
       return cn;
     }
   }
-  std::cout << "cdata not found\n";
   return nullptr;
 }
 
@@ -225,12 +233,7 @@ inline void parse_node(rapidxml::xml_node<char> *node, member_type &&t,
         }
       } else {
         if constexpr (!is_std_optinal_v<item_type>) {
-          std::cout << name << " not found\n";
-          if (iguana::is_required<T>(name)) {
-            std::string err = "required filed ";
-            err.append(name).append(" not found!");
-            throw std::invalid_argument(err);
-          }
+          missing_node_handler<T>(name);
         }
       }
     }
@@ -240,12 +243,7 @@ inline void parse_node(rapidxml::xml_node<char> *node, member_type &&t,
       parse_item(n, t, std::string_view(n->value(), n->value_size()));
     } else {
       if constexpr (!is_std_optinal_v<item_type>) {
-        std::cout << name << " not found\n";
-        if (iguana::is_required<T>(name)) {
-          std::string err = "required filed ";
-          err.append(name).append(" not found!");
-          throw std::invalid_argument(err);
-        }
+        missing_node_handler<T>(name);
       }
     }
   }
