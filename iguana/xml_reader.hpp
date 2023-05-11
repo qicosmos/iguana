@@ -222,6 +222,11 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
         } else {
           if constexpr (!is_std_optinal_v<item_type>) {
             std::cout << str << " not found\n";
+            if (iguana::is_required<T>(str)) {
+              std::string err = "required filed ";
+              err.append(str).append(" not found!");
+              throw std::invalid_argument(err);
+            }
           }
         }
       }

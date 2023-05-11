@@ -491,6 +491,30 @@ TEST_CASE("field not found") {
   CHECK(r);
 }
 
+struct book_with_required {
+  std::string title;
+  int edition;
+  std::vector<std::string> author;
+  std::optional<std::string> description;
+};
+REFLECTION(book_with_required, title, edition, author, description);
+REQUIRED(book_with_required, edition);
+
+TEST_CASE("required fields") {
+  std::string xml_str = R"(
+    <book_with_required>
+      <title>C++ templates</title>
+      <author>David Vandevoorde</author>
+      <author>Nicolai M. Josuttis</author>
+    </book_with_required>
+  )";
+  book_with_required book;
+  bool r = iguana::from_xml(book, xml_str.data());
+  CHECK(!r);
+  std::cout << iguana::get_last_read_err() << "\n";
+  CHECK(!iguana::get_last_read_err().empty());
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
