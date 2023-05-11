@@ -19,6 +19,7 @@ template <typename Stream, typename T>
 inline void to_xml_impl(Stream &s, T &&t, std::string_view name = "");
 
 class any_t;
+class cdata_t;
 constexpr inline size_t find_underline(const char *);
 
 template <typename Stream, typename T>
@@ -98,7 +99,7 @@ inline void render_xml_node(Stream &ss, std::string_view name, T &&item) {
     render_xml_attr(ss, name, item.second);
     render_xml_value(ss, item.first);
     render_tail(ss, name.data());
-  } else if constexpr (is_cdata_v<U>) {
+  } else if constexpr (std::is_same_v<cdata_t, U>) {
     ss.append("<![CDATA[").append(item.get()).append("]]>");
   } else {
     render_head(ss, name.data());

@@ -388,13 +388,13 @@ void parse_error() {
   }
 }
 struct description_t {
-  iguana::cdata_t<> cdata;
+  iguana::cdata_t cdata;
 };
 REFLECTION(description_t, cdata);
 struct node_t {
   std::string title;
   description_t description;
-  iguana::cdata_t<> cdata;
+  iguana::cdata_t cdata;
 };
 REFLECTION(node_t, title, description, cdata);
 void test_cdata() {

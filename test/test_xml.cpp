@@ -516,18 +516,18 @@ TEST_CASE("required fields") {
 }
 
 struct description_t {
-  iguana::cdata_t<> cdata;
+  iguana::cdata_t cdata;
 };
 REFLECTION(description_t, cdata);
 struct optionc_t {
-  std::optional<iguana::cdata_t<>> cdata;
+  std::optional<iguana::cdata_t> cdata;
 };
 REFLECTION(optionc_t, cdata);
 struct node_t {
   std::string title;
   description_t description;
   optionc_t option;
-  std::vector<iguana::cdata_t<>> cdata;
+  std::vector<iguana::cdata_t> cdata;
 };
 REFLECTION(node_t, title, description, option, cdata);
 TEST_CASE("test cdata node") {

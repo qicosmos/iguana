@@ -91,17 +91,14 @@ private:
   T value_;
 };
 
-template <typename T> class cdata_t {
+class cdata_t {
 public:
-  using value_type = T;
   explicit cdata_t() {}
-  cdata_t(const char *c, size_t len) : value_(c, len) {
-    static_assert(is_str_v<T>, "cdata must be string type");
-  }
-  const T &get() const { return value_; }
+  cdata_t(const char *c, size_t len) : value_(c, len) {}
+  std::string_view get() const { return value_; }
 
 private:
-  T value_;
+  std::string_view value_;
 };
 
 template <typename T>
@@ -191,17 +188,17 @@ template <typename T, typename member_type>
 inline void parse_node(rapidxml::xml_node<char> *node, member_type &&t,
                        std::string_view name) {
   using item_type = std::decay_t<member_type>;
-  if constexpr (is_cdata_v<item_type>) {
+  if constexpr (std::is_same_v<cdata_t, item_type>) {
     auto c_node = find_cdata(node);
     if (c_node) {
-      t = item_type(c_node->value(), c_node->value_size());
+      t = cdata_t(c_node->value(), c_node->value_size());
     }
   } else if constexpr (
       is_std_optinal_v<item_type>) { // std::optional<std::vector<some_object>>
     using op_value_type = typename item_type::value_type;
     if constexpr ((!is_str_v<op_value_type> &&
                    is_container<op_value_type>::value) ||
-                  is_cdata_v<op_value_type>) {
+                  std::is_same_v<cdata_t, op_value_type>) {
       op_value_type op_val;
       parse_node<T>(node, op_val, name);
       t = std::move(op_val);
@@ -213,7 +210,7 @@ inline void parse_node(rapidxml::xml_node<char> *node, member_type &&t,
     }
   } else if constexpr (!is_str_v<item_type> && is_container<item_type>::value) {
     using value_type = typename item_type::value_type;
-    if constexpr (is_cdata_v<value_type>) {
+    if constexpr (std::is_same_v<cdata_t, value_type>) {
       for (auto c = node->first_node(); c; c = c->next_sibling()) {
         if (c->type() == rapidxml::node_cdata) {
           t.push_back(value_type(c->value(), c->value_size()));
