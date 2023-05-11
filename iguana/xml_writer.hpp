@@ -160,7 +160,7 @@ inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
             std::string_view sv = get_name<T, Idx>().data();
             render_xml_value0(s, *(t.*v), sv);
           } else {
-            render_xml_node(s, get_name<T, Idx>().data(), t.*v);
+            render_xml_node(s, get_name<T, Idx>().data(), *(t.*v));
           }
         }
       } else if constexpr (!is_str_v<type_u> && is_container<type_u>::value) {

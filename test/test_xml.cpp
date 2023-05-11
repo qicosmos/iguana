@@ -519,12 +519,17 @@ struct description_t {
   iguana::cdata_t<> cdata;
 };
 REFLECTION(description_t, cdata);
+struct optionc_t {
+  std::optional<iguana::cdata_t<>> cdata;
+};
+REFLECTION(optionc_t, cdata);
 struct node_t {
   std::string title;
   description_t description;
+  optionc_t option;
   std::vector<iguana::cdata_t<>> cdata;
 };
-REFLECTION(node_t, title, description, cdata);
+REFLECTION(node_t, title, description, option, cdata);
 TEST_CASE("test cdata node") {
   std::string str = R"(
     <node_t>
@@ -532,6 +537,9 @@ TEST_CASE("test cdata node") {
       <description>
         <![CDATA[<p>nest cdata node</p>]]>
       </description>
+      <option>
+        <![CDATA[<p>this is a option cdata</p>]]>
+      </option>
       <![CDATA[<p>this is a  cdata node</p>]]>
       <![CDATA[<p>this is a  cdata node</p>]]>
     </node_t>
@@ -540,15 +548,18 @@ TEST_CASE("test cdata node") {
   iguana::from_xml(node, str.data());
   CHECK(node.title == "what's the cdata");
   CHECK(node.description.cdata.get() == "<p>nest cdata node</p>");
+  CHECK((*(node.option.cdata)).get() == "<p>this is a option cdata</p>");
   CHECK(node.cdata[0].get() == "<p>this is a  cdata node</p>");
   CHECK(node.cdata[1].get() == "<p>this is a  cdata node</p>");
-  // std::string ss;
-  // iguana::to_xml(node, ss);
-  // node_t node1;
-  // iguana::from_xml(node1, ss.data());
-  // CHECK(node1.title == "what's the cdata");
-  // CHECK(node1.description.cdata.get() == "<p>nest cdata node</p>");
-  // CHECK(node1.cdata.get() == "<p>this is a  cdata node</p>");
+  std::string ss;
+  iguana::to_xml(node, ss);
+  node_t node1;
+  iguana::from_xml(node1, ss.data());
+  CHECK(node1.title == "what's the cdata");
+  CHECK(node1.description.cdata.get() == "<p>nest cdata node</p>");
+  CHECK((*(node1.option.cdata)).get() == "<p>this is a option cdata</p>");
+  CHECK(node1.cdata[0].get() == "<p>this is a  cdata node</p>");
+  CHECK(node1.cdata[1].get() == "<p>this is a  cdata node</p>");
 }
 
 // doctest comments
