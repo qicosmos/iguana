@@ -387,6 +387,35 @@ void parse_error() {
     std::cout << iguana::get_last_read_err() << "\n";
   }
 }
+struct description_t {
+  iguana::cdata_t cdata;
+};
+REFLECTION(description_t, cdata);
+struct node_t {
+  std::string title;
+  description_t description;
+  iguana::cdata_t cdata;
+};
+REFLECTION(node_t, title, description, cdata);
+void test_cdata() {
+  std::string str = R"(
+    <node_t>
+      <title>what's the cdata</title>
+      <description>
+        <![CDATA[<p>nest cdata node</p>]]>
+      </description>
+      <![CDATA[<p>this is a  cdata node</p>]]>
+    </node_t>
+  )";
+  node_t node;
+  iguana::from_xml(node, str.data());
+  std::cout << "title: " << node.title << "\n";
+  std::cout << "description: " << node.description.cdata.get() << "\n";
+  std::cout << "cdata" << node.cdata.get() << "\n";
+  std::string ss;
+  iguana::to_xml(node, ss);
+  std::cout << "to_xml:\n" << ss << "\n";
+}
 
 int main(void) {
   parse_error();
@@ -402,5 +431,6 @@ int main(void) {
   test_vector();
   test_namespace();
   test_leafnode_attribute();
+  test_cdata();
   return 0;
 }

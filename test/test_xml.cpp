@@ -374,6 +374,18 @@ TEST_CASE("test exception") {
   simple_t simple2{{1, 2, 3}, '|', 0, 1};
   std::string ss = "<<dd>>";
   CHECK_FALSE(iguana::to_xml_pretty(simple2, ss)); // unexpected end of data
+
+  std::string str3 = R"(
+    <nested_t>
+    <simple><b>|</b><c>False</c><e></e></simple>
+    <code></code>
+    </nested_t>
+  )";
+  nested_t nest;
+  nest.code = 10;
+  iguana::from_xml(nest, str3.data()); // a not found, d not found
+  CHECK(nest.simple.a.size() == 0);    // vector is empty
+  CHECK(nest.code == 10);              // should never touch it
 }
 
 struct item_itunes_t {
@@ -513,6 +525,62 @@ TEST_CASE("required fields") {
   CHECK(!r);
   std::cout << iguana::get_last_read_err() << "\n";
   CHECK(!iguana::get_last_read_err().empty());
+}
+
+struct description_t {
+  iguana::cdata_t cdata;
+};
+REFLECTION(description_t, cdata);
+struct optionc_t {
+  std::optional<iguana::cdata_t> cdata;
+};
+REFLECTION(optionc_t, cdata);
+struct node_t {
+  std::string title;
+  description_t description;
+  optionc_t option;
+  std::vector<iguana::cdata_t> cdata;
+};
+REFLECTION(node_t, title, description, option, cdata);
+TEST_CASE("test cdata node") {
+  std::string str = R"(
+    <node_t>
+      <title>what's the cdata</title>
+      <description>
+        <a>what's the cdata</a>
+        <![CDATA[<p>nest cdata node</p>]]>
+      </description>
+      <option>
+        <![CDATA[<p>this is a option cdata</p>]]>
+      </option>
+      <![CDATA[<p>this is a  cdata node</p>]]>
+      <![CDATA[<p>this is a  cdata node</p>]]>
+    </node_t>
+  )";
+  node_t node;
+  iguana::from_xml(node, str.data());
+  CHECK(node.title == "what's the cdata");
+  CHECK(node.description.cdata.get() == "<p>nest cdata node</p>");
+  CHECK((*(node.option.cdata)).get() == "<p>this is a option cdata</p>");
+  CHECK(node.cdata[0].get() == "<p>this is a  cdata node</p>");
+  CHECK(node.cdata[1].get() == "<p>this is a  cdata node</p>");
+  std::string ss;
+  iguana::to_xml(node, ss);
+  node_t node1;
+  iguana::from_xml(node1, ss.data());
+  CHECK(node1.title == "what's the cdata");
+  CHECK(node1.description.cdata.get() == "<p>nest cdata node</p>");
+  CHECK((*(node1.option.cdata)).get() == "<p>this is a option cdata</p>");
+  CHECK(node1.cdata[0].get() == "<p>this is a  cdata node</p>");
+  CHECK(node1.cdata[1].get() == "<p>this is a  cdata node</p>");
+
+  std::string str2 = R"(
+    <description>
+    </description>
+  )";
+  description_t dscrp;
+  iguana::from_xml(dscrp, str2.data());
+  CHECK(dscrp.cdata.get().empty());
 }
 
 // doctest comments
