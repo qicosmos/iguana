@@ -173,6 +173,8 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
       parse_item(node, ns, value);
     }
     t = T{std::move(ns)};
+  } else if constexpr (is_cdata_v<U>) {
+
   } else {
     static_assert(!sizeof(T), "don't support this type!!");
   }
@@ -237,6 +239,20 @@ inline void do_read(rapidxml::xml_node<char> *node, T &&t) {
         }
       } else {
         rapidxml::xml_node<char> *n = nullptr;
+        if constexpr (!is_str_v<item_type> && is_container<item_type>::value) {
+          using value_type = typename item_type::value_type;
+          if constexpr (is_cdata_v<value_type>) {
+            using c_value_type = typename value_type::value_type;
+            for (auto c = node->first_node(); c; c = c->next_sibling()) {
+              if (c->type() == rapidxml::node_cdata) {
+                (t.*member_ptr)
+                    .push_back(value_type(
+                        {c_value_type(c->value(), c->value_size())}));
+              }
+            }
+            return;
+          }
+        }
         if constexpr (is_namespace_v<item_type>) {
           constexpr auto index_ul = find_underline(key.data());
           static_assert(index_ul < key.size(),
