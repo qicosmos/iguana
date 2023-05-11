@@ -623,6 +623,8 @@ get_iguana_struct_map_impl(const std::array<frozen::string, sizeof...(Is)> &arr,
 } // namespace iguana::detail
 
 namespace iguana {
+inline std::unordered_map<std::string_view, std::vector<std::string_view>>
+    g_iguana_required_map;
 template <typename T> inline constexpr auto get_iguana_struct_map() {
   using reflect_members = decltype(iguana_reflect_members(std::declval<T>()));
   if constexpr (reflect_members::value() == 0) {
@@ -638,6 +640,25 @@ template <typename T> inline constexpr auto get_iguana_struct_map() {
   MAKE_META_DATA(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)
 
 #define REFLECTION_EMPTY(STRUCT_NAME) MAKE_META_DATA_EMPTY(STRUCT_NAME)
+
+inline int add_required(std::string_view key, std::vector<std::string_view> v) {
+  iguana::g_iguana_required_map.emplace(key, v);
+  return 0;
+}
+
+#ifdef _MSC_VER
+#define IGUANA_UNIQUE_VARIABLE(str) MACRO_CONCAT(str, __COUNTER__)
+#else
+#define IGUANA_UNIQUE_VARIABLE(str) MACRO_CONCAT(str, __LINE__)
+#endif
+
+#define REQUIRED_IMPL(STRUCT_NAME, N, ...)                                     \
+  inline auto IGUANA_UNIQUE_VARIABLE(STRUCT_NAME) = iguana::add_required(      \
+      #STRUCT_NAME, std::vector<std::string_view>{                             \
+                        MARCO_EXPAND(MACRO_CONCAT(CON_STR, N)(__VA_ARGS__))});
+
+#define REQUIRED(STRUCT_NAME, ...)                                             \
+  REQUIRED_IMPL(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)
 
 template <typename T>
 using Reflect_members = decltype(iguana_reflect_members(std::declval<T>()));
@@ -749,6 +770,17 @@ constexpr std::enable_if_t<!is_reflection<T>::value, size_t> get_value() {
 template <typename T> constexpr auto get_array() {
   using M = decltype(iguana_reflect_members(std::declval<T>()));
   return M::arr();
+}
+
+template <typename T> inline bool is_required(std::string_view key) {
+  constexpr std::string_view name = get_name<T>();
+  auto it = g_iguana_required_map.find(name);
+  if (it == g_iguana_required_map.end())
+    return false;
+
+  auto &v = it->second;
+  auto r = std::find(v.begin(), v.end(), key);
+  return r != v.end();
 }
 
 template <typename T> constexpr auto get_index(std::string_view name) {
