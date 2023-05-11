@@ -24,9 +24,12 @@ constexpr inline size_t find_underline(const char *str) {
   return c - str;
 }
 
-template <typename T> inline T parse_num(std::string_view value) {
+template <typename T> inline void parse_num(T &num, std::string_view value) {
+  if (value.empty()) {
+    return;
+  }
+
   if constexpr (std::is_arithmetic_v<T>) {
-    T num;
     auto [p, ec] =
         msstl::from_chars(value.data(), value.data() + value.size(), num);
 #if defined(_MSC_VER)
@@ -35,8 +38,6 @@ template <typename T> inline T parse_num(std::string_view value) {
     if (__builtin_expect(ec != std::errc{}, 0))
 #endif
       throw std::invalid_argument("Failed to parse number");
-
-    return num;
   } else {
     static_assert(!sizeof(T), "don't support this type");
   }
@@ -53,7 +54,7 @@ public:
     } else if constexpr (std::is_arithmetic_v<T>) {
       T num;
       try {
-        num = parse_num<T>(value_);
+        parse_num<T>(num, value_);
         return std::make_pair(true, static_cast<T>(num));
       } catch (std::exception &e) {
         g_xml_read_err = e.what();
@@ -97,7 +98,7 @@ inline void parse_attribute(rapidxml::xml_node<char> *node, T &t) {
       value_item = value_type{value};
     } else if constexpr (std::is_arithmetic_v<value_type> &&
                          !std::is_same_v<bool, value_type>) {
-      value_item = parse_num<value_type>(value);
+      parse_num<value_type>(value_item, value);
     } else {
       static_assert(!sizeof(value_type), "value type not supported");
     }
@@ -125,7 +126,7 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
         throw std::invalid_argument("Failed to parse bool");
       }
     } else {
-      t = parse_num<U>(value);
+      parse_num<U>(t, value);
     }
   } else if constexpr (is_str_v<U>) {
     t = U{value};
