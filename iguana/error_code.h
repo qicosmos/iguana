@@ -81,7 +81,7 @@ public:
   std::map<iguana::dom_errc, std::string> detail_msg_map_;
 };
 
-iguana::iguana_dom_category &dom_category() {
+inline iguana::iguana_dom_category &dom_category() {
   static iguana::iguana_dom_category instance;
   return instance;
 }
