@@ -522,8 +522,10 @@ TEST_CASE("test unicode") {
 }
 
 TEST_CASE("test pmr") {
+#ifdef IGUANA_ENABLE_PMR
 #if __has_include(<memory_resource>)
   iguana::string_stream str{&iguana::iguana_resource};
+#endif
 #else
   iguana::string_stream str;
 #endif
