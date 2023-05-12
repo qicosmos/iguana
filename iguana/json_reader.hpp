@@ -228,7 +228,8 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
         // Must be an escape
         // TODO propperly handle this
         value.append(&*start, static_cast<size_t>(std::distance(start, it)));
-        ++it; // skip first escape
+        if (*(it + 1) == '"')
+          ++it; // skip first escape
         if (*it == 'u') {
           ++it;
           auto code_point = parse_unicode_hex4(it);

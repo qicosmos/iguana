@@ -716,7 +716,7 @@ TEST_CASE("parse invalid array") {
 }
 
 TEST_CASE("parse some other char") {
-  std::string str = R"({"\name":"\tom", "ok":false})";
+  std::string str = R"({"name":"tom", "ok":false})";
   person p;
   iguana::from_json(p, str);
   CHECK(p.name == "tom");

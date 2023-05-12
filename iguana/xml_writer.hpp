@@ -145,7 +145,7 @@ inline void to_xml_impl(Stream &s, T &&t, std::string_view name) {
         return;
       } else if constexpr (is_namespace_v<type_u>) {
         constexpr auto name = get_name<T, Idx>();
-        auto index_ul = find_underline(name.data());
+        constexpr auto index_ul = find_underline(name.data());
         std::string ns(name.data(), name.size());
         ns[index_ul] = ':';
         if constexpr (is_reflection<typename type_u::value_type>::value) {
