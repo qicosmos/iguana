@@ -122,7 +122,6 @@ int main(void) {
   iguana::to_json(p, ss);
 
   std::cout << ss << std::endl;
-
   client::person p2;
 
   iguana::from_json(p2, ss.data(), ss.length());

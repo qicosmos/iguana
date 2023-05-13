@@ -485,7 +485,7 @@ TEST_CASE("test unknown fields") {
   person p1;
   iguana::from_json(p1, str1);
 
-  std::string str2 = R"({"\name":"\tom", "age":20})";
+  std::string str2 = R"({"name":"tom", "age":20})";
   person p2;
   iguana::from_json(p2, str2);
   std::cout << p2.name << "\n";
@@ -494,7 +494,7 @@ TEST_CASE("test unknown fields") {
 
 TEST_CASE("test unicode") {
   {
-    std::string str2 = R"({"\name":"\u8001", "age":20})";
+    std::string str2 = "{\"name\":\"\u8001\", \"age\":20}";
     person p2;
     iguana::from_json(p2, str2);
 #ifdef __GNUC__
@@ -502,7 +502,7 @@ TEST_CASE("test unicode") {
 #endif
   }
   {
-    std::string str = R"("\u8001")";
+    std::string str = "\"\u8001\"";
 
     std::string t;
     iguana::from_json(t, str);
@@ -519,6 +519,14 @@ TEST_CASE("test unicode") {
     CHECK(*list.begin() == "老");
 #endif
   }
+}
+
+TEST_CASE("test escape in string") {
+  std::string str = "{\"name\":\"tony\tjone\nA\'B\n\", \"age\":20}";
+  person p;
+  iguana::from_json(p, str);
+  CHECK(p.name == "tony\tjone\nA\'B\n");
+  CHECK(p.age == 20);
 }
 
 TEST_CASE("test pmr") {
