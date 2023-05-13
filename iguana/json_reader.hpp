@@ -228,18 +228,31 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
         // Must be an escape
         // TODO propperly handle this
         value.append(&*start, static_cast<size_t>(std::distance(start, it)));
-        if (*(it + 1) == '"')
-          ++it; // skip first escape
+        ++it; // skip first escape
         if (*it == 'u') {
           ++it;
           auto code_point = parse_unicode_hex4(it);
           encode_utf8(value, code_point);
-          start = it;
+        } else if (*it == 'n') {
+          ++it;
+          value.push_back('\n');
+        } else if (*it == 't') {
+          ++it;
+          value.push_back('\t');
+        } else if (*it == 'r') {
+          ++it;
+          value.push_back('\r');
+        } else if (*it == 'b') {
+          ++it;
+          value.push_back('\b');
+        } else if (*it == 'f') {
+          ++it;
+          value.push_back('\f');
         } else {
           value.push_back(*it); // add the escaped character
           ++it;
-          start = it;
         }
+        start = it;
       }
     }
   } else {
