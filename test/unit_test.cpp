@@ -511,8 +511,7 @@ TEST_CASE("test unicode") {
 #endif
   }
   {
-    std::list<char> str = {'[', '"', 'u', '8', '0', '0', '1', '"', ']'};
-
+    std::list<char> str = {'[', '"', '\\', 'u', '8', '0', '0', '1', '"', ']'};
     std::list<std::string> list;
     iguana::from_json(list, str);
 #ifdef __GNUC__
@@ -522,11 +521,28 @@ TEST_CASE("test unicode") {
 }
 
 TEST_CASE("test escape in string") {
-  std::string str = R"({"name": "A\nB\tC\rD\bEF\n\f\n", "age": 20})";
-  person p;
-  iguana::from_json(p, str);
-  CHECK(p.name == "A\nB\tC\rD\bEF\n\f\n");
-  CHECK(p.age == 20);
+  std::string str = R"({"name":"A\nB\tC\rD\bEF\n\f\n", "age": 20})";
+  {
+    person p;
+    iguana::from_json(p, str);
+    CHECK(p.name == "A\nB\tC\rD\bEF\n\f\n");
+    CHECK(p.age == 20);
+  }
+  {
+    std::string slist = R"({"name":"\u8001", "age":20})";
+    std::list<char> strlist(slist.begin(), slist.end());
+    person p;
+    iguana::from_json(p, strlist);
+    CHECK(p.name == "老");
+    CHECK(p.age == 20);
+  }
+  {
+    std::list<char> strlist(str.begin(), str.end());
+    person p;
+    iguana::from_json(p, strlist);
+    CHECK(p.name == "A\nB\tC\rD\bEF\n\f\n");
+    CHECK(p.age == 20);
+  }
 }
 
 TEST_CASE("test pmr") {

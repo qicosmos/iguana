@@ -119,6 +119,38 @@ template <refletable T, typename It>
 void from_json(T &value, It &&it, It &&end);
 
 namespace detail {
+
+template <str_t U, class It>
+IGUANA_INLINE void parse_escape(U &value, It &&it, It &&end) {
+  if (it == end)
+    throw std::runtime_error(R"(Expected ")");
+  if (*it == 'u') {
+    ++it;
+    if (std::distance(it, end) <= 4)
+      throw std::runtime_error(R"(Expected 4 hexadecimal digits)");
+    auto code_point = parse_unicode_hex4(it);
+    encode_utf8(value, code_point);
+  } else if (*it == 'n') {
+    ++it;
+    value.push_back('\n');
+  } else if (*it == 't') {
+    ++it;
+    value.push_back('\t');
+  } else if (*it == 'r') {
+    ++it;
+    value.push_back('\r');
+  } else if (*it == 'b') {
+    ++it;
+    value.push_back('\b');
+  } else if (*it == 'f') {
+    ++it;
+    value.push_back('\f');
+  } else {
+    value.push_back(*it); // add the escaped character
+    ++it;
+  }
+}
+
 template <refletable U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   from_json(value, it, end);
@@ -226,32 +258,9 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
         return;
       } else {
         // Must be an escape
-        // TODO propperly handle this
         value.append(&*start, static_cast<size_t>(std::distance(start, it)));
         ++it; // skip first escape
-        if (*it == 'u') {
-          ++it;
-          auto code_point = parse_unicode_hex4(it);
-          encode_utf8(value, code_point);
-        } else if (*it == 'n') {
-          ++it;
-          value.push_back('\n');
-        } else if (*it == 't') {
-          ++it;
-          value.push_back('\t');
-        } else if (*it == 'r') {
-          ++it;
-          value.push_back('\r');
-        } else if (*it == 'b') {
-          ++it;
-          value.push_back('\b');
-        } else if (*it == 'f') {
-          ++it;
-          value.push_back('\f');
-        } else {
-          value.push_back(*it); // add the escaped character
-          ++it;
-        }
+        parse_escape(value, it, end);
         start = it;
       }
     }
@@ -259,11 +268,8 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
     while (it != end) {
       switch (*it) {
         [[unlikely]] case '\\' : {
-          if (++it == end) [[unlikely]]
-            throw std::runtime_error(R"(Expected ")");
-          else [[likely]] {
-            value.push_back(*it);
-          }
+          ++it;
+          parse_escape(value, it, end);
           break;
         }
         [[unlikely]] case ']' : { return; }
@@ -271,15 +277,11 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
           ++it;
           return;
         }
-        [[unlikely]] case 'u' : {
+        [[likely]] default : {
+          value.push_back(*it);
           ++it;
-          auto code_point = parse_unicode_hex4(it);
-          encode_utf8(value, code_point);
-          break;
         }
-        [[likely]] default : value.push_back(*it);
       }
-      ++it;
     }
   }
 }
@@ -552,7 +554,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
         }
       } else {
         static thread_local std::string static_key{};
-        detail::parse_item(static_key, it, end, true);
+        detail::parse_item(static_key, it, end, false);
         key = static_key;
       }
 
