@@ -167,7 +167,7 @@ TEST_CASE("test parse item str_t") {
   }
 
   {
-    std::list<char> list{'"', 'u', '8', '0', '0', '1', '"'};
+    std::list<char> list{'"', '\\', 'u', '8', '0', '0', '1', '"'};
     std::string test{};
     test.resize(20);
     iguana::from_json(test, list);
