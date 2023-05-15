@@ -35,8 +35,17 @@ concept num_t = std::floating_point<std::decay_t<T>> || int_t<T>;
 template <class T>
 concept enum_type_t = std::is_enum_v<std::decay_t<T>>;
 
+template <typename T> constexpr inline bool is_basic_string_view = false;
+
+template <typename T>
+constexpr inline bool is_basic_string_view<std::basic_string_view<T>> = true;
+
+template <typename T>
+concept str_view_t = is_basic_string_view<std::remove_reference_t<T>>;
+
 template <class T>
-concept str_t = std::convertible_to<std::decay_t<T>, std::string_view>;
+concept str_t =
+    std::convertible_to<std::decay_t<T>, std::string_view> && !str_view_t<T>;
 
 template <typename Type> constexpr inline bool is_std_vector_v = false;
 
@@ -247,6 +256,28 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
   }
 }
 
+template <str_view_t U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
+  static_assert(std::contiguous_iterator<std::decay_t<It>>,
+                "must be contiguous");
+  if (!skip) {
+    skip_ws(it, end);
+    match<'"'>(it, end);
+  }
+  using T = std::decay_t<U>;
+  auto start = it;
+  while (it < end) {
+    skip_till_escape_or_qoute(it, end);
+    if (*it == '"') {
+      value = T(&*start, static_cast<size_t>(std::distance(start, it)));
+      ++it;
+      return;
+    }
+    it += 2;
+  }
+  throw std::runtime_error("Expected \""); // is needed?
+}
+
 template <fixed_array U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   using T = std::remove_reference_t<U>;
@@ -417,7 +448,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   } else {
     using value_type = typename T::value_type;
     value_type t;
-    if constexpr (str_t<value_type>) {
+    if constexpr (str_t<value_type> || str_view_t<value_type>) {
       parse_item(t, it, end, true);
     } else {
       parse_item(t, it, end);

@@ -113,6 +113,31 @@ void test_disorder() {
   iguana::from_json(s1, str2.data(), str2.length());
 }
 
+struct book_t {
+  std::string_view title;
+  std::string_view edition;
+  std::vector<std::string_view> author;
+};
+REFLECTION(book_t, title, edition, author);
+
+void test_str_view() {
+  {
+    std::string str = R"({
+    "title": "C++ templates",
+    "edition": "invalid number",
+    "author": [
+      "David Vandevoorde",
+      "Nicolai M. Josuttis"
+    ]})";
+    book_t b;
+    iguana::from_json(b, str);
+    std::cout << b.title << std::endl;
+    std::cout << b.edition << std::endl;
+    std::cout << b.author[0] << std::endl;
+    std::cout << b.author[1] << std::endl;
+  }
+}
+
 int main(void) {
   test_disorder();
   test_v();
@@ -127,6 +152,7 @@ int main(void) {
   iguana::from_json(p2, ss.data(), ss.length());
 
   std::cout << p2.name << " - " << p2.age << std::endl;
+  test_str_view();
 
   return 0;
 }

@@ -597,6 +597,45 @@ TEST_CASE("test from_json_file") {
   std::filesystem::remove("dummy_test_dir.json");
 }
 
+struct book_t {
+  std::string_view title;
+  std::optional<std::string_view> edition;
+  std::vector<std::string_view> author;
+};
+REFLECTION(book_t, title, edition, author);
+TEST_CASE("test the string_view") {
+  {
+    std::string str = R"("C++ \ntemplates")";
+    std::string_view t;
+    iguana::from_json(t, str);
+    CHECK(t == R"(C++ \ntemplates)");
+  }
+  {
+    std::string str = R"({
+      "title": "C++ templates",
+      "edition": "invalid number"})";
+    book_t b;
+    iguana::from_json(b, str);
+    CHECK(b.title == "C++ templates");
+    CHECK(*(b.edition) == "invalid number");
+  }
+  {
+    std::string str = R"({
+    "title": "C++ templates",
+    "edition": "invalid number",
+    "author": [
+      "David Vandevoorde",
+      "Nicolai M. Josuttis"
+    ]})";
+    book_t b;
+    iguana::from_json(b, str);
+    CHECK(b.title == "C++ templates");
+    CHECK(*(b.edition) == "invalid number");
+    CHECK(b.author[0] == "David Vandevoorde");
+    CHECK(b.author[1] == "Nicolai M. Josuttis");
+  }
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007) int main(int argc, char **argv) {
