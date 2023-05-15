@@ -583,6 +583,22 @@ TEST_CASE("test cdata node") {
   CHECK(dscrp.cdata.get().empty());
 }
 
+CUSTOM_FIELDS(node_t, (title, user_title), (description, user_desc));
+
+TEST_CASE("get_custom_filed") {
+  CHECK(iguana::has_custom_fields<node_t>());
+  auto title = iguana::get_custom_fields<node_t>("title");
+  std::cout << title << "\n";
+  CHECK(title == "user_title");
+
+  auto desc = iguana::get_custom_fields<node_t>("description");
+  std::cout << desc << "\n";
+  CHECK(desc == "user_desc");
+
+  auto unknown = iguana::get_custom_fields<node_t>("unknown");
+  CHECK(unknown == "");
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
