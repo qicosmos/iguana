@@ -86,13 +86,13 @@ inline iguana::iguana_dom_category &dom_category() {
   return instance;
 }
 
-inline std::error_code make_error_code(iguana::dom_errc err,
-                                       const std::string &error_msg) {
+inline std::error_code make_error_code(iguana::dom_errc ec) noexcept {
   auto &instance = iguana::dom_category();
-  if (!error_msg.empty()) {
-    instance.detail_msg_map_.emplace(err, error_msg);
-  }
-
-  return std::error_code((int)err, instance);
+  return {static_cast<int>(ec), instance};
 }
+
 } // namespace iguana
+
+namespace std {
+template <> struct std::is_error_code_enum<iguana::dom_errc> : true_type {};
+} // namespace std

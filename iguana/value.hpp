@@ -84,7 +84,7 @@ struct basic_json_value
     try {
       return get<T>();
     } catch (std::exception &e) {
-      ec = iguana::make_error_code(iguana::dom_errc::wrong_type, e.what());
+      ec = iguana::dom_errc::wrong_type;
       return T{};
     }
   }
