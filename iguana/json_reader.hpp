@@ -208,47 +208,8 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
     skip_ws(it, end);
     match<'"'>(it, end);
   }
-
-  if constexpr (!std::contiguous_iterator<std::decay_t<It>>) {
-    const auto cend = value.cend();
-    for (auto c = value.begin(); c < cend; ++c, ++it) {
-      if (it == end) [[unlikely]]
-        throw std::runtime_error(R"(Expected ")");
-      switch (*it) {
-        [[unlikely]] case '\\' : {
-          if (++it == end) [[unlikely]]
-            throw std::runtime_error(R"(Expected ")");
-          else [[likely]] {
-            *c = *it;
-          }
-          break;
-        }
-        [[unlikely]] case '"' : {
-          ++it;
-          value.resize(std::distance(value.begin(), c));
-          return;
-        }
-        [[unlikely]] case 'u' : {
-          ++it;
-          auto start = it;
-          auto code_point = parse_unicode_hex4(it);
-          std::string str;
-          encode_utf8(str, code_point);
-          std::memcpy(value.data(), str.data(), str.size());
-          --it;
-          c += std::distance(start, it) - 1;
-
-          break;
-        }
-        [[likely]] default : *c = *it;
-      }
-    }
-  }
-
-  // growth portion
+  value.clear();
   if constexpr (std::contiguous_iterator<std::decay_t<It>>) {
-    value.clear(); // Single append on unescaped strings so overwrite opt isnt
-                   // as important
     auto start = it;
     while (it < end) {
       skip_till_escape_or_qoute(it, end);
