@@ -347,6 +347,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 template <map_container U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   using T = std::remove_reference_t<U>;
+  using key_type = typename T::key_type;
   skip_ws(it, end);
 
   match<'{'>(it, end);
@@ -362,16 +363,16 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
       match<','>(it, end);
     }
 
-    static thread_local std::string key{};
+    static thread_local std::string_view key{};
     parse_item(key, it, end);
 
     skip_ws(it, end);
     match<':'>(it, end);
 
-    if constexpr (std::is_same_v<typename T::key_type, std::string>) {
-      parse_item(value[key], it, end);
+    if constexpr (str_t<key_type> || str_view_t<key_type>) {
+      parse_item(value[key_type(key)], it, end);
     } else {
-      static thread_local typename T::key_type key_value{};
+      static thread_local key_type key_value{};
       parse_item(key_value, key.begin(), key.end());
       parse_item(value[key_value], it, end);
     }

@@ -634,6 +634,28 @@ TEST_CASE("test the string_view") {
     CHECK(b.author[0] == "David Vandevoorde");
     CHECK(b.author[1] == "Nicolai M. Josuttis");
   }
+  {
+    std::string str = R"(["tom", 30, 25.8])";
+    std::tuple<std::string_view, int, float> t;
+    iguana::from_json(t, str);
+    CHECK(std::get<0>(t) == "tom");
+    CHECK(std::get<1>(t) == 30);
+    CHECK(std::get<2>(t) == 25.8f);
+  }
+  {
+    std::string str = R"(["tom", "jone"])";
+    std::string_view arr[2];
+    iguana::from_json(arr, str);
+    CHECK(arr[0] == "tom");
+    CHECK(arr[1] == "jone");
+  }
+  {
+    std::unordered_map<std::string_view, std::string_view> mp;
+    std::string str = R"({"tom" : "C++", "jone" : "Go"})";
+    iguana::from_json(mp, str);
+    CHECK(mp["tom"] == "C++");
+    CHECK(mp["jone"] == "Go");
+  }
 }
 
 // doctest comments
