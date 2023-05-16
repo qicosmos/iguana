@@ -630,9 +630,10 @@ IGUANA_INLINE void from_json(T &value, const Byte *data, size_t size,
   }
 }
 
-template <typename It> void parse(jvalue &result, It &&it, It &&end);
+template <bool Is_view = false, typename It>
+void parse(jvalue &result, It &&it, It &&end);
 
-template <typename It>
+template <bool Is_view = false, typename It>
 inline void parse_array(jarray &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'['>(it, end);
@@ -646,7 +647,7 @@ inline void parse_array(jarray &result, It &&it, It &&end) {
     }
     result.emplace_back();
 
-    parse(result.back(), it, end);
+    parse<Is_view>(result.back(), it, end);
 
     if (*it == ']') [[unlikely]] {
       ++it;
@@ -658,7 +659,7 @@ inline void parse_array(jarray &result, It &&it, It &&end) {
   throw std::runtime_error("Expected ]");
 }
 
-template <typename It>
+template <bool Is_view = false, typename It>
 inline void parse_object(jobject &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'{'>(it, end);
@@ -682,7 +683,7 @@ inline void parse_object(jobject &result, It &&it, It &&end) {
 
     match<':'>(it, end);
 
-    parse(emplaced.first->second, it, end);
+    parse<Is_view>(emplaced.first->second, it, end);
 
     if (*it == '}') [[unlikely]] {
       ++it;
@@ -693,7 +694,8 @@ inline void parse_object(jobject &result, It &&it, It &&end) {
   }
 }
 
-template <typename It> inline void parse(jvalue &result, It &&it, It &&end) {
+template <bool Is_view, typename It>
+inline void parse(jvalue &result, It &&it, It &&end) {
   skip_ws(it, end);
   switch (*it) {
   case 'n':
@@ -725,16 +727,21 @@ template <typename It> inline void parse(jvalue &result, It &&it, It &&end) {
     break;
   }
   case '"':
-    result.template emplace<std::string>();
-    detail::parse_item(std::get<std::string>(result), it, end);
+    if constexpr (Is_view) {
+      result.template emplace<std::string_view>();
+      detail::parse_item(std::get<std::string_view>(result), it, end);
+    } else {
+      result.template emplace<std::string>();
+      detail::parse_item(std::get<std::string>(result), it, end);
+    }
     break;
   case '[':
     result.template emplace<jarray>();
-    parse_array(std::get<jarray>(result), it, end);
+    parse_array<Is_view>(std::get<jarray>(result), it, end);
     break;
   case '{': {
     result.template emplace<jobject>();
-    parse_object(std::get<jobject>(result), it, end);
+    parse_object<Is_view>(std::get<jobject>(result), it, end);
     break;
   }
   default:
@@ -744,10 +751,10 @@ template <typename It> inline void parse(jvalue &result, It &&it, It &&end) {
   skip_ws(it, end);
 }
 
-template <typename It>
+template <bool Is_view = false, typename It>
 inline void parse(jvalue &result, It &&it, It &&end, std::error_code &ec) {
   try {
-    parse(result, it, end);
+    parse<Is_view>(result, it, end);
     ec = {};
   } catch (const std::runtime_error &e) {
     result.template emplace<std::nullptr_t>();
@@ -755,15 +762,15 @@ inline void parse(jvalue &result, It &&it, It &&end, std::error_code &ec) {
   }
 }
 
-template <typename T, json_view View>
+template <bool Is_view = false, typename T, json_view View>
 inline void parse(T &result, const View &view) {
-  parse(result, std::begin(view), std::end(view));
+  parse<Is_view>(result, std::begin(view), std::end(view));
 }
 
-template <typename T, json_view View>
+template <bool Is_view = false, typename T, json_view View>
 inline void parse(T &result, const View &view, std::error_code &ec) noexcept {
   try {
-    parse(result, view);
+    parse<Is_view>(result, view);
     ec = {};
   } catch (std::runtime_error &e) {
     ec = iguana::make_error_code(e.what());
