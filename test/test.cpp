@@ -342,6 +342,18 @@ TEST_CASE("test dom parse") {
     CHECK(!val1.is_string());
     CHECK(val1.is_null());
   }
+  {
+    std::string_view str =
+        R"({"name": "tom", "skill": ["cpp", "go"], "parent": {"name": "jone"}})";
+    iguana::jvalue val;
+    iguana::parse<true>(val, str.begin(), str.end());
+    CHECK(val.at<std::string_view>("name") == "tom");
+    auto arr = val.at<iguana::jarray>("skill");
+    CHECK(arr[0].to_string_view() == "cpp");
+    CHECK(arr[1].to_string_view() == "go");
+    auto submap = val.at<iguana::jobject>("parent");
+    CHECK(submap["name"].to_string_view() == "jone");
+  }
 
   std::cout << "test dom parse ok\n";
 }
