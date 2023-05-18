@@ -135,6 +135,10 @@ void test_str_view() {
     std::cout << b.edition << std::endl;
     std::cout << b.author[0] << std::endl;
     std::cout << b.author[1] << std::endl;
+
+    std::string ss;
+    iguana::to_json(b, ss);
+    std::cout << "to_json\n" << ss << "\n";
   }
 }
 

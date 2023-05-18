@@ -60,7 +60,7 @@ public:
                   std::is_same_v<T, std::string_view>) {
       return std::make_pair(true, T{value_});
     } else if constexpr (std::is_arithmetic_v<T>) {
-      T num;
+      T num{};
       try {
         parse_num<T>(num, value_);
         return std::make_pair(true, static_cast<T>(num));
@@ -84,7 +84,7 @@ template <typename T> class namespace_t {
 public:
   using value_type = T;
   explicit namespace_t(T &&value) : value_(std::forward<T>(value)) {}
-  explicit namespace_t() {}
+  namespace_t() : value_() {}
   const T &get() const { return value_; }
 
 private:
@@ -93,7 +93,7 @@ private:
 
 class cdata_t {
 public:
-  explicit cdata_t() {}
+  cdata_t() : value_() {}
   cdata_t(const char *c, size_t len) : value_(c, len) {}
   std::string_view get() const { return value_; }
 
@@ -163,7 +163,7 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
   } else if constexpr (is_std_optinal_v<U>) {
     if (!value.empty()) {
       using value_type = typename U::value_type;
-      value_type opt;
+      value_type opt{};
       parse_item(node, opt, value);
       t = std::move(opt);
     }
@@ -172,7 +172,7 @@ inline void parse_item(rapidxml::xml_node<char> *node, T &t,
     parse_attribute(node, t.second);
   } else if constexpr (is_namespace_v<U>) {
     using value_type = typename U::value_type;
-    value_type ns;
+    value_type ns{};
     if constexpr (is_reflection_v<value_type>) {
       do_read(node, ns);
     } else {
