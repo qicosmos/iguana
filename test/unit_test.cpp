@@ -633,6 +633,15 @@ TEST_CASE("test the string_view") {
     CHECK(*(b.edition) == "invalid number");
     CHECK(b.author[0] == "David Vandevoorde");
     CHECK(b.author[1] == "Nicolai M. Josuttis");
+
+    std::string ss;
+    iguana::to_json(b, ss);
+    book_t b1;
+    iguana::from_json(b1, str);
+    CHECK(b1.title == "C++ templates");
+    CHECK(*(b1.edition) == "invalid number");
+    CHECK(b1.author[0] == "David Vandevoorde");
+    CHECK(b1.author[1] == "Nicolai M. Josuttis");
   }
   {
     std::string str = R"(["tom", 30, 25.8])";
@@ -655,6 +664,13 @@ TEST_CASE("test the string_view") {
     iguana::from_json(mp, str);
     CHECK(mp["tom"] == "C++");
     CHECK(mp["jone"] == "Go");
+
+    std::string ss;
+    iguana::to_json(mp, ss);
+    std::unordered_map<std::string_view, std::string_view> mp2;
+    iguana::from_json(mp2, ss);
+    CHECK(mp2["tom"] == "C++");
+    CHECK(mp2["jone"] == "Go");
   }
 }
 

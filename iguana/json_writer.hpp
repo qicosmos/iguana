@@ -9,6 +9,7 @@
 #include "reflection.hpp"
 #include <math.h>
 #include <optional>
+#include <string_view>
 
 namespace iguana {
 
@@ -37,6 +38,10 @@ concept sequence_container_t =
 
 template <class T>
 concept tuple_t = is_tuple<std::remove_cvref_t<T>>::value;
+
+template <class T>
+concept string_container_t =
+    std::convertible_to<std::decay_t<T>, std::string_view>;
 
 template <typename Stream, typename InputIt, typename T, typename F>
 IGUANA_INLINE void join(Stream &ss, InputIt first, InputIt last, const T &delim,
@@ -102,10 +107,10 @@ IGUANA_INLINE void render_json_value(Stream &ss, T &value) {
   ss.append(temp, n);
 }
 
-template <typename Stream>
-IGUANA_INLINE void render_json_value(Stream &ss, const std::string &s) {
+template <typename Stream, string_container_t T>
+IGUANA_INLINE void render_json_value(Stream &ss, T &&t) {
   ss.push_back('"');
-  ss.append(s.data(), s.size());
+  ss.append(t.data(), t.size());
   ss.push_back('"');
 }
 
@@ -121,9 +126,9 @@ IGUANA_INLINE void render_key(Stream &ss, T &t) {
   ss.push_back('"');
 }
 
-template <typename Stream>
-IGUANA_INLINE void render_key(Stream &ss, const std::string &s) {
-  render_json_value(ss, s);
+template <typename Stream, string_container_t T>
+IGUANA_INLINE void render_key(Stream &ss, T &&t) {
+  render_json_value(ss, std::forward<T>(t));
 }
 
 template <typename Stream, refletable T> void to_json(T &&t, Stream &ss);
@@ -135,7 +140,7 @@ IGUANA_INLINE void render_json_value(Stream &ss, T &&t) {
 
 template <typename Stream, enum_t T>
 IGUANA_INLINE void render_json_value(Stream &ss, T val) {
-  render_json_value(ss, (std::underlying_type_t<T> &)val);
+  render_json_value(ss, static_cast<std::underlying_type_t<T>>(val));
 }
 
 template <typename Stream, typename T>
@@ -213,6 +218,11 @@ IGUANA_INLINE void to_json(T &&v, Stream &s) {
       s.push_back(',');
   }
   s.push_back(']');
+}
+
+template <typename Stream, associat_container_t T>
+IGUANA_INLINE void to_json(T &&t, Stream &s) {
+  render_json_value(s, std::forward<T>(t));
 }
 
 template <typename Stream, tuple_t T>
