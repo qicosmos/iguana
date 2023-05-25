@@ -674,6 +674,21 @@ TEST_CASE("test the string_view") {
   }
 }
 
+struct st_char_t {
+  char a;
+};
+REFLECTION(st_char_t, a);
+TEST_CASE("test char") {
+  st_char_t c;
+  c.a = 'w';
+  std::string ss;
+  iguana::to_json(c, ss);
+  std::cout << ss << std::endl;
+  st_char_t c2;
+  iguana::from_json(c2, ss);
+  CHECK(c2.a == 'w');
+  CHECK(c2.a == c.a);
+}
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007) int main(int argc, char **argv) {
