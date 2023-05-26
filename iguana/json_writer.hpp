@@ -87,6 +87,13 @@ IGUANA_INLINE void render_json_value(Stream &ss, uint64_t value) {
   ss.append(temp, p - temp);
 }
 
+template <typename Stream>
+IGUANA_INLINE void render_json_value(Stream &ss, char value) {
+  ss.append("\"");
+  ss.append(&value, 1);
+  ss.append("\"");
+}
+
 #if defined __APPLE__
 template <typename Stream>
 IGUANA_INLINE void render_json_value(Stream &ss, long value) {
@@ -112,11 +119,6 @@ IGUANA_INLINE void render_json_value(Stream &ss, T &&t) {
   ss.push_back('"');
   ss.append(t.data(), t.size());
   ss.push_back('"');
-}
-
-template <typename Stream>
-IGUANA_INLINE void render_json_value(Stream &ss, const char *s, size_t size) {
-  ss.append(s, size);
 }
 
 template <typename Stream, arithmetic_t T>
