@@ -1,10 +1,10 @@
 #pragma once
+#include "detail/charconv.h"
 #include "reflection.hpp"
 #include "type_traits.hpp"
 #include <algorithm>
 #include <cctype>
 #include <functional>
-#include <msstl/charconv.hpp>
 #include <optional>
 #include <rapidxml.hpp>
 #include <string>
@@ -40,7 +40,7 @@ template <typename T> inline void parse_num(T &num, std::string_view value) {
 
   if constexpr (std::is_arithmetic_v<T>) {
     auto [p, ec] =
-        msstl::from_chars(value.data(), value.data() + value.size(), num);
+        detail::from_chars(value.data(), value.data() + value.size(), num);
 #if defined(_MSC_VER)
     if (ec != std::errc{})
 #else
