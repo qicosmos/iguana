@@ -67,4 +67,31 @@ void test_deserialize() {
   }
 }
 
-int main() { test_deserialize(); }
+void bench_num() {
+  int iterations = 1000;
+  std::cout << "============ deserialize bench_num.xml  ===============\n";
+  std::string xmlnum = xml_file_content("../data/bench_num.xml");
+  {
+    ScopedTimer timer("test deserialize bench_num.xml");
+    for (int i = 0; i < iterations; ++i) {
+      store_t s;
+      iguana::from_xml<rapidxml::parse_fastest>(s, xmlnum.data());
+    }
+  }
+  std::cout << "============ serialize bench_num.xml  ===============\n";
+  store_t store;
+  iguana::from_xml<rapidxml::parse_fastest>(store, xmlnum.data());
+  std::string ss;
+  ss.reserve(xmlnum.size());
+  {
+    ScopedTimer timer("test serialize bench_num.xml");
+    for (int i = 0; i < iterations; ++i) {
+      iguana::to_xml(store, ss);
+      ss.clear();
+    }
+  }
+}
+int main() {
+  test_deserialize();
+  bench_num();
+}

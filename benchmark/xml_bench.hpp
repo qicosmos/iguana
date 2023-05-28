@@ -29,12 +29,12 @@ REFLECTION(filelists_t, package);
 
 struct item_t {
   std::string_view title;
-  std::string_view description; // CDATA
+  std::optional<std::string_view> description;
   std::string_view pubDate;
-  std::string_view enclosure;
+  std::optional<std::string_view> enclosure;
   std::string_view guid;
   std::string_view itunes_explicit;
-  std::string_view dc_creator;
+  std::optional<std::string_view> dc_creator;
   std::string_view media_thumbnail;
   std::string_view media_content;
   std::string_view itunes_subtitle;
@@ -53,12 +53,12 @@ REFLECTION(itunes_owner_t, itunes_email);
 struct channel_t {
   std::string_view title;
   std::string_view link;
-  std::string_view description;
+  std::optional<std::string_view> description;
   std::string_view generator;
   std::string_view docs;
   std::string_view language;
-  std::string_view pubDate;
-  std::string_view lastBuildDate;
+  std::optional<std::string_view> pubDate;
+  std::optional<std::string_view> lastBuildDate;
   std::string_view itunes_author;
   std::string_view itunes_subtitle;
   std::string_view itunes_summary;
@@ -66,7 +66,7 @@ struct channel_t {
   std::string_view itunes_image;
   std::string_view itunes_explicit;
   std::string_view itunes_block;
-  std::string_view xmlns_feedburner;
+  std::optional<std::string_view> xmlns_feedburner;
   std::string_view media_thumbnail;
   std::string_view media_keywords;
   std::string_view media_category;
@@ -83,3 +83,28 @@ struct rss_t {
   channel_t channel;
 };
 REFLECTION(rss_t, channel);
+
+// ************ struct for bench_num.xml ****************
+
+struct goods_t {
+  int id;
+  int sales;
+  int inventory;
+  double weight;
+  double price;
+  double rating;
+  double discount;
+};
+REFLECTION(goods_t, id, sales, inventory, weight, price, rating, discount);
+struct storeowner_t {
+  std::string name;
+  std::string telephone;
+};
+REFLECTION(storeowner_t, name, telephone);
+struct store_t {
+  std::string name;
+  std::string address;
+  storeowner_t owner;
+  std::vector<goods_t> goods;
+};
+REFLECTION(store_t, name, address, owner, goods);

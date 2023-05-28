@@ -47,47 +47,6 @@ IGUANA_INLINE void render_json_value(Stream &ss, T value) {
   ss.append(temp, p - temp);
 }
 
-// template <typename Stream, int_t T>
-// IGUANA_INLINE void render_json_value(Stream &ss, T value) {
-//   char temp[20];
-//   auto p = itoa_fwd(value, temp);
-//   ss.append(temp, p - temp);
-// }
-
-// template <typename Stream>
-// IGUANA_INLINE void render_json_value(Stream &ss, int64_t value) {
-//   char temp[65];
-//   auto p = xtoa(value, temp, 10, 1);
-//   ss.append(temp, p - temp);
-// }
-
-// template <typename Stream>
-// IGUANA_INLINE void render_json_value(Stream &ss, uint64_t value) {
-//   char temp[65];
-//   auto p = xtoa(value, temp, 10, 0);
-//   ss.append(temp, p - temp);
-// }
-
-// #if defined __APPLE__
-// template <typename Stream>
-// IGUANA_INLINE void render_json_value(Stream &ss, long value) {
-//   render_json_value(ss, (int64_t)value);
-// }
-
-// template <typename Stream>
-// IGUANA_INLINE void render_json_value(Stream &ss, unsigned long value) {
-//   render_json_value(ss, (uint64_t)value);
-// }
-// #endif
-
-// template <typename Stream, float_t T>
-// IGUANA_INLINE void render_json_value(Stream &ss, T &value) {
-//   char temp[40];
-//   const auto end = jkj::dragonbox::to_chars(value, temp);
-//   const auto n = std::distance(temp, end);
-//   ss.append(temp, n);
-// }
-
 template <typename Stream, string_container_t T>
 IGUANA_INLINE void render_json_value(Stream &ss, T &&t) {
   ss.push_back('"');
