@@ -24,7 +24,6 @@ include_directories(
 	${IGUANA_DIR}
 	${IGUANA_DIR}/third_party/frozen/include
 	${IGUANA_DIR}/third_party/rapidxml
-	${IGUANA_DIR}/third_party/mscharconv/include
 )
 
 set(EXAMPLE

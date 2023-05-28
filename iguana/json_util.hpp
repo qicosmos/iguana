@@ -24,7 +24,6 @@ char > || std::same_as<std::decay_t<T>, char16_t> ||
     std::same_as<std::decay_t<T>, char32_t> ||
     std::same_as<std::decay_t<T>, wchar_t>;
 
-// why?
 template <class T>
 concept bool_t = std::same_as < std::decay_t<T>,
 bool > || std::same_as<std::decay_t<T>, std::vector<bool>::reference>;
