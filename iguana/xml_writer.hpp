@@ -4,12 +4,12 @@
 
 #ifndef IGUANA_XML17_HPP
 #define IGUANA_XML17_HPP
+#include "detail/charconv.h"
 #include "reflection.hpp"
 #include "type_traits.hpp"
 #include <algorithm>
 #include <cctype>
 #include <functional>
-#include <msstl/charconv.hpp>
 #include <rapidxml_print.hpp>
 #include <string.h>
 
@@ -25,8 +25,8 @@ constexpr inline size_t find_underline(const char *);
 template <typename Stream, typename T>
 inline std::enable_if_t<std::is_arithmetic_v<T>> render_xml_value(Stream &ss,
                                                                   T &value) {
-  char temp[40];
-  auto [p, ec] = msstl::to_chars(temp, temp + sizeof(temp), value);
+  char temp[65];
+  auto p = detail::to_chars(temp, value);
   const auto n = std::distance(temp, p);
   ss.append(temp, n);
 }
