@@ -417,7 +417,39 @@ void test_cdata() {
   std::cout << "to_xml:\n" << ss << "\n";
 }
 
+struct base_t {
+  int id;
+  std::string name;
+};
+
+struct derived_t : public base_t {
+  int version;
+  std::string tag;
+};
+REFLECTION(derived_t, id, name, version, tag);
+
+void derived_object() {
+  derived_t d{};
+  d.id = 1;
+  d.name = "tom";
+  d.version = 42;
+  d.tag = "tag";
+
+  std::string str;
+  iguana::to_xml(d, str);
+  std::cout << str << "\n";
+
+  std::string s = "<derived_t><id>1</id><name>tom</name><version>42</"
+                  "version><tag>tag</tag></derived_t>";
+  assert(str == s);
+
+  derived_t d1{};
+  iguana::from_xml(d1, str.data());
+  assert(d.tag == d1.tag);
+}
+
 int main(void) {
+  derived_object();
   parse_error();
   test_parse_response();
   test_parse_status();
