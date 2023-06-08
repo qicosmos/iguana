@@ -69,7 +69,7 @@ concept map_container = container<Type> && requires(Type container) {
   typename std::remove_cvref_t<Type>::mapped_type;
 };
 
-// 数组 + 字符串 + bool之类的
+// TODO: add others
 template <class T>
 concept plain_t = string_t<T> || num_t<T>;
 
@@ -83,11 +83,10 @@ IGUANA_INLINE void skip_yaml_space(auto &&it, auto &&end) {
     ++it;
 }
 
-// 当前肯定是c并且跳过
+// match c and skip
 template <char c> IGUANA_INLINE void match(auto &&it, auto &&end) {
   if (it == end || *it != c) [[unlikely]] {
     static constexpr char b[] = {c, '\0'};
-    //         static constexpr auto error = concat_arrays("Expected:", b);
     std::string error = std::string("Expected:").append(b);
     throw std::runtime_error(error);
   } else [[likely]] {
@@ -95,13 +94,13 @@ template <char c> IGUANA_INLINE void match(auto &&it, auto &&end) {
   }
 }
 
-// 跳过空格,到达第一个不是空格的
 IGUANA_INLINE void skip_space(auto &&it, auto &&end) {
   while (it != end && *it == ' ')
     ++it;
 }
 
-// 第一行不需要考虑缩进，到了第二行才考虑
+// If there are '\n' ,return indentation
+// If not, return minspaces + space 
 template <bool Throw = true>
 IGUANA_INLINE size_t skip_space_and_lines(auto &&it, auto &&end,
                                           size_t minspaces) {
@@ -122,28 +121,12 @@ IGUANA_INLINE size_t skip_space_and_lines(auto &&it, auto &&end,
       return res;
     }
   }
-  return res; // throw ?
+  return res; // throw in certain situations ?
 }
 
-// 跳过空格和缩进，考虑第一行
-IGUANA_INLINE size_t skip_space_and_lines_for_key(auto &&it, auto &&end) {
-  size_t res = 0;
-  while (it != end) {
-    if (*it == '\n') {
-      ++it;
-      res = 0;
-    } else if (*it == ' ') {
-      ++it;
-      ++res;
-    } else {
-      return res;
-    }
-  }
-  return res; // throw ？
-}
-
-// 刚好跳过字符 c ,不能有换行符, 返回最后一个字符的下一个位置
-template <char... C, bool Throw = true> IGUANA_INLINE auto skip_till(auto &&it, auto &&end) {
+// (Throw == false) means allow (it == end)
+// when C == '\n' ,we should never skip '\n'  except it == end
+template <bool Throw, char... C> IGUANA_INLINE auto skip_till(auto &&it, auto &&end) {
   std::decay_t<decltype(it)> res;
   while ((it != end) && (!((... || (*it == C))))) {
     if (*it == '\n') [[unlikely]] {
@@ -156,16 +139,21 @@ template <char... C, bool Throw = true> IGUANA_INLINE auto skip_till(auto &&it, 
       ++it;
     }
   }
+
   if (it == end) [[unlikely]] {
     if constexpr (Throw) {
-      return (*(it - 1) == ' ') ? res : end;
-    } else {
       static constexpr char b[] = {C..., '\0'};
       std::string error = std::string("Expected one of these: ").append(b);
-      throw std::runtime_error(error);
+      throw std::runtime_error(error);   
+    } else { 
+      return (*(it - 1) == ' ') ? res : end;
     }
   }
-  ++it; //  skip c
-  return (*(it - 2) == ' ') ? res : it - 1;
+  // true : when C is not '\n'
+  if (!((... || ('\n' == C)) && (sizeof...(C) == 1))) {
+    ++it;
+    return (*(it - 2) == ' ') ? res : it - 1;
+  }    
+  return (*(it - 1) == ' ') ? res : it;
 }
 } // namespace iguana

@@ -5,23 +5,36 @@
 
 namespace iguana {
 
-// TODO: support more string style
-template <typename Stream, string_t T>
+template <typename Stream, refletable T>
+IGUANA_INLINE void to_yaml(T &&t, Stream &s, size_t min_spaces = 0);
+
+template <typename Stream, refletable T>
 IGUANA_INLINE void render_yaml_value(Stream &ss, T &&t, size_t min_spaces) {
-  ss.append(t.data(), t.size());
+  ss.push_back('\n');
+  to_yaml(std::forward<T>(t), ss, min_spaces);
 }
 
-template <typename Stream, num_t T>
+// TODO: support more string style
+template <bool appendLf = true, typename Stream, string_t T>
+IGUANA_INLINE void render_yaml_value(Stream &ss, T &&t, size_t min_spaces) {
+  ss.append(t.data(), t.size());
+  if constexpr (appendLf) 
+    ss.push_back('\n');
+}
+
+template <bool appendLf = true, typename Stream, num_t T>
 IGUANA_INLINE void render_yaml_value(Stream &ss, T value, size_t min_spaces) {
   char temp[65];
   auto p = detail::to_chars(temp, value);
   ss.append(temp, p - temp);
+  if constexpr (appendLf) 
+    ss.push_back('\n');
 }
 
 template <typename Stream, sequence_container_t T>
 IGUANA_INLINE void render_yaml_value(Stream &ss, const T &t, size_t min_spaces) {
+  ss.push_back('\n');
   for (const auto& v : t) {
-    ss.push_back('\n');
     ss.append(min_spaces, ' ');
     ss.append("- ");
     render_yaml_value(ss, v, min_spaces + 1);
@@ -30,10 +43,10 @@ IGUANA_INLINE void render_yaml_value(Stream &ss, const T &t, size_t min_spaces) 
 
 template <typename Stream, map_container T>
 IGUANA_INLINE void render_yaml_value(Stream &ss, const T &t, size_t min_spaces) {
+  ss.push_back('\n');
   for (const auto& [k, v] : t) {
-    ss.push_back('\n');
     ss.append(min_spaces, ' ');
-    render_yaml_value(ss, k, 0); // key must be plaint type
+    render_yaml_value<false>(ss, k, 0); // key must be plaint type
     ss.append(": ");
     render_yaml_value(ss, v, min_spaces + 1);
   }
@@ -48,23 +61,22 @@ constexpr auto write_yaml_key = [](auto &s, auto i,
 };
 
 template <typename Stream, refletable T>
-IGUANA_INLINE void to_yaml(T &&t, Stream &s, size_t min_spaces = 0) {
-  s.append(min_spaces, ' ');
+IGUANA_INLINE void to_yaml(T &&t, Stream &s, size_t min_spaces) {
   for_each(std::forward<T>(t),
            [&t, &s, min_spaces](const auto &v, auto i) IGUANA__INLINE_LAMBDA {
              using M = decltype(iguana_reflect_members(std::forward<T>(t)));
              constexpr auto Idx = decltype(i)::value;
              constexpr auto Count = M::value();
              static_assert(Idx < Count);
-
+             s.append(min_spaces, ' ');
              write_yaml_key(s, i, t);
              s.append(": ");
-             if constexpr (!is_reflection<decltype(v)>::value) {
-               render_yaml_value(s, t.*v, min_spaces + 1);
+             if constexpr (!is_reflection<std::decay_t<decltype(v)>>::value) {
+              render_yaml_value(s, t.*v, min_spaces + 1);
              } else {
-               to_yaml(t.*v, s, min_spaces + 1);
+              s.push_back('\n');
+              to_yaml(t.*v, s, min_spaces + 1);
              }
-             s.push_back('\n');
            });
 }
 
