@@ -37,6 +37,9 @@ set(JSON_EXAMPLE
 set(XML_EXAMPLE
 	example/xml_example.cpp
 )
+set(YAML_EXAMPLE
+	example/yaml_example.cpp
+)
 
 set(TEST_SOME test/test.cpp)
 set(TEST_UT test/unit_test.cpp)
@@ -49,6 +52,7 @@ set(TEST_YAML test/test_yaml.cpp)
 # add_executable(example 	${EXAMPLE})
 # add_executable(json_example 	${JSON_EXAMPLE})
 # add_executable(xml_example 		${XML_EXAMPLE})
+add_executable(yaml_example 		${YAML_EXAMPLE})
 # add_executable(test_some	${TEST_SOME})
 # add_executable(test_ut 	${TEST_UT})
 # add_executable(test_json_files 	${TEST_JSON_FILES})

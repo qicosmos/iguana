@@ -5,6 +5,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
 #include "iguana/yaml_reader.hpp"
+#include "iguana/yaml_writer.hpp"
 #include <iostream>
 #include <optional>
 
@@ -33,6 +34,13 @@ TEST_CASE("test array") {
   iguana::from_yaml(a1, str1);
   CHECK(a1.arr[0] == std::string_view("a"));
   CHECK(a1.arr[1] == std::string_view("b"));
+
+  std::string ss;
+  iguana::to_yaml(a1, ss);
+  arr_t a2;
+  iguana::from_yaml(a2, ss);
+  CHECK(a2.arr[0] == std::string_view("a"));
+  CHECK(a2.arr[1] == std::string_view("b"));
 }
 
 struct nest_arr_t {
@@ -75,7 +83,38 @@ TEST_CASE("test nest arr ") {
   CHECK(a2.arr[0][1] == std::string_view("b"));
   CHECK(a2.arr[1][0] == std::string_view("c"));
   CHECK(a2.arr[1][1] == std::string_view("d"));
+
+  std::string ss;
+  iguana::to_yaml(a2, ss);
+  std::cout << ss << std::endl;
+  nest_arr_t a3;
+  iguana::from_yaml(a3, ss);
+  CHECK(a3.arr[0][0] == std::string_view("a"));
+  CHECK(a3.arr[0][1] == std::string_view("b"));
+  CHECK(a3.arr[1][0] == std::string_view("c"));
+  CHECK(a3.arr[1][1] == std::string_view("d"));
 }
+
+struct nest_float_arr_t {
+  std::vector<std::vector<float>> arr;
+};
+REFLECTION(nest_float_arr_t, arr);
+TEST_CASE("test arr with float") {
+  std::string str = R"(
+  arr :
+    - - 28.5
+       - 56.7
+    - - 123.4
+      - -324.9)"; 
+  nest_float_arr_t a;
+  iguana::from_yaml(a, str);
+  CHECK(a.arr[0][0] == 28.5f);
+  CHECK(a.arr[0][1] == 56.7f);
+  CHECK(a.arr[1][0] == 123.4f);  
+  CHECK(a.arr[1][1] == -324.9f);
+  std::cout << a.arr[1][1] << std::endl;
+}
+
 
 struct map_t {
   std::unordered_map<std::string_view, std::string_view> map;
@@ -132,6 +171,15 @@ TEST_CASE("test map") {
   CHECK(m1.map["k1"][1] == "b");
   CHECK(m1.map["k2"][0] == "c");
   CHECK(m1.map["k2"][1] == "d");
+  std::string ss;
+  iguana::to_yaml(m1, ss);
+  std::cout << ss << std::endl;
+  map_arr_t m2;
+  iguana::from_yaml(m2, ss);
+  CHECK(m2.map["k1"][0] == "a");
+  CHECK(m2.map["k1"][1] == "b");
+  CHECK(m2.map["k2"][0] == "c");
+  CHECK(m2.map["k2"][1] == "d");
 }
 
 // | > >- ""  ''
@@ -153,6 +201,10 @@ TEST_CASE("test str type") {
   test_str_t s1;
   iguana::from_yaml(s1, str1);
   CHECK(s1.str == "hello world");
+  std::string ss;
+  iguana::to_yaml(s1, ss);
+  std::cout << ss << std::endl;
+  
 }
 
 

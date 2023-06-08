@@ -15,6 +15,29 @@
 
 namespace iguana {
 
+template <class T>
+concept char_t = std::same_as < std::decay_t<T>,
+char > || std::same_as<std::decay_t<T>, char16_t> ||
+    std::same_as<std::decay_t<T>, char32_t> ||
+    std::same_as<std::decay_t<T>, wchar_t>;
+
+template <class T>
+concept bool_t = std::same_as < std::decay_t<T>,
+bool > || std::same_as<std::decay_t<T>, std::vector<bool>::reference>;
+
+template <class T>
+concept int_t =
+    std::integral<std::decay_t<T>> && !char_t<std::decay_t<T>> && !bool_t<T>;
+
+template <class T>
+concept float_t = std::floating_point<std::decay_t<T>>;
+
+template <class T>
+concept num_t = std::floating_point<std::decay_t<T>> || int_t<T>;
+
+template <class T>
+concept enum_t = std::is_enum_v<std::decay_t<T>>;
+
 template <typename T> constexpr inline bool is_basic_string_view = false;
 
 template <typename T>
@@ -48,7 +71,7 @@ concept map_container = container<Type> && requires(Type container) {
 
 // 数组 + 字符串 + bool之类的
 template <class T>
-concept plain_t = string_t<T>;
+concept plain_t = string_t<T> || num_t<T>;
 
 IGUANA_INLINE void skip_yaml_comment(auto &&it, auto &&end) {
   while (++it != end && *it != '\n')

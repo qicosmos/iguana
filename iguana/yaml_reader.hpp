@@ -2,10 +2,41 @@
 
 #include "detail/charconv.h"
 #include "yaml_util.hpp"
+#include <charconv>
 
 namespace iguana {
 
+template <refletable T, typename It>
+void from_yaml(T &value, It &&it, It &&end, size_t min_spaces = 0);
+
 namespace detail {
+
+template <refletable U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
+  from_yaml(value, it, end, min_spaces);
+}
+
+template <num_t U, class It>
+IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
+  using T = std::remove_reference_t<U>;
+
+  if constexpr (std::is_floating_point_v<T>) {
+    const auto size = std::distance(value_begin, value_end);
+    if (size == 0) [[unlikely]]
+      throw std::runtime_error("Failed to parse number");
+    const auto start = &*value_begin;
+    auto [p, ec] = detail::from_chars(start, start + size, value);
+    if (ec != std::errc{}) [[unlikely]]
+      throw std::runtime_error("Failed to parse number");
+  } else {
+    // TODO: remove this later
+    const auto size = std::distance(value_begin, value_end);
+    const auto start = &*value_end;
+    auto [p, ec] = std::from_chars(start, start + size, value);
+    if (ec != std::errc{}) [[unlikely]]
+      throw std::runtime_error("Failed to parse number");
+  }
+}
 
 template <str_view_t U, class It>
 IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
@@ -170,7 +201,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
 
 template <refletable T, typename It>
 IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end,
-                             size_t min_spaces = 0) {
+                             size_t min_spaces) {
   auto spaces = skip_space_and_lines_for_key(it, end);
   if (spaces < min_spaces) [[unlikely]] {
     throw std::runtime_error("Indentation problem");
