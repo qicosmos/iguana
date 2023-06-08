@@ -11,6 +11,10 @@ void from_yaml(T &value, It &&it, It &&end, size_t min_spaces = 0);
 
 namespace detail {
 
+// pre declare
+template <map_container U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces);
+
 template <num_t U, class It>
 IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
   using T = std::remove_reference_t<U>;
@@ -210,6 +214,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
 
 } // namespace detail
 
+// TODO: support parse {} as a object
 template <refletable T, typename It>
 IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end,
                              size_t min_spaces) {

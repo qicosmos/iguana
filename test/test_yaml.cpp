@@ -20,10 +20,13 @@ TEST_CASE("test array") {
       
       b] 
   )";
+  auto validator = [](const arr_t& a) {
+    CHECK(a.arr[0] == std::string_view("a"));
+    CHECK(a.arr[1] == std::string_view("b"));
+  };
   arr_t a;
   iguana::from_yaml(a, str);
-  CHECK(a.arr[0] == std::string_view("a"));
-  CHECK(a.arr[1] == std::string_view("b"));
+  validator(a);
 
   std::string str1 = R"(
   arr: 
@@ -32,15 +35,13 @@ TEST_CASE("test array") {
   )";
   arr_t a1;
   iguana::from_yaml(a1, str1);
-  CHECK(a1.arr[0] == std::string_view("a"));
-  CHECK(a1.arr[1] == std::string_view("b"));
+  validator(a1);
 
   std::string ss;
   iguana::to_yaml(a1, ss);
   arr_t a2;
   iguana::from_yaml(a2, ss);
-  CHECK(a2.arr[0] == std::string_view("a"));
-  CHECK(a2.arr[1] == std::string_view("b"));
+  validator(a2);
 }
 
 struct nest_arr_t {
@@ -54,11 +55,15 @@ TEST_CASE("test nest arr ") {
       b],
    [c, d]]
   )";
+  auto validator = [](const nest_arr_t& a) {
+    CHECK(a.arr[0][0] == std::string_view("a"));
+    CHECK(a.arr[0][1] == std::string_view("b"));
+    CHECK(a.arr[1][0] == std::string_view("c"));
+    CHECK(a.arr[1][1] == std::string_view("d"));
+  };
   nest_arr_t a;
   iguana::from_yaml(a, str);
-  CHECK(a.arr[0][0] == std::string_view("a"));
-  CHECK(a.arr[0][1] == std::string_view("b"));
-  CHECK(a.arr[1][0] == std::string_view("c"));
+  validator(a);
   std::string str1 = R"(
   arr :
     - - a
@@ -68,10 +73,7 @@ TEST_CASE("test nest arr ") {
   )";
   nest_arr_t a1;
   iguana::from_yaml(a1, str1);
-  CHECK(a1.arr[0][0] == std::string_view("a"));
-  CHECK(a1.arr[0][1] == std::string_view("b"));
-  CHECK(a1.arr[1][0] == std::string_view("c"));
-  CHECK(a1.arr[1][1] == std::string_view("d"));
+  validator(a1);
   std::string str2 = R"(
   arr :
     - [a, b]
@@ -79,20 +81,12 @@ TEST_CASE("test nest arr ") {
   )";
   nest_arr_t a2;
   iguana::from_yaml(a2, str2);
-  CHECK(a2.arr[0][0] == std::string_view("a"));
-  CHECK(a2.arr[0][1] == std::string_view("b"));
-  CHECK(a2.arr[1][0] == std::string_view("c"));
-  CHECK(a2.arr[1][1] == std::string_view("d"));
-
+  validator(a2);
   std::string ss;
   iguana::to_yaml(a2, ss);
-  std::cout << ss << std::endl;
   nest_arr_t a3;
   iguana::from_yaml(a3, ss);
-  CHECK(a3.arr[0][0] == std::string_view("a"));
-  CHECK(a3.arr[0][1] == std::string_view("b"));
-  CHECK(a3.arr[1][0] == std::string_view("c"));
-  CHECK(a3.arr[1][1] == std::string_view("d"));
+  validator(a3);
 }
 
 struct nest_float_arr_t {
@@ -151,12 +145,15 @@ TEST_CASE("test map") {
       k1 : [a , b],
    k2 : [c, d], }
   )";
+  auto validator = [](map_arr_t& m) {
+    CHECK(m.map["k1"][0] == "a");
+    CHECK(m.map["k1"][1] == "b");
+    CHECK(m.map["k2"][0] == "c");
+    CHECK(m.map["k2"][1] == "d");
+  };
   map_arr_t m;
   iguana::from_yaml(m, str);
-  CHECK(m.map["k1"][0] == "a");
-  CHECK(m.map["k1"][1] == "b");
-  CHECK(m.map["k2"][0] == "c");
-  CHECK(m.map["k2"][1] == "d");
+  validator(m);
   std::string str1 = R"(
   map:
     k1:
@@ -167,19 +164,12 @@ TEST_CASE("test map") {
       - d)";
   map_arr_t m1;
   iguana::from_yaml(m1, str1);
-  CHECK(m1.map["k1"][0] == "a");
-  CHECK(m1.map["k1"][1] == "b");
-  CHECK(m1.map["k2"][0] == "c");
-  CHECK(m1.map["k2"][1] == "d");
+  validator(m1);
   std::string ss;
   iguana::to_yaml(m1, ss);
-  std::cout << ss << std::endl;
   map_arr_t m2;
   iguana::from_yaml(m2, ss);
-  CHECK(m2.map["k1"][0] == "a");
-  CHECK(m2.map["k1"][1] == "b");
-  CHECK(m2.map["k2"][0] == "c");
-  CHECK(m2.map["k2"][1] == "d");
+  validator(m2);
 }
 
 // | > >- ""  ''
@@ -203,8 +193,6 @@ TEST_CASE("test str type") {
   CHECK(s1.str == "hello world");
   std::string ss;
   iguana::to_yaml(s1, ss);
-  std::cout << ss << std::endl;
-  
 }
 
 
