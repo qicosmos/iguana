@@ -14,7 +14,7 @@ IGUANA_INLINE void render_yaml_value(Stream &ss, T &&t, size_t min_spaces) {
   to_yaml(std::forward<T>(t), ss, min_spaces);
 }
 
-// TODO: support more string style
+// TODO: support more string style, support escape
 template <bool appendLf = true, typename Stream, string_t T>
 IGUANA_INLINE void render_yaml_value(Stream &ss, T &&t, size_t min_spaces) {
   ss.append(t.data(), t.size());

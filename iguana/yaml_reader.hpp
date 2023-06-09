@@ -11,6 +11,38 @@ void from_yaml(T &value, It &&it, It &&end, size_t min_spaces = 0);
 
 namespace detail {
 
+// type : '>-'  '|' '>',  here use '-' simple mean '>-'
+template <char type, str_t U, class It>
+IGUANA_INLINE void parse_block_str(U &value, It &&it, It &&end,
+                                   size_t min_spaces) {
+  auto subspaces = skip_space_and_lines<false>(it, end, min_spaces);
+  if (subspaces < min_spaces) [[unlikely]] {
+    if constexpr (type == '|' || type == '>') {
+      value.push_back('\n');
+    }
+    it -= subspaces + 1; // back to the las line end
+    return;
+  }
+  while (it != end) {
+    auto start = it;
+    auto value_end = skip_till<false, '\n'>(it, end);
+    value.append(&*start, static_cast<size_t>(std::distance(start, value_end)));
+    subspaces = skip_space_and_lines<false>(it, end, min_spaces);
+    if ((subspaces < min_spaces) || (it == end)) [[unlikely]] {
+      if constexpr (type == '|' || type == '>') {
+        value.push_back('\n');
+      }
+      it -= subspaces + 1; // back to the las line end
+      return;
+    }
+    if constexpr (type == '|') {
+      value.push_back('\n');
+    } else if constexpr (type == '-' || type == '>') {
+      value.push_back(' ');
+    }
+  }
+}
+
 // pre declare
 template <map_container U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces);
@@ -37,6 +69,31 @@ IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
   }
 }
 
+template <str_t U, class It>
+IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
+  using T = std::decay_t<U>;
+  auto start = value_begin;
+  auto end = value_end;
+  if (*value_begin == '"') {
+    // TODO:  parse escape and @
+    ++start;
+    --end;
+    if (*end != '"') [[unlikely]] {
+      throw std::runtime_error(R"(Expected ')");
+    }
+    value = T(&*start, static_cast<size_t>(std::distance(start, end)));
+  } else {
+    if (*value_begin == '\'') {
+      ++start;
+      --end;
+      if (*end != '\'') [[unlikely]] {
+        throw std::runtime_error(R"(Expected ')");
+      }
+    }
+    value = T(&*start, static_cast<size_t>(std::distance(start, end)));
+  }
+}
+
 template <str_view_t U, class It>
 IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
   using T = std::decay_t<U>;
@@ -48,10 +105,8 @@ IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
     if (*end != '"') [[unlikely]] {
       throw std::runtime_error(R"(Expected ')");
     }
-    // TODO:  parse escape and @
     value = T(&*start, static_cast<size_t>(std::distance(start, end)));
   } else {
-
     if (*value_begin == '\'') {
       ++start;
       --end;
@@ -98,19 +153,28 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
   using T = std::decay_t<U>;
   if constexpr (string_t<T>) {
     if constexpr (str_view_t<T>) {
-      skip_space(it, end);
+      skip_space_and_lines(it, end, min_spaces);
+      auto start = it;
+      auto value_end = skip_till<false, '\n'>(it, end);
+      parse_value(value, start, value_end);
+    } else {
+      skip_space_and_lines(it, end, min_spaces);
       if (*it == '|') {
-        ; // TODO: support |
+        ++it;
+        parse_block_str<'|'>(value, it, end, min_spaces);
       } else if (*it == '>') {
-        ; // TODO: support > >-
+        ++it;
+        if (*it == '-') {
+          ++it;
+          parse_block_str<'-'>(value, it, end, min_spaces);
+        } else {
+          parse_block_str<'>'>(value, it, end, min_spaces);
+        }
       } else {
-        skip_space_and_lines(it, end, min_spaces);
         auto start = it;
         auto value_end = skip_till<false, '\n'>(it, end);
         parse_value(value, start, value_end);
       }
-    } else {
-      // str_t
     }
   } else {
     skip_space_and_lines(it, end, min_spaces);

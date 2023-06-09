@@ -86,11 +86,6 @@ IGUANA_INLINE void skip_yaml_comment(auto &&it, auto &&end) {
     ;
 }
 
-IGUANA_INLINE void skip_yaml_space(auto &&it, auto &&end) {
-  while (it != end && *it == ' ')
-    ++it;
-}
-
 // match c and skip
 template <char c> IGUANA_INLINE void match(auto &&it, auto &&end) {
   if (it == end || *it != c) [[unlikely]] {

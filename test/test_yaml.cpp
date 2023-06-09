@@ -35,6 +35,31 @@ TEST_CASE("test plain_type") {
   CHECK(!p1.price);
 }
 
+struct test_string_t {
+  std::string txt1;
+  std::string txt2;
+  std::string txt3;
+};
+REFLECTION(test_string_t, txt1, txt2, txt3);
+TEST_CASE("test block string") {
+  std::string str = R"(
+txt1: |
+  Hello
+  World
+txt2: >
+  Hello
+  World
+txt3: >-
+  Hello
+  World
+  )";
+  test_string_t s;
+  iguana::from_yaml(s, str);
+  CHECK(s.txt1 == "Hello\nWorld\n");
+  CHECK(s.txt2 == "Hello World\n");
+  CHECK(s.txt3 == "Hello World");
+}
+
 struct arr_t {
   std::vector<std::string_view> arr;
 };
