@@ -36,7 +36,7 @@ IGUANA_INLINE void render_json_value(Stream &ss, bool b) {
 template <typename Stream>
 IGUANA_INLINE void render_json_value(Stream &ss, char value) {
   ss.append("\"");
-  ss.append(&value, 1);
+  ss.push_back(value);
   ss.append("\"");
 }
 

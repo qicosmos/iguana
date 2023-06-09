@@ -9,6 +9,32 @@
 #include <iostream>
 #include <optional>
 
+enum class stat {
+  start,
+  stop,
+};
+struct plain_type_t {
+  bool isok;
+  stat status;
+  char c;
+  std::optional<bool> hasprice;
+  std::optional<int> price;
+};
+REFLECTION(plain_type_t, isok, status, c, hasprice, price);
+TEST_CASE("test plain_type") {
+  plain_type_t p{false, stat::stop, 'a', true};
+  std::string ss;
+  iguana::to_yaml(p, ss);
+  std::cout << ss << "\n";
+  plain_type_t p1;
+  iguana::from_yaml(p1, ss);
+  CHECK(p1.isok == p.isok);
+  CHECK(p1.status == p.status);
+  CHECK(p1.c == p.c);
+  CHECK(p1.hasprice == p.hasprice);
+  CHECK(!p1.price);
+}
+
 struct arr_t {
   std::vector<std::string_view> arr;
 };
@@ -20,7 +46,7 @@ TEST_CASE("test array") {
       
       b] 
   )";
-  auto validator = [](const arr_t& a) {
+  auto validator = [](const arr_t &a) {
     CHECK(a.arr[0] == std::string_view("a"));
     CHECK(a.arr[1] == std::string_view("b"));
   };
@@ -55,7 +81,7 @@ TEST_CASE("test nest arr ") {
       b],
    [c, d]]
   )";
-  auto validator = [](const nest_arr_t& a) {
+  auto validator = [](const nest_arr_t &a) {
     CHECK(a.arr[0][0] == std::string_view("a"));
     CHECK(a.arr[0][1] == std::string_view("b"));
     CHECK(a.arr[1][0] == std::string_view("c"));
@@ -99,16 +125,15 @@ TEST_CASE("test arr with float") {
     - - 28.5
        - 56.7
     - - 123.4
-      - -324.9)"; 
+      - -324.9)";
   nest_float_arr_t a;
   iguana::from_yaml(a, str);
   CHECK(a.arr[0][0] == 28.5f);
   CHECK(a.arr[0][1] == 56.7f);
-  CHECK(a.arr[1][0] == 123.4f);  
+  CHECK(a.arr[1][0] == 123.4f);
   CHECK(a.arr[1][1] == -324.9f);
   std::cout << a.arr[1][1] << std::endl;
 }
-
 
 struct map_t {
   std::unordered_map<std::string_view, std::string_view> map;
@@ -145,7 +170,7 @@ TEST_CASE("test map") {
       k1 : [a , b],
    k2 : [c, d], }
   )";
-  auto validator = [](map_arr_t& m) {
+  auto validator = [](map_arr_t &m) {
     CHECK(m.map["k1"][0] == "a");
     CHECK(m.map["k1"][1] == "b");
     CHECK(m.map["k2"][0] == "c");
@@ -194,7 +219,6 @@ TEST_CASE("test str type") {
   std::string ss;
   iguana::to_yaml(s1, ss);
 }
-
 
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182

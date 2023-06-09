@@ -58,6 +58,14 @@ concept sequence_container_t =
     is_sequence_container<std::remove_cvref_t<T>>::value;
 
 template <typename Type>
+concept optional = requires(Type optional) {
+  optional.value();
+  optional.has_value();
+  optional.operator*();
+  typename std::remove_cvref_t<Type>::value_type;
+};
+
+template <typename Type>
 concept container = requires(Type container) {
   typename std::remove_cvref_t<Type>::value_type;
   container.size();
@@ -69,9 +77,9 @@ concept map_container = container<Type> && requires(Type container) {
   typename std::remove_cvref_t<Type>::mapped_type;
 };
 
-// TODO: add others
 template <class T>
-concept plain_t = string_t<T> || num_t<T>;
+concept plain_t =
+    string_t<T> || num_t<T> || char_t<T> || bool_t<T> || enum_t<T>;
 
 IGUANA_INLINE void skip_yaml_comment(auto &&it, auto &&end) {
   while (++it != end && *it != '\n')
@@ -100,7 +108,7 @@ IGUANA_INLINE void skip_space(auto &&it, auto &&end) {
 }
 
 // If there are '\n' ,return indentation
-// If not, return minspaces + space 
+// If not, return minspaces + space
 template <bool Throw = true>
 IGUANA_INLINE size_t skip_space_and_lines(auto &&it, auto &&end,
                                           size_t minspaces) {
@@ -126,7 +134,8 @@ IGUANA_INLINE size_t skip_space_and_lines(auto &&it, auto &&end,
 
 // (Throw == false) means allow (it == end)
 // when C == '\n' ,we should never skip '\n'  except it == end
-template <bool Throw, char... C> IGUANA_INLINE auto skip_till(auto &&it, auto &&end) {
+template <bool Throw, char... C>
+IGUANA_INLINE auto skip_till(auto &&it, auto &&end) {
   std::decay_t<decltype(it)> res;
   while ((it != end) && (!((... || (*it == C))))) {
     if (*it == '\n') [[unlikely]] {
@@ -144,8 +153,8 @@ template <bool Throw, char... C> IGUANA_INLINE auto skip_till(auto &&it, auto &&
     if constexpr (Throw) {
       static constexpr char b[] = {C..., '\0'};
       std::string error = std::string("Expected one of these: ").append(b);
-      throw std::runtime_error(error);   
-    } else { 
+      throw std::runtime_error(error);
+    } else {
       return (*(it - 1) == ' ') ? res : end;
     }
   }
@@ -153,7 +162,7 @@ template <bool Throw, char... C> IGUANA_INLINE auto skip_till(auto &&it, auto &&
   if (!((... || ('\n' == C)) && (sizeof...(C) == 1))) {
     ++it;
     return (*(it - 2) == ' ') ? res : it - 1;
-  }    
+  }
   return (*(it - 1) == ' ') ? res : it;
 }
 } // namespace iguana

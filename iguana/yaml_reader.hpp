@@ -47,10 +47,9 @@ IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
     --end;
     if (*end != '"') [[unlikely]] {
       throw std::runtime_error(R"(Expected ')");
-    } 
+    }
     // TODO:  parse escape and @
-    value = T(&*start,
-              static_cast<size_t>(std::distance(start, end)));
+    value = T(&*start, static_cast<size_t>(std::distance(start, end)));
   } else {
 
     if (*value_begin == '\'') {
@@ -60,11 +59,34 @@ IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
         throw std::runtime_error(R"(Expected ')");
       }
     }
-    value = T(&*start,
-              static_cast<size_t>(std::distance(start, end)));
+    value = T(&*start, static_cast<size_t>(std::distance(start, end)));
   }
 }
 
+template <char_t U, class It>
+IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
+  // check ?
+  value = *value_begin;
+}
+
+template <enum_t U, class It>
+IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
+  parse_value((int &)value, value_begin, value_end);
+}
+
+template <bool_t U, class It>
+IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
+  auto bool_v = std::string_view(
+      &*value_begin,
+      static_cast<size_t>(std::distance(value_begin, value_end)));
+  if (bool_v == "true") {
+    value = true;
+  } else if (bool_v == "false") {
+    value = false;
+  } else [[unlikely]] {
+    throw std::runtime_error("Expected true or false");
+  }
+}
 
 template <refletable U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
@@ -74,23 +96,47 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
 template <plain_t U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
   using T = std::decay_t<U>;
-  if constexpr (str_view_t<T>) {
-    skip_space(it, end);
-    if (*it == '|') {
-      ; // TODO: support |
-    } else if (*it == '>') {
-      ; // TODO: support > >-
+  if constexpr (string_t<T>) {
+    if constexpr (str_view_t<T>) {
+      skip_space(it, end);
+      if (*it == '|') {
+        ; // TODO: support |
+      } else if (*it == '>') {
+        ; // TODO: support > >-
+      } else {
+        skip_space_and_lines(it, end, min_spaces);
+        auto start = it;
+        auto value_end = skip_till<false, '\n'>(it, end);
+        parse_value(value, start, value_end);
+      }
     } else {
-      skip_space_and_lines(it, end, min_spaces);
-      auto start = it;
-      auto value_end = skip_till<false, '\n'>(it, end);
-      parse_value(value, start, value_end);
+      // str_t
     }
-  } else {  // num_t
+  } else {
     skip_space_and_lines(it, end, min_spaces);
     auto start = it;
     auto value_end = skip_till<false, '\n'>(it, end);
-    parse_value(value, start, value_end);   
+    parse_value(value, start, value_end);
+  }
+}
+
+template <optional U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
+  using T = std::remove_reference_t<U>;
+  using value_type = typename T::value_type;
+  auto space = skip_space_and_lines<false>(it, end, min_spaces);
+  if (space <= min_spaces) [[unlikely]] {
+    it -= space + 1; // back to the las line end
+    return;
+  }
+  auto start = it;
+  auto value_end = skip_till<false, '\n'>(it, end);
+  auto opt_v = std::string_view(
+      &*start, static_cast<size_t>(std::distance(start, value_end)));
+  if (!opt_v.empty() && opt_v != "null") {
+    value_type v;
+    parse_value(v, start, value_end);
+    value = std::move(v);
   }
 }
 
@@ -129,7 +175,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
     // TODO: - must after \n
     ++it;
     bool first = true;
-    auto subspaces = skip_space_and_lines<false>(it, end, min_spaces); 
+    auto subspaces = skip_space_and_lines<false>(it, end, min_spaces);
     while (it != end) {
       if (subspaces < min_spaces) [[unlikely]] {
         it -= subspaces + 1; // back to the las line end
@@ -140,7 +186,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
       skip_space_and_lines(it, end, min_spaces);
       if constexpr (plain_t<value_type>) {
         auto start = it;
-        auto value_end = skip_till<false, '\n'>(it, end); 
+        auto value_end = skip_till<false, '\n'>(it, end);
         parse_value(value.emplace_back(), start, value_end);
       } else {
         parse_item(value.emplace_back(), it, end, spaces + 1);
@@ -190,7 +236,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
     }
   } else {
     while (it != end) {
-      auto subspaces = skip_space_and_lines<false>(it, end, min_spaces); 
+      auto subspaces = skip_space_and_lines<false>(it, end, min_spaces);
       if (subspaces < min_spaces) [[unlikely]] {
         it -= subspaces + 1; // back to the las line end
         return;
@@ -216,8 +262,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
 
 // TODO: support parse {} as a object
 template <refletable T, typename It>
-IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end,
-                             size_t min_spaces) {
+IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end, size_t min_spaces) {
   auto spaces = skip_space_and_lines(it, end, min_spaces);
   while (it != end) {
     auto start = it;
@@ -232,7 +277,7 @@ IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end,
             [&](auto &&member_ptr) IGUANA__INLINE_LAMBDA {
               using V = std::decay_t<decltype(member_ptr)>;
               if constexpr (std::is_member_pointer_v<V>) {
-                detail::parse_item(value.*member_ptr, it, end, spaces + 1); 
+                detail::parse_item(value.*member_ptr, it, end, spaces + 1);
               } else {
                 static_assert(!sizeof(V), "type not supported");
               }
@@ -244,14 +289,13 @@ IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end,
       }
     }
     // spaces = skip_space_and_lines(it, end, min_spaces);
-    auto subspaces = skip_space_and_lines<false>(it, end, min_spaces); 
+    auto subspaces = skip_space_and_lines<false>(it, end, min_spaces);
     if (subspaces < min_spaces) [[unlikely]] {
       it -= subspaces + 1; // back to the las line end
       return;
     }
   }
 }
-
 
 template <typename T, string_t View>
 IGUANA_INLINE void from_yaml(T &value, const View &view) {
