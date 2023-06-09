@@ -36,28 +36,27 @@ TEST_CASE("test plain_type") {
 }
 
 struct test_string_t {
-  std::string txt1;
-  std::string txt2;
-  std::string txt3;
+  std::vector<std::string> txt;
 };
-REFLECTION(test_string_t, txt1, txt2, txt3);
+REFLECTION(test_string_t, txt);
 TEST_CASE("test block string") {
   std::string str = R"(
-txt1: |
+txt:
+ - |
   Hello
   World
-txt2: >
+ - >
   Hello
   World
-txt3: >-
+ - >-
   Hello
   World
   )";
   test_string_t s;
   iguana::from_yaml(s, str);
-  CHECK(s.txt1 == "Hello\nWorld\n");
-  CHECK(s.txt2 == "Hello World\n");
-  CHECK(s.txt3 == "Hello World");
+  CHECK(s.txt[0] == "Hello\nWorld\n");
+  CHECK(s.txt[1] == "Hello World\n");
+  CHECK(s.txt[2] == "Hello World");
 }
 
 struct arr_t {
@@ -230,7 +229,6 @@ TEST_CASE("test map") {
   validator(m2);
 }
 
-
 struct test_str_t {
   std::string_view str;
 };
@@ -251,6 +249,119 @@ TEST_CASE("test str type") {
   CHECK(s1.str == "hello world");
   std::string ss;
   iguana::to_yaml(s1, ss);
+}
+
+struct some_type_t {
+  std::vector<float> price;
+  std::string description;
+  std::map<std::string, int> child;
+  bool hasdescription;
+  char c;
+  std::optional<double> d_v;
+  std::string name;
+  std::string_view addr;
+  enum_status status;
+};
+REFLECTION(some_type_t, price, description, child, hasdescription, c, d_v, name,
+           addr, status);
+TEST_CASE("test some_type") {
+  auto validator_some_type = [](some_type_t s) {
+    CHECK(s.price[0] == 1.23f);
+    CHECK(s.price[1] == 3.25f);
+    CHECK(s.price[2] == 9.57f);
+    CHECK(s.description == "Some description");
+    CHECK(s.child["key1"] == 10);
+    CHECK(s.child["key2"] == 20);
+    CHECK(s.hasdescription == true);
+    CHECK(s.c == 'X');
+    CHECK(*s.d_v == 3.14159);
+    CHECK(s.name == "John Doe");
+    CHECK(s.addr == "123 Main St");
+    CHECK(s.status == enum_status::stop);
+  };
+  std::string str = R"(
+price: [1.23, 3.25, 9.57]
+description: >-
+    Some 
+    description
+child:
+  key1: 10
+  key2: 20
+hasdescription: true
+c: X
+d_v: 3.14159
+name: John Doe
+addr: '123 Main St'
+status : 1
+)";
+  some_type_t s;
+  iguana::from_yaml(s, str);
+  validator_some_type(s);
+  std::string ss;
+  iguana::to_yaml(s, ss);
+  some_type_t s1;
+  iguana::from_yaml(s1, ss);
+  validator_some_type(s1);
+}
+
+struct address_t {
+  std::string_view street;
+  std::string_view city;
+  std::string_view state;
+  std::string_view country;
+};
+REFLECTION(address_t, street, city, state, country);
+struct contact_t {
+  std::string_view type;
+  std::string_view value;
+};
+REFLECTION(contact_t, type, value);
+struct person_t {
+  std::string_view name;
+  int age;
+  address_t address;
+  std::vector<contact_t> contacts;
+};
+REFLECTION(person_t, name, age, address, contacts);
+TEST_CASE("test person_t") {
+  auto validator_person = [](const person_t &p) {
+    CHECK(p.name == "John Doe");
+    CHECK(p.age == 30);
+    CHECK(p.address.street == "123 Main St");
+    CHECK(p.address.city == "Anytown");
+    CHECK(p.address.state == "Example State");
+    CHECK(p.address.country == "Example Country");
+    CHECK(p.contacts[0].type == "email");
+    CHECK(p.contacts[0].value == "john@example.com");
+    CHECK(p.contacts[1].type == "phone");
+    CHECK(p.contacts[1].value == "123456789");
+    CHECK(p.contacts[2].type == "social");
+    CHECK(p.contacts[2].value == "johndoe");
+  };
+  std::string str = R"(
+name: John Doe
+age: 30
+address:
+  street: 123 Main St
+  city: Anytown
+  state: Example State
+  country: Example Country
+contacts:
+  - type: email
+    value: john@example.com
+  - type: phone
+    value: 123456789
+  - type: social
+    value: "johndoe"
+  )";
+  person_t p;
+  iguana::from_yaml(p, str);
+  validator_person(p);
+  std::string ss;
+  iguana::to_yaml(p, ss);
+  person_t p2;
+  iguana::from_yaml(p2, ss);
+  validator_person(p2);
 }
 
 // doctest comments

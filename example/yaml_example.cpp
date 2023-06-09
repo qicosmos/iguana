@@ -1,12 +1,63 @@
-#include <deque>
-#include <iterator>
-#include <list>
-#include <vector>
 #include "iguana/yaml_reader.hpp"
 #include "iguana/yaml_writer.hpp"
-#include <iostream>
-#include <optional>
 #include <cassert>
+#include <deque>
+#include <iostream>
+#include <iterator>
+#include <list>
+#include <optional>
+#include <vector>
+
+enum class enum_status {
+  start,
+  stop,
+};
+struct some_type_t {
+  std::vector<float> price;
+  std::string description;
+  std::map<std::string, int> child;
+  bool hasdescription;
+  char c;
+  std::optional<double> d_v;
+  std::string name;
+  std::string_view addr;
+  enum_status status;
+};
+REFLECTION(some_type_t, price, description, child, hasdescription, c, d_v, name,
+           addr, status);
+
+void some_type_example() {
+  std::string str = R"(
+price: [1.23, 3.25, 9.57]
+description: >-
+    Some 
+    description
+child:
+  key1: 10
+  key2: 20
+hasdescription: true
+c: X
+d_v: 3.14159
+name: John Doe
+addr: '123 Main St'
+status : 1
+)";
+  some_type_t s;
+  iguana::from_yaml(s, str);
+  std::cout << "========= deserialize some_type_t ========\n";
+  std::cout << "price: ";
+  for (auto p : s.price) {
+    std::cout << p << " ";
+  }
+  std::cout << "\n description : " << s.description << "\n";
+  std::cout << s.child["key1"] << " " << s.child["key2"];
+  std::cout << "========== serialize person_t =========\n";
+  std::string ss;
+  iguana::to_yaml(s, ss);
+  std::cout << ss;
+  some_type_t s1;
+  iguana::from_yaml(s1, ss);
+}
 
 struct address_t {
   std::string_view street;
@@ -28,7 +79,7 @@ struct person_t {
 };
 REFLECTION(person_t, name, age, address, contacts);
 
-std::ostream& operator<<(std::ostream& os, person_t p) {
+std::ostream &operator<<(std::ostream &os, person_t p) {
   os << "name: " << p.name << "\tage: " << p.age << std::endl;
   os << p.address.street << "\n";
   os << p.address.city << "\n";
@@ -39,20 +90,6 @@ std::ostream& operator<<(std::ostream& os, person_t p) {
   os << p.contacts[2].type << " : " << p.contacts[2].value << "\n";
   return os;
 }
-auto validator_person = [](const person_t& p) {
-  assert(p.name == "John Doe");
-  assert(p.age == 30);
-  assert(p.address.street == "123 Main St");
-  assert(p.address.city == "Anytown");
-  assert(p.address.state == "Example State");
-  assert(p.address.country == "Example Country");
-  assert(p.contacts[0].type == "email");
-  assert(p.contacts[0].value == "john@example.com");
-  assert(p.contacts[1].type == "phone");
-  assert(p.contacts[1].value == "123456789");
-  assert(p.contacts[2].type == "social");
-  assert(p.contacts[2].value == "johndoe");
-};
 void person_example() {
   std::string str = R"(
 name: John Doe
@@ -72,7 +109,6 @@ contacts:
   )";
   person_t p;
   iguana::from_yaml(p, str);
-  validator_person(p);
   std::cout << "========= deserialize person_t ========\n";
   std::cout << p;
   std::string ss;
@@ -81,18 +117,15 @@ contacts:
   std::cout << ss;
   person_t p2;
   iguana::from_yaml(p2, ss);
-  validator_person(p2);
 }
 
-
 struct map_person_t {
-  using map_type =  std::unordered_map<std::string_view, std::string_view>;
+  using map_type = std::unordered_map<std::string_view, std::string_view>;
   std::string_view name;
   int age;
   map_type address;
   std::vector<map_type> contacts;
 };
-// Do not support } or ,  at single line
 REFLECTION(map_person_t, name, age, address, contacts);
 void map_person_example() {
   std::string str = R"(
@@ -114,8 +147,8 @@ contacts:
   for (auto [k, v] : p.address) {
     std::cout << k << ":" << v << "\t";
   }
-  std::cout  << "\ncontacts :\n";
-  for (auto& map : p.contacts) {
+  std::cout << "\ncontacts :\n";
+  for (auto &map : p.contacts) {
     for (auto [k, v] : map) {
       std::cout << k << ":" << v << "\t";
     }
@@ -124,6 +157,7 @@ contacts:
 };
 
 int main() {
+  some_type_example();
   person_example();
   map_person_example();
 }
