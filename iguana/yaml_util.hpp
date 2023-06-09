@@ -97,13 +97,16 @@ template <char c> IGUANA_INLINE void match(auto &&it, auto &&end) {
   }
 }
 
-IGUANA_INLINE void skip_space(auto &&it, auto &&end) {
+// return true when it==end
+IGUANA_INLINE bool skip_space_till_end(auto &&it, auto &&end) {
   while (it != end && *it == ' ')
     ++it;
+  return it == end;
 }
 
-// If there are '\n' ,return indentation
+// If there are '\n' , return indentation
 // If not, return minspaces + space
+// If Throw == true, check  res < minspaces
 template <bool Throw = true>
 IGUANA_INLINE size_t skip_space_and_lines(auto &&it, auto &&end,
                                           size_t minspaces) {
@@ -127,8 +130,8 @@ IGUANA_INLINE size_t skip_space_and_lines(auto &&it, auto &&end,
   return res; // throw in certain situations ?
 }
 
-// (Throw == false) means allow (it == end)
-// when C == '\n' ,we should never skip '\n'  except it == end
+// when Throw is false, it == end is allowed
+// whenc C is '\n', do not skip '\n'
 template <bool Throw, char... C>
 IGUANA_INLINE auto skip_till(auto &&it, auto &&end) {
   std::decay_t<decltype(it)> res;

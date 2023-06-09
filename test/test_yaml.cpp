@@ -9,20 +9,20 @@
 #include <iostream>
 #include <optional>
 
-enum class stat {
+enum class enum_status {
   start,
   stop,
 };
 struct plain_type_t {
   bool isok;
-  stat status;
+  enum_status status;
   char c;
   std::optional<bool> hasprice;
   std::optional<int> price;
 };
 REFLECTION(plain_type_t, isok, status, c, hasprice, price);
 TEST_CASE("test plain_type") {
-  plain_type_t p{false, stat::stop, 'a', true};
+  plain_type_t p{false, enum_status::stop, 'a', true};
   std::string ss;
   iguana::to_yaml(p, ss);
   std::cout << ss << "\n";
@@ -115,6 +115,14 @@ TEST_CASE("test nest arr ") {
   nest_arr_t a;
   iguana::from_yaml(a, str);
   validator(a);
+  std::string str0 = R"(
+  arr : [
+    [a, b],
+    [c, d]]
+  )";
+  nest_arr_t a0;
+  iguana::from_yaml(a0, str0);
+  validator(a0);
   std::string str1 = R"(
   arr :
     - - a
@@ -222,7 +230,7 @@ TEST_CASE("test map") {
   validator(m2);
 }
 
-// | > >- ""  ''
+
 struct test_str_t {
   std::string_view str;
 };
