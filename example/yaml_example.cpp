@@ -160,12 +160,12 @@ contacts:
 struct product_t {
   std::string_view name;
   float price;
-  std::string description;
+  std::optional<std::string> description;
 };
 REFLECTION(product_t, name, price, description);
 struct store_t {
-  std::string_view name;
-  std::string location;
+  std::string name;
+  std::string_view location;
   std::vector<product_t> products;
 };
 REFLECTION(store_t, name, location, products);
@@ -176,7 +176,7 @@ REFLECTION(store_example_t, store);
 void store_example() {
   std::string str = R"(
 store:
-  name: "Store"
+  name: "\u6c38\u8f89\u8d85\u5e02\t"
   location: Chengdu
   products:
     - name: iPad
@@ -199,10 +199,10 @@ store:
   iguana::from_yaml(store_1, str);
   auto store = store_1.store;
   std::cout << "========= deserialize store_example_t ========\n";  
-  std::cout << "name :" << store.name << "\t location : " << store.location <<"\n";
+  std::cout << "name :" << store.name << "location : " << store.location <<"\n";
   std::cout << "products total 3\n";
   for (auto& p : store.products) {
-    std::cout << "name: "<< p.name << "\tprice:" << p.price << "\tdesc:" << p.description;
+    std::cout << "name: "<< p.name << "\tprice:" << p.price << "\tdesc:" << *p.description;
   }
   std::cout << "\n";
 }

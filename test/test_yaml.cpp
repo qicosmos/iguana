@@ -52,7 +52,7 @@ txt:
   Hello
   World
  - "Hello\nWorld\n"
- - "\u8001A\nB\tC\rD\bEF\n\f\n"
+ - "\u8001A\nB\tC\rD\bEF\n\f\n123"
   )";
   test_string_t s;
   iguana::from_yaml(s, str);
@@ -60,7 +60,7 @@ txt:
   CHECK(s.txt[1] == "Hello World\n");
   CHECK(s.txt[2] == "Hello World");
   CHECK(s.txt[3] == "Hello\nWorld\n"); // escape
-  CHECK(s.txt[4] == "老A\nB\tC\rD\bEF\n\f\n");
+  CHECK(s.txt[4] == "老A\nB\tC\rD\bEF\n\f\n123");
 }
 
 struct arr_t {
@@ -367,6 +367,60 @@ contacts:
   person_t p2;
   iguana::from_yaml(p2, ss);
   validator_person(p2);
+}
+
+struct product_t {
+  std::string_view name;
+  float price;
+  std::optional<std::string> description;
+};
+REFLECTION(product_t, name, price, description);
+struct store_t {
+  std::string name;
+  std::string_view location;
+  std::vector<product_t> products;
+};
+REFLECTION(store_t, name, location, products);
+struct store_example_t {
+  store_t store;
+};
+REFLECTION(store_example_t, store);
+void store_example() {
+  std::string str = R"(
+store:
+  name: "\u6c38\u8f89\u8d85\u5e02\t"
+  location: Chengdu
+  products:
+    - name: iPad
+      price: 
+        899.4
+      description: >
+        nice
+        ipad
+    - name: watch
+      price: 488.8
+      description: |
+        cheap watch
+    - name: iPhone
+      price: 999.99
+      description: >-   
+        expensive
+        iphone
+  )";
+  store_example_t store_1;
+  iguana::from_yaml(store_1, str);
+  auto store = store_1.store;
+  CHECK(store.name == "永辉超市\t");
+  CHECK(store.location == "Chengdu");
+  CHECK(store.products[0].name == "iPad");
+  CHECK(store.products[0].price == 899.4);
+  CHECK(store.products[0].description == "nice ipad\n");
+  CHECK(store.products[1].name == "watch");
+  CHECK(store.products[1].price == 488.8);
+  CHECK(store.products[1].description == "cheap watch\n");
+  CHECK(store.products[2].name == "iPhone");
+  CHECK(store.products[2].price == 999.99);
+  CHECK(store.products[2].description == "expensive iphone");
 }
 
 // doctest comments

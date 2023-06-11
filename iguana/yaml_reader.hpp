@@ -23,7 +23,7 @@ IGUANA_INLINE void parse_escape_str(U &value, It &&it, It &&end) {
         value.append(&*start,
                      static_cast<size_t>(std::distance(start, it) - 1));
         ++it;
-        if (std::distance(it, end) <= 4) [[unlikely]]
+        if (std::distance(it, end) < 4) [[unlikely]]
           throw std::runtime_error(R"(Expected 4 hexadecimal digits)");
         auto code_point = parse_unicode_hex4(it);
         encode_utf8(value, code_point);
@@ -39,6 +39,7 @@ IGUANA_INLINE void parse_escape_str(U &value, It &&it, It &&end) {
       }
     }
   }
+  value.append(&*start, static_cast<size_t>(std::distance(start, end)));
 }
 
 // use '-' here to simply represent '>-'
@@ -382,6 +383,17 @@ IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end, size_t min_spaces) {
 template <typename T, string_t View>
 IGUANA_INLINE void from_yaml(T &value, const View &view) {
   from_yaml(value, std::begin(view), std::end(view));
+}
+
+template <typename T, string_t View>
+IGUANA_INLINE void from_yaml(T &value, const View &view,
+                             std::error_code &ec) noexcept {
+  try {
+    from_yaml(value, std::begin(view), std::end(view));
+    ec = {};
+  } catch (std::runtime_error &e) {
+    ec = iguana::make_error_code(e.what());
+  }
 }
 
 } // namespace iguana
