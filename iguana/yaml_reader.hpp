@@ -200,14 +200,26 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
     return;
   }
   auto start = it;
-  auto value_end = skip_till<false, '\n'>(it, end);
-  auto opt_v = std::string_view(
-      &*start, static_cast<size_t>(std::distance(start, value_end)));
-  if (!opt_v.empty() && opt_v != "null") {
-    value_type v;
-    parse_value(v, start, value_end);
-    value = std::move(v);
+  std::decay_t<It> value_end = end;
+  if (*it == 'n') {
+    value_end = skip_till<false, '\n'>(it, end);
+    auto opt_v = std::string_view(
+        &*start, static_cast<size_t>(std::distance(start, value_end)));
+    if (opt_v == "null") {
+      return;
+    }
   }
+  value_type v;
+  if constexpr (str_t<value_type>) {
+    it = start;
+    parse_item(v, it, end, min_spaces);
+  } else {
+    if (value_end == end) {
+      value_end = skip_till<false, '\n'>(it, end);
+    }
+    parse_value(v, start, value_end);
+  }
+  value = std::move(v);
 }
 
 // minspaces : The minimum indentation

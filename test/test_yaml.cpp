@@ -258,7 +258,7 @@ TEST_CASE("test str type") {
 
 struct some_type_t {
   std::vector<float> price;
-  std::string description;
+  std::optional<std::string> description;
   std::map<std::string, int> child;
   bool hasdescription;
   char c;
@@ -274,7 +274,7 @@ TEST_CASE("test some_type") {
     CHECK(s.price[0] == 1.23f);
     CHECK(s.price[1] == 3.25f);
     CHECK(s.price[2] == 9.57f);
-    CHECK(s.description == "Some description");
+    CHECK(*s.description == "Some description");
     CHECK(s.child["key1"] == 10);
     CHECK(s.child["key2"] == 20);
     CHECK(s.hasdescription == true);
