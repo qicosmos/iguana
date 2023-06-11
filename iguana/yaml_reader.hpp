@@ -1,6 +1,7 @@
 #pragma once
 
 #include "detail/charconv.h"
+#include "detail/utf.hpp"
 #include "yaml_util.hpp"
 #include <charconv>
 
@@ -11,13 +12,42 @@ void from_yaml(T &value, It &&it, It &&end, size_t min_spaces = 0);
 
 namespace detail {
 
+template <str_t U, class It>
+IGUANA_INLINE void parse_escape_str(U &value, It &&it, It &&end) {
+  static std::unordered_map<char, char> escape = {
+      {'n', '\n'}, {'t', '\t'}, {'b', '\b'}, {'r', '\r'}, {'f', '\f'}};
+  auto start = it;
+  while (it != end) {
+    if (*(it++) == '\\') [[unlikely]] {
+      if (*it == 'u') {
+        value.append(&*start,
+                     static_cast<size_t>(std::distance(start, it) - 1));
+        ++it;
+        if (std::distance(it, end) <= 4) [[unlikely]]
+          throw std::runtime_error(R"(Expected 4 hexadecimal digits)");
+        auto code_point = parse_unicode_hex4(it);
+        encode_utf8(value, code_point);
+        start = it;
+      } else {
+        auto iterator = escape.find(*it);
+        if (iterator != escape.end()) {
+          value.append(&*start,
+                       static_cast<size_t>(std::distance(start, it) - 1));
+          start = ++it;
+          value.push_back(iterator->second);
+        }
+      }
+    }
+  }
+}
+
 // use '-' here to simply represent '>-'
 template <char block_type, str_t U, class It>
 IGUANA_INLINE void parse_block_str(U &value, It &&it, It &&end,
                                    size_t min_spaces) {
   auto spaces = skip_space_and_lines<false>(it, end, min_spaces);
   if (spaces < min_spaces) [[unlikely]] {
-  // back to the end of the previous line
+    // back to the end of the previous line
     if constexpr (block_type == '|' || block_type == '>') {
       value.push_back('\n');
     }
@@ -81,8 +111,7 @@ IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
       throw std::runtime_error(R"(Expected ')");
     }
     if constexpr (str_t<T>) {
-      // TODO:  parse escape and @
-      value = T(&*start, static_cast<size_t>(std::distance(start, end)));
+      parse_escape_str(value, start, end);
       return;
     }
   } else if (*value_begin == '\'') {
@@ -97,7 +126,8 @@ IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
 
 template <char_t U, class It>
 IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
-  if (static_cast<size_t>(std::distance(value_begin, value_end)) != 1) [[unlikely]] {
+  if (static_cast<size_t>(std::distance(value_begin, value_end)) != 1)
+      [[unlikely]] {
     throw std::runtime_error("Expected one character");
   }
   value = *value_begin;
@@ -106,7 +136,7 @@ IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
 template <enum_t U, class It>
 IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
   using T = std::underlying_type_t<std::decay_t<U>>;
-  parse_value(reinterpret_cast<T&>(value), value_begin, value_end);
+  parse_value(reinterpret_cast<T &>(value), value_begin, value_end);
 }
 
 template <bool_t U, class It>
@@ -145,7 +175,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
         parse_block_str<'-'>(value, it, end, min_spaces);
       } else {
         parse_block_str<'>'>(value, it, end, min_spaces);
-      }    
+      }
     } else {
       skip_space_and_lines(it, end, min_spaces);
       auto start = it;
@@ -216,7 +246,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
     auto subspaces = skip_space_and_lines<false>(it, end, min_spaces);
     while (it != end) {
       if (subspaces < min_spaces) [[unlikely]] {
-      // back to the end of the previous line
+        // back to the end of the previous line
         it -= subspaces + 1;
         return;
       }
@@ -224,7 +254,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
         match<'-'>(it, end);
       skip_space_and_lines(it, end, min_spaces);
       if constexpr (plain_t<value_type> && !str_t<value_type>) {
-      // except str_t because of scalar blocks
+        // except str_t because of scalar blocks
         auto start = it;
         auto value_end = skip_till<false, '\n'>(it, end);
         parse_value(value.emplace_back(), start, value_end);
@@ -279,7 +309,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
 
     while (it != end) {
       if (subspaces < min_spaces) [[unlikely]] {
-        it -= subspaces + 1; 
+        it -= subspaces + 1;
         return;
       }
       auto start = it;
@@ -300,7 +330,6 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
 }
 
 } // namespace detail
-
 
 template <refletable T, typename It>
 IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end, size_t min_spaces) {

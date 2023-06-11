@@ -156,8 +156,61 @@ contacts:
   std::cout << "\n";
 };
 
+
+struct product_t {
+  std::string_view name;
+  float price;
+  std::string description;
+};
+REFLECTION(product_t, name, price, description);
+struct store_t {
+  std::string_view name;
+  std::string location;
+  std::vector<product_t> products;
+};
+REFLECTION(store_t, name, location, products);
+struct store_example_t {
+  store_t store;
+};
+REFLECTION(store_example_t, store);
+void store_example() {
+  std::string str = R"(
+store:
+  name: "Store"
+  location: Chengdu
+  products:
+    - name: iPad
+      price: 
+        899.4
+      description: >
+        nice
+        ipad
+    - name: watch
+      price: 488.8
+      description: |
+        cheap watch
+    - name: iPhone
+      price: 999.99
+      description: >-   
+        expensive
+        iphone
+  )";
+  store_example_t store_1;
+  iguana::from_yaml(store_1, str);
+  auto store = store_1.store;
+  std::cout << "========= deserialize store_example_t ========\n";  
+  std::cout << "name :" << store.name << "\t location : " << store.location <<"\n";
+  std::cout << "products total 3\n";
+  for (auto& p : store.products) {
+    std::cout << "name: "<< p.name << "\tprice:" << p.price << "\tdesc:" << p.description;
+  }
+  std::cout << "\n";
+}
+
+
 int main() {
   some_type_example();
   person_example();
   map_person_example();
+  store_example();
 }

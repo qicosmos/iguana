@@ -13,31 +13,23 @@ namespace detail {
 
 template <str_t U, class It>
 IGUANA_INLINE void parse_escape(U &value, It &&it, It &&end) {
-  if (it == end)
+  if (it == end) [[unlikely]]
     throw std::runtime_error(R"(Expected ")");
+  static std::unordered_map<char, char> escape = {
+      {'n', '\n'}, {'t', '\t'}, {'b', '\b'}, {'r', '\r'}, {'f', '\f'}};
   if (*it == 'u') {
     ++it;
-    if (std::distance(it, end) <= 4)
+    if (std::distance(it, end) <= 4) [[unlikely]]
       throw std::runtime_error(R"(Expected 4 hexadecimal digits)");
     auto code_point = parse_unicode_hex4(it);
     encode_utf8(value, code_point);
-  } else if (*it == 'n') {
-    ++it;
-    value.push_back('\n');
-  } else if (*it == 't') {
-    ++it;
-    value.push_back('\t');
-  } else if (*it == 'r') {
-    ++it;
-    value.push_back('\r');
-  } else if (*it == 'b') {
-    ++it;
-    value.push_back('\b');
-  } else if (*it == 'f') {
-    ++it;
-    value.push_back('\f');
   } else {
-    value.push_back(*it); // add the escaped character
+    auto iterator = escape.find(*it);
+    if (iterator != escape.end()) {
+      value.push_back(iterator->second);
+    } else {
+      value.push_back(*it);
+    }
     ++it;
   }
 }

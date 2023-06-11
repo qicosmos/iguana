@@ -51,12 +51,16 @@ txt:
  - >-
   Hello
   World
+ - "Hello\nWorld\n"
+ - "\u8001A\nB\tC\rD\bEF\n\f\n"
   )";
   test_string_t s;
   iguana::from_yaml(s, str);
   CHECK(s.txt[0] == "Hello\nWorld\n");
   CHECK(s.txt[1] == "Hello World\n");
   CHECK(s.txt[2] == "Hello World");
+  CHECK(s.txt[3] == "Hello\nWorld\n"); // escape
+  CHECK(s.txt[4] == "老A\nB\tC\rD\bEF\n\f\n");
 }
 
 struct arr_t {
@@ -200,7 +204,8 @@ TEST_CASE("test map") {
   std::string str = R"(
   map : {
       k1 : [a , b],
-   k2 : [c, d], }
+   k2 : [c, d], 
+   }
   )";
   auto validator = [](map_arr_t &m) {
     CHECK(m.map["k1"][0] == "a");
