@@ -113,4 +113,14 @@ IGUANA_INLINE void to_yaml(T &&t, Stream &s, size_t min_spaces) {
            });
 }
 
+template <typename Stream, map_container T>
+IGUANA_INLINE void to_yaml(T &&t, Stream &s) {
+  render_yaml_value(s, std::forward<T>(t), 0);
+}
+
+template <typename Stream, sequence_container_t T>
+IGUANA_INLINE void to_yaml(T &&t, Stream &s) {
+  render_yaml_value(s, std::forward<T>(t), 0);
+}
+
 } // namespace iguana

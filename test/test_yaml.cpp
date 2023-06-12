@@ -9,6 +9,19 @@
 #include <iostream>
 #include <optional>
 
+TEST_CASE("test map without struct") {
+  using MapType = std::unordered_map<int, std::vector<int>>;
+  MapType mp;
+  mp[0] = {1, 2};
+  mp[1] = {3, 4};
+  std::string ss;
+  iguana::to_yaml(mp, ss);
+  MapType mp1;
+  iguana::from_yaml(mp1, ss);
+  CHECK(mp[0] == mp1[0]);
+  CHECK(mp1[0] == mp1[0]);
+}
+
 enum class enum_status {
   start,
   stop,
@@ -177,6 +190,12 @@ TEST_CASE("test array") {
   arr_t a2;
   iguana::from_yaml(a2, ss);
   validator(a2);
+
+  std::string ss1;
+  iguana::to_yaml(a1.arr, ss1);
+  std::vector<std::string_view> arr;
+  iguana::from_yaml(arr, ss1);
+  validator(arr_t{arr});
 }
 
 struct nest_arr_t {
