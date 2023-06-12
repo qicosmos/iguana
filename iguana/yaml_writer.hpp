@@ -75,6 +75,17 @@ IGUANA_INLINE void render_yaml_value(Stream &ss, const T &t,
   }
 }
 
+template <typename Stream, tuple_t T>
+IGUANA_INLINE void render_yaml_value(Stream &ss, T &&t, size_t min_spaces) {
+  ss.push_back('\n');
+  for_each(std::forward<T>(t),
+           [&ss, min_spaces](auto &v, auto i) IGUANA__INLINE_LAMBDA {
+             ss.append(min_spaces, ' ');
+             ss.append("- ");
+             render_yaml_value(ss, v, min_spaces + 1);
+           });
+}
+
 template <typename Stream, map_container T>
 IGUANA_INLINE void render_yaml_value(Stream &ss, const T &t,
                                      size_t min_spaces) {
@@ -113,14 +124,12 @@ IGUANA_INLINE void to_yaml(T &&t, Stream &s, size_t min_spaces) {
            });
 }
 
-template <typename Stream, map_container T>
+template <typename Stream, non_refletable T>
 IGUANA_INLINE void to_yaml(T &&t, Stream &s) {
-  render_yaml_value(s, std::forward<T>(t), 0);
-}
-
-template <typename Stream, sequence_container_t T>
-IGUANA_INLINE void to_yaml(T &&t, Stream &s) {
-  render_yaml_value(s, std::forward<T>(t), 0);
+  if constexpr (tuple_t<T> || map_container<T> || sequence_container_t<T>)
+    render_yaml_value(s, std::forward<T>(t), 0);
+  else
+    static_assert(!sizeof(T), "don't suppport this type");
 }
 
 } // namespace iguana

@@ -259,7 +259,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
       skip_space_and_lines(it, end, min_spaces);
     }
   } else if (*it == '-') {
-    ++it;
+    ++it; // delete this ?
     bool first = true;
     auto subspaces = skip_space_and_lines<false>(it, end, min_spaces);
     while (it != end) {
@@ -283,6 +283,45 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
       subspaces = skip_space_and_lines<false>(it, end, min_spaces);
     }
   } else [[unlikely]] {
+    throw std::runtime_error("Expected ] or '-'");
+  }
+}
+
+template <tuple_t U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
+  auto spaces = skip_space_and_lines(it, end, min_spaces);
+  if (*it == '[') {
+    ++it;
+    skip_space_and_lines(it, end, min_spaces);
+    for_each(value, [&](auto &v, auto i) IGUANA__INLINE_LAMBDA {
+      using value_type = std::decay_t<decltype(v)>;
+      skip_space_and_lines(it, end, min_spaces);
+      if constexpr (plain_t<value_type>) {
+        auto start = it;
+        auto value_end = skip_till<true, ',', ']'>(it, end);
+        parse_value(v, start, value_end);
+      } else {
+        parse_item(v, it, end, spaces + 1);
+        skip_space_and_lines(it, end, min_spaces);
+        ++it; // skip ,
+      }
+    });
+  } else if (*it == '-') {
+    for_each(value, [&](auto &v, auto i) IGUANA__INLINE_LAMBDA {
+      using value_type = std::decay_t<decltype(v)>;
+      skip_space_and_lines(it, end, min_spaces);
+      match<'-'>(it, end);
+      skip_space_and_lines<false>(it, end, min_spaces);
+      if constexpr (plain_t<value_type> && !str_t<value_type>) {
+        // except str_t because of scalar blocks
+        auto start = it;
+        auto value_end = skip_till<false, '\n'>(it, end);
+        parse_value(v, start, value_end);
+      } else {
+        parse_item(v, it, end, spaces + 1);
+      }
+    });
+  } else {
     throw std::runtime_error("Expected ] or '-'");
   }
 }

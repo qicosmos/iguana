@@ -54,6 +54,9 @@ template <class T>
 concept string_t = std::convertible_to<std::decay_t<T>, std::string_view>;
 
 template <class T>
+concept tuple_t = is_tuple<std::remove_cvref_t<T>>::value;
+
+template <class T>
 concept sequence_container_t =
     is_sequence_container<std::remove_cvref_t<T>>::value;
 
@@ -98,7 +101,7 @@ concept tuple = !array<Type> && requires(Type tuple) {
   sizeof(std::tuple_size<std::remove_cvref_t<Type>>);
 };
 
-// TODO: support c_array、tuple
+// TODO: support c_array
 template <class T>
 concept non_refletable = container<T> || c_array<T> || tuple<T> ||
     optional<T> || std::is_fundamental_v<T>;

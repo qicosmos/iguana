@@ -9,17 +9,55 @@
 #include <iostream>
 #include <optional>
 
-TEST_CASE("test map without struct") {
+TEST_CASE("test without struct") {
   using MapType = std::unordered_map<int, std::vector<int>>;
-  MapType mp;
-  mp[0] = {1, 2};
-  mp[1] = {3, 4};
-  std::string ss;
-  iguana::to_yaml(mp, ss);
-  MapType mp1;
-  iguana::from_yaml(mp1, ss);
-  CHECK(mp[0] == mp1[0]);
-  CHECK(mp1[0] == mp1[0]);
+  {
+    MapType mp;
+    mp[0] = {1, 2};
+    mp[1] = {3, 4};
+    std::string ss;
+    iguana::to_yaml(mp, ss);
+
+    MapType mp1;
+    iguana::from_yaml(mp1, ss);
+    CHECK(mp[0] == mp1[0]);
+    CHECK(mp1[1] == mp1[1]);
+
+    std::string ss1 = R"({0 : [1, 2], 1 : [3, 4]})";
+    MapType mp2;
+    iguana::from_yaml(mp2, ss1);
+    CHECK(mp[0] == mp2[0]);
+    CHECK(mp1[1] == mp2[1]);
+  }
+  {
+    using TupleType = std::tuple<int, std::string, double>;
+    TupleType t_v(10, "Hello", 3.14);
+    std::string ss;
+    iguana::to_yaml(t_v, ss);
+    TupleType t;
+    iguana::from_yaml(t, ss);
+    CHECK(t == t_v);
+
+    std::string ss1 = R"([10, Hello, 3.14])";
+    TupleType t1;
+    iguana::from_yaml(t1, ss1);
+    CHECK(t1 == t_v);
+  }
+  {
+    using TupleType = std::tuple<std::vector<int>, std::string, double>;
+    TupleType t_v({1, 2, 3}, "Hello", 3.14);
+    std::string ss;
+    iguana::to_yaml(t_v, ss);
+    std::cout << ss << std::endl;
+    TupleType t;
+    iguana::from_yaml(t, ss);
+    CHECK(t == t_v);
+
+    std::string ss1 = R"([ [1, 2 ,3], Hello, 3.14])";
+    TupleType t1;
+    iguana::from_yaml(t1, ss1);
+    CHECK(t1 == t_v);
+  }
 }
 
 enum class enum_status {
@@ -31,11 +69,13 @@ struct plain_type_t {
   enum_status status;
   char c;
   std::optional<bool> hasprice;
+  std::optional<float> num;
   std::optional<int> price;
 };
 REFLECTION(plain_type_t, isok, status, c, hasprice, price);
 TEST_CASE("test plain_type") {
   plain_type_t p{false, enum_status::stop, 'a', true};
+  p.price = 20;
   std::string ss;
   iguana::to_yaml(p, ss);
   plain_type_t p1;
@@ -43,8 +83,9 @@ TEST_CASE("test plain_type") {
   CHECK(p1.isok == p.isok);
   CHECK(p1.status == p.status);
   CHECK(p1.c == p.c);
-  CHECK(p1.hasprice == p.hasprice);
-  CHECK(!p1.price);
+  CHECK(*p1.hasprice == *p.hasprice);
+  CHECK(!p1.num);
+  CHECK(*p1.price == 20);
 
   // Unknown key: pri
   std::string str = R"(pri: 10)";
