@@ -82,17 +82,18 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces);
 template <num_t U, class It>
 IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
   using T = std::remove_reference_t<U>;
+  if (value_begin == value_end) [[unlikely]] {
+    return;
+  }
   if constexpr (std::is_floating_point_v<T>) {
-    const auto size = std::distance(value_begin, value_end);
-    if (size == 0) [[unlikely]]
-      throw std::runtime_error("Failed to parse number");
+    auto size = std::distance(value_begin, value_end);
     const auto start = &*value_begin;
     auto [p, ec] = detail::from_chars(start, start + size, value);
     if (ec != std::errc{}) [[unlikely]]
       throw std::runtime_error("Failed to parse number");
   } else {
     // TODO: remove this later
-    const auto size = std::distance(value_begin, value_end);
+    auto size = std::distance(value_begin, value_end);
     const auto start = &*value_begin;
     auto [p, ec] = std::from_chars(start, start + size, value);
     if (ec != std::errc{}) [[unlikely]]
@@ -109,7 +110,7 @@ IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
     ++start;
     --end;
     if (*end != '"') [[unlikely]] {
-      throw std::runtime_error(R"(Expected ')");
+      throw std::runtime_error(R"(Expected ")");
     }
     if constexpr (str_t<T>) {
       parse_escape_str(value, start, end);
@@ -196,10 +197,14 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
   using T = std::remove_reference_t<U>;
   using value_type = typename T::value_type;
   auto spaces = skip_space_and_lines<false>(it, end, min_spaces);
+  if (it == end) [[unlikely]] {
+    return;
+  }
   if (spaces <= min_spaces) [[unlikely]] {
     it -= spaces + 1;
     return;
   }
+
   auto start = it;
   std::decay_t<It> value_end = end;
   if (*it == 'n') {
@@ -377,6 +382,22 @@ IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end, size_t min_spaces) {
       it -= subspaces + 1; // back to the las line end
       return;
     }
+  }
+}
+
+template <non_refletable T, typename It>
+IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end) {
+  detail::parse_item(value, it, end, 0);
+}
+
+template <typename T, typename It>
+IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end,
+                             std::error_code &ec) noexcept {
+  try {
+    from_yaml(value, it, end);
+    ec = {};
+  } catch (std::runtime_error &e) {
+    ec = iguana::make_error_code(e.what());
   }
 }
 

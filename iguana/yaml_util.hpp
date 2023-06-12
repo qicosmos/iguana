@@ -81,6 +81,28 @@ template <class T>
 concept plain_t =
     string_t<T> || num_t<T> || char_t<T> || bool_t<T> || enum_t<T>;
 
+template <class T>
+concept c_array = std::is_array_v<std::remove_cvref_t<T>> &&
+                  std::extent_v<std::remove_cvref_t<T>> >
+0;
+
+template <typename Type>
+concept array = requires(Type arr) {
+  arr.size();
+  std::tuple_size<std::remove_cvref_t<Type>>{};
+};
+
+template <typename Type>
+concept tuple = !array<Type> && requires(Type tuple) {
+  std::get<0>(tuple);
+  sizeof(std::tuple_size<std::remove_cvref_t<Type>>);
+};
+
+// TODO: support c_array、tuple
+template <class T>
+concept non_refletable = container<T> || c_array<T> || tuple<T> ||
+    optional<T> || std::is_fundamental_v<T>;
+
 IGUANA_INLINE void skip_yaml_comment(auto &&it, auto &&end) {
   while (++it != end && *it != '\n')
     ;
@@ -134,6 +156,9 @@ IGUANA_INLINE size_t skip_space_and_lines(auto &&it, auto &&end,
 // whenc C is '\n', do not skip '\n'
 template <bool Throw, char... C>
 IGUANA_INLINE auto skip_till(auto &&it, auto &&end) {
+  if (it == end) [[unlikely]] {
+    return it;
+  }
   std::decay_t<decltype(it)> res;
   while ((it != end) && (!((... || (*it == C))))) {
     if (*it == '\n') [[unlikely]] {

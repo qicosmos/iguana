@@ -156,7 +156,6 @@ contacts:
   std::cout << "\n";
 };
 
-
 struct product_t {
   std::string_view name;
   float price;
@@ -198,15 +197,16 @@ store:
   store_example_t store_1;
   iguana::from_yaml(store_1, str);
   auto store = store_1.store;
-  std::cout << "========= deserialize store_example_t ========\n";  
-  std::cout << "name :" << store.name << "location : " << store.location <<"\n";
+  std::cout << "========= deserialize store_example_t ========\n";
+  std::cout << "name :" << store.name << "location : " << store.location
+            << "\n";
   std::cout << "products total 3\n";
-  for (auto& p : store.products) {
-    std::cout << "name: "<< p.name << "\tprice:" << p.price << "\tdesc:" << *p.description;
+  for (auto &p : store.products) {
+    std::cout << "name: " << p.name << "\tprice:" << p.price
+              << "\tdesc:" << *p.description;
   }
   std::cout << "\n";
 }
-
 
 int main() {
   some_type_example();

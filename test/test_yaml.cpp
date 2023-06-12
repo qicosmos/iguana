@@ -25,7 +25,6 @@ TEST_CASE("test plain_type") {
   plain_type_t p{false, enum_status::stop, 'a', true};
   std::string ss;
   iguana::to_yaml(p, ss);
-  std::cout << ss << "\n";
   plain_type_t p1;
   iguana::from_yaml(p1, ss);
   CHECK(p1.isok == p.isok);
@@ -33,6 +32,84 @@ TEST_CASE("test plain_type") {
   CHECK(p1.c == p.c);
   CHECK(p1.hasprice == p.hasprice);
   CHECK(!p1.price);
+
+  // Unknown key: pri
+  std::string str = R"(pri: 10)";
+  CHECK_THROWS(iguana::from_yaml(p, str));
+}
+
+TEST_CASE("test optional") {
+  std::string str = R"()";
+  std::optional<int> opt;
+  iguana::from_yaml(opt, str.begin(), str.end());
+  CHECK(!opt);
+}
+
+TEST_CASE("test exception") {
+  {
+    // Expected 4 hexadecimal digits
+    std::string str = R"("\u28")";
+    std::string str_v;
+    std::error_code ec;
+    iguana::from_yaml(str_v, str.begin(), str.end(), ec);
+    CHECK(ec);
+  }
+  {
+    // Failed to parse number
+    std::string str = R"(c1wd)";
+    std::string str1 = R"()";
+    float f = 1.0f;
+    std::error_code ec;
+    iguana::from_yaml(f, str1.begin(), str1.end());
+    CHECK(f == 1.0f);
+    iguana::from_yaml(f, str.begin(), str.end(), ec);
+    CHECK(ec);
+  }
+  {
+    // Failed to parse number
+    std::string str = R"(c1wd)";
+    int d;
+    std::error_code ec;
+    iguana::from_yaml(d, str.begin(), str.end(), ec);
+    CHECK(ec);
+  }
+  {
+    // Expected "
+    std::string str = R"("Hello)";
+    std::string str_v;
+    std::error_code ec;
+    iguana::from_yaml(str_v, str.begin(), str.end(), ec);
+    CHECK(ec);
+    // Expected '
+    std::string str1 = R"('Hello)";
+    std::error_code ec1;
+    iguana::from_yaml(str_v, str1.begin(), str1.end(), ec1);
+    CHECK(ec1);
+  }
+  {
+    // Expected one character
+    std::string str = R"(He)";
+    char c;
+    std::error_code ec;
+    iguana::from_yaml(c, str.begin(), str.end(), ec);
+    CHECK(ec);
+  }
+  {
+    // Expected true or false
+    std::string str = R"(Flsae)";
+    bool isok;
+    std::error_code ec;
+    iguana::from_yaml(isok, str.begin(), str.end(), ec);
+    CHECK(ec);
+  }
+  {
+    // Expected ] or '-'
+    std::string str = R"(1, 3)";
+    std::vector<int> arr;
+    std::error_code ec;
+    iguana::from_yaml(arr, str.begin(), str.end(), ec);
+    CHECK(ec);
+  }
 }
 
 struct test_string_t {
@@ -53,14 +130,18 @@ txt:
   World
  - "Hello\nWorld\n"
  - "\u8001A\nB\tC\rD\bEF\n\f\n123"
-  )";
+ - >
+ -)";
   test_string_t s;
-  iguana::from_yaml(s, str);
+  std::error_code ec;
+  iguana::from_yaml(s, str.begin(), str.end(), ec);
   CHECK(s.txt[0] == "Hello\nWorld\n");
   CHECK(s.txt[1] == "Hello World\n");
   CHECK(s.txt[2] == "Hello World");
   CHECK(s.txt[3] == "Hello\nWorld\n"); // escape
   CHECK(s.txt[4] == "老A\nB\tC\rD\bEF\n\f\n123");
+  CHECK(s.txt[5] == "\n");
+  CHECK(s.txt[6].empty());
 }
 
 struct arr_t {
