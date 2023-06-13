@@ -8,6 +8,7 @@
 #include <forward_list>
 #include <fstream>
 #include <math.h>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string_view>
@@ -61,7 +62,14 @@ concept sequence_container_t =
     is_sequence_container<std::remove_cvref_t<T>>::value;
 
 template <typename Type>
-concept optional = requires(Type optional) {
+concept unique_ptr_t = requires(Type ptr) {
+  ptr.operator*();
+  typename std::remove_cvref_t<Type>::element_type;
+}
+&&!requires(Type ptr, Type ptr2) { ptr = ptr2; };
+
+template <typename Type>
+concept optional_t = requires(Type optional) {
   optional.value();
   optional.has_value();
   optional.operator*();
@@ -104,7 +112,7 @@ concept tuple = !array<Type> && requires(Type tuple) {
 // TODO: support c_array
 template <class T>
 concept non_refletable = container<T> || c_array<T> || tuple<T> ||
-    optional<T> || std::is_fundamental_v<T>;
+    optional_t<T> || unique_ptr_t<T> || std::is_fundamental_v<T>;
 
 IGUANA_INLINE void skip_yaml_comment(auto &&it, auto &&end) {
   while (++it != end && *it != '\n')

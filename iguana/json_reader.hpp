@@ -13,23 +13,31 @@ namespace detail {
 
 template <str_t U, class It>
 IGUANA_INLINE void parse_escape(U &value, It &&it, It &&end) {
-  if (it == end) [[unlikely]]
+  if (it == end)
     throw std::runtime_error(R"(Expected ")");
-  static std::unordered_map<char, char> escape = {
-      {'n', '\n'}, {'t', '\t'}, {'b', '\b'}, {'r', '\r'}, {'f', '\f'}};
   if (*it == 'u') {
     ++it;
-    if (std::distance(it, end) <= 4) [[unlikely]]
+    if (std::distance(it, end) <= 4)
       throw std::runtime_error(R"(Expected 4 hexadecimal digits)");
     auto code_point = parse_unicode_hex4(it);
     encode_utf8(value, code_point);
+  } else if (*it == 'n') {
+    ++it;
+    value.push_back('\n');
+  } else if (*it == 't') {
+    ++it;
+    value.push_back('\t');
+  } else if (*it == 'r') {
+    ++it;
+    value.push_back('\r');
+  } else if (*it == 'b') {
+    ++it;
+    value.push_back('\b');
+  } else if (*it == 'f') {
+    ++it;
+    value.push_back('\f');
   } else {
-    auto iterator = escape.find(*it);
-    if (iterator != escape.end()) {
-      value.push_back(iterator->second);
-    } else {
-      value.push_back(*it);
-    }
+    value.push_back(*it); // add the escaped character
     ++it;
   }
 }
@@ -80,7 +88,8 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 
 template <enum_t U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
-  parse_item((int &)value, it, end);
+  using T = std::underlying_type_t<std::decay_t<U>>;
+  parse_item(reinterpret_cast<T &>(value), it, end);
 }
 
 template <str_t U, class It>

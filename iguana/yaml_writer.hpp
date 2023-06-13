@@ -53,16 +53,13 @@ IGUANA_INLINE void render_yaml_value(Stream &ss, T value, size_t min_spaces) {
                     min_spaces);
 }
 
-template <typename Stream, typename T>
-IGUANA_INLINE void render_yaml_value(Stream &ss, std::optional<T> &val,
-                                     size_t min_spaces) {
-  if (!val) {
-    ss.append("null");
-    ss.push_back('\n');
-  } else {
-    render_yaml_value(ss, *val, min_spaces);
-  }
-}
+template <typename Stream, optional_t T>
+IGUANA_INLINE void render_yaml_value(Stream &ss, const T &val,
+                                     size_t min_spaces);
+
+template <typename Stream, unique_ptr_t T>
+IGUANA_INLINE void render_yaml_value(Stream &ss, const T &val,
+                                     size_t min_spaces);
 
 template <typename Stream, sequence_container_t T>
 IGUANA_INLINE void render_yaml_value(Stream &ss, const T &t,
@@ -98,6 +95,27 @@ IGUANA_INLINE void render_yaml_value(Stream &ss, const T &t,
   }
 }
 
+template <typename Stream, optional_t T>
+IGUANA_INLINE void render_yaml_value(Stream &ss, const T &val,
+                                     size_t min_spaces) {
+  if (!val) {
+    ss.append("null");
+    ss.push_back('\n');
+  } else {
+    render_yaml_value(ss, *val, min_spaces);
+  }
+}
+
+template <typename Stream, unique_ptr_t T>
+IGUANA_INLINE void render_yaml_value(Stream &ss, const T &val,
+                                     size_t min_spaces) {
+  if (!val) {
+    ss.push_back('\n');
+  } else {
+    render_yaml_value(ss, *val, min_spaces);
+  }
+}
+
 constexpr auto write_yaml_key = [](auto &s, auto i,
                                    auto &t) IGUANA__INLINE_LAMBDA {
   constexpr auto name = get_name<decltype(t), decltype(i)::value>();
@@ -127,7 +145,7 @@ IGUANA_INLINE void to_yaml(T &&t, Stream &s, size_t min_spaces) {
 template <typename Stream, non_refletable T>
 IGUANA_INLINE void to_yaml(T &&t, Stream &s) {
   if constexpr (tuple_t<T> || map_container<T> || sequence_container_t<T> ||
-                optional<T>)
+                optional_t<T> || unique_ptr_t<T>)
     render_yaml_value(s, std::forward<T>(t), 0);
   else
     static_assert(!sizeof(T), "don't suppport this type");

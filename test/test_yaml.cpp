@@ -42,6 +42,10 @@ TEST_CASE("test without struct") {
     TupleType t1;
     iguana::from_yaml(t1, ss1);
     CHECK(t1 == t_v);
+
+    std::unique_ptr<TupleType> tuple_ptr;
+    iguana::from_yaml(tuple_ptr, ss1);
+    CHECK(*tuple_ptr == t_v);
   }
   {
     using TupleType = std::tuple<std::vector<int>, std::string, double>;
@@ -57,6 +61,10 @@ TEST_CASE("test without struct") {
     TupleType t1;
     iguana::from_yaml(t1, ss1);
     CHECK(t1 == t_v);
+
+    std::optional<TupleType> op_t;
+    iguana::from_yaml(op_t, ss1);
+    CHECK(*op_t == t_v);
 
     // test tuple exception
     TupleType t2;
@@ -122,6 +130,21 @@ price: 20
   // Unknown key: pri
   std::string str = R"(pri: 10)";
   CHECK_THROWS(iguana::from_yaml(p, str));
+
+  std::optional<plain_type_t> op_p;
+  iguana::from_yaml(op_p, ss1);
+  validator(*op_p);
+
+  std::unique_ptr<plain_type_t> op_ptr;
+  iguana::from_yaml(op_ptr, ss1);
+  validator(*op_ptr);
+
+  std::string ss2;
+  iguana::to_yaml(op_ptr, ss2);
+
+  std::optional<plain_type_t> op_p2;
+  iguana::from_yaml(op_p2, ss2);
+  validator(*op_p2);
 }
 
 TEST_CASE("test optional") {
@@ -566,7 +589,7 @@ struct store_example_t {
   store_t store;
 };
 REFLECTION(store_example_t, store);
-void store_example() {
+TEST_CASE("test example store") {
   std::string str = R"(
 store:
   name: "\u6c38\u8f89\u8d85\u5e02\t"
@@ -594,13 +617,13 @@ store:
   CHECK(store.name == "永辉超市\t");
   CHECK(store.location == "Chengdu");
   CHECK(store.products[0].name == "iPad");
-  CHECK(store.products[0].price == 899.4);
+  CHECK(store.products[0].price == 899.4f);
   CHECK(store.products[0].description == "nice ipad\n");
   CHECK(store.products[1].name == "watch");
-  CHECK(store.products[1].price == 488.8);
+  CHECK(store.products[1].price == 488.8f);
   CHECK(store.products[1].description == "cheap watch\n");
   CHECK(store.products[2].name == "iPhone");
-  CHECK(store.products[2].price == 999.99);
+  CHECK(store.products[2].price == 999.99f);
   CHECK(store.products[2].description == "expensive iphone");
 }
 

@@ -14,8 +14,6 @@ namespace detail {
 
 template <str_t U, class It>
 IGUANA_INLINE void parse_escape_str(U &value, It &&it, It &&end) {
-  static std::unordered_map<char, char> escape = {
-      {'n', '\n'}, {'t', '\t'}, {'b', '\b'}, {'r', '\r'}, {'f', '\f'}};
   auto start = it;
   while (it != end) {
     if (*(it++) == '\\') [[unlikely]] {
@@ -28,14 +26,31 @@ IGUANA_INLINE void parse_escape_str(U &value, It &&it, It &&end) {
         auto code_point = parse_unicode_hex4(it);
         encode_utf8(value, code_point);
         start = it;
-      } else {
-        auto iterator = escape.find(*it);
-        if (iterator != escape.end()) {
-          value.append(&*start,
-                       static_cast<size_t>(std::distance(start, it) - 1));
-          start = ++it;
-          value.push_back(iterator->second);
-        }
+      } else if (*it == 'n') {
+        value.append(&*start,
+                     static_cast<size_t>(std::distance(start, it) - 1));
+        start = ++it;
+        value.push_back('\n');
+      } else if (*it == 't') {
+        value.append(&*start,
+                     static_cast<size_t>(std::distance(start, it) - 1));
+        start = ++it;
+        value.push_back('\t');
+      } else if (*it == 'r') {
+        value.append(&*start,
+                     static_cast<size_t>(std::distance(start, it) - 1));
+        start = ++it;
+        value.push_back('\r');
+      } else if (*it == 'b') {
+        value.append(&*start,
+                     static_cast<size_t>(std::distance(start, it) - 1));
+        start = ++it;
+        value.push_back('\b');
+      } else if (*it == 'f') {
+        value.append(&*start,
+                     static_cast<size_t>(std::distance(start, it) - 1));
+        start = ++it;
+        value.push_back('\f');
       }
     }
   }
@@ -101,6 +116,7 @@ IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
   }
 }
 
+// string_view should be used  for string with ' " ?
 template <string_t U, class It>
 IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
   using T = std::decay_t<U>;
@@ -192,41 +208,8 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
   }
 }
 
-template <optional U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
-  using T = std::remove_reference_t<U>;
-  using value_type = typename T::value_type;
-  auto spaces = skip_space_and_lines<false>(it, end, min_spaces);
-  if (it == end) [[unlikely]] {
-    return;
-  }
-  if (spaces < min_spaces) [[unlikely]] {
-    it -= spaces + 1;
-    return;
-  }
-
-  auto start = it;
-  std::decay_t<It> value_end = end;
-  if (*it == 'n') {
-    value_end = skip_till<false, '\n'>(it, end);
-    auto opt_v = std::string_view(
-        &*start, static_cast<size_t>(std::distance(start, value_end)));
-    if (opt_v == "null") {
-      return;
-    }
-  }
-  value_type v;
-  if constexpr (str_t<value_type>) {
-    it = start;
-    parse_item(v, it, end, min_spaces);
-  } else {
-    if (value_end == end) {
-      value_end = skip_till<false, '\n'>(it, end);
-    }
-    parse_value(v, start, value_end);
-  }
-  value = std::move(v);
-}
+template <optional_t U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces);
 
 // minspaces : The minimum indentation
 template <sequence_container_t U, class It>
@@ -272,7 +255,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
         match<'-'>(it, end);
 
       skip_space_and_lines(it, end, min_spaces);
-      if constexpr (optional<value_type>) {
+      if constexpr (optional_t<value_type>) { // support vector<optional>
         if (*it == '-') [[unlikely]] {
           first = false;
           value.push_back(value_type{});
@@ -395,6 +378,47 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
   }
 }
 
+template <unique_ptr_t U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
+  using T = std::remove_reference_t<U>;
+  value = std::make_unique<typename T::element_type>();
+  parse_item(*value, it, end, min_spaces);
+}
+
+template <optional_t U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
+  using T = std::remove_reference_t<U>;
+  using value_type = typename T::value_type;
+  auto spaces = skip_space_and_lines<false>(it, end, min_spaces);
+  if (it == end) [[unlikely]] {
+    return;
+  }
+  if (spaces < min_spaces) [[unlikely]] {
+    it -= spaces + 1;
+    return;
+  }
+  auto start = it;
+  std::decay_t<It> value_end = end;
+  if (*it == 'n') {
+    value_end = skip_till<false, '\n'>(it, end);
+    auto opt_v = std::string_view(
+        &*start, static_cast<size_t>(std::distance(start, value_end)));
+    if (opt_v == "null") {
+      return;
+    }
+  }
+  if constexpr (str_t<value_type> || !plain_t<value_type>) {
+    it = start;
+    parse_item(value.emplace(), it, end, min_spaces);
+  } else {
+    if (value_end == end) [[likely]] {
+      // if value_end isn't touched
+      value_end = skip_till<false, '\n'>(it, end);
+    }
+    parse_value(value.emplace(), start, value_end);
+  }
+}
+
 } // namespace detail
 
 template <refletable T, typename It>
@@ -424,7 +448,6 @@ IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end, size_t min_spaces) {
         throw std::runtime_error("Unknown key: " + std::string(key));
       }
     }
-    // spaces = skip_space_and_lines(it, end, min_spaces);
     auto subspaces = skip_space_and_lines<false>(it, end, min_spaces);
     if (subspaces < min_spaces) [[unlikely]] {
       it -= subspaces + 1; // back to the las line end
