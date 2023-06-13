@@ -126,7 +126,8 @@ IGUANA_INLINE void to_yaml(T &&t, Stream &s, size_t min_spaces) {
 
 template <typename Stream, non_refletable T>
 IGUANA_INLINE void to_yaml(T &&t, Stream &s) {
-  if constexpr (tuple_t<T> || map_container<T> || sequence_container_t<T>)
+  if constexpr (tuple_t<T> || map_container<T> || sequence_container_t<T> ||
+                optional<T>)
     render_yaml_value(s, std::forward<T>(t), 0);
   else
     static_assert(!sizeof(T), "don't suppport this type");

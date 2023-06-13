@@ -57,6 +57,23 @@ TEST_CASE("test without struct") {
     TupleType t1;
     iguana::from_yaml(t1, ss1);
     CHECK(t1 == t_v);
+
+    // test tuple exception
+    TupleType t2;
+    std::string ss2 = R"(1, 2 ,3)";
+    std::error_code ec;
+    iguana::from_yaml(t2, ss2.begin(), ss2.end(), ec);
+    CHECK(ec);
+  }
+  {
+    std::vector<std::optional<int>> arr;
+    std::string ss = R"(
+      -
+      - 125
+    )";
+    iguana::from_yaml(arr, ss);
+    CHECK(!arr[0]);
+    CHECK(*arr[1] == 125);
   }
 }
 
@@ -72,21 +89,36 @@ struct plain_type_t {
   std::optional<float> num;
   std::optional<int> price;
 };
-REFLECTION(plain_type_t, isok, status, c, hasprice, price);
+REFLECTION(plain_type_t, isok, status, c, hasprice, num, price);
 TEST_CASE("test plain_type") {
   plain_type_t p{false, enum_status::stop, 'a', true};
   p.price = 20;
   std::string ss;
   iguana::to_yaml(p, ss);
+  std::cout << ss << std::endl;
   plain_type_t p1;
   iguana::from_yaml(p1, ss);
-  CHECK(p1.isok == p.isok);
-  CHECK(p1.status == p.status);
-  CHECK(p1.c == p.c);
-  CHECK(*p1.hasprice == *p.hasprice);
-  CHECK(!p1.num);
-  CHECK(*p1.price == 20);
+  auto validator = [&p](plain_type_t p1) {
+    CHECK(p1.isok == p.isok);
+    CHECK(p1.status == p.status);
+    CHECK(p1.c == p.c);
+    CHECK(*p1.hasprice == *p.hasprice);
+    CHECK(!p1.num);
+    CHECK(*p1.price == 20);
+  };
+  validator(p1);
 
+  std::string ss1 = R"(
+isok: false
+status: 1
+c: a
+hasprice: true
+num: 
+price: 20
+  )";
+  plain_type_t p2;
+  iguana::from_yaml(p2, ss1);
+  validator(p2);
   // Unknown key: pri
   std::string str = R"(pri: 10)";
   CHECK_THROWS(iguana::from_yaml(p, str));
@@ -96,6 +128,14 @@ TEST_CASE("test optional") {
   std::string str = R"()";
   std::optional<int> opt;
   iguana::from_yaml(opt, str.begin(), str.end());
+  CHECK(!opt);
+
+  std::string ss;
+  iguana::to_yaml(opt, ss);
+  CHECK(ss == "null\n");
+
+  std::string ss1 = R"(null)";
+  iguana::from_yaml(opt, ss1);
   CHECK(!opt);
 }
 

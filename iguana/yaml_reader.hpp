@@ -200,7 +200,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
   if (it == end) [[unlikely]] {
     return;
   }
-  if (spaces <= min_spaces) [[unlikely]] {
+  if (spaces < min_spaces) [[unlikely]] {
     it -= spaces + 1;
     return;
   }
@@ -270,7 +270,16 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
       }
       if (!first) [[likely]]
         match<'-'>(it, end);
+
       skip_space_and_lines(it, end, min_spaces);
+      if constexpr (optional<value_type>) {
+        if (*it == '-') [[unlikely]] {
+          first = false;
+          value.push_back(value_type{});
+          continue;
+        }
+      }
+
       if constexpr (plain_t<value_type> && !str_t<value_type>) {
         // except str_t because of scalar blocks
         auto start = it;
