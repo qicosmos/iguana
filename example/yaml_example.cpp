@@ -279,6 +279,34 @@ void test_books_example() {
   assert(books[1]->categories[0] == "classic literature");
   assert(books[1]->categories[1] == "fiction");
 }
+struct movie_t {
+  std::string title;
+  std::optional<int> year;
+  std::vector<std::string> actors;
+};
+REFLECTION(movie_t, title, year, actors);
+void test_tuple_example() {
+  std::string str = R"(
+  - title: The Shawshank Redemption
+    year: 
+    actors:
+      - Tim Robbins
+      - Morgan Freeman
+  - 
+    - 1998
+    - 2005
+    - 3007
+  - Pulp Fiction
+  )";
+  using TupleType =
+      std::tuple<std::unique_ptr<movie_t>, std::vector<int>, std::string>;
+  TupleType tuple1;
+  iguana::from_yaml(tuple1, str);
+  std::cout << "========= serialize test_tuple_example ==========\n";
+  std::string ss;
+  iguana::to_yaml(tuple1, ss);
+  std::cout << ss << std::endl;
+}
 
 int main() {
   some_type_example();
@@ -287,4 +315,5 @@ int main() {
   store_example();
   library_example();
   test_books_example();
+  test_tuple_example();
 }

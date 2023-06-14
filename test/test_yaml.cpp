@@ -718,6 +718,49 @@ libraries:
   validator(libs1);
 }
 
+struct movie_t {
+  std::string title;
+  std::optional<int> year;
+  std::vector<std::string> actors;
+};
+REFLECTION(movie_t, title, year, actors);
+TEST_CASE("test_tuple_example") {
+  std::string str = R"(
+  - title: The Shawshank Redemption
+    year:
+    actors:
+      - Tim Robbins
+      - Freeman
+  - 
+    - 1998
+    - 2005
+    - 3007
+  - Pulp Fiction
+  )";
+  using TupleType =
+      std::tuple<std::unique_ptr<movie_t>, std::vector<int>, std::string>;
+  auto validator = [](TupleType &t) {
+    auto &movie = std::get<0>(t);
+    CHECK(movie->title == "The Shawshank Redemption");
+    CHECK(!movie->year);
+    CHECK(movie->actors[0] == "Tim Robbins");
+    CHECK(movie->actors[1] == "Freeman");
+    auto arr = std::get<1>(t);
+    CHECK(arr[0] == 1998);
+    CHECK(arr[1] == 2005);
+    CHECK(arr[2] == 3007);
+    CHECK(std::get<2>(t) == "Pulp Fiction");
+  };
+  TupleType tuple1;
+  iguana::from_yaml(tuple1, str);
+  validator(tuple1);
+
+  std::string ss;
+  iguana::to_yaml(tuple1, ss);
+  TupleType tuple2;
+  iguana::from_yaml(tuple2, ss);
+  validator(tuple2);
+}
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)

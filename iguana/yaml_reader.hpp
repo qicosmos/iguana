@@ -286,7 +286,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
       // because the user decides how many items there are
       // the following is similar to sequence_t
       using value_type = std::decay_t<decltype(v)>;
-      skip_space_and_lines(it, end, min_spaces);
+      skip_space_and_lines(it, end, spaces);
       match<'-'>(it, end);
       auto subspaces = skip_space_and_lines(it, end, spaces + 1);
       if constexpr (str_t<value_type>) {
