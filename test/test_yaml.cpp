@@ -627,6 +627,80 @@ store:
   CHECK(store.products[2].description == "expensive iphone");
 }
 
+struct book_t {
+  std::optional<std::string_view> title;
+  std::vector<std::string_view> categories;
+};
+REFLECTION(book_t, title, categories);
+struct library_t {
+  std::unique_ptr<std::string_view> name;
+  std::string location;
+  std::vector<std::unique_ptr<book_t>> books;
+};
+REFLECTION(library_t, name, location, books);
+struct library_example_t {
+  std::vector<library_t> libraries;
+};
+REFLECTION(library_example_t, libraries);
+
+TEST_CASE("test example libraries") {
+  std::string str = R"(
+libraries:
+  - name: 
+      Central Library
+    location: "Main\tStreet"
+    books:
+      - title:
+       categories: 
+          - computer science
+          - programming
+      - title: The Great Gatsby
+        categories:
+          - classic literature
+          - fiction
+  - name: North Library
+    location: "Elm Avenue"
+    books:
+      - title: null
+        categories:
+          - computer science
+          - algorithms
+      - title: null
+        categories:
+          - classic literature
+          - romance
+  )";
+  auto validator = [](const library_example_t &libs) {
+    auto &lib0 = libs.libraries[0];
+    CHECK(*lib0.name == "Central Library");
+    CHECK(lib0.location == "Main\tStreet");
+    CHECK(!lib0.books[0]->title);
+    CHECK(lib0.books[0]->categories[0] == "computer science");
+    CHECK(lib0.books[0]->categories[1] == "programming");
+    CHECK(*lib0.books[1]->title == "The Great Gatsby");
+    CHECK(lib0.books[1]->categories[0] == "classic literature");
+    CHECK(lib0.books[1]->categories[1] == "fiction");
+    auto &lib1 = libs.libraries[1];
+    CHECK(*lib1.name == "North Library");
+    CHECK(lib1.location == "Elm Avenue");
+    CHECK(!lib1.books[0]->title);
+    CHECK(lib1.books[0]->categories[0] == "computer science");
+    CHECK(lib1.books[0]->categories[1] == "algorithms");
+    CHECK(!lib1.books[1]->title);
+    CHECK(lib1.books[1]->categories[0] == "classic literature");
+    CHECK(lib1.books[1]->categories[1] == "romance");
+  };
+  library_example_t libs;
+  iguana::from_yaml(libs, str);
+  validator(libs);
+
+  std::string ss;
+  iguana::to_yaml(libs, ss);
+  library_example_t libs1;
+  iguana::from_yaml(libs1, ss);
+  validator(libs1);
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)

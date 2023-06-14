@@ -211,6 +211,9 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
 template <optional_t U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces);
 
+template <unique_ptr_t U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces);
+
 // minspaces : The minimum indentation
 template <sequence_container_t U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {

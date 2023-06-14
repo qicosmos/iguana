@@ -208,9 +208,61 @@ store:
   std::cout << "\n";
 }
 
+struct book_t {
+  std::optional<std::string_view> title;
+  std::vector<std::string_view> categories;
+};
+REFLECTION(book_t, title, categories);
+struct library_t {
+  std::unique_ptr<std::string_view> name;
+  std::string location;
+  std::vector<std::unique_ptr<book_t>> books;
+};
+REFLECTION(library_t, name, location, books);
+struct library_example_t {
+  std::vector<library_t> libraries;
+};
+REFLECTION(library_example_t, libraries);
+
+void library_example() {
+  std::string str = R"(
+libraries:
+  - name: 
+      Central Library
+    location: "Main\tStreet"
+    books:
+      - title:
+       categories: 
+          - computer science
+          - programming
+      - title: The Great Gatsby
+        categories:
+          - classic literature
+          - fiction
+  - name: North Library
+    location: "Elm Avenue"
+    books:
+      - title: null
+        categories:
+          - computer science
+          - algorithms
+      - title: null
+        categories:
+          - classic literature
+          - romance
+  )";
+  library_example_t libs;
+  iguana::from_yaml(libs, str);
+  std::cout << "========= serialize library_example_t ==========\n";
+  std::string ss;
+  iguana::to_yaml(libs, ss);
+  std::cout << ss;
+}
+
 int main() {
   some_type_example();
   person_example();
   map_person_example();
   store_example();
+  library_example();
 }
