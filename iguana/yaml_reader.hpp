@@ -243,27 +243,21 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
       if (it == end) [[unlikely]]
         return;
       match<'-'>(it, end);
+      // space + 1 because of the skipped '-'
       subspaces = skip_space_and_lines(it, end, spaces + 1);
-      if constexpr (unique_ptr_t<value_type>) {
-        if (refletable<typename value_type::element_type>) {
-          parse_item(value.emplace_back(), it, end, subspaces);
-        } else {
-          parse_item(value.emplace_back(), it, end, spaces + 1);
-        }
-      } else if constexpr (plain_t<value_type> && !str_t<value_type>) {
+      if constexpr (str_t<value_type>) {
         // except str_t because of scalar blocks
+        parse_item(value.emplace_back(), it, end, spaces + 1);
+      } else if constexpr (plain_t<value_type>) {
         auto start = it;
         auto value_end = skip_till<false, '\n'>(it, end);
         parse_value(value.emplace_back(), start, value_end);
-      } else if constexpr (refletable<value_type>) {
-        // 因为是unique_ptr，所以不行
-        parse_item(value.emplace_back(), it, end, subspaces);
       } else {
-        parse_item(value.emplace_back(), it, end, spaces + 1);
+        parse_item(value.emplace_back(), it, end, subspaces);
       }
     }
   } else [[unlikely]] {
-    throw std::runtime_error("Expected ] or '-'");
+    throw std::runtime_error("Expected ']' or '-'");
   }
 }
 
@@ -288,21 +282,25 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
     });
   } else if (*it == '-') {
     for_each(value, [&](auto &v, auto i) IGUANA__INLINE_LAMBDA {
+      // we don't need to determine when it will end
+      // because the user decides how many items there are
+      // the following is similar to sequence_t
       using value_type = std::decay_t<decltype(v)>;
       skip_space_and_lines(it, end, min_spaces);
       match<'-'>(it, end);
-      skip_space_and_lines<false>(it, end, min_spaces);
-      if constexpr (plain_t<value_type> && !str_t<value_type>) {
-        // except str_t because of scalar blocks
+      auto subspaces = skip_space_and_lines(it, end, spaces + 1);
+      if constexpr (str_t<value_type>) {
+        parse_item(v, it, end, spaces + 1);
+      } else if constexpr (plain_t<value_type>) {
         auto start = it;
         auto value_end = skip_till<false, '\n'>(it, end);
         parse_value(v, start, value_end);
       } else {
-        parse_item(v, it, end, spaces + 1);
+        parse_item(v, it, end, subspaces);
       }
     });
   } else {
-    throw std::runtime_error("Expected ] or '-'");
+    throw std::runtime_error("Expected ']' or '-'");
   }
 }
 
@@ -343,7 +341,6 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
     }
   } else {
     auto subspaces = skip_space_and_lines<false>(it, end, min_spaces);
-
     while (it != end) {
       if (subspaces < min_spaces) [[unlikely]] {
         it -= subspaces + 1;
@@ -370,6 +367,8 @@ template <unique_ptr_t U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
   using T = std::remove_reference_t<U>;
   value = std::make_unique<typename T::element_type>();
+  static_assert(!str_t<typename T::element_type>,
+                "unique_ptr<string> is not allowed");
   parse_item(*value, it, end, min_spaces);
 }
 

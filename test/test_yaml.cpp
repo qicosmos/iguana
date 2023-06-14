@@ -73,6 +73,12 @@ TEST_CASE("test without struct") {
     iguana::from_yaml(t2, ss2.begin(), ss2.end(), ec);
     CHECK(ec);
   }
+  {
+    std::unique_ptr<int> p_tr;
+    std::string ss;
+    iguana::to_yaml(p_tr, ss);
+    CHECK(ss == "\n");
+  }
 }
 
 enum class enum_status {

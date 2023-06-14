@@ -260,7 +260,7 @@ libraries:
 }
 
 void test_books_example() {
-  std::vector<book_t> books;
+  std::vector<std::unique_ptr<book_t>> books;
   std::string str = R"(
     - title:
       categories: 
@@ -272,12 +272,12 @@ void test_books_example() {
         - fiction
   )";
   iguana::from_yaml(books, str);
-  assert(!books[0].title);
-  assert(books[0].categories[0] == "computer science");
-  assert(books[0].categories[1] == "programming");
-  assert(*books[1].title == "The Great Gatsby");
-  assert(books[1].categories[0] == "classic literature");
-  assert(books[1].categories[1] == "fiction");
+  assert(!books[0]->title);
+  assert(books[0]->categories[0] == "computer science");
+  assert(books[0]->categories[1] == "programming");
+  assert(*books[1]->title == "The Great Gatsby");
+  assert(books[1]->categories[0] == "classic literature");
+  assert(books[1]->categories[1] == "fiction");
 }
 
 int main() {
