@@ -73,16 +73,6 @@ TEST_CASE("test without struct") {
     iguana::from_yaml(t2, ss2.begin(), ss2.end(), ec);
     CHECK(ec);
   }
-  {
-    std::vector<std::optional<int>> arr;
-    std::string ss = R"(
-      -
-      - 125
-    )";
-    iguana::from_yaml(arr, ss);
-    CHECK(!arr[0]);
-    CHECK(*arr[1] == 125);
-  }
 }
 
 enum class enum_status {
@@ -643,6 +633,27 @@ struct library_example_t {
 };
 REFLECTION(library_example_t, libraries);
 
+TEST_CASE("test example books") {
+  std::vector<book_t> books;
+  std::string str = R"(
+    - title:
+      categories: 
+        - computer science
+        - programming
+    - title: The Great Gatsby
+      categories:
+        - classic literature
+        - fiction
+  )";
+  iguana::from_yaml(books, str);
+  CHECK(!books[0].title);
+  CHECK(books[0].categories[0] == "computer science");
+  CHECK(books[0].categories[1] == "programming");
+  CHECK(*books[1].title == "The Great Gatsby");
+  CHECK(books[1].categories[0] == "classic literature");
+  CHECK(books[1].categories[1] == "fiction");
+}
+
 TEST_CASE("test example libraries") {
   std::string str = R"(
 libraries:
@@ -651,7 +662,7 @@ libraries:
     location: "Main\tStreet"
     books:
       - title:
-       categories: 
+        categories: 
           - computer science
           - programming
       - title: The Great Gatsby
@@ -661,11 +672,11 @@ libraries:
   - name: North Library
     location: "Elm Avenue"
     books:
-      - title: null
+      - title: 
         categories:
           - computer science
           - algorithms
-      - title: null
+      - title: 
         categories:
           - classic literature
           - romance

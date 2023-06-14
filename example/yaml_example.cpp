@@ -232,7 +232,7 @@ libraries:
     location: "Main\tStreet"
     books:
       - title:
-       categories: 
+        categories: 
           - computer science
           - programming
       - title: The Great Gatsby
@@ -242,11 +242,11 @@ libraries:
   - name: North Library
     location: "Elm Avenue"
     books:
-      - title: null
+      - title: 
         categories:
           - computer science
           - algorithms
-      - title: null
+      - title: 
         categories:
           - classic literature
           - romance
@@ -259,10 +259,32 @@ libraries:
   std::cout << ss;
 }
 
+void test_books_example() {
+  std::vector<book_t> books;
+  std::string str = R"(
+    - title:
+      categories: 
+        - computer science
+        - programming
+    - title: The Great Gatsby
+      categories:
+        - classic literature
+        - fiction
+  )";
+  iguana::from_yaml(books, str);
+  assert(!books[0].title);
+  assert(books[0].categories[0] == "computer science");
+  assert(books[0].categories[1] == "programming");
+  assert(*books[1].title == "The Great Gatsby");
+  assert(books[1].categories[0] == "classic literature");
+  assert(books[1].categories[1] == "fiction");
+}
+
 int main() {
   some_type_example();
   person_example();
   map_person_example();
   store_example();
   library_example();
+  test_books_example();
 }

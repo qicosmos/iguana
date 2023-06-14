@@ -90,30 +90,19 @@ IGUANA_INLINE void parse_block_str(U &value, It &&it, It &&end,
   }
 }
 
-// pre declaration
 template <map_container U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces);
 
 template <num_t U, class It>
 IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
-  using T = std::remove_reference_t<U>;
   if (value_begin == value_end) [[unlikely]] {
     return;
   }
-  if constexpr (std::is_floating_point_v<T>) {
-    auto size = std::distance(value_begin, value_end);
-    const auto start = &*value_begin;
-    auto [p, ec] = detail::from_chars(start, start + size, value);
-    if (ec != std::errc{}) [[unlikely]]
-      throw std::runtime_error("Failed to parse number");
-  } else {
-    // TODO: remove this later
-    auto size = std::distance(value_begin, value_end);
-    const auto start = &*value_begin;
-    auto [p, ec] = std::from_chars(start, start + size, value);
-    if (ec != std::errc{}) [[unlikely]]
-      throw std::runtime_error("Failed to parse number");
-  }
+  auto size = std::distance(value_begin, value_end);
+  const auto start = &*value_begin;
+  auto [p, ec] = detail::from_chars(start, start + size, value);
+  if (ec != std::errc{}) [[unlikely]]
+    throw std::runtime_error("Failed to parse number");
 }
 
 // string_view should be used  for string with ' " ?
@@ -245,37 +234,33 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
       skip_space_and_lines(it, end, min_spaces);
     }
   } else if (*it == '-') {
-    ++it; // delete this ?
-    bool first = true;
-    auto subspaces = skip_space_and_lines<false>(it, end, min_spaces);
     while (it != end) {
-      if (subspaces < min_spaces) [[unlikely]] {
-        // back to the end of the previous line
+      auto subspaces = skip_space_and_lines<false>(it, end, spaces);
+      if (subspaces < spaces) [[unlikely]] {
         it -= subspaces + 1;
         return;
       }
-      if (!first) [[likely]]
-        match<'-'>(it, end);
-
-      skip_space_and_lines(it, end, min_spaces);
-      if constexpr (optional_t<value_type>) { // support vector<optional>
-        if (*it == '-') [[unlikely]] {
-          first = false;
-          value.push_back(value_type{});
-          continue;
+      if (it == end) [[unlikely]]
+        return;
+      match<'-'>(it, end);
+      subspaces = skip_space_and_lines(it, end, spaces + 1);
+      if constexpr (unique_ptr_t<value_type>) {
+        if (refletable<typename value_type::element_type>) {
+          parse_item(value.emplace_back(), it, end, subspaces);
+        } else {
+          parse_item(value.emplace_back(), it, end, spaces + 1);
         }
-      }
-
-      if constexpr (plain_t<value_type> && !str_t<value_type>) {
+      } else if constexpr (plain_t<value_type> && !str_t<value_type>) {
         // except str_t because of scalar blocks
         auto start = it;
         auto value_end = skip_till<false, '\n'>(it, end);
         parse_value(value.emplace_back(), start, value_end);
+      } else if constexpr (refletable<value_type>) {
+        // 因为是unique_ptr，所以不行
+        parse_item(value.emplace_back(), it, end, subspaces);
       } else {
         parse_item(value.emplace_back(), it, end, spaces + 1);
       }
-      first = false;
-      subspaces = skip_space_and_lines<false>(it, end, min_spaces);
     }
   } else [[unlikely]] {
     throw std::runtime_error("Expected ] or '-'");
