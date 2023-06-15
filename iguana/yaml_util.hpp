@@ -151,6 +151,11 @@ IGUANA_INLINE size_t skip_space_and_lines(auto &&it, auto &&end,
     } else if (*it == ' ') {
       ++it;
       ++res;
+    } else if (*it == '#') {
+      while (it != end && *it != '\n') {
+        ++it;
+      }
+      res = 0;
     } else {
       if constexpr (Throw) {
         if (res < minspaces) [[unlikely]] {

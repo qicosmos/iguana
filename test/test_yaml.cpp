@@ -120,8 +120,9 @@ hasprice: true
 num: 
 price: 20
   )";
+  std::vector<char> arr_char(ss1.begin(), ss1.end());
   plain_type_t p2;
-  iguana::from_yaml(p2, ss1);
+  iguana::from_yaml(p2, arr_char.begin(), arr_char.end());
   validator(p2);
   // Unknown key: pri
   std::string str = R"(pri: 10)";
@@ -726,12 +727,14 @@ struct movie_t {
 REFLECTION(movie_t, title, year, actors);
 TEST_CASE("test_tuple_example") {
   std::string str = R"(
+# this is a movie
   - title: The Shawshank Redemption
-    year:
+    year: 
     actors:
       - Tim Robbins
       - Freeman
-  - 
+   
+  - # this is a number array
     - 1998
     - 2005
     - 3007

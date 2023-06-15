@@ -287,12 +287,14 @@ struct movie_t {
 REFLECTION(movie_t, title, year, actors);
 void test_tuple_example() {
   std::string str = R"(
+# this is a movie
   - title: The Shawshank Redemption
     year: 
     actors:
       - Tim Robbins
       - Morgan Freeman
-  - 
+   
+  - # this is a number array
     - 1998
     - 2005
     - 3007
