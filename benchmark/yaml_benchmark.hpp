@@ -42,8 +42,7 @@ std::string yaml_file_content(const std::string &filename) {
   return content;
 }
 
-/*--------------------------- REFLECTION the struct
- * ----------------------------*/
+/*--------- REFLECTION appveyor.yml-------------*/
 
 struct matrix_t {
   std::string_view compiler;
@@ -82,76 +81,41 @@ struct appveyor_t {
 REFLECTION(appveyor_t, version, image, environment, matrix, install,
            build_script, test_script, artifacts, skip_commits);
 
-void validator(appveyor_t app) {
-  assert(app.version == "{build}");
-  assert(app.image == "Visual Studio 2017");
-  assert(app.environment.matrix[0].compiler == "msvc-15-seh");
-  assert(app.environment.matrix[0].generator == "Visual Studio 15 2017");
-  assert(app.environment.matrix[0].configuration == "Debug");
+/*--------- REFLECTION travis.yml-------------*/
+struct apt_t {
+  std::vector<std::string_view> sources;
+};
+REFLECTION(apt_t, sources);
+struct addon_t {
+  apt_t apt;
+};
+REFLECTION(addon_t, apt);
 
-  assert(app.environment.matrix[1].compiler == "msvc-15-seh");
-  assert(app.environment.matrix[1].generator == "Visual Studio 15 2017 Win64");
-  assert(app.environment.matrix[1].configuration == "Debug");
+struct env_t {
+  std::vector<std::string_view> global;
+};
+REFLECTION(env_t, global);
 
-  assert(app.environment.matrix[2].compiler == "msvc-15-seh");
-  assert(app.environment.matrix[2].generator == "Visual Studio 15 2017");
-  assert(app.environment.matrix[2].configuration == "Release");
+struct in_env_t {
+  std::string_view env;
+};
+REFLECTION(in_env_t, env);
 
-  assert(app.environment.matrix[3].compiler == "msvc-15-seh");
-  assert(app.environment.matrix[3].generator == "Visual Studio 15 2017 Win64");
-  assert(app.environment.matrix[3].configuration == "Release");
+struct mat_t {
+  std::vector<in_env_t> include;
+};
+REFLECTION(mat_t, include);
 
-  assert(app.environment.matrix[4].compiler == "msvc-14-seh");
-  assert(app.environment.matrix[4].generator == "Visual Studio 14 2015");
-  assert(app.environment.matrix[4].configuration == "Debug");
-
-  assert(app.environment.matrix[5].compiler == "msvc-14-seh");
-  assert(app.environment.matrix[5].generator == "Visual Studio 14 2015 Win64");
-  assert(app.environment.matrix[5].configuration == "Debug");
-
-  assert(app.environment.matrix[6].compiler == "msvc-14-seh");
-  assert(app.environment.matrix[6].generator == "Visual Studio 14 2015");
-  assert(app.environment.matrix[6].configuration == "Release");
-
-  assert(app.environment.matrix[7].compiler == "msvc-14-seh");
-  assert(app.environment.matrix[7].generator == "Visual Studio 14 2015 Win64");
-  assert(app.environment.matrix[7].configuration == "Release");
-
-  assert(app.matrix.fast_finish == "true");
-
-  assert(app.install[0] == "git submodule update --init --recursive");
-  assert(app.install[1] ==
-         "if \"%generator%\"==\"MinGW Makefiles\" (set "
-         "\"PATH=%PATH:C:\\Program Files\\Git\\usr\\bin;=%\")");
-  assert(app.install[2] ==
-         "if not \"%cxx_path%\"==\"\" (set \"PATH=%PATH%;%cxx_path%\")");
-
-  assert(app.build_script[0] == "md _build -Force");
-  assert(app.build_script[1] == "cd _build");
-
-  assert(app.test_script[0] == "echo %configuration%");
-  assert(app.test_script[1] ==
-         "cmake -G \"%generator%\" \"-DCMAKE_BUILD_TYPE=%configuration%\" "
-         "-DRYML_DEV=ON ..");
-  assert(app.test_script[2] == "dir");
-  assert(app.test_script[3] == "dir test");
-  assert(app.test_script[4] ==
-         "cmake --build . --config %configuration% --target ryml-test");
-
-  assert(app.artifacts[0].path == "_build/CMakeFiles/*.log");
-  assert(app.artifacts[0].name == "logs");
-  assert(app.artifacts[1].path == "_build/Testing/**/*.xml");
-  assert(app.artifacts[1].name == "test_results");
-
-  assert(app.skip_commits.files[0] == ".gitignore");
-  assert(app.skip_commits.files[1] == ".travis*");
-  assert(app.skip_commits.files[2] == ".ci/travis*");
-  assert(app.skip_commits.files[3] == ".ci/dev_*");
-  assert(app.skip_commits.files[4] == ".ci/show_*");
-  assert(app.skip_commits.files[5] == ".ci/vagrant*");
-  assert(app.skip_commits.files[6] == ".ci/Vagrant*");
-  assert(app.skip_commits.files[7] == "bm/html/*");
-  assert(app.skip_commits.files[8] == "doc/*");
-  assert(app.skip_commits.files[9] == "LICENSE.txt");
-  assert(app.skip_commits.files[10] == "README.*");
-}
+struct travis_t {
+  std::string_view sudo;
+  std::string_view dist;
+  std::string_view language;
+  addon_t addons;
+  env_t env;
+  mat_t matrix;
+  std::vector<std::string_view> install;
+  std::vector<std::string_view> script;
+  std::vector<std::string_view> after_success;
+};
+REFLECTION(travis_t, sudo, dist, language, addons, env, matrix, install, script,
+           after_success);

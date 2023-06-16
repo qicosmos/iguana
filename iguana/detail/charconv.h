@@ -12,15 +12,12 @@ struct is_char_type
                        std::is_same<T, char16_t>, std::is_same<T, char32_t>> {};
 
 namespace detail {
-
 template <typename U>
 std::pair<const char *, std::errc>
 from_chars(const char *first, const char *last, U &value) noexcept {
   using T = std::decay_t<U>;
   if constexpr (std::is_floating_point_v<T>) {
-    double num;
-    auto [p, ec] = fast_float::from_chars(first, last, num);
-    value = static_cast<T>(num);
+    auto [p, ec] = fast_float::from_chars(first, last, value);
     return {p, ec};
   } else {
     auto [p, ec] = std::from_chars(first, last, value);

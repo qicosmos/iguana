@@ -147,3 +147,80 @@ TEST_CASE("test deserialize appveyor.yml") {
         << " read appveyor.yml error, check the location of appveyor.yml\n\n";
   }
 }
+
+struct apt_t {
+  std::vector<std::string_view> sources;
+};
+REFLECTION(apt_t, sources);
+struct addon_t {
+  apt_t apt;
+};
+REFLECTION(addon_t, apt);
+
+struct env_t {
+  std::vector<std::string_view> global;
+};
+REFLECTION(env_t, global);
+
+struct in_env_t {
+  std::string_view env;
+};
+REFLECTION(in_env_t, env);
+
+struct mat_t {
+  std::vector<in_env_t> include;
+};
+REFLECTION(mat_t, include);
+
+struct travis_t {
+  std::string_view sudo;
+  std::string_view dist;
+  std::string_view language;
+  addon_t addons;
+  env_t env;
+  mat_t matrix;
+  std::vector<std::string_view> install;
+  std::vector<std::string_view> script;
+  std::vector<std::string_view> after_success;
+};
+REFLECTION(travis_t, sudo, dist, language, addons, env, matrix, install, script,
+           after_success);
+
+void validator(travis_t tra) {
+  CHECK(tra.sudo == "required");
+  CHECK(tra.dist == "trusty");
+  CHECK(tra.language == "cpp");
+  CHECK(tra.addons.apt.sources[0] == "ubuntu-toolchain-r-test");
+  CHECK(tra.env.global[0] == "PATH=/usr/local/bin:$PATH");
+  CHECK(tra.matrix.include[0].env == "CXX_=g++-7 A=64 BT=Coverage");
+  CHECK(tra.matrix.include[1].env == "CXX_=g++-7 A=32 BT=Coverage");
+  CHECK(tra.matrix.include[2].env ==
+        "CXX_=g++-7       A=32 BT=Debug   SAN=ALL VG=ON");
+
+  CHECK(tra.matrix.include[3].env ==
+        "CXX_=g++-7       A=64 BT=Debug   SAN=ALL VG=ON");
+  CHECK(tra.matrix.include[4].env ==
+        "CXX_=g++-7       A=32 BT=Release SAN=ALL VG=ON");
+  CHECK(tra.matrix.include[5].env ==
+        "CXX_=g++-7       A=64 BT=Release SAN=ALL VG=ON");
+
+  CHECK(tra.matrix.include[44].env ==
+        "CXX_=clang++-6.0 A=32 BT=Release LINT=clang-tidy");
+  CHECK(tra.matrix.include[45].env ==
+        "CXX_=clang++-6.0 A=64 BT=Release LINT=clang-tidy");
+  CHECK(tra.install[0] == "bash -x .ci/travis-install.sh");
+  CHECK(tra.script[0] == "bash -x .ci/travis-test.sh");
+  CHECK(tra.after_success[0] == "echo \"Success!\"");
+  CHECK(tra.after_success[1] == "bash -x .ci/travis-coverage.sh");
+}
+
+TEST_CASE("test deserialize travis.yml") {
+  try {
+    std::string filestr = yaml_file_content("../data/travis.yml");
+    travis_t tra;
+    iguana::from_yaml(tra, filestr.begin(), filestr.end());
+    validator(tra);
+  } catch (...) {
+    std::cout << " read travis.yml error, check the location of travis.yml\n\n";
+  }
+}
