@@ -18,6 +18,7 @@ This library provides a portable cross-platform way of:
 
 - serialization of json
 - serialization of xml
+- serialization of yaml
 - serialization of any customized format
 
 ### Tutorial ###
@@ -103,6 +104,23 @@ std::cout << s.str() << std::endl;
 // deserialization the structure from the string
 std::string xml = "<?xml version=\"1.0\" encoding=\"UTF-8\">  <name>buke</name> <age>30</name>";
 iguana::from_xml(p, xml.data());
+```
+#### Serialization of yaml
+
+The serialization of `yaml` is also as simple as the above interface. Here is a complete example:
+
+```c++
+// serialization the structure to the string
+person p = {"admin", 20};
+iguana::string_stream ss;  // here use std::string is also ok
+iguana::to_yaml(ss, p);
+std::cout << ss.str() << std::endl;
+std::string yaml = R"(
+name : buke
+age : 30
+)";
+// deserialization the structure from the string
+iguana::from_xml(p, yaml);
 ```
 
 ### A complicated example
@@ -196,6 +214,41 @@ std::string str = R"(
 library_t lib;
 iguana::from_xml(lib, str.data());
 ```
+#### yaml
+
+As always what we do, define the structure and reflect the meta data.
+
+```c++
+struct plain_type_t {
+  bool isok;
+  enum_status status;
+  char c;
+  std::optional<bool> hasprice;
+  std::optional<float> num;
+  std::optional<int> price;
+};
+REFLECTION(plain_type_t, isok, status, c, hasprice, num, price);
+```
+
+And then, simply call the interface:
+
+```c++
+// deserialization the structure from the string
+std::string str = R"(
+isok: false
+status: 1
+c: a
+hasprice: true
+num:
+price: 20
+)";
+plain_type_t p;
+iguana::from_yaml(p, str);
+// serialization the structure to the string
+std::string ss;
+iguana::to_xml(ss, p);
+std::cout << ss << "\n";
+```
 
 ### How to solve the problem of unicode path in a json file?
 
@@ -214,8 +267,9 @@ We can slove the problem1 easily with c++17:
 ### Full sources:
 
 
-- More examples about `json`: https://github.com/qicosmos/iguana/blob/master/example/example.cpp
-- More examples about `xml`  :[https://github.com/qicosmos/iguana/blob/master/example/example.cpp](https://github.com/qicosmos/iguana/blob/master/example/xml_example.cpp)
++ More examples about [json](https://github.com/qicosmos/iguana/blob/master/example/example.cpp)
++ More examples about [xml](https://github.com/qicosmos/iguana/blob/master/example/xml_example.cpp)
++ More examples about [yaml](https://github.com/qicosmos/iguana/blob/master/example/yaml_example.cpp)
 
 ### Scripts
 
