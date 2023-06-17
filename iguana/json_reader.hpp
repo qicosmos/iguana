@@ -88,7 +88,8 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 
 template <enum_t U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
-  parse_item((int &)value, it, end);
+  using T = std::underlying_type_t<std::decay_t<U>>;
+  parse_item(reinterpret_cast<T &>(value), it, end);
 }
 
 template <str_t U, class It>

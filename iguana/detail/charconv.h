@@ -2,6 +2,7 @@
 #include "dragonbox_to_chars.h"
 #include "fast_float.h"
 #include "itoa.hpp"
+#include <charconv>
 
 namespace iguana {
 template <typename T>
@@ -11,15 +12,17 @@ struct is_char_type
                        std::is_same<T, char16_t>, std::is_same<T, char32_t>> {};
 
 namespace detail {
-
-template <typename T>
+template <typename U>
 std::pair<const char *, std::errc>
-from_chars(const char *first, const char *last, T &value) noexcept {
-
-  double num;
-  auto [p, ec] = fast_float::from_chars(first, last, num);
-  value = static_cast<std::decay_t<T>>(num);
-  return {p, ec};
+from_chars(const char *first, const char *last, U &value) noexcept {
+  using T = std::decay_t<U>;
+  if constexpr (std::is_floating_point_v<T>) {
+    auto [p, ec] = fast_float::from_chars(first, last, value);
+    return {p, ec};
+  } else {
+    auto [p, ec] = std::from_chars(first, last, value);
+    return {p, ec};
+  }
 }
 
 // not support uint8 for now

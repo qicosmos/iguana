@@ -11,6 +11,8 @@ endif(MSVC)
 set(CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -ldl")
 set(IGUANA_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+
 add_definitions(-DTHROW_UNKNOWN_KEY)
 
 option(HAS_RAPIDJSON "import rapidjson" OFF)
@@ -37,6 +39,9 @@ set(JSON_EXAMPLE
 set(XML_EXAMPLE
 	example/xml_example.cpp
 )
+set(YAML_EXAMPLE
+	example/yaml_example.cpp
+)
 
 set(TEST_SOME test/test.cpp)
 set(TEST_UT test/unit_test.cpp)
@@ -44,16 +49,22 @@ set(TEST_JSON_FILES test/test_json_files.cpp)
 set(TEST_XML test/test_xml.cpp)
 set(BENCHMARK benchmark/benchmark.cpp)
 set(XMLBENCH  benchmark/xml_benchmark.cpp)
+set(TEST_YAML test/test_yaml.cpp test/test_yaml_bech.cpp)
+set(YAMLBENCH  benchmark/yaml_benchmark.cpp)
 
 add_executable(example 	${EXAMPLE})
 add_executable(json_example 	${JSON_EXAMPLE})
 add_executable(xml_example 		${XML_EXAMPLE})
+add_executable(yaml_example 		${YAML_EXAMPLE})
 add_executable(test_some	${TEST_SOME})
 add_executable(test_ut 	${TEST_UT})
 add_executable(test_json_files 	${TEST_JSON_FILES})
 add_executable(test_xml ${TEST_XML})
 add_executable(benchmark 	${BENCHMARK})
 add_executable(xml_benchmark ${XMLBENCH})
+add_executable(test_yaml ${TEST_YAML})
+add_executable(yaml_benchmark ${YAMLBENCH})
+
 
 # unit test
 option(BUILD_UNIT_TESTS "Build unit tests" ON)
@@ -75,3 +86,4 @@ add_test(NAME test_some COMMAND test_some)
 add_test(NAME test_ut COMMAND test_ut)
 add_test(NAME test_json_files COMMAND test_json_files)
 add_test(NAME test_xml COMMAND test_xml)
+add_test(NAME test_yaml COMMAND test_yaml)
