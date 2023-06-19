@@ -120,7 +120,7 @@ name : buke
 age : 30
 )";
 // deserialization the structure from the string
-iguana::from_xml(p, yaml);
+iguana::from_yaml(p, yaml);
 ```
 
 ### A complicated example
@@ -246,7 +246,7 @@ plain_type_t p;
 iguana::from_yaml(p, str);
 // serialization the structure to the string
 std::string ss;
-iguana::to_xml(ss, p);
+iguana::to_yaml(ss, p);
 std::cout << ss << "\n";
 ```
 
