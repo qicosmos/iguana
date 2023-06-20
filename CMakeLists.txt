@@ -22,6 +22,11 @@ if (${HAS_RAPIDJSON})
 	ADD_DEFINITIONS(-DRAPIDJSON_HAS_STDSTRING)
 endif()
 
+option(HAS_RAPIDYAML "import rapidyaml" OFF)
+if (${HAS_RAPIDYAML})
+	add_definitions(-DHAS_RAPIDYAML)
+endif()
+
 include_directories(
 	${IGUANA_DIR}
 	${IGUANA_DIR}/third_party/frozen/include
