@@ -56,6 +56,7 @@ set(BENCHMARK benchmark/benchmark.cpp)
 set(XMLBENCH  benchmark/xml_benchmark.cpp)
 set(TEST_YAML test/test_yaml.cpp test/test_yaml_bech.cpp)
 set(YAMLBENCH  benchmark/yaml_benchmark.cpp)
+set(TEST_NOTHROW test/test_yaml_nothrow.cpp)
 
 add_executable(example 	${EXAMPLE})
 add_executable(json_example 	${JSON_EXAMPLE})
@@ -69,6 +70,7 @@ add_executable(benchmark 	${BENCHMARK})
 add_executable(xml_benchmark ${XMLBENCH})
 add_executable(test_yaml ${TEST_YAML})
 add_executable(yaml_benchmark ${YAMLBENCH})
+add_executable(test_nothrow ${TEST_NOTHROW})
 
 
 # unit test

@@ -113,12 +113,13 @@ TEST_CASE("test plain_type") {
   validator(p1);
 
   std::string ss1 = R"(
-isok: false
+isok: false # this is a bool type
 status: 1
+--- 
 c: a
 hasprice: true
 num: 
-price: 20
+price: 20 # this is price
   )";
   std::vector<char> arr_char(ss1.begin(), ss1.end());
   plain_type_t p2;
@@ -487,7 +488,7 @@ TEST_CASE("test some_type") {
   };
   std::string str = R"(
 price: [1.23, 3.25, 9.57]
-description: >-
+description: >- #test comment
     Some 
     description
 child:
