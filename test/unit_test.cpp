@@ -676,18 +676,67 @@ TEST_CASE("test the string_view") {
 
 struct st_char_t {
   char a;
+  char b[5];
 };
-REFLECTION(st_char_t, a);
+REFLECTION(st_char_t, a, b);
 TEST_CASE("test char") {
+  std::string str = R"(
+  {
+    "a": "x",
+    "b": ["1", "2", "3", "4", "5"]
+  }
+  )";
+  auto validator = [](st_char_t c) {
+    CHECK(c.a == 'x');
+    CHECK(c.b[0] == '1');
+    CHECK(c.b[1] == '2');
+    CHECK(c.b[2] == '3');
+    CHECK(c.b[3] == '4');
+    CHECK(c.b[4] == '5');
+  };
   st_char_t c;
-  c.a = 'w';
+  iguana::from_json(c, str);
+  validator(c);
   std::string ss;
   iguana::to_json(c, ss);
   std::cout << ss << std::endl;
-  st_char_t c2;
-  iguana::from_json(c2, ss);
-  CHECK(c2.a == 'w');
-  CHECK(c2.a == c.a);
+}
+
+struct fixed_vector_arr_t {
+  std::vector<int> a[4];
+};
+REFLECTION(fixed_vector_arr_t, a);
+TEST_CASE("test fixed array") {
+  std::string str = R"(
+{
+  "a": [
+    [1, 2, 3],
+    [4, 5, 6],
+    [],
+    [7, 8]
+    ]
+}
+  )";
+  auto validator = [](fixed_vector_arr_t f) {
+    CHECK(f.a[0][0] == 1);
+    CHECK(f.a[0][1] == 2);
+    CHECK(f.a[0][2] == 3);
+    CHECK(f.a[1][0] == 4);
+    CHECK(f.a[1][1] == 5);
+    CHECK(f.a[1][2] == 6);
+    CHECK(f.a[2].empty());
+    CHECK(f.a[3][0] == 7);
+    CHECK(f.a[3][1] == 8);
+  };
+  fixed_vector_arr_t f;
+  iguana::from_json(f, str);
+  validator(f);
+
+  std::string ss;
+  iguana::to_json(f, ss);
+  fixed_vector_arr_t f1;
+  iguana::from_json(f1, ss);
+  validator(f1);
 }
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182

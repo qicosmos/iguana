@@ -10,6 +10,9 @@
 
 namespace iguana {
 
+template <typename Stream, sequence_container_t T>
+IGUANA_INLINE void render_json_value(Stream &ss, const T &v);
+
 template <typename Stream, typename InputIt, typename T, typename F>
 IGUANA_INLINE void join(Stream &ss, InputIt first, InputIt last, const T &delim,
                         const F &f) {
@@ -50,7 +53,12 @@ IGUANA_INLINE void render_json_value(Stream &ss, T value) {
 template <typename Stream, string_container_t T>
 IGUANA_INLINE void render_json_value(Stream &ss, T &&t) {
   ss.push_back('"');
-  ss.append(t.data(), t.size());
+  if constexpr (fixed_array<T>) {
+    constexpr auto n = sizeof(T) / sizeof(decltype(std::declval<T>()[0]));
+    ss.append(std::begin(t), n);
+  } else {
+    ss.append(t.data(), t.size());
+  }
   ss.push_back('"');
 }
 

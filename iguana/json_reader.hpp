@@ -11,6 +11,9 @@ void from_json(T &value, It &&it, It &&end);
 
 namespace detail {
 
+template <sequence_container U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end);
+
 template <str_t U, class It>
 IGUANA_INLINE void parse_escape(U &value, It &&it, It &&end) {
   if (it == end)
@@ -90,6 +93,45 @@ template <enum_t U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   using T = std::underlying_type_t<std::decay_t<U>>;
   parse_item(reinterpret_cast<T &>(value), it, end);
+}
+
+template <char_t U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+  // TODO: this does not handle escaped chars
+  skip_ws(it, end);
+  match<'"'>(it, end);
+  if (it == end) [[unlikely]]
+    throw std::runtime_error("Unxpected end of buffer");
+  if (*it == '\\') [[unlikely]]
+    if (++it == end) [[unlikely]]
+      throw std::runtime_error("Unxpected end of buffer");
+  value = *it++;
+  match<'"'>(it, end);
+}
+
+template <bool_t U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+  skip_ws(it, end);
+
+  if (it < end) [[likely]] {
+    switch (*it) {
+    case 't': {
+      ++it;
+      match<"rue">(it, end);
+      value = true;
+      break;
+    }
+    case 'f': {
+      ++it;
+      match<"alse">(it, end);
+      value = false;
+      break;
+    }
+      [[unlikely]] default : throw std::runtime_error("Expected true or false");
+    }
+  } else [[unlikely]] {
+    throw std::runtime_error("Expected true or false");
+  }
 }
 
 template <str_t U, class It>
@@ -283,31 +325,6 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   match<']'>(it, end);
 }
 
-template <bool_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
-  skip_ws(it, end);
-
-  if (it < end) [[likely]] {
-    switch (*it) {
-    case 't': {
-      ++it;
-      match<"rue">(it, end);
-      value = true;
-      break;
-    }
-    case 'f': {
-      ++it;
-      match<"alse">(it, end);
-      value = false;
-      break;
-    }
-      [[unlikely]] default : throw std::runtime_error("Expected true or false");
-    }
-  } else [[unlikely]] {
-    throw std::runtime_error("Expected true or false");
-  }
-}
-
 template <optional U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
@@ -338,20 +355,6 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 
     value = std::move(t);
   }
-}
-
-template <char_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
-  // TODO: this does not handle escaped chars
-  skip_ws(it, end);
-  match<'"'>(it, end);
-  if (it == end) [[unlikely]]
-    throw std::runtime_error("Unxpected end of buffer");
-  if (*it == '\\') [[unlikely]]
-    if (++it == end) [[unlikely]]
-      throw std::runtime_error("Unxpected end of buffer");
-  value = *it++;
-  match<'"'>(it, end);
 }
 
 IGUANA_INLINE void skip_object_value(auto &&it, auto &&end) {

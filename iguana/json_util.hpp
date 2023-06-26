@@ -49,13 +49,6 @@ template <typename T> constexpr inline bool is_basic_string_view = false;
 template <typename T>
 constexpr inline bool is_basic_string_view<std::basic_string_view<T>> = true;
 
-template <typename T>
-concept str_view_t = is_basic_string_view<std::remove_reference_t<T>>;
-
-template <class T>
-concept str_t =
-    std::convertible_to<std::decay_t<T>, std::string_view> && !str_view_t<T>;
-
 template <typename Type> constexpr inline bool is_std_vector_v = false;
 
 template <typename... args>
@@ -98,6 +91,15 @@ concept array = requires(Type arr) {
 
 template <typename Type>
 concept fixed_array = c_array<Type> || array<Type>;
+
+template <typename T>
+concept str_view_t = is_basic_string_view<std::remove_reference_t<T>>;
+
+// eliminate char a[]
+template <class T>
+concept str_t =
+    std::convertible_to<std::decay_t<T>, std::string_view> && !str_view_t<T> &&
+    !c_array<T>;
 
 template <typename Type>
 concept tuple = !array<Type> && requires(Type tuple) {
