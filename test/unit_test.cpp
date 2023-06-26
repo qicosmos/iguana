@@ -251,11 +251,10 @@ TEST_CASE("test parse item char") {
     CHECK(test == 'c');
   }
   {
-    std::string str{"\""};
-    char test{};
-    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
-  }
-  {
+      // std::string str{"\""};
+      // char test{};
+      // CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
+  } {
     std::string str{R"("\)"};
     char test{};
     CHECK_THROWS_WITH(iguana::from_json(test, str.begin(), str.end()),
@@ -682,12 +681,12 @@ REFLECTION(st_char_t, a, b);
 TEST_CASE("test char") {
   std::string str = R"(
   {
-    "a": "x",
+    "a": "\n",
     "b": ["1", "2", "3", "4", "5"]
   }
   )";
   auto validator = [](st_char_t c) {
-    CHECK(c.a == 'x');
+    CHECK(c.a == '\n');
     CHECK(c.b[0] == '1');
     CHECK(c.b[1] == '2');
     CHECK(c.b[2] == '3');

@@ -132,10 +132,6 @@ concept sequence_container = is_std_list_v<std::remove_reference_t<Type>> ||
     is_std_deque_v<std::remove_reference_t<Type>>;
 
 template <class T>
-concept non_refletable = container<T> || c_array<T> || tuple<T> ||
-    optional<T> || std::is_fundamental_v<T>;
-
-template <class T>
 concept associat_container_t =
     is_associat_container<std::remove_cvref_t<T>>::value;
 
@@ -149,6 +145,17 @@ concept tuple_t = is_tuple<std::remove_cvref_t<T>>::value;
 template <class T>
 concept string_container_t =
     std::convertible_to<std::decay_t<T>, std::string_view>;
+
+template <typename Type>
+concept unique_ptr_t = requires(Type ptr) {
+  ptr.operator*();
+  typename std::remove_cvref_t<Type>::element_type;
+}
+&&!requires(Type ptr, Type ptr2) { ptr = ptr2; };
+
+template <class T>
+concept non_refletable = container<T> || c_array<T> || tuple<T> ||
+    optional<T> || unique_ptr_t<T> || std::is_fundamental_v<T>;
 
 template <size_t N> struct string_literal {
   static constexpr size_t size = (N > 0) ? (N - 1) : 0;

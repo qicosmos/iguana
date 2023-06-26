@@ -583,6 +583,28 @@ TEST_CASE("test complicated object") {
   CHECK(obj.string == "Hello world");
 }
 
+TEST_CASE("test unique_ptr object") {
+  std::unique_ptr<json0_obj_t> obj_ptr;
+  iguana::from_json(obj_ptr, std::begin(json0), std::end(json0));
+  CHECK(obj_ptr->number == 3.14);
+  CHECK(obj_ptr->string == "Hello world");
+  std::string ss;
+  iguana::to_json(obj_ptr, ss);
+
+  std::unique_ptr<json0_obj_t> obj_ptr2;
+  iguana::from_json(obj_ptr2, ss);
+  CHECK(obj_ptr2->number == 3.14);
+  CHECK(obj_ptr2->string == "Hello world");
+
+  std::string_view ss1 = R"(null)";
+  std::unique_ptr<json0_obj_t> obj_ptr3;
+  iguana::from_json(obj_ptr3, ss1);
+  CHECK(!obj_ptr3);
+  std::string ss2;
+  iguana::to_json(obj_ptr3, ss2);
+  CHECK(ss2 == "null");
+}
+
 TEST_CASE("test empty object") {
   test_empty_t empty_obj;
 
