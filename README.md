@@ -219,6 +219,10 @@ iguana::from_xml(lib, str.data());
 As always what we do, define the structure and reflect the meta data.
 
 ```c++
+enum class enum_status {
+  start,
+  stop,
+};
 struct plain_type_t {
   bool isok;
   enum_status status;
