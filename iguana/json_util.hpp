@@ -49,13 +49,6 @@ template <typename T> constexpr inline bool is_basic_string_view = false;
 template <typename T>
 constexpr inline bool is_basic_string_view<std::basic_string_view<T>> = true;
 
-template <typename T>
-concept str_view_t = is_basic_string_view<std::remove_reference_t<T>>;
-
-template <class T>
-concept str_t =
-    std::convertible_to<std::decay_t<T>, std::string_view> && !str_view_t<T>;
-
 template <typename Type> constexpr inline bool is_std_vector_v = false;
 
 template <typename... args>
@@ -99,6 +92,15 @@ concept array = requires(Type arr) {
 template <typename Type>
 concept fixed_array = c_array<Type> || array<Type>;
 
+template <typename T>
+concept str_view_t = is_basic_string_view<std::remove_reference_t<T>>;
+
+// eliminate char a[]
+template <class T>
+concept str_t =
+    std::convertible_to<std::decay_t<T>, std::string_view> && !str_view_t<T> &&
+    !c_array<T>;
+
 template <typename Type>
 concept tuple = !array<Type> && requires(Type tuple) {
   std::get<0>(tuple);
@@ -130,10 +132,6 @@ concept sequence_container = is_std_list_v<std::remove_reference_t<Type>> ||
     is_std_deque_v<std::remove_reference_t<Type>>;
 
 template <class T>
-concept non_refletable = container<T> || c_array<T> || tuple<T> ||
-    optional<T> || std::is_fundamental_v<T>;
-
-template <class T>
 concept associat_container_t =
     is_associat_container<std::remove_cvref_t<T>>::value;
 
@@ -147,6 +145,17 @@ concept tuple_t = is_tuple<std::remove_cvref_t<T>>::value;
 template <class T>
 concept string_container_t =
     std::convertible_to<std::decay_t<T>, std::string_view>;
+
+template <typename Type>
+concept unique_ptr_t = requires(Type ptr) {
+  ptr.operator*();
+  typename std::remove_cvref_t<Type>::element_type;
+}
+&&!requires(Type ptr, Type ptr2) { ptr = ptr2; };
+
+template <class T>
+concept non_refletable = container<T> || c_array<T> || tuple<T> ||
+    optional<T> || unique_ptr_t<T> || std::is_fundamental_v<T>;
 
 template <size_t N> struct string_literal {
   static constexpr size_t size = (N > 0) ? (N - 1) : 0;
