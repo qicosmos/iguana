@@ -737,6 +737,33 @@ TEST_CASE("test fixed array") {
   iguana::from_json(f1, ss);
   validator(f1);
 }
+
+struct vector_bool_t {
+  std::vector<bool> a;
+  bool b;
+};
+REFLECTION(vector_bool_t, a, b);
+TEST_CASE("test vector<bool>") {
+  std::string str = R"({
+  "a": [true, false],
+  "b": true
+  })";
+  auto validator = [](vector_bool_t v) {
+    CHECK(v.a[0] == true);
+    CHECK(v.a[1] == false);
+    CHECK(v.b == true);
+  };
+  vector_bool_t v;
+  iguana::from_json(v, str);
+  validator(v);
+
+  std::string ss;
+  iguana::to_json(v, ss);
+  vector_bool_t v1;
+  iguana::from_json(v1, ss);
+  validator(v1);
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007) int main(int argc, char **argv) {

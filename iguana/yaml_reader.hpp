@@ -148,7 +148,7 @@ IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
 }
 
 template <bool_t U, class It>
-IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
+IGUANA_INLINE void parse_value(U &&value, It &&value_begin, It &&value_end) {
   auto bool_v = std::string_view(
       &*value_begin,
       static_cast<size_t>(std::distance(value_begin, value_end)));
