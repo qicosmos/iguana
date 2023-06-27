@@ -125,7 +125,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 }
 
 template <bool_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end) {
   skip_ws(it, end);
 
   if (it < end) [[likely]] {
