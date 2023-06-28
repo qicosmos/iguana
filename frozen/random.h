@@ -36,12 +36,12 @@ class linear_congruential_engine {
   static_assert(std::is_unsigned<UIntType>::value,
                 "UIntType must be an unsigned integral type");
 
-  template<class T>
+  template <class T>
   static constexpr UIntType modulo(T val, std::integral_constant<UIntType, 0>) {
     return static_cast<UIntType>(val);
   }
 
-  template<class T, UIntType M>
+  template <class T, UIntType M>
   static constexpr UIntType modulo(T val, std::integral_constant<UIntType, M>) {
     // the static cast below may end up doing a truncation
     return static_cast<UIntType>(val % M);
@@ -59,8 +59,10 @@ public:
 
   void seed(result_type s = default_seed) { state_ = s; }
   constexpr result_type operator()() {
-	  using uint_least_t = bits::select_uint_least_t<bits::log(a) + bits::log(m) + 4>;
-    uint_least_t tmp = static_cast<uint_least_t>(multiplier) * state_ + increment;
+    using uint_least_t =
+        bits::select_uint_least_t<bits::log(a) + bits::log(m) + 4>;
+    uint_least_t tmp =
+        static_cast<uint_least_t>(multiplier) * state_ + increment;
 
     state_ = modulo(tmp, std::integral_constant<UIntType, modulus>());
     return state_;

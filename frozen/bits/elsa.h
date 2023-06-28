@@ -45,7 +45,7 @@ template <class T = void> struct elsa {
 };
 
 template <> struct elsa<void> {
-  template<class T>
+  template <class T>
   constexpr std::size_t operator()(T const &value, std::size_t seed) const {
     return elsa<T>{}(value, seed);
   }
