@@ -1,6 +1,6 @@
 #include <iguana/xml_reader.hpp>
 #include <iguana/xml_writer.hpp>
-#include <rapidxml_print.hpp>
+#include <rapidxml/rapidxml_print.hpp>
 
 namespace client {
 struct madoka {

@@ -1,3 +1,0 @@
-git-repo: https://github.com/serge-sans-paille/frozen.git
-commit-id: f75fffcc077e5cda0bf3c87121dca103855d2be5
-tag: 1.1.1
