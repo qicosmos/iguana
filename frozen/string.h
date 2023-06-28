@@ -23,10 +23,10 @@
 #ifndef FROZEN_LETITGO_STRING_H
 #define FROZEN_LETITGO_STRING_H
 
+#include "frozen/bits/defines.h"
 #include "frozen/bits/elsa.h"
 #include "frozen/bits/hash_string.h"
 #include "frozen/bits/version.h"
-#include "frozen/bits/defines.h"
 
 #include <functional>
 
@@ -36,8 +36,7 @@
 
 namespace frozen {
 
-template <typename _CharT>
-class basic_string {
+template <typename _CharT> class basic_string {
   using chr_t = _CharT;
 
   chr_t const *data_;
@@ -45,8 +44,7 @@ class basic_string {
 
 public:
   template <std::size_t N>
-  constexpr basic_string(chr_t const (&data)[N])
-      : data_(data), size_(N - 1) {}
+  constexpr basic_string(chr_t const (&data)[N]) : data_(data), size_(N - 1) {}
   constexpr basic_string(chr_t const *data, std::size_t size)
       : data_(data), size_(size) {}
 
@@ -94,7 +92,8 @@ template <typename _CharT> struct elsa<basic_string<_CharT>> {
   constexpr std::size_t operator()(basic_string<_CharT> value) const {
     return hash_string(value);
   }
-  constexpr std::size_t operator()(basic_string<_CharT> value, std::size_t seed) const {
+  constexpr std::size_t operator()(basic_string<_CharT> value,
+                                   std::size_t seed) const {
     return hash_string(value, seed);
   }
 };

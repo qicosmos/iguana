@@ -6,7 +6,6 @@
 #include "doctest.h"
 #include "iguana/xml_reader.hpp"
 #include "iguana/xml_writer.hpp"
-#include "rapidxml_print.hpp"
 #include <iostream>
 #include <optional>
 

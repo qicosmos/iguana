@@ -4,13 +4,13 @@
 
 #ifndef IGUANA_XML17_HPP
 #define IGUANA_XML17_HPP
+#include "../rapidxml/rapidxml_print.hpp"
 #include "detail/charconv.h"
 #include "reflection.hpp"
 #include "type_traits.hpp"
 #include <algorithm>
 #include <cctype>
 #include <functional>
-#include <rapidxml_print.hpp>
 #include <string.h>
 
 namespace iguana {

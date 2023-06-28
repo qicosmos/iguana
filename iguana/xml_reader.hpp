@@ -1,4 +1,5 @@
 #pragma once
+#include "../rapidxml/rapidxml.hpp"
 #include "detail/charconv.h"
 #include "reflection.hpp"
 #include "type_traits.hpp"
@@ -6,7 +7,6 @@
 #include <cctype>
 #include <functional>
 #include <optional>
-#include <rapidxml.hpp>
 #include <string>
 #include <type_traits>
 

@@ -378,6 +378,8 @@ Notes: In Python3,Will prompt `DeprecationWarning: 'U' mode is deprecated`.Ignor
 - **Question**: I found a bug, how could I report?
   - **Answer**: Create an issue on [GitHub](https://github.com/qicosmos/iguana) with a detailed description. 
 
+### deps
+frozen lib
 
 ### Update
 

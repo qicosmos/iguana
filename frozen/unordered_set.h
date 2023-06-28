@@ -48,7 +48,9 @@ template <class Key, std::size_t N, typename Hash = elsa<Key>,
           class KeyEqual = std::equal_to<Key>>
 class unordered_set {
   static constexpr std::size_t storage_size =
-      bits::next_highest_power_of_two(N) * (N < 32 ? 2 : 1); // size adjustment to prevent high collision rate for small sets
+      bits::next_highest_power_of_two(N) *
+      (N < 32 ? 2 : 1); // size adjustment to prevent high collision rate for
+                        // small sets
   using container_type = bits::carray<Key, N>;
   using tables_type = bits::pmh_tables<storage_size, Hash>;
 
@@ -76,20 +78,22 @@ public:
   unordered_set(unordered_set const &) = default;
   constexpr unordered_set(container_type keys, Hash const &hash,
                           KeyEqual const &equal)
-      : equal_{equal}
-      , keys_{keys}
-      , tables_{bits::make_pmh_tables<storage_size>(
-            keys_, hash, bits::Get{}, default_prg_t{})} {}
+      : equal_{equal}, keys_{keys}, tables_{bits::make_pmh_tables<storage_size>(
+                                        keys_, hash, bits::Get{},
+                                        default_prg_t{})} {}
   explicit constexpr unordered_set(container_type keys)
       : unordered_set{keys, Hash{}, KeyEqual{}} {}
 
   constexpr unordered_set(std::initializer_list<Key> keys)
       : unordered_set{keys, Hash{}, KeyEqual{}} {}
 
-  constexpr unordered_set(std::initializer_list<Key> keys, Hash const & hash, KeyEqual const & equal)
+  constexpr unordered_set(std::initializer_list<Key> keys, Hash const &hash,
+                          KeyEqual const &equal)
       : unordered_set{container_type{keys}, hash, equal} {
-        constexpr_assert(keys.size() == N, "Inconsistent initializer_list size and type size argument");
-      }
+    constexpr_assert(
+        keys.size() == N,
+        "Inconsistent initializer_list size and type size argument");
+  }
 
   /* iterators */
   constexpr const_iterator begin() const { return keys_.begin(); }
@@ -104,7 +108,8 @@ public:
 
   /* lookup */
   template <class KeyType, class Hasher, class Equal>
-  constexpr std::size_t count(KeyType const &key, Hasher const &hash, Equal const &equal) const {
+  constexpr std::size_t count(KeyType const &key, Hasher const &hash,
+                              Equal const &equal) const {
     auto const k = lookup(key, hash);
     return equal(k, key);
   }
@@ -114,7 +119,8 @@ public:
   }
 
   template <class KeyType, class Hasher, class Equal>
-  constexpr const_iterator find(KeyType const &key, Hasher const &hash, Equal const &equal) const {
+  constexpr const_iterator find(KeyType const &key, Hasher const &hash,
+                                Equal const &equal) const {
     auto const &k = lookup(key, hash);
     if (equal(k, key))
       return &k;
@@ -127,8 +133,9 @@ public:
   }
 
   template <class KeyType, class Hasher, class Equal>
-  constexpr std::pair<const_iterator, const_iterator> equal_range(
-          KeyType const &key, Hasher const &hash, Equal const &equal) const {
+  constexpr std::pair<const_iterator, const_iterator>
+  equal_range(KeyType const &key, Hasher const &hash,
+              Equal const &equal) const {
     auto const &k = lookup(key, hash);
     if (equal(k, key))
       return {&k, &k + 1};
@@ -136,7 +143,8 @@ public:
       return {keys_.end(), keys_.end()};
   }
   template <class KeyType>
-  constexpr std::pair<const_iterator, const_iterator> equal_range(KeyType const &key) const {
+  constexpr std::pair<const_iterator, const_iterator>
+  equal_range(KeyType const &key) const {
     return equal_range(key, hash_function(), key_eq());
   }
 
@@ -145,8 +153,8 @@ public:
   constexpr std::size_t max_bucket_count() const { return storage_size; }
 
   /* observers*/
-  constexpr const hasher& hash_function() const { return tables_.hash_; }
-  constexpr const key_equal& key_eq() const { return equal_; }
+  constexpr const hasher &hash_function() const { return tables_.hash_; }
+  constexpr const key_equal &key_eq() const { return equal_; }
 
 private:
   template <class KeyType, class Hasher>
@@ -161,7 +169,8 @@ constexpr auto make_unordered_set(T const (&keys)[N]) {
 }
 
 template <typename T, std::size_t N, typename Hasher, typename Equal>
-constexpr auto make_unordered_set(T const (&keys)[N], Hasher const& hash, Equal const& equal) {
+constexpr auto make_unordered_set(T const (&keys)[N], Hasher const &hash,
+                                  Equal const &equal) {
   return unordered_set<T, N, Hasher, Equal>{keys, hash, equal};
 }
 
@@ -171,7 +180,8 @@ constexpr auto make_unordered_set(std::array<T, N> const &keys) {
 }
 
 template <typename T, std::size_t N, typename Hasher, typename Equal>
-constexpr auto make_unordered_set(std::array<T, N> const &keys, Hasher const& hash, Equal const& equal) {
+constexpr auto make_unordered_set(std::array<T, N> const &keys,
+                                  Hasher const &hash, Equal const &equal) {
   return unordered_set<T, N, Hasher, Equal>{keys, hash, equal};
 }
 
