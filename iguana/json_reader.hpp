@@ -153,9 +153,9 @@ IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end) {
   }
 }
 
-template <str_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
-  if (!skip) {
+template <bool skip = false, str_t U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+  if constexpr (!skip) {
     skip_ws(it, end);
     match<'"'>(it, end);
   }
@@ -198,11 +198,11 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
   }
 }
 
-template <str_view_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
+template <bool skip = false, str_view_t U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   static_assert(std::contiguous_iterator<std::decay_t<It>>,
                 "must be contiguous");
-  if (!skip) {
+  if constexpr (!skip) {
     skip_ws(it, end);
     match<'"'>(it, end);
   }
@@ -378,7 +378,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     using value_type = typename T::value_type;
     value_type t;
     if constexpr (str_t<value_type> || str_view_t<value_type>) {
-      parse_item(t, it, end, true);
+      parse_item<true>(t, it, end);
     } else {
       parse_item(t, it, end);
     }
@@ -466,7 +466,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
           // compile time versions of keys
           it = start;
           static thread_local std::string static_key{};
-          detail::parse_item(static_key, it, end, true);
+          detail::parse_item<true>(static_key, it, end);
           key = static_key;
         } else [[likely]] {
           key = std::string_view{&*start,
@@ -478,7 +478,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
         }
       } else {
         static thread_local std::string static_key{};
-        detail::parse_item(static_key, it, end, false);
+        detail::parse_item(static_key, it, end);
         key = static_key;
       }
 
