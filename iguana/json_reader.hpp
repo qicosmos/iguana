@@ -95,10 +95,12 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   parse_item(reinterpret_cast<T &>(value), it, end);
 }
 
-template <char_t U, class It>
+template <bool skip = false, char_t U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
-  skip_ws(it, end);
-  match<'"'>(it, end);
+  if constexpr (!skip) {
+    skip_ws(it, end);
+    match<'"'>(it, end);
+  }
   if (it == end) [[unlikely]]
     throw std::runtime_error("Unxpected end of buffer");
   if (*it == '\\') [[unlikely]] {
@@ -121,7 +123,9 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     value = *it;
   }
   ++it;
-  match<'"'>(it, end);
+  if constexpr (!skip) {
+    match<'"'>(it, end);
+  }
 }
 
 template <bool_t U, class It>
@@ -219,8 +223,23 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
 template <fixed_array U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   using T = std::remove_reference_t<U>;
+  constexpr auto n = sizeof(T) / sizeof(decltype(std::declval<T>()[0]));
   skip_ws(it, end);
 
+  if constexpr (std::is_same_v<char, std::remove_reference_t<
+                                         decltype(std::declval<T>()[0])>>) {
+    if (*it == '"') {
+      match<'"'>(it, end);
+      auto value_it = std::begin(value);
+      for (size_t i = 0; i < n; ++i) {
+        if (*it != '"') [[likely]] {
+          parse_item<true>(*value_it++, it, end);
+        }
+      }
+      match<'"'>(it, end);
+      return;
+    }
+  }
   match<'['>(it, end);
   skip_ws(it, end);
   if (it == end) {
@@ -231,7 +250,6 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     ++it;
     return;
   }
-  constexpr auto n = sizeof(T) / sizeof(decltype(std::declval<T>()[0]));
   auto value_it = std::begin(value);
   for (size_t i = 0; i < n; ++i) {
     parse_item(*value_it++, it, end);

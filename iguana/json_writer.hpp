@@ -65,15 +65,10 @@ IGUANA_INLINE void render_json_value(Stream &ss, T value) {
 template <typename Stream, string_container_t T>
 IGUANA_INLINE void render_json_value(Stream &ss, T &&t) {
   ss.push_back('"');
-  if constexpr (fixed_array<T>) {
-    constexpr auto n = sizeof(T) / sizeof(decltype(std::declval<T>()[0]));
-    ss.append(std::begin(t), n);
-  } else {
-    ss.append(t.data(), t.size());
-  }
+  ss.append(t.data(), t.size());
   ss.push_back('"');
 }
-// constexpr auto n = sizeof(T) / sizeof(decltype(std::declval<T>()[0]));
+
 template <typename Stream, arithmetic_t T>
 IGUANA_INLINE void render_key(Stream &ss, T &t) {
   ss.push_back('"');
@@ -114,14 +109,25 @@ IGUANA_INLINE void render_array(Stream &ss, const T &v) {
   ss.push_back(']');
 }
 
-template <typename Stream, typename T, size_t N>
-IGUANA_INLINE void render_json_value(Stream &ss, const T (&v)[N]) {
-  render_array(ss, v);
-}
-
-template <typename Stream, typename T, size_t N>
-IGUANA_INLINE void render_json_value(Stream &ss, const std::array<T, N> &v) {
-  render_array(ss, v);
+template <typename Stream, fixed_array T>
+IGUANA_INLINE void render_json_value(Stream &ss, const T &t) {
+  if constexpr (std::is_same_v<char, std::remove_reference_t<
+                                         decltype(std::declval<T>()[0])>>) {
+    constexpr size_t n = sizeof(T) / sizeof(decltype(std::declval<T>()[0]));
+    ss.push_back('"');
+    auto get_length = [&t](int n) constexpr {
+      for (int i = 0; i < n; ++i) {
+        if (t[i] == '\0')
+          return i;
+      }
+      return n;
+    };
+    size_t len = get_length(n);
+    ss.append(std::begin(t), len);
+    ss.push_back('"');
+  } else {
+    render_array(ss, t);
+  }
 }
 
 template <typename Stream, associat_container_t T>
