@@ -143,8 +143,7 @@ template <class T>
 concept tuple_t = is_tuple<std::remove_cvref_t<T>>::value;
 
 template <class T>
-concept string_container_t =
-    std::convertible_to<std::decay_t<T>, std::string_view>;
+concept string_container_t = str_t<T> || str_view_t<T>;
 
 template <typename Type>
 concept unique_ptr_t = requires(Type ptr) {

@@ -676,13 +676,15 @@ TEST_CASE("test the string_view") {
 struct st_char_t {
   char a;
   char b[5];
+  char c[5];
 };
-REFLECTION(st_char_t, a, b);
+REFLECTION(st_char_t, a, b, c);
 TEST_CASE("test char") {
   std::string str = R"(
   {
     "a": "\n",
-    "b": ["1", "2", "3", "4", "5"]
+    "b": ["1", "2", "3", "4", "5"],
+    "c": "1234\n"
   }
   )";
   auto validator = [](st_char_t c) {
@@ -692,6 +694,11 @@ TEST_CASE("test char") {
     CHECK(c.b[2] == '3');
     CHECK(c.b[3] == '4');
     CHECK(c.b[4] == '5');
+    CHECK(c.c[0] == '1');
+    CHECK(c.c[1] == '2');
+    CHECK(c.c[2] == '3');
+    CHECK(c.c[3] == '4');
+    CHECK(c.c[4] == '\n');
   };
   st_char_t c;
   iguana::from_json(c, str);
@@ -699,6 +706,12 @@ TEST_CASE("test char") {
   std::string ss;
   iguana::to_json(c, ss);
   std::cout << ss << std::endl;
+
+  std::string ss1;
+  const char a[3] = {'1', '2', '\0'};
+  iguana::to_json(a, ss1);
+  std::cout << ss1 << std::endl;
+  CHECK(ss1 == "\"12\"");
 }
 
 struct fixed_vector_arr_t {

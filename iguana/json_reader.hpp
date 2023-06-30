@@ -95,10 +95,12 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   parse_item(reinterpret_cast<T &>(value), it, end);
 }
 
-template <char_t U, class It>
+template <bool skip = false, char_t U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
-  skip_ws(it, end);
-  match<'"'>(it, end);
+  if constexpr (!skip) {
+    skip_ws(it, end);
+    match<'"'>(it, end);
+  }
   if (it == end) [[unlikely]]
     throw std::runtime_error("Unxpected end of buffer");
   if (*it == '\\') [[unlikely]] {
@@ -121,7 +123,9 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     value = *it;
   }
   ++it;
-  match<'"'>(it, end);
+  if constexpr (!skip) {
+    match<'"'>(it, end);
+  }
 }
 
 template <bool_t U, class It>
@@ -149,9 +153,9 @@ IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end) {
   }
 }
 
-template <str_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
-  if (!skip) {
+template <bool skip = false, str_t U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+  if constexpr (!skip) {
     skip_ws(it, end);
     match<'"'>(it, end);
   }
@@ -194,11 +198,11 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
   }
 }
 
-template <str_view_t U, class It>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
+template <bool skip = false, str_view_t U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   static_assert(std::contiguous_iterator<std::decay_t<It>>,
                 "must be contiguous");
-  if (!skip) {
+  if constexpr (!skip) {
     skip_ws(it, end);
     match<'"'>(it, end);
   }
@@ -219,8 +223,23 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, bool skip = false) {
 template <fixed_array U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   using T = std::remove_reference_t<U>;
+  constexpr auto n = sizeof(T) / sizeof(decltype(std::declval<T>()[0]));
   skip_ws(it, end);
 
+  if constexpr (std::is_same_v<char, std::remove_reference_t<
+                                         decltype(std::declval<T>()[0])>>) {
+    if (*it == '"') {
+      match<'"'>(it, end);
+      auto value_it = std::begin(value);
+      for (size_t i = 0; i < n; ++i) {
+        if (*it != '"') [[likely]] {
+          parse_item<true>(*value_it++, it, end);
+        }
+      }
+      match<'"'>(it, end);
+      return;
+    }
+  }
   match<'['>(it, end);
   skip_ws(it, end);
   if (it == end) {
@@ -231,7 +250,6 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     ++it;
     return;
   }
-  constexpr auto n = sizeof(T) / sizeof(decltype(std::declval<T>()[0]));
   auto value_it = std::begin(value);
   for (size_t i = 0; i < n; ++i) {
     parse_item(*value_it++, it, end);
@@ -360,7 +378,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     using value_type = typename T::value_type;
     value_type t;
     if constexpr (str_t<value_type> || str_view_t<value_type>) {
-      parse_item(t, it, end, true);
+      parse_item<true>(t, it, end);
     } else {
       parse_item(t, it, end);
     }
@@ -448,7 +466,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
           // compile time versions of keys
           it = start;
           static thread_local std::string static_key{};
-          detail::parse_item(static_key, it, end, true);
+          detail::parse_item<true>(static_key, it, end);
           key = static_key;
         } else [[likely]] {
           key = std::string_view{&*start,
@@ -460,7 +478,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
         }
       } else {
         static thread_local std::string static_key{};
-        detail::parse_item(static_key, it, end, false);
+        detail::parse_item(static_key, it, end);
         key = static_key;
       }
 
