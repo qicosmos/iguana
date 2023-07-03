@@ -6,7 +6,7 @@
 
 namespace iguana {
 
-template <bool tag = true, typename Stream, refletable T>
+template <typename Stream, refletable T>
 IGUANA_INLINE void render_xml_value(Stream &ss, T &&t, std::string_view name);
 
 template <typename Stream>
@@ -88,11 +88,9 @@ IGUANA_INLINE void render_xml_value(Stream &ss, const T &value,
   }
 }
 
-template <bool tag, typename Stream, refletable T>
+template <typename Stream, refletable T>
 IGUANA_INLINE void render_xml_value(Stream &ss, T &&t, std::string_view name) {
-  if constexpr (tag) {
-    render_head(ss, name);
-  }
+  render_head(ss, name);
   for_each(std::forward<T>(t),
            [&](const auto &v, auto i) IGUANA__INLINE_LAMBDA {
              using M = decltype(iguana_reflect_members(std::forward<T>(t)));
@@ -104,14 +102,15 @@ IGUANA_INLINE void render_xml_value(Stream &ss, T &&t, std::string_view name) {
              static_assert(Idx < Count);
              render_xml_value(ss, t.*v, tag_name);
            });
-  if constexpr (tag) {
-    render_tail(ss, name);
-  }
+  render_tail(ss, name);
 }
 
 template <typename Stream, refletable T>
 IGUANA_INLINE void to_xml(T &&t, Stream &s) {
-  render_xml_value<false>(s, t, "");
+  constexpr std::string_view root_name =
+      std::string_view(get_name<std::decay_t<T>>().data(),
+                      get_name<std::decay_t<T>>().size());
+  render_xml_value(s, t, root_name);
 }
 
 } // namespace iguana

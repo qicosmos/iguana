@@ -50,7 +50,7 @@ void test_deserialize() {
     ScopedTimer timer("test deserialize rpm_filelists.xml");
     for (int i = 0; i < iterations; ++i) {
       filelists_t filelist;
-      iguana::from_xml<true>(filelist, xmlfilelist.begin(), xmlfilelist.end());
+      iguana::from_xml(filelist, xmlfilelist.begin(), xmlfilelist.end());
     }
   }
   // std::cout << "============ deserialize sample_rss.xml    ===============\n";

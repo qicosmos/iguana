@@ -130,13 +130,11 @@ template <char... C> IGUANA_INLINE void skip_till(auto &&it, auto &&end) {
   }
 }
 
-// TODO: imrpove
 IGUANA_INLINE void skip_sapces_and_newline(auto &&it, auto &&end) {
-  while (it != end && (*it < 17 || *it == ' ')) {
+  while (it != end && (*it < 33)) {
     ++it;
   }
 }
-
 // match c and skip
 template <char c> IGUANA_INLINE void match(auto &&it, auto &&end) {
   if (it == end || *it != c) [[unlikely]] {
@@ -148,7 +146,7 @@ template <char c> IGUANA_INLINE void match(auto &&it, auto &&end) {
   }
 }
 
-template <char... C> IGUANA_INLINE auto skip_just_pass(auto &&it, auto &&end) {
+template <char... C> IGUANA_INLINE auto skip_pass(auto &&it, auto &&end) {
   std::decay_t<decltype(it)> res = it;
   while ((it != end) && (!((... || (*it == C))))) {
     if (*it == ' ') [[unlikely]] {
@@ -180,4 +178,5 @@ IGUANA_INLINE void match_close_tag(auto &&it, auto &&end, std::string_view key) 
   it += size;
   match<'>'>(it, end);
 }
+
 } // namespace iguana

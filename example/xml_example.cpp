@@ -5,7 +5,6 @@ enum class enum_status {
   start,
   stop,
 };
-
 struct child_t {
   int key1;
   int key2;
@@ -24,10 +23,6 @@ struct some_type_t {
 };
 REFLECTION(some_type_t, price, description, child, hasdescription, c, d_v, name,
            addr, status);
-struct some_type_root_t {
-  some_type_t root;
-};
-REFLECTION(some_type_root_t, root);
 void some_type_example() {
   auto validator_some_type = [](const some_type_t& s) {
     assert(s.price[0] == 1.23f);
@@ -45,7 +40,7 @@ void some_type_example() {
   };
   std::string str = R"(
 <?xml version="1.0" encoding="UTF-8"?>
-<root a="b" b="c">
+<some_type_t a="b" b="c">
 	<price>1.23</price>
 	<price>3.25</price>
 	<price>9.57</price>
@@ -60,27 +55,22 @@ void some_type_example() {
 	<name>John Doe</name>
 	<addr>123 Main St</addr>
 	<status>1</status>
-</root>
+</some_type_t>
 )";
-  some_type_root_t t;
-  iguana::from_xml(t, str);
-  auto &s = t.root;
-  validator_some_type(s);
+  some_type_t st;
+  iguana::from_xml(st, str);
+  validator_some_type(st);
   std::cout << "========= deserialize some_type_t ========\n";
   std::cout << "price: ";
-  for (auto p : s.price) {
+  for (auto p : st.price) {
     std::cout << p << " ";
   }
-  std::cout << "\n description : " << *s.description << "\n";
-  std::cout << s.child->key1 << " " << s.child->key2 << std::endl;
+  std::cout << "\n description : " << *st.description << "\n";
+  std::cout << st.child->key1 << " " << st.child->key2 << std::endl;
   std::cout << "========== serialize person_t =========\n";
   std::string ss;
-  iguana::to_xml(t, ss);
+  iguana::to_xml(st, ss);
   std::cout << ss << std::endl;
-
-  some_type_t some_type;
-  iguana::from_xml<true>(some_type, str);
-  validator_some_type(some_type);
 }
 
 int main(void) {
