@@ -2,7 +2,6 @@
 
 #include "define.h"
 #include "reflection.hpp"
-#include "value.hpp"
 #include <bit>
 #include <filesystem>
 #include <forward_list>
@@ -109,14 +108,33 @@ concept tuple = !array<Type> && requires(Type tuple) {
   sizeof(std::tuple_size<std::remove_cvref_t<Type>>);
 };
 
-// TODO: support c_array
+
 template <class T>
 concept non_refletable = container<T> || c_array<T> || tuple<T> ||
     optional_t<T> || unique_ptr_t<T> || std::is_fundamental_v<T>;
 
-IGUANA_INLINE void skip_yaml_comment(auto &&it, auto &&end) {
-  while (++it != end && *it != '\n')
-    ;
+
+// TODO: get more information, now just skip it
+IGUANA_INLINE void parse_declaration(auto &&it, auto &&end) {
+  
+}
+
+template <char... C> IGUANA_INLINE void skip_till(auto &&it, auto &&end) {
+  while ((it != end) && (!((... || (*it == C))))) {
+    ++it;
+  }
+  if (it == end) [[unlikely]] {
+    static constexpr char b[] = {C..., '\0'};
+    std::string error = std::string("Expected one of these: ").append(b);
+    throw std::runtime_error(error);
+  }
+}
+
+// TODO: imrpove
+IGUANA_INLINE void skip_sapces_and_newline(auto &&it, auto &&end) {
+  while (it != end && (*it < 17 || *it == ' ')) {
+    ++it;
+  }
 }
 
 // match c and skip
@@ -130,64 +148,17 @@ template <char c> IGUANA_INLINE void match(auto &&it, auto &&end) {
   }
 }
 
-// return true when it==end
-IGUANA_INLINE bool skip_space_till_end(auto &&it, auto &&end) {
-  while (it != end && *it == ' ')
-    ++it;
-  return it == end;
-}
-
-// will not skip  '\n'
-IGUANA_INLINE auto skip_till_newline(auto &&it, auto &&end) {
-  if (it == end) [[unlikely]] {
-    return it;
-  }
+template <char... C> IGUANA_INLINE auto skip_just_pass(auto &&it, auto &&end) {
   std::decay_t<decltype(it)> res = it;
-  while ((it != end) && (*it != '\n')) {
+  while ((it != end) && (!((... || (*it == C))))) {
     if (*it == ' ') [[unlikely]] {
       res = it;
       while (it != end && *it == ' ')
         ++it;
-    } else if (*it == '#') [[unlikely]] {
-      if (*(it - 1) == ' ') [[unlikely]] {
-        // it - 1 should be legal because this func is for parse value
-        while ((it != end) && *it != '\n') {
-          ++it;
-        }
-        return res;
-      }
     } else [[likely]] {
       ++it;
     }
   }
-  return (*(it - 1) == ' ') ? res : it;
-}
-
-template <char... C> IGUANA_INLINE auto skip_till(auto &&it, auto &&end) {
-  if (it == end) [[unlikely]] { // is needed?
-    return it;
-  }
-  std::decay_t<decltype(it)> res = it;
-  while ((it != end) && (!((... || (*it == C))))) {
-    if (*it == '\n') [[unlikely]] {
-      throw std::runtime_error("\\n is not expected");
-    } else if (*it == ' ') [[unlikely]] {
-      res = it;
-      while (it != end && *it == ' ')
-        ++it;
-    } else if (*it == '#') [[unlikely]] {
-      if (*(it - 1) == ' ') [[unlikely]] {
-        // it - 1 may be illegal
-        while ((it != end) && *it != '\n') {
-          ++it;
-        }
-        return res;
-      }
-    } else [[likely]] {
-      ++it;
-    }
-  }
-
   if (it == end) [[unlikely]] {
     static constexpr char b[] = {C..., '\0'};
     std::string error = std::string("Expected one of these: ").append(b);
@@ -197,45 +168,16 @@ template <char... C> IGUANA_INLINE auto skip_till(auto &&it, auto &&end) {
   return (*(it - 2) == ' ') ? res : it - 1;
 }
 
-// If there are '\n' , return indentation
-// If not, return minspaces + space
-// If Throw == true, check  res < minspaces
-template <bool Throw = true>
-IGUANA_INLINE size_t skip_space_and_lines(auto &&it, auto &&end,
-                                          size_t minspaces) {
-  size_t res = minspaces;
-  while (it != end) {
-    if (*it == '\n') {
-      ++it;
-      res = 0;
-      auto start = it;
-      // skip the --- line
-      if ((it != end) && (*it == '-')) [[unlikely]] {
-        auto line_end = skip_till<false, '\n'>(it, end);
-        auto line = std::string_view(
-            &*start, static_cast<size_t>(std::distance(start, line_end)));
-        if (line != "---") {
-          it = start;
-        }
-      }
-    } else if (*it == ' ') {
-      ++it;
-      ++res;
-    } else if (*it == '#') {
-      while (it != end && *it != '\n') {
-        ++it;
-      }
-      res = 0;
-    } else {
-      if constexpr (Throw) {
-        if (res < minspaces) [[unlikely]] {
-          throw std::runtime_error("Indentation problem");
-        }
-      }
-      return res;
-    }
-  }
-  return res; // throw in certain situations ?
-}
 
+IGUANA_INLINE void match_close_tag(auto &&it, auto &&end, std::string_view key) {
+  if (it == end || (*it++) != '/') [[unlikely]] {
+    throw std::runtime_error("unclosed tag: " + std::string(key));
+  }
+  auto size = key.size();
+  if ( (std::distance(it, end) <= size) || (std::string_view{&*it, size} != key)) [[unlikely]] {
+    throw std::runtime_error("unclosed tag: " + std::string(key));
+  }
+  it += size;
+  match<'>'>(it, end);
+}
 } // namespace iguana
