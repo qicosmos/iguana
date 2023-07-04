@@ -18,9 +18,11 @@ namespace iguana {
 template <typename T, typename map_type = std::unordered_map<std::string_view,
                                                              std::string_view>>
 class xml_attr_t {
+public:
   T &value() { return val; }
   map_type &attr() { return attribute; }
   using value_type = std::remove_cvref_t<T>;
+
 private:
   T val;
   map_type attribute;
@@ -129,7 +131,7 @@ template <typename T, typename map_type>
 constexpr inline bool is_attr_t_v<xml_attr_t<T, map_type>> = true;
 
 template <typename T>
-concept attr_t = is_attr_t_v<T>;
+concept attr_t = is_attr_t_v<std::decay_t<T>>;
 
 // TODO: get more information, now just skip it
 IGUANA_INLINE void parse_declaration(auto &&it, auto &&end) {}
