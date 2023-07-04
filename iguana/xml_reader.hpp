@@ -6,11 +6,35 @@
 #include <charconv>
 
 namespace iguana {
-
 namespace detail {
 
-template <refletable T, typename It>
-IGUANA_INLINE void parse_item(T &value, It &&it, It &&end, std::string_view name);
+template <bool skip, refletable T, typename It>
+IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
+                              std::string_view name);
+
+template <map_container U, typename It>
+IGUANA_INLINE void parse_attr(U &&value, It &&it, It &&end) {
+  using key_type = typename std::remove_cvref_t<U>::key_type;
+  using value_type = typename std::remove_cvref_t<U>::mapped_type;
+  while (it != end) {
+    skip_sapces_and_newline(it, end);
+    if (*it == '>') [[unlikely]] {
+      ++it;
+      return;
+    }
+    auto key_begin = it;
+    auto key_end = skip_till<'='>(it, end);
+    key_type key;
+    parse_value(key, key_begin, key_end);
+
+    skip_sapces_and_newline(it, end);
+    auto value_begin = it;
+    auto value_end = skip_till<' ', '>'>(it, end);
+    value_type v;
+    parse_value(v, value_begin, value_end);
+    value.emplace(std::move(key), std::move(v));
+  }
+}
 
 // TODO: check begin == end ?
 template <plain_t U, class It>
@@ -45,9 +69,13 @@ IGUANA_INLINE void parse_value(U &&value, It &&begin, It &&end) {
   }
 }
 
-template <plain_t U, class It>
-IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end, std::string_view name) {
-  
+template <bool skip, plain_t U, class It>
+IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end,
+                              std::string_view name) {
+  if constexpr (skip) {
+    skip_till<'>'>(it, end);
+    ++it;
+  }    
   skip_sapces_and_newline(it, end);
   auto value_begin = it;
   auto value_end = skip_pass<'<'>(it, end);
@@ -55,9 +83,15 @@ IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end, std::string_view nam
   match_close_tag(it, end, name);
 }
 
-template <sequence_container_t U, class It>
-IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end, std::string_view name) {
-  parse_item(value.emplace_back(), it, end, name);
+template <bool skip, sequence_container_t U, class It>
+IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end,
+                              std::string_view name) {
+  // using value_type = typename std::remove_cvref_t<U>::value_type;
+  // if constexpr(attr_t<value_type>) { 
+  //   skip_till<'>'>(it, end);
+  //   ++it;
+  // }
+  parse_item<true>(value.emplace_back(), it, end, name);
   skip_sapces_and_newline(it, end);
   while (it != end) {
     match<'<'>(it, end);
@@ -68,27 +102,60 @@ IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end, std::string_view nam
     if (key != name) [[unlikely]] {
       it = start - 1;
       return;
-    } 
-    skip_till<'>'>(it, end);
-    ++it; 
-    parse_item(value.emplace_back(), it, end, name);
+    }
+    // if constexpr (attr_t<value_type>) {
+    //   // 解析属性
+    // } else {
+    //   skip_till<'>'>(it, end);
+    //   if constexpr (optional_t<value_type>) {
+    //     if (*(it - 1) == '/') {
+    //       ++it;
+    //       skip_sapces_and_newline(it, end);
+    //       continue;
+    //     }
+    //   }
+    //   ++it;
+    //   parse_item(value.emplace_back(), it, end, name);
+    // }
+    parse_item<true>(value.emplace_back(), it, end, name);
     skip_sapces_and_newline(it, end);
   }
 }
-
-template <optional_t U, class It>
-IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end, std::string_view name) {
-  parse_item(value.emplace(), it, end, name);
+// skip必须有，为了统一
+template <bool skip, optional_t U, class It>
+IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end,
+                              std::string_view name) {
+  skip_till<'>'>(it, end);
+  if (*(it - 1) == '/') {
+    ++it;
+    return;
+  }
+  ++it;
+  parse_item<false>(value.emplace(), it, end, name);
 }
 
-template <unique_ptr_t U, class It>
-IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end, std::string_view name) {
+template <bool skip, unique_ptr_t U, class It>
+IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end,
+                              std::string_view name) {
   value = std::make_unique<typename std::remove_cvref_t<U>::element_type>();
-  parse_item(*value, it, end, name);
+  parse_item<skip>(*value, it, end, name);
 }
 
-template <refletable T, typename It>
-IGUANA_INLINE void parse_item(T &value, It &&it, It &&end, std::string_view name) {
+template <bool skip, attr_t U, typename It>
+IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end,
+                              std::string_view name) {
+  parse_attr(value.attr(), it, end);
+  parse_item<false>(value.value(), it, end, name); 
+}
+
+// skip == true 跳过属性，为false一般是解析属性的时候
+template <bool skip, refletable T, typename It>
+IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
+                              std::string_view name) {
+  if constexpr (skip) {
+    skip_till<'>'>(it, end);
+    ++it;
+  }
   skip_sapces_and_newline(it, end);
   while (it != end) {
     match<'<'>(it, end);
@@ -102,20 +169,13 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end, std::string_view name
         &*start, static_cast<size_t>(std::distance(start, it))};
     static constexpr auto frozen_map = get_iguana_struct_map<T>();
     const auto &member_it = frozen_map.find(key);
-    skip_till<'>'>(it, end); // 这里跳过了属性, 可能以空格开始
-    if (*(it - 1) == '/') [[unlikely]] {
-      ++it;
-      skip_sapces_and_newline(it, end); 
-      continue;
-    }
-    ++it;                  
     if (member_it != frozen_map.end()) [[likely]] {
       std::visit(
           [&](auto &&member_ptr) IGUANA__INLINE_LAMBDA {
             static_assert(
                 std::is_member_pointer_v<std::decay_t<decltype(member_ptr)>>,
                 "type must be memberptr");
-            detail::parse_item(value.*member_ptr, it, end, key);
+            detail::parse_item<true>(value.*member_ptr, it, end, key); 
           },
           member_it->second);
     } else [[unlikely]] {
@@ -127,15 +187,33 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end, std::string_view name
 
 } // namespace detail
 
-template <typename U, typename It>
+template <attr_t U, typename It>
 IGUANA_INLINE void from_xml(U &&value, It &&it, It &&end) {
-  using T = std::remove_reference_t<U>;
-  static_assert(plain_t<T> || refletable<T>, "type not supported");
   while (it != end) {
     skip_sapces_and_newline(it, end);
     match<'<'>(it, end);
     if (*it == '?') {
-      skip_till<'>'>(it, end); 
+      skip_till<'>'>(it, end);
+      ++it;
+    } else {
+      break;
+    }
+  }
+  auto start = it;
+  skip_till<' ', '>'>(it, end);
+  std::string_view key = std::string_view{
+      &*start, static_cast<size_t>(std::distance(start, it))};
+  detail::parse_attr(value.attr(), it, end);
+  detail::parse_item<false>(value.value(), it, end, key);
+}
+
+template <refletable U, typename It>
+IGUANA_INLINE void from_xml(U &&value, It &&it, It &&end) {
+  while (it != end) {
+    skip_sapces_and_newline(it, end);
+    match<'<'>(it, end);
+    if (*it == '?') {
+      skip_till<'>'>(it, end);
       ++it; // skip >
       // '<?xml ' - xml declaration
       // or
@@ -146,11 +224,9 @@ IGUANA_INLINE void from_xml(U &&value, It &&it, It &&end) {
   }
   auto start = it;
   skip_till<' ', '>'>(it, end);
-  std::string_view key = std::string_view{
-      &*start, static_cast<size_t>(std::distance(start, it))};
-  skip_till<'>'>(it, end); // 这里跳过了属性, 可能以空格开始, 如果不解析属性，可以优化这里
-  ++it;                    // skip >
-  detail::parse_item(value, it, end, key);
+  std::string_view key =
+      std::string_view{&*start, static_cast<size_t>(std::distance(start, it))};
+  detail::parse_item<true>(value, it, end, key);
 }
 
 template <typename U, string_t View>

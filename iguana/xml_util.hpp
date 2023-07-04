@@ -15,6 +15,17 @@
 
 namespace iguana {
 
+template <typename T, typename map_type = std::unordered_map<std::string_view,
+                                                             std::string_view>>
+class xml_attr_t {
+  T &value() { return val; }
+  map_type &attr() { return attribute; }
+  using value_type = std::remove_cvref_t<T>;
+private:
+  T val;
+  map_type attribute;
+};
+
 template <class T>
 concept char_t = std::same_as < std::decay_t<T>,
 char > || std::same_as<std::decay_t<T>, char16_t> ||
@@ -108,16 +119,20 @@ concept tuple = !array<Type> && requires(Type tuple) {
   sizeof(std::tuple_size<std::remove_cvref_t<Type>>);
 };
 
-
 template <class T>
 concept non_refletable = container<T> || c_array<T> || tuple<T> ||
     optional_t<T> || unique_ptr_t<T> || std::is_fundamental_v<T>;
 
+template <typename T> constexpr inline bool is_attr_t_v = false;
+
+template <typename T, typename map_type>
+constexpr inline bool is_attr_t_v<xml_attr_t<T, map_type>> = true;
+
+template <typename T>
+concept attr_t = is_attr_t_v<T>;
 
 // TODO: get more information, now just skip it
-IGUANA_INLINE void parse_declaration(auto &&it, auto &&end) {
-  
-}
+IGUANA_INLINE void parse_declaration(auto &&it, auto &&end) {}
 
 template <char... C> IGUANA_INLINE void skip_till(auto &&it, auto &&end) {
   while ((it != end) && (!((... || (*it == C))))) {
@@ -166,17 +181,21 @@ template <char... C> IGUANA_INLINE auto skip_pass(auto &&it, auto &&end) {
   return (*(it - 2) == ' ') ? res : it - 1;
 }
 
-
-IGUANA_INLINE void match_close_tag(auto &&it, auto &&end, std::string_view key) {
+IGUANA_INLINE void match_close_tag(auto &&it, auto &&end,
+                                   std::string_view key) {
   if (it == end || (*it++) != '/') [[unlikely]] {
     throw std::runtime_error("unclosed tag: " + std::string(key));
   }
   auto size = key.size();
-  if ( (std::distance(it, end) <= size) || (std::string_view{&*it, size} != key)) [[unlikely]] {
+  if ((std::distance(it, end) <= size) || (std::string_view{&*it, size} != key))
+      [[unlikely]] {
     throw std::runtime_error("unclosed tag: " + std::string(key));
   }
   it += size;
   match<'>'>(it, end);
+
+  // skip_till<'>'>(it, end);
+  // ++it;
 }
 
 } // namespace iguana

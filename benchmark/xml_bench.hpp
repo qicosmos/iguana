@@ -16,7 +16,7 @@
 // ************ struct for filelists.xml ****************
 
 struct package_t {
-  std::string_view version;
+  std::optional<std::string_view> version;
   std::vector<std::string_view> file;
 };
 REFLECTION(package_t, version, file);
