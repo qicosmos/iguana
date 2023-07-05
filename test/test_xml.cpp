@@ -195,6 +195,41 @@ TEST_CASE("test library with attr") {
   }
 }
 
+struct package_t {
+  iguana::xml_attr_t<std::optional<std::string_view>> version;
+  iguana::xml_attr_t<std::string_view> changelog;
+};
+REFLECTION(package_t, version, changelog);
+TEST_CASE("test example package") {
+  auto validator = [](iguana::xml_attr_t<package_t> package) {
+    CHECK(package.attr()["name"] == "apr-util-ldap");
+    CHECK(package.attr()["arch"] == "x86_64");
+    auto &p = package.value();
+    CHECK(p.version.attr()["epoch"] == "0");
+    CHECK(p.version.attr()["ver"] == "1.6.1");
+    CHECK(p.version.attr()["rel"] == "6.el8");
+    CHECK(p.changelog.attr()["author"] == "Lubo");
+    CHECK(p.changelog.attr()["date"] == "1508932800");
+    CHECK(p.changelog.value() == "new version 1.6.1");
+  };
+  std::string str = R"(
+    <package_t name="apr-util-ldap" arch="x86_64">
+      <version epoch="0" ver="1.6.1" rel="6.el8"/>
+      <changelog author="Lubo" date="1508932800">
+      new version 1.6.1</changelog>
+    </package_t>
+  )";
+  iguana::xml_attr_t<package_t> package;
+  iguana::from_xml(package, str);
+  validator(package);
+
+  std::string ss;
+  iguana::to_xml(package, ss);
+  iguana::xml_attr_t<package_t> package1;
+  iguana::from_xml(package1, ss);
+  validator(package1);
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)

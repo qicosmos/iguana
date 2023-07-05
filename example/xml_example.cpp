@@ -99,43 +99,43 @@ void lib_example() {
   }
 }
 
-// struct package_t {
-//   std::pair<std::string, std::unordered_map<std::string, std::string>>
-//   version; std::pair<std::string, std::unordered_map<std::string,
-//   std::string>>
-//       changelog;
-//   std::unordered_map<std::string, std::string> __attr;
-// };
-// REFLECTION(package_t, version, changelog, __attr);
-// void test_leafnode_attribute() {
-//   std::string str = R"(
-//     <package name="apr-util-ldap" arch="x86_64">
-//       <version epoch="0" ver="1.6.1" rel="6.el8"/>
-//       <changelog author="Lubo" date="1508932800">new
-//       version 1.6.1</changelog>
-//     </package>
-//   )";
-//   package_t package;
-//   iguana::from_xml(package, str.data());
-//   std::cout << "package attr : \n";
-//   for (auto &[k, v] : package.__attr) {
-//     std::cout << "[ " << k << " : " << v << "]  ";
-//   }
-//   std::cout << "\nchangelog attr : \n";
-//   for (auto &[k, v] : package.changelog.second) {
-//     std::cout << "[ " << k << " : " << v << "]  ";
-//   }
-//   std::cout << "\nchangelog value : \n" << package.changelog.first << "\n";
-//   std::string ss;
-//   iguana::to_xml(package, ss);
-//   std::cout << "to_xml : \n" << ss << "\n";
-// }
+struct package_t {
+  iguana::xml_attr_t<std::optional<std::string_view>> version;
+  iguana::xml_attr_t<std::string_view> changelog;
+};
+REFLECTION(package_t, version, changelog);
+void package_example() {
+  auto validator = [](iguana::xml_attr_t<package_t> package) {
+    assert(package.attr()["name"] == "apr-util-ldap");
+    assert(package.attr()["arch"] == "x86_64");
+    auto &p = package.value();
+    assert(p.version.attr()["epoch"] == "0");
+    assert(p.version.attr()["ver"] == "1.6.1");
+    assert(p.version.attr()["rel"] == "6.el8");
+    assert(p.changelog.attr()["author"] == "Lubo");
+    assert(p.changelog.attr()["date"] == "1508932800");
+    assert(p.changelog.value() == "new version 1.6.1");
+  };
+  std::string str = R"(
+    <package_t name="apr-util-ldap" arch="x86_64">
+      <version epoch="0" ver="1.6.1" rel="6.el8"/>
+      <changelog author="Lubo" date="1508932800">
+      new version 1.6.1</changelog>
+    </package_t>
+  )";
+  iguana::xml_attr_t<package_t> package;
+  iguana::from_xml(package, str);
+  validator(package);
+  std::string ss;
+  iguana::to_xml(package, ss);
+  std::cout << "========= serialize package_t with attr ========\n";
+  std::cout << ss << "\n";
+}
 
 struct base_t {
   int id;
   std::string name;
 };
-
 struct derived_t : public base_t {
   int version;
   std::string tag;
@@ -166,6 +166,7 @@ void derived_object() {
 int main(void) {
   some_type_example();
   lib_example();
+  package_example();
   derived_object();
   return 0;
 }

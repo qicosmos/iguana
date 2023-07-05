@@ -8,12 +8,12 @@
 namespace iguana {
 namespace detail {
 
-template <bool skip, refletable T, typename It>
+template <refletable T, typename It>
 IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
                               std::string_view name);
 
 // TODO: check begin == end ?
-template <plain_t U, class It>
+template <plain_t U, typename It>
 IGUANA_INLINE void parse_value(U &&value, It &&begin, It &&end) {
   using T = std::decay_t<U>;
   if constexpr (string_t<T>) {
@@ -51,8 +51,7 @@ IGUANA_INLINE void parse_attr(U &&value, It &&it, It &&end) {
   using value_type = typename std::remove_cvref_t<U>::mapped_type;
   while (it != end) {
     skip_sapces_and_newline(it, end);
-    if (*it == '>') [[unlikely]] {
-      ++it;
+    if (*it == '>' || *it == '/') [[unlikely]] {
       return;
     }
     auto key_begin = it;
@@ -70,13 +69,11 @@ IGUANA_INLINE void parse_attr(U &&value, It &&it, It &&end) {
   }
 }
 
-template <bool skip, plain_t U, class It>
+template <plain_t U, typename It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
                               std::string_view name) {
-  if constexpr (skip) {
-    skip_till<'>'>(it, end);
-    ++it;
-  }
+  skip_till<'>'>(it, end);
+  ++it;
   skip_sapces_and_newline(it, end);
   auto value_begin = it;
   auto value_end = skip_pass<'<'>(it, end);
@@ -84,10 +81,10 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
   match_close_tag(it, end, name);
 }
 
-template <bool skip, sequence_container_t U, class It>
+template <sequence_container_t U, typename It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
                               std::string_view name) {
-  parse_item<true>(value.emplace_back(), it, end, name);
+  parse_item(value.emplace_back(), it, end, name);
   skip_sapces_and_newline(it, end);
   while (it != end) {
     match<'<'>(it, end);
@@ -99,51 +96,59 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
       it = start - 1;
       return;
     }
-    parse_item<true>(value.emplace_back(), it, end, name);
+    parse_item(value.emplace_back(), it, end, name);
     skip_sapces_and_newline(it, end);
   }
 }
-// skip必须有，为了统一
-template <bool skip, optional_t U, class It>
+
+template <optional_t U, typename It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
                               std::string_view name) {
+  using value_type = typename std::remove_reference_t<U>::value_type;
   skip_till<'>'>(it, end);
   if (*(it - 1) == '/') {
     ++it;
     return;
   }
-  ++it;
-  skip_sapces_and_newline(it, end);
-  if (*it == '<') {
+
+  if constexpr (plain_t<value_type>) {
+    // The following code is for option not to be emplaced
+    // when parse  "...> <..."
+    skip_till<'>'>(it, end);
     ++it;
+    skip_sapces_and_newline(it, end);
+    auto value_begin = it;
+    auto value_end = skip_pass<'<'>(it, end);
+    if (value_begin == value_end) {
+      match_close_tag(it, end, name);
+      return;
+    }
+    parse_value(value.emplace(), value_begin, value_end);
     match_close_tag(it, end, name);
-    return;
+  } else {
+    parse_item(value.emplace(), it, end, name);
   }
-  parse_item<false>(value.emplace(), it, end, name);
 }
 
-template <bool skip, unique_ptr_t U, class It>
+template <unique_ptr_t U, typename It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
                               std::string_view name) {
   value = std::make_unique<typename std::remove_cvref_t<U>::element_type>();
-  parse_item<skip>(*value, it, end, name);
+  parse_item(*value, it, end, name);
 }
 
-template <bool skip, attr_t U, typename It>
+template <attr_t U, typename It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
                               std::string_view name) {
   parse_attr(value.attr(), it, end);
-  parse_item<false>(value.value(), it, end, name);
+  parse_item(value.value(), it, end, name);
 }
 
-// skip == true 跳过属性，为false一般是解析属性的时候
-template <bool skip, refletable T, typename It>
+template <refletable T, typename It>
 IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
                               std::string_view name) {
-  if constexpr (skip) {
-    skip_till<'>'>(it, end);
-    ++it;
-  }
+  skip_till<'>'>(it, end);
+  ++it;
   skip_sapces_and_newline(it, end);
   while (it != end) {
     match<'<'>(it, end);
@@ -163,7 +168,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
             static_assert(
                 std::is_member_pointer_v<std::decay_t<decltype(member_ptr)>>,
                 "type must be memberptr");
-            detail::parse_item<true>(value.*member_ptr, it, end, key);
+            detail::parse_item(value.*member_ptr, it, end, key);
           },
           member_it->second);
     } else [[unlikely]] {
@@ -192,7 +197,7 @@ IGUANA_INLINE void from_xml(U &value, It &&it, It &&end) {
   std::string_view key =
       std::string_view{&*start, static_cast<size_t>(std::distance(start, it))};
   detail::parse_attr(value.attr(), it, end);
-  detail::parse_item<false>(value.value(), it, end, key);
+  detail::parse_item(value.value(), it, end, key);
 }
 
 template <refletable U, typename It>
@@ -214,7 +219,7 @@ IGUANA_INLINE void from_xml(U &value, It &&it, It &&end) {
   skip_till<' ', '>'>(it, end);
   std::string_view key =
       std::string_view{&*start, static_cast<size_t>(std::distance(start, it))};
-  detail::parse_item<true>(value, it, end, key);
+  detail::parse_item(value, it, end, key);
 }
 
 template <typename U, string_t View>
