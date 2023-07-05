@@ -21,6 +21,8 @@ class xml_attr_t {
 public:
   T &value() { return val; }
   map_type &attr() { return attribute; }
+  const T &value() const { return val; }
+  const map_type &attr() const { return attribute; }
   using value_type = std::remove_cvref_t<T>;
 
 private:

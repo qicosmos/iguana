@@ -86,6 +86,42 @@ TEST_CASE("test vector") {
   validator(l1);
 }
 
+struct test_arr_t {
+  std::vector<iguana::xml_attr_t<int, std::map<std::string_view, int>>> item;
+};
+REFLECTION(test_arr_t, item);
+
+TEST_CASE("test vector with attr") {
+  auto validator = [](test_arr_t &array) {
+    auto &arr = array.item;
+    CHECK(arr[0].attr()["index"] == 0);
+    CHECK(arr[1].attr()["index"] == 1);
+    CHECK(arr[2].attr()["index"] == 2);
+    CHECK(arr[3].attr()["index"] == 3);
+    CHECK(arr[0].value() == 1);
+    CHECK(arr[1].value() == 2);
+    CHECK(arr[2].value() == 3);
+    CHECK(arr[3].value() == 4);
+  };
+  std::string str = R"(
+  <test_arr_t size="4">
+    <item index="0">1</item>
+    <item index="1">2</item>
+    <item index="2">3</item>
+    <item index="3">4</item>
+  </test_arr_t>
+  )";
+  test_arr_t arr;
+  iguana::from_xml(arr, str);
+  validator(arr);
+
+  std::string ss;
+  iguana::to_xml(arr, ss);
+  test_arr_t arr1;
+  iguana::from_xml(arr1, ss);
+  validator(arr1);
+}
+
 enum class enum_status {
   start,
   stop,

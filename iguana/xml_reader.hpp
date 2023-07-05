@@ -12,6 +12,10 @@ template <refletable T, typename It>
 IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
                               std::string_view name);
 
+template <attr_t U, typename It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
+                              std::string_view name);
+
 // TODO: check begin == end ?
 template <plain_t U, typename It>
 IGUANA_INLINE void parse_value(U &&value, It &&begin, It &&end) {
