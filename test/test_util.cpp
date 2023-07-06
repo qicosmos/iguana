@@ -18,16 +18,20 @@ TEST_CASE("test type string") {
   // static_assert(iguana::type_string<message>() == "message");
   std::cout << iguana::get_raw_name<int>() << "\n";
   std::cout << iguana::get_raw_name<message>() << "\n";
+
   auto s = iguana::type_string<message>();
+  std::cout << s << "\n";
   CHECK(s == "message");
 
   // static_assert(iguana::type_string<ns::message>() == "ns::message");
   auto s1 = iguana::type_string<ns::message>();
+  std::cout << s1 << "\n";
   CHECK(s1 == "ns::message");
 
   // static_assert(iguana::type_string<ns::ns2::message>() ==
   // "ns::ns2::message");
   auto s2 = iguana::type_string<ns::ns2::message>();
+  std::cout << s2 << "\n";
   CHECK(s2 == "ns::ns2::message");
 }
 
