@@ -43,34 +43,34 @@ enum Size { small, large };
 } // namespace ns::ns2
 
 TEST_CASE("test enum string") {
-  //  static_assert(iguana::enum_string<Color::red>() == "Color::red");
+  static_assert(iguana::enum_string<Color::red>() == "Color::red");
   auto s = iguana::enum_string<Color::red>();
   std::cout << s << "\n";
   CHECK(s == "Color::red");
 
-  //  static_assert(iguana::enum_string<ns::Color::red>() == "ns::Color::red");
+  static_assert(iguana::enum_string<ns::Color::red>() == "ns::Color::red");
   auto s1 = iguana::enum_string<ns::Color::red>();
   std::cout << s1 << "\n";
   CHECK(s1 == "ns::Color::red");
 
-  //  static_assert(iguana::enum_string<ns::ns2::Color::red>() ==
-  //                "ns::ns2::Color::red");
+  static_assert(iguana::enum_string<ns::ns2::Color::red>() ==
+                "ns::ns2::Color::red");
   auto s2 = iguana::enum_string<ns::ns2::Color::red>();
   std::cout << s2 << "\n";
   CHECK(s2 == "ns::ns2::Color::red");
 
-  //  static_assert(iguana::enum_string<Size::small>() == "small");
+  static_assert(iguana::enum_string<Size::small>() == "small");
   auto s3 = iguana::enum_string<Size::small>();
   std::cout << s3 << "\n";
   CHECK(s3 == "small");
 
-  //  static_assert(iguana::enum_string<ns::Size::small>() == "ns::small");
+  static_assert(iguana::enum_string<ns::Size::small>() == "ns::small");
   auto s4 = iguana::enum_string<ns::Size::small>();
   std::cout << s4 << "\n";
   CHECK(s4 == "ns::small");
 
-  //  static_assert(iguana::enum_string<ns::ns2::Size::small>() ==
-  //                "ns::ns2::small");
+  static_assert(iguana::enum_string<ns::ns2::Size::small>() ==
+                "ns::ns2::small");
   auto s5 = iguana::enum_string<ns::ns2::Size::large>();
   std::cout << s5 << "\n";
   CHECK(s5 == "ns::ns2::large");
