@@ -15,21 +15,6 @@
 
 namespace iguana {
 
-template <typename T, typename map_type = std::unordered_map<std::string_view,
-                                                             std::string_view>>
-class xml_attr_t {
-public:
-  T &value() { return val; }
-  map_type &attr() { return attribute; }
-  const T &value() const { return val; }
-  const map_type &attr() const { return attribute; }
-  using value_type = std::remove_cvref_t<T>;
-
-private:
-  T val;
-  map_type attribute;
-};
-
 template <class T>
 concept char_t = std::same_as < std::decay_t<T>,
 char > || std::same_as<std::decay_t<T>, char16_t> ||
@@ -127,6 +112,31 @@ template <class T>
 concept non_refletable = container<T> || c_array<T> || tuple<T> ||
     optional_t<T> || unique_ptr_t<T> || std::is_fundamental_v<T>;
 
+template <typename T, typename map_type = std::unordered_map<std::string_view,
+                                                             std::string_view>>
+class xml_attr_t {
+public:
+  T &value() { return val_; }
+  map_type &attr() { return attr_; }
+  const T &value() const { return val_; }
+  const map_type &attr() const { return attr_; }
+  using value_type = std::remove_cvref_t<T>;
+
+private:
+  T val_;
+  map_type attr_;
+};
+
+template <string_t T = std::string_view> class xml_cdata_t {
+public:
+  T &value() { return val_; }
+  const T &value() const { return val_; }
+  using value_type = std::remove_cvref_t<T>;
+
+private:
+  T val_;
+};
+
 template <typename T> constexpr inline bool is_attr_t_v = false;
 
 template <typename T, typename map_type>
@@ -134,6 +144,26 @@ constexpr inline bool is_attr_t_v<xml_attr_t<T, map_type>> = true;
 
 template <typename T>
 concept attr_t = is_attr_t_v<std::decay_t<T>>;
+
+template <typename> struct is_cdata_t : std::false_type {};
+
+template <typename T> struct is_cdata_t<xml_cdata_t<T>> : std::true_type {};
+
+template <typename T>
+concept cdata_t = is_cdata_t<std::decay_t<T>>::value;
+
+template <size_t N> struct string_literal {
+  static constexpr size_t size = (N > 0) ? (N - 1) : 0;
+
+  constexpr string_literal() = default;
+
+  constexpr string_literal(const char (&str)[N]) { std::copy_n(str, N, value); }
+
+  char value[N];
+  constexpr const char *end() const noexcept { return value + size; }
+
+  constexpr const std::string_view sv() const noexcept { return {value, size}; }
+};
 
 // TODO: get more information, now just skip it
 IGUANA_INLINE void parse_declaration(auto &&it, auto &&end) {}
@@ -162,6 +192,27 @@ template <char c> IGUANA_INLINE void match(auto &&it, auto &&end) {
     throw std::runtime_error(error);
   } else [[likely]] {
     ++it;
+  }
+}
+
+template <string_literal str> IGUANA_INLINE void match(auto &&it, auto &&end) {
+  const auto n = static_cast<size_t>(std::distance(it, end));
+  if (n < str.size) [[unlikely]] {
+    // TODO: compile time generate this message, currently borken with
+    // MSVC
+    static constexpr auto error = "Unexpected end of buffer. Expected:";
+    throw std::runtime_error(error);
+  }
+  size_t i{};
+  // clang and gcc will vectorize this loop
+  for (auto *c = str.value; c < str.end(); ++it, ++c) {
+    i += *it != *c;
+  }
+  if (i != 0) [[unlikely]] {
+    // TODO: compile time generate this message, currently borken with
+    // MSVC
+    static constexpr auto error = "Expected: ";
+    throw std::runtime_error(error);
   }
 }
 

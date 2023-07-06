@@ -92,6 +92,22 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
   skip_sapces_and_newline(it, end);
   while (it != end) {
     match<'<'>(it, end);
+
+    if (*it == '?') [[unlikely]] {
+      skip_till<'>'>(it, end);
+      ++it;
+      continue;
+    } else if (*it == '!') [[unlikely]] {
+      if (*(it + 1) == '[') {
+        --it;
+        return;
+      } else [[unlikely]] {
+        skip_till<'>'>(it, end);
+        ++it;
+        continue;
+      }
+    }
+
     auto start = it;
     skip_till<' ', '>'>(it, end);
     std::string_view key = std::string_view{
@@ -151,14 +167,58 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
 template <refletable T, typename It>
 IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
                               std::string_view name) {
+  constexpr auto cdata_idx = get_type_index<is_cdata_t, std::decay_t<T>>();
   skip_till<'>'>(it, end);
   ++it;
   skip_sapces_and_newline(it, end);
   while (it != end) {
     match<'<'>(it, end);
     if (*it == '/') [[unlikely]] {
+      // </tag>
       match_close_tag(it, end, name);
       return; // reach the close tag
+    } else if (*it == '?') [[unlikely]] {
+      // <? ... ?>
+      skip_till<'>'>(it, end);
+      ++it;
+    } else if (*it == '!') [[unlikely]] {
+      ++it;
+      if (*it == '[') {
+        // <![
+        if constexpr (cdata_idx == iguana::get_value<std::decay_t<T>>()) {
+          ++it;
+          skip_till<']'>(it, end);
+          ++it;
+          match<"]>">(it, end);
+          skip_sapces_and_newline(it, end);
+          continue;
+        } else {
+          // if parse cdata
+          ++it;
+          match<"CDATA[">(it, end);
+          skip_sapces_and_newline(it, end);
+          auto &cdata_value = get<cdata_idx>(value);
+          using VT = typename std::decay_t<decltype(cdata_value)>::value_type;
+          auto vb = it;
+          auto ve = skip_pass<']'>(it, end);
+          if constexpr (str_view_t<VT>) {
+            cdata_value.value() =
+                VT(&*vb, static_cast<size_t>(std::distance(vb, ve)));
+          } else {
+            cdata_value.value().append(
+                &*vb, static_cast<size_t>(std::distance(vb, ve)));
+          }
+          match<"]>">(it, end);
+          skip_sapces_and_newline(it, end);
+          continue;
+        }
+      } else if (*it == 'D') {
+        // // <!D
+        skip_till<'>'>(it, end);
+        ++it;
+        skip_sapces_and_newline(it, end);
+        continue;
+      } // else
     }
     auto start = it;
     skip_till<' ', '>'>(it, end);
@@ -172,7 +232,10 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
             static_assert(
                 std::is_member_pointer_v<std::decay_t<decltype(member_ptr)>>,
                 "type must be memberptr");
-            detail::parse_item(value.*member_ptr, it, end, key);
+            using V = std::remove_reference_t<decltype(value.*member_ptr)>;
+            if constexpr (!cdata_t<V>) {
+              detail::parse_item(value.*member_ptr, it, end, key);
+            }
           },
           member_it->second);
     } else [[unlikely]] {

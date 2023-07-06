@@ -125,6 +125,8 @@ IGUANA_INLINE void render_xml_value(Stream &ss, T &&t, std::string_view name) {
              } else if constexpr (attr_t<value_type>) {
                render_xml_attr(ss, (t.*v).attr(), tag_name);
                render_xml_value(ss, (t.*v).value(), tag_name);
+             } else if constexpr (cdata_t<value_type>) {
+               ss.append("<![CDATA[").append((t.*v).value()).append("]]>");
              } else {
                render_head(ss, tag_name);
                render_xml_value(ss, t.*v, tag_name);

@@ -30,12 +30,14 @@ void some_type_example() {
 	<price>1.23</price>
 	<price>3.25</price>
 	<price>9.57</price>
+  <![CDATA[This is some <b>bold</b> text.]]>
 	<description>Some description </description>
 	<child>
 		<key1>10</key1>
 		<key2>20</key2>
 	</child>
 	<hasdescription>true</hasdescription>
+  <![CDATA[This is some <b>bold</b> text.]]>
 	<c>X</c>
 	<d_v>3.14159</d_v>
 	<name>John Doe</name>
@@ -163,10 +165,42 @@ void derived_object() {
   assert(d.tag == d1.tag);
 }
 
+struct description_t {
+  iguana::xml_cdata_t<std::string> cdata;
+};
+REFLECTION(description_t, cdata);
+struct node_t {
+  std::string title;
+  description_t description;
+  iguana::xml_cdata_t<> cdata;
+};
+REFLECTION(node_t, title, description, cdata);
+void cdata_example() {
+  std::string str = R"(
+    <node_t>
+      <title>what's the cdata</title>
+      <description>
+        <![CDATA[<p>nest cdata node1 and </p>]]>
+        <![CDATA[<p>nest cdata node</p>]]>
+      </description>
+      <![CDATA[<p>this is a  cdata node</p>]]>
+    </node_t>
+  )";
+  node_t node;
+  iguana::from_xml(node, str);
+  std::cout << "title: " << node.title << "\n";
+  std::cout << "description: " << node.description.cdata.value() << "\n";
+  std::cout << "cdata" << node.cdata.value() << "\n";
+  std::string ss;
+  iguana::to_xml(node, ss);
+  std::cout << ss << "\n";
+}
+
 int main(void) {
   some_type_example();
   lib_example();
   package_example();
   derived_object();
+  cdata_example();
   return 0;
 }
