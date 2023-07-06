@@ -19,23 +19,27 @@ template <auto T> constexpr std::string_view get_raw_name() {
 }
 
 template <typename T> inline constexpr std::string_view type_string() {
-  constexpr auto sample = get_raw_name<int>();
+  constexpr std::string_view sample = get_raw_name<int>();
   constexpr size_t pos = sample.find("int");
-  constexpr auto str = get_raw_name<T>();
-  constexpr auto next1 = str.find(sample[pos + 3]);
+  constexpr std::string_view str = get_raw_name<T>();
+  constexpr auto next1 = str.rfind(sample[pos + 3]);
+#if defined(_MSC_VER)
+  constexpr auto s1 = str.substr(pos + 6, next1 - pos - 6);
+#else
   constexpr auto s1 = str.substr(pos, next1 - pos);
+#endif
   return s1;
 }
 
 template <auto T> inline constexpr std::string_view enum_string() {
-  auto sample = get_raw_name<int>();
-  size_t pos = sample.find("int");
-  auto str = get_raw_name<T>();
-  auto next1 = str.find(sample[pos + 3]);
-#if defined(__clang__)
-  auto s1 = str.substr(pos, next1 - pos);
+  constexpr std::string_view sample = get_raw_name<int>();
+  constexpr size_t pos = sample.find("int");
+  constexpr std::string_view str = get_raw_name<T>();
+  constexpr auto next1 = str.rfind(sample[pos + 3]);
+#if defined(__clang__) || defined(_MSC_VER)
+  constexpr auto s1 = str.substr(pos, next1 - pos);
 #else
-  auto s1 = str.substr(pos + 5, next1 - pos - 5);
+  constexpr auto s1 = str.substr(pos + 5, next1 - pos - 5);
 #endif
   return s1;
 }
