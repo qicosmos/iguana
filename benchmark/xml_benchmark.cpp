@@ -44,7 +44,7 @@ void test_deserialize() {
   int iterations = 1000;
 
   std::cout << "============ deserialize rpm_filelists.xml  ===============\n";
-  std::string xmlfilelist = xml_file_content("/root/purecpp/iguana/data/rpm_filelists.xml");
+  std::string xmlfilelist = xml_file_content("../data/rpm_filelists.xml");
   {
 
     ScopedTimer timer("test deserialize rpm_filelists.xml");
@@ -53,7 +53,7 @@ void test_deserialize() {
       iguana::from_xml(filelist, xmlfilelist.begin(), xmlfilelist.end());
     }
   }
-  // std::cout << "============ deserialize sample_rss.xml    ===============\n";
+  // std::cout << "============ deserialize sample_rss.xml ===============\n";
 
   // std::string xmlrss = xml_file_content("../data/sample_rss.xml");
   // {
@@ -67,32 +67,32 @@ void test_deserialize() {
   // }
 }
 
-// void bench_num() {
-//   int iterations = 1000;
-//   std::cout << "============ deserialize bench_num.xml  ===============\n";
-//   std::string xmlnum = xml_file_content("../data/bench_num.xml");
-//   {
-//     ScopedTimer timer("test deserialize bench_num.xml");
-//     for (int i = 0; i < iterations; ++i) {
-//       store_t s;
-//       iguana::from_xml<rapidxml::parse_fastest>(s, xmlnum.data());
-//     }
-//   }
-//   std::cout << "============ serialize bench_num.xml  ===============\n";
-//   store_t store;
-//   iguana::from_xml<rapidxml::parse_fastest>(store, xmlnum.data());
-//   std::string ss;
-//   ss.reserve(xmlnum.size());
-//   {
-//     ScopedTimer timer("test serialize bench_num.xml");
-//     for (int i = 0; i < iterations; ++i) {
-//       iguana::to_xml(store, ss);
-//       ss.clear();
-//     }
-//   }
-// }
+void bench_num() {
+  int iterations = 1000;
+  std::cout << "============ deserialize bench_num.xml  ===============\n";
+  std::string xmlnum = xml_file_content("../data/bench_num.xml");
+  {
+    ScopedTimer timer("test deserialize bench_num.xml");
+    for (int i = 0; i < iterations; ++i) {
+      store_t s;
+      iguana::from_xml(s, xmlnum);
+    }
+  }
+  std::cout << "============ serialize bench_num.xml  ===============\n";
+  store_t store;
+  iguana::from_xml(store, xmlnum);
+  std::string ss;
+  ss.reserve(xmlnum.size());
+  {
+    ScopedTimer timer("test serialize bench_num.xml");
+    for (int i = 0; i < iterations; ++i) {
+      iguana::to_xml(store, ss);
+      ss.clear();
+    }
+  }
+}
 
 int main() {
   test_deserialize();
-  // bench_num();
+  bench_num();
 }
