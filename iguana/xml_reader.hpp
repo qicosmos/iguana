@@ -1,5 +1,4 @@
 #pragma once
-#include "../rapidxml/rapidxml.hpp"
 #include "detail/charconv.h"
 #include "detail/utf.hpp"
 #include "xml_util.hpp"

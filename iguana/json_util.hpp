@@ -239,7 +239,7 @@ IGUANA_INLINE void skip_ws(auto &&it, auto &&end) {
 IGUANA_INLINE void skip_ws_no_comments(auto &&it, auto &&end) {
   while (it != end) {
     // assuming ascii
-    if (static_cast<uint8_t>(*it) < 33)  [[likely]] {
+    if (static_cast<uint8_t>(*it) < 33) [[likely]] {
       ++it;
     } else {
       break;
@@ -329,41 +329,41 @@ IGUANA_INLINE void skip_until_closed(auto &&it, auto &&end) {
   }
 }
 
-// IGUANA_INLINE constexpr bool is_numeric(const auto c) noexcept {
-//   switch (c) {
-//   case '0':
-//   case '1':
-//   case '2':
-//   case '3': //
-//   case '4':
-//   case '5':
-//   case '6':
-//   case '7': //
-//   case '8':
-//   case '9': //
-//   case '.':
-//   case '+':
-//   case '-': //
-//   case 'e':
-//   case 'E': //
-//     return true;
-//   }
-//   return false;
-// }
+IGUANA_INLINE constexpr bool is_numeric(const auto c) noexcept {
+  switch (c) {
+  case '0':
+  case '1':
+  case '2':
+  case '3': //
+  case '4':
+  case '5':
+  case '6':
+  case '7': //
+  case '8':
+  case '9': //
+  case '.':
+  case '+':
+  case '-': //
+  case 'e':
+  case 'E': //
+    return true;
+  }
+  return false;
+}
 
-// constexpr bool is_digit(char c) { return c <= '9' && c >= '0'; }
+constexpr bool is_digit(char c) { return c <= '9' && c >= '0'; }
 
-// constexpr size_t stoui(std::string_view s, size_t value = 0) {
-//   if (s.empty()) {
-//     return value;
-//   }
+constexpr size_t stoui(std::string_view s, size_t value = 0) {
+  if (s.empty()) {
+    return value;
+  }
 
-//   else if (is_digit(s[0])) {
-//     return stoui(s.substr(1), (s[0] - '0') + value * 10);
-//   }
+  else if (is_digit(s[0])) {
+    return stoui(s.substr(1), (s[0] - '0') + value * 10);
+  }
 
-//   else {
-//     throw std::runtime_error("not a digit");
-//   }
-// }
+  else {
+    throw std::runtime_error("not a digit");
+  }
+}
 } // namespace iguana

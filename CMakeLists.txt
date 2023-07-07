@@ -31,9 +31,6 @@ include_directories(
 	${IGUANA_DIR}
 )
 
-set(EXAMPLE
-		example/example.cpp
-)
 
 set(JSON_EXAMPLE
 	example/json_example.cpp
@@ -57,20 +54,19 @@ set(YAMLBENCH  benchmark/yaml_benchmark.cpp)
 set(TEST_NOTHROW test/test_yaml_nothrow.cpp)
 set(TEST_UTIL test/test_util.cpp)
 
-# add_executable(example 	${EXAMPLE})
-# add_executable(json_example 	${JSON_EXAMPLE})
+add_executable(json_example 	${JSON_EXAMPLE})
 add_executable(xml_example 		${XML_EXAMPLE})
-# add_executable(yaml_example 		${YAML_EXAMPLE})
-# add_executable(test_some	${TEST_SOME})
-# add_executable(test_ut 	${TEST_UT})
-# add_executable(test_json_files 	${TEST_JSON_FILES})
+add_executable(yaml_example 		${YAML_EXAMPLE})
+add_executable(test_some	${TEST_SOME})
+add_executable(test_ut 	${TEST_UT})
+add_executable(test_json_files 	${TEST_JSON_FILES})
 add_executable(test_xml ${TEST_XML})
-# add_executable(benchmark 	${BENCHMARK})
+add_executable(benchmark 	${BENCHMARK})
 add_executable(xml_benchmark ${XMLBENCH})
-# add_executable(test_yaml ${TEST_YAML})
-# add_executable(yaml_benchmark ${YAMLBENCH})
-# add_executable(test_nothrow ${TEST_NOTHROW})
-
+add_executable(test_yaml ${TEST_YAML})
+add_executable(yaml_benchmark ${YAMLBENCH})
+add_executable(test_nothrow ${TEST_NOTHROW})
+add_executable(test_util ${TEST_UTIL})
 
 # unit test
 option(BUILD_UNIT_TESTS "Build unit tests" ON)

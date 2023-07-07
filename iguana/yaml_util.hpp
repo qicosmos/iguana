@@ -164,7 +164,7 @@ IGUANA_INLINE auto skip_till_newline(auto &&it, auto &&end) {
 }
 
 template <char... C> IGUANA_INLINE auto skip_till(auto &&it, auto &&end) {
-  if (it == end) [[unlikely]] { // is needed?
+  if (it == end) [[unlikely]] {
     return it;
   }
   std::decay_t<decltype(it)> res = it;

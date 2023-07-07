@@ -440,7 +440,6 @@ IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end, size_t min_spaces) {
         &*start, static_cast<size_t>(std::distance(start, keyend))};
     static constexpr auto frozen_map = get_iguana_struct_map<T>();
     if constexpr (frozen_map.size() > 0) {
-      // is need ?
       const auto &member_it = frozen_map.find(key);
       if (member_it != frozen_map.end()) [[likely]] {
         std::visit(
