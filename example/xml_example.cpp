@@ -53,11 +53,11 @@ void some_type_example() {
     std::cout << p << " ";
   }
   std::cout << "\n description : " << *st.description << "\n";
-  std::cout << st.child->key1 << " " << st.child->key2 << std::endl;
+  std::cout << st.child->key1 << " " << st.child->key2 << "\n\n";
   std::cout << "========== serialize person_t =========\n";
   std::string ss;
   iguana::to_xml(st, ss);
-  std::cout << ss << std::endl;
+  std::cout << ss << "\n\n";
 
   some_type_t st1;
   iguana::from_xml(st1, ss);
@@ -88,7 +88,7 @@ void lib_example() {
     iguana::from_xml(lib, str);
     std::string ss;
     iguana::to_xml(lib, ss);
-    std::cout << ss << '\n';
+    std::cout << ss << "\n\n";
   }
   {
     std::cout << "========= serialize library with attr ========\n";
@@ -97,7 +97,7 @@ void lib_example() {
 
     std::string ss;
     iguana::to_xml(lib, ss);
-    std::cout << ss << '\n';
+    std::cout << ss << "\n\n";
   }
 }
 
@@ -131,7 +131,7 @@ void package_example() {
   std::string ss;
   iguana::to_xml(package, ss);
   std::cout << "========= serialize package_t with attr ========\n";
-  std::cout << ss << "\n";
+  std::cout << ss << "\n\n";
 }
 
 struct base_t {
@@ -188,12 +188,14 @@ void cdata_example() {
   )";
   node_t node;
   iguana::from_xml(node, str);
+  std::cout << "========= deserialize cdata ========\n";
   std::cout << "title: " << node.title << "\n";
   std::cout << "description: " << node.description.cdata.value() << "\n";
-  std::cout << "cdata" << node.cdata.value() << "\n";
+  std::cout << "cdata" << node.cdata.value() << "\n\n";
+  std::cout << "========= serialize cdata ========\n";
   std::string ss;
   iguana::to_xml(node, ss);
-  std::cout << ss << "\n";
+  std::cout << ss << "\n\n";
 }
 
 int main(void) {

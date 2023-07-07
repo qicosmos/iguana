@@ -16,7 +16,6 @@ template <attr_t U, typename It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
                               std::string_view name);
 
-// TODO: check begin == end ?
 template <plain_t U, typename It>
 IGUANA_INLINE void parse_value(U &&value, It &&begin, It &&end) {
   using T = std::decay_t<U>;
@@ -92,22 +91,18 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
   skip_sapces_and_newline(it, end);
   while (it != end) {
     match<'<'>(it, end);
-
-    if (*it == '?') [[unlikely]] {
-      skip_till<'>'>(it, end);
-      ++it;
-      continue;
-    } else if (*it == '!') [[unlikely]] {
+    if (*it == '?' || *it == '[') [[unlikely]] {
+      // skip <?
       if (*(it + 1) == '[') {
         --it;
         return;
-      } else [[unlikely]] {
+      } else {
         skip_till<'>'>(it, end);
         ++it;
+        skip_sapces_and_newline(it, end);
         continue;
       }
     }
-
     auto start = it;
     skip_till<' ', '>'>(it, end);
     std::string_view key = std::string_view{
@@ -173,6 +168,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
   skip_sapces_and_newline(it, end);
   while (it != end) {
     match<'<'>(it, end);
+
     if (*it == '/') [[unlikely]] {
       // </tag>
       match_close_tag(it, end, name);
@@ -181,6 +177,8 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
       // <? ... ?>
       skip_till<'>'>(it, end);
       ++it;
+      skip_sapces_and_newline(it, end);
+      continue;
     } else if (*it == '!') [[unlikely]] {
       ++it;
       if (*it == '[') {
@@ -213,13 +211,22 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
           continue;
         }
       } else if (*it == 'D') {
-        // // <!D
+        // <!D
+        ++it;
         skip_till<'>'>(it, end);
         ++it;
         skip_sapces_and_newline(it, end);
         continue;
-      } // else
+      } else {
+        // <!-- -->
+        ++it;
+        skip_till<'>'>(it, end);
+        ++it;
+        skip_sapces_and_newline(it, end);
+        continue;
+      }
     }
+
     auto start = it;
     skip_till<' ', '>'>(it, end);
     std::string_view key = std::string_view{

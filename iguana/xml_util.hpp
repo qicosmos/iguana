@@ -249,7 +249,7 @@ IGUANA_INLINE void match_close_tag(auto &&it, auto &&end,
   it += size;
   match<'>'>(it, end);
 
-  // skip_till<'>'>(it, end);
+  // skip_till<'>'>(it, end); // not check
   // ++it;
 }
 

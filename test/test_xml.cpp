@@ -163,6 +163,8 @@ TEST_CASE("test some type") {
 <?xml version="1.0" encoding="UTF-8"?>
 <some_type_t a="b" b="c">
 	<price>1.23</price>
+  <?myapp instruction?>
+  <![CDATA[ node2</p>]]>
 	<price>3.25</price>
 	<price>9.57</price>
 	<description>Some description </description>
@@ -264,6 +266,48 @@ TEST_CASE("test example package") {
   iguana::xml_attr_t<package_t> package1;
   iguana::from_xml(package1, ss);
   validator(package1);
+}
+
+struct description_t {
+  iguana::xml_cdata_t<std::string> cdata;
+};
+REFLECTION(description_t, cdata);
+struct node_t {
+  std::string title;
+  description_t description;
+  iguana::xml_cdata_t<> cdata;
+};
+REFLECTION(node_t, title, description, cdata);
+TEST_CASE("test example cdata") {
+  auto validator = [](node_t node) {
+    CHECK(node.title == "what's the cdata");
+    CHECK(node.cdata.value() == "<p>this is a  cdata node</p>");
+    CHECK(node.description.cdata.value() ==
+          "<p>nest cdata node1 and </p>node2</p>");
+  };
+  std::string str = R"(
+    <node_t>
+      <title>what's the cdata</title>
+      <description>
+        <![CDATA[<p>nest cdata node1 and </p>]]>
+        <!-- This is a comment -->
+        <![CDATA[ node2</p>]]>
+      </description>
+      <!DOCTYPE test node>
+      <?myapp instruction?>
+      <![CDATA[<p>this is a  cdata node</p>]]>
+    </node_t>
+  )";
+  // only parse cdata node
+  node_t node;
+  iguana::from_xml(node, str);
+  validator(node);
+
+  std::string ss;
+  iguana::to_xml(node, ss);
+  node_t node1;
+  iguana::from_xml(node1, ss);
+  validator(node1);
 }
 
 // doctest comments
