@@ -27,57 +27,66 @@ struct filelists_t {
 REFLECTION(filelists_t, package);
 // ************ struct for sample_rss.xml ****************
 
+struct skip_t {
+  std::string_view skip;
+};
+REFLECTION(skip_t, skip);
 struct item_t {
   std::string_view title;
-  std::optional<std::string_view> description;
+  std::string_view link;
+  skip_t description;
   std::string_view pubDate;
   std::optional<std::string_view> enclosure;
   std::string_view guid;
-  std::string_view itunes_explicit;
-  std::optional<std::string_view> dc_creator;
-  std::string_view media_thumbnail;
-  std::string_view media_content;
+  std::string_view itunes_author;
   std::string_view itunes_subtitle;
-  std::string_view itunes_summary;
+  skip_t itunes_summary;
+  std::string_view itunes_explicit;
+  std::string_view itunes_duration;
+  std::string_view dc_creator;
+  std::string_view author;
+  std::optional<std::string_view> media_thumbnail;
+  std::optional<std::string_view> media_content;
   std::string_view itunes_keywords;
 };
-REFLECTION(item_t, title, description, pubDate, enclosure, guid,
-           itunes_explicit, dc_creator, media_thumbnail, media_content,
-           itunes_subtitle, itunes_summary, itunes_keywords)
+REFLECTION(item_t, title, link, description, pubDate, enclosure, guid,
+           itunes_author, itunes_subtitle, itunes_summary, itunes_explicit,
+           itunes_duration, dc_creator, author, media_thumbnail, media_content,
+           itunes_keywords);
 
-struct itunes_owner_t {
-  std::string_view itunes_email;
+struct image_t {
+  std::string_view link;
+  std::string_view url;
+  std::string_view title;
 };
-REFLECTION(itunes_owner_t, itunes_email);
+REFLECTION(image_t, link, url, title);
 
 struct channel_t {
   std::string_view title;
   std::string_view link;
-  std::optional<std::string_view> description;
+  std::string_view description;
   std::string_view generator;
   std::string_view docs;
   std::string_view language;
-  std::optional<std::string_view> pubDate;
-  std::optional<std::string_view> lastBuildDate;
+  std::string_view pubDate;
+  std::string_view lastBuildDate;
+  image_t image;
   std::string_view itunes_author;
   std::string_view itunes_subtitle;
   std::string_view itunes_summary;
   std::string_view itunes_keywords;
-  std::string_view itunes_image;
+  std::optional<std::string_view> itunes_image;
   std::string_view itunes_explicit;
   std::string_view itunes_block;
-  std::optional<std::string_view> xmlns_feedburner;
-  std::string_view media_thumbnail;
-  std::string_view media_keywords;
-  std::string_view media_category;
-  itunes_owner_t itunes_owner;
   std::vector<item_t> item;
+  std::string_view media_credit;
+  std::string_view media_rating;
+  std::string_view media_description;
 };
 REFLECTION(channel_t, title, link, description, generator, docs, language,
-           pubDate, lastBuildDate, itunes_author, itunes_subtitle,
+           pubDate, lastBuildDate, image, itunes_author, itunes_subtitle,
            itunes_summary, itunes_keywords, itunes_image, itunes_explicit,
-           itunes_block, xmlns_feedburner, media_thumbnail, media_keywords,
-           media_category, itunes_owner, item);
+           itunes_block, item, media_credit, media_rating, media_description);
 
 struct rss_t {
   channel_t channel;
