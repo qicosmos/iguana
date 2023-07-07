@@ -53,9 +53,10 @@ void bench_de_sample_filelists() {
   }
   {
     ScopedTimer timer("iguana_xml deserialize rpm_filelists.xml");
+    filelists_t filelist;
     for (int i = 0; i < iterations; ++i) {
-      filelists_t filelist;
       iguana::from_xml(filelist, xmlfilelist.begin(), xmlfilelist.end());
+      filelist.package.clear();
     }
   }
 }
@@ -71,9 +72,10 @@ void bench_de_sample_rss() {
   }
   {
     ScopedTimer timer("iguana_xml deserialize sample_rss.xml");
+    rss_t rss;
     for (int i = 0; i < iterations; ++i) {
-      rss_t rss;
       iguana::from_xml(rss, xmlrss.begin(), xmlrss.end());
+      rss.channel.item.clear();
     }
   }
 }

@@ -106,13 +106,13 @@ struct goods_t {
 };
 REFLECTION(goods_t, id, sales, inventory, weight, price, rating, discount);
 struct storeowner_t {
-  std::string name;
-  std::string telephone;
+  std::string_view name;
+  std::string_view telephone;
 };
 REFLECTION(storeowner_t, name, telephone);
 struct store_t {
-  std::string name;
-  std::string address;
+  std::string_view name;
+  std::string_view address;
   storeowner_t owner;
   std::vector<goods_t> goods;
 };

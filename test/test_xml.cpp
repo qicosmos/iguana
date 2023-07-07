@@ -164,8 +164,8 @@ TEST_CASE("test some type") {
 <some_type_t a="b" b="c">
 	<price>1.23</price>
   <?myapp instruction?>
-  <![CDATA[ node2</p>]]>
 	<price>3.25</price>
+  <![CDATA[ node2</p>]]>
 	<price>9.57</price>
 	<description>Some description </description>
 	<child>
@@ -286,6 +286,7 @@ TEST_CASE("test example cdata") {
           "<p>nest cdata node1 and </p>node2</p>");
   };
   std::string str = R"(
+    <?xml version="1.0" encoding="UTF-8"?>
     <node_t>
       <title>what's the cdata</title>
       <description>
@@ -308,6 +309,42 @@ TEST_CASE("test example cdata") {
   node_t node1;
   iguana::from_xml(node1, ss);
   validator(node1);
+}
+
+struct test_exception_t {
+  std::unique_ptr<int> a;
+  bool b;
+  char c;
+};
+REFLECTION(test_exception_t, a, b, c);
+TEST_CASE("test exception") {
+  {
+    std::string str = "<a>3.14</a>";
+    test_exception_t t;
+    CHECK_THROWS(iguana::from_xml(t, str));
+  }
+  {
+    std::string str = "<b>TURE</b>";
+    test_exception_t t;
+    CHECK_THROWS(iguana::from_xml(t, str));
+  }
+  {
+    std::string str = "<c>ab</c>";
+    test_exception_t t;
+    CHECK_THROWS(iguana::from_xml(t, str));
+  }
+  {
+    std::string str = "<d>ab</d>";
+    test_exception_t t;
+    CHECK_THROWS(iguana::from_xml(t, str));
+  }
+  {
+    test_exception_t t;
+    t.b = true;
+    t.c = 'a';
+    std::string ss;
+    iguana::to_xml(t, ss);
+  }
 }
 
 // doctest comments

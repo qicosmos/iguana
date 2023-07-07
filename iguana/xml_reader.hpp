@@ -90,7 +90,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
   skip_sapces_and_newline(it, end);
   while (it != end) {
     match<'<'>(it, end);
-    if (*it == '?' || *it == '[') [[unlikely]] {
+    if (*it == '?' || *it == '!') [[unlikely]] {
       // skip <?
       if (*(it + 1) == '[') {
         --it;
