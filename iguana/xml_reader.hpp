@@ -186,7 +186,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
         // <![
         if constexpr (cdata_idx == iguana::get_value<std::decay_t<T>>()) {
           ++it;
-          skip_till<']'>(it, end);
+          skip_till_square_bracket(it, end);
           ++it;
           match<"]>">(it, end);
           skip_sapces_and_newline(it, end);
@@ -199,7 +199,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
           auto &cdata_value = get<cdata_idx>(value);
           using VT = typename std::decay_t<decltype(cdata_value)>::value_type;
           auto vb = it;
-          auto ve = skip_pass<']'>(it, end);
+          auto ve = skip_pass_square_bracket(it, end);
           if constexpr (str_view_t<VT>) {
             cdata_value.value() =
                 VT(&*vb, static_cast<size_t>(std::distance(vb, ve)));

@@ -186,6 +186,10 @@ TEST_CASE("test some type") {
 
   std::string ss;
   iguana::to_xml(st, ss);
+
+  std::string ss2;
+  iguana::render_value(ss2, enum_status::stop);
+  std::cout << ss2 << std::endl;
   some_type_t st1;
   iguana::from_xml(st1, ss);
   validator_some_type(st1);
@@ -209,6 +213,7 @@ TEST_CASE("test library with attr") {
     CHECK(lib.book.value().author == "J.K. Rowling");
   };
   std::string str = R"(
+  <?xml version="1.0" encoding="UTF-8"?>
   <library name="UESTC library">
     <book id="1234" language="en" edition="1">
       <title>Harry Potter and the Philosopher's Stone</title>
@@ -251,6 +256,7 @@ TEST_CASE("test example package") {
     CHECK(p.changelog.value() == "new version 1.6.1");
   };
   std::string str = R"(
+    <?xml version="1.0" encoding="UTF-8"?>
     <package_t name="apr-util-ldap" arch="x86_64">
       <version epoch="0" ver="1.6.1" rel="6.el8"/>
       <changelog author="Lubo" date="1508932800">
@@ -319,22 +325,22 @@ struct test_exception_t {
 REFLECTION(test_exception_t, a, b, c);
 TEST_CASE("test exception") {
   {
-    std::string str = "<a>3.14</a>";
+    std::string str = "<root> <a>d3</a> </root>";
     test_exception_t t;
     CHECK_THROWS(iguana::from_xml(t, str));
   }
   {
-    std::string str = "<b>TURE</b>";
+    std::string str = "<root> <b>TURE</b> </root>";
     test_exception_t t;
     CHECK_THROWS(iguana::from_xml(t, str));
   }
   {
-    std::string str = "<c>ab</c>";
+    std::string str = "<root> <c>ab</c> </root>";
     test_exception_t t;
     CHECK_THROWS(iguana::from_xml(t, str));
   }
   {
-    std::string str = "<d>ab</d>";
+    std::string str = "<root> <d>ab</d> </root>";
     test_exception_t t;
     CHECK_THROWS(iguana::from_xml(t, str));
   }
