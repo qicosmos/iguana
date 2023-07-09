@@ -253,4 +253,123 @@ IGUANA_INLINE void match_close_tag(auto &&it, auto &&end,
   // ++it;
 }
 
+// skip_till<'>'>(it, end);
+IGUANA_INLINE void skip_till_greater(auto &&it, auto &&end) {
+  static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
+
+  auto has_zero = [](uint64_t chunk) {
+    return (((chunk - 0x0101010101010101) & ~chunk) & 0x8080808080808080);
+  };
+  auto has_greater = [&](uint64_t chunk) {
+    return has_zero(
+        chunk ^
+        0b0011111000111110001111100011111000111110001111100011111000111110);
+  };
+
+  if (std::distance(it, end) >= 7) [[likely]] {
+    const auto end_m7 = end - 7;
+    for (; it < end_m7; it += 8) {
+      const auto chunk = *reinterpret_cast<const uint64_t *>(&*it);
+      uint64_t test = has_greater(chunk);
+      if (test != 0) {
+        it += (std::countr_zero(test) >> 3);
+        return;
+      }
+    }
+  }
+
+  // Tail end of buffer. Should be rare we even get here
+  while (it < end) {
+    switch (*it) {
+    case '>':
+      return;
+    }
+    ++it;
+  }
+  throw std::runtime_error("Expected >");
+}
+
+IGUANA_INLINE void skip_till_greater_or_space(auto &&it, auto &&end) {
+  static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
+
+  auto has_zero = [](uint64_t chunk) {
+    return (((chunk - 0x0101010101010101) & ~chunk) & 0x8080808080808080);
+  };
+  auto has_greater = [&](uint64_t chunk) {
+    return has_zero(
+        chunk ^
+        0b0011111000111110001111100011111000111110001111100011111000111110);
+  };
+  auto has_space = [&](uint64_t chunk) {
+    return has_zero(
+        chunk ^
+        0b0010000000100000001000000010000000100000001000000010000000100000);
+  };
+  if (std::distance(it, end) >= 7) [[likely]] {
+    const auto end_m7 = end - 7;
+    for (; it < end_m7; it += 8) {
+      const auto chunk = *reinterpret_cast<const uint64_t *>(&*it);
+      uint64_t test = has_greater(chunk) | has_space(chunk);
+      if (test != 0) {
+        it += (std::countr_zero(test) >> 3);
+        return;
+      }
+    }
+  }
+
+  // Tail end of buffer. Should be rare we even get here
+  while (it < end) {
+    switch (*it) {
+    case '>':
+    case ' ':
+      return;
+    }
+    ++it;
+  }
+  throw std::runtime_error("Expected > or space");
+}
+
+IGUANA_INLINE void skip_till_smaller(auto &&it, auto &&end) {
+  static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
+
+  auto has_zero = [](uint64_t chunk) {
+    return (((chunk - 0x0101010101010101) & ~chunk) & 0x8080808080808080);
+  };
+  auto has_smaller = [&](uint64_t chunk) {
+    return has_zero(
+        chunk ^
+        0b0011110000111100001111000011110000111100001111000011110000111100);
+  };
+
+  if (std::distance(it, end) >= 7) [[likely]] {
+    const auto end_m7 = end - 7;
+    for (; it < end_m7; it += 8) {
+      const auto chunk = *reinterpret_cast<const uint64_t *>(&*it);
+      uint64_t test = has_smaller(chunk);
+      if (test != 0) {
+        it += (std::countr_zero(test) >> 3);
+        return;
+      }
+    }
+  }
+
+  // Tail end of buffer. Should be rare we even get here
+  while (it < end) {
+    switch (*it) {
+    case '>':
+      return;
+    }
+    ++it;
+  }
+  throw std::runtime_error("Expected >");
+}
+
+IGUANA_INLINE auto skip_pass_smaller(auto &&it, auto &&end) {
+  skip_till_smaller(it, end);
+  auto res = it++ - 1;
+  while (*res == ' ') {
+    --res;
+  }
+  return res + 1;
+}
 } // namespace iguana

@@ -108,7 +108,7 @@ TEST_CASE("test vector with attr") {
     <item index="0">1</item>
     <item index="1">2</item>
     <item index="2">3</item>
-    <item index="3">4</item>
+    <item index="3">4 </item>
   </test_arr_t>
   )";
   test_arr_t arr;

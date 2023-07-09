@@ -74,11 +74,12 @@ IGUANA_INLINE void parse_attr(U &&value, It &&it, It &&end) {
 template <plain_t U, typename It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
                               std::string_view name) {
-  skip_till<'>'>(it, end);
+  skip_till_greater(it, end);
   ++it;
   skip_sapces_and_newline(it, end);
   auto value_begin = it;
-  auto value_end = skip_pass<'<'>(it, end);
+  auto value_end = skip_pass_smaller(it, end);
+  ;
   parse_value(value, value_begin, value_end);
   match_close_tag(it, end, name);
 }
@@ -96,14 +97,14 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
         --it;
         return;
       } else {
-        skip_till<'>'>(it, end);
+        skip_till_greater(it, end);
         ++it;
         skip_sapces_and_newline(it, end);
         continue;
       }
     }
     auto start = it;
-    skip_till<' ', '>'>(it, end);
+    skip_till_greater_or_space(it, end);
     std::string_view key = std::string_view{
         &*start, static_cast<size_t>(std::distance(start, it))};
     if (key != name) [[unlikely]] {
@@ -119,8 +120,8 @@ template <optional_t U, typename It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
                               std::string_view name) {
   using value_type = typename std::remove_reference_t<U>::value_type;
-  skip_till<'>'>(it, end);
-  if (*(it - 1) == '/') {
+  skip_till_greater(it, end);
+  if (*(it - 1) == '/') [[likely]] {
     ++it;
     return;
   }
@@ -128,11 +129,12 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
   if constexpr (plain_t<value_type>) {
     // The following code is for option not to be emplaced
     // when parse  "...> <..."
-    skip_till<'>'>(it, end);
+    skip_till_greater(it, end);
     ++it;
     skip_sapces_and_newline(it, end);
     auto value_begin = it;
-    auto value_end = skip_pass<'<'>(it, end);
+    auto value_end = skip_pass_smaller(it, end);
+    ;
     if (value_begin == value_end) {
       match_close_tag(it, end, name);
       return;
@@ -162,7 +164,7 @@ template <refletable T, typename It>
 IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
                               std::string_view name) {
   constexpr auto cdata_idx = get_type_index<is_cdata_t, std::decay_t<T>>();
-  skip_till<'>'>(it, end);
+  skip_till_greater(it, end);
   ++it;
   skip_sapces_and_newline(it, end);
   while (it != end) {
@@ -174,7 +176,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
       return; // reach the close tag
     } else if (*it == '?') [[unlikely]] {
       // <? ... ?>
-      skip_till<'>'>(it, end);
+      skip_till_greater(it, end);
       ++it;
       skip_sapces_and_newline(it, end);
       continue;
@@ -212,14 +214,14 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
       } else if (*it == 'D') {
         // <!D
         ++it;
-        skip_till<'>'>(it, end);
+        skip_till_greater(it, end);
         ++it;
         skip_sapces_and_newline(it, end);
         continue;
       } else {
         // <!-- -->
         ++it;
-        skip_till<'>'>(it, end);
+        skip_till_greater(it, end);
         ++it;
         skip_sapces_and_newline(it, end);
         continue;
@@ -227,7 +229,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
     }
 
     auto start = it;
-    skip_till<' ', '>'>(it, end);
+    skip_till_greater_or_space(it, end);
     std::string_view key = std::string_view{
         &*start, static_cast<size_t>(std::distance(start, it))};
     static constexpr auto frozen_map = get_iguana_struct_map<T>();
@@ -259,14 +261,14 @@ IGUANA_INLINE void from_xml(U &value, It &&it, It &&end) {
     skip_sapces_and_newline(it, end);
     match<'<'>(it, end);
     if (*it == '?') {
-      skip_till<'>'>(it, end);
+      skip_till_greater(it, end);
       ++it;
     } else {
       break;
     }
   }
   auto start = it;
-  skip_till<' ', '>'>(it, end);
+  skip_till_greater_or_space(it, end);
   std::string_view key =
       std::string_view{&*start, static_cast<size_t>(std::distance(start, it))};
   detail::parse_attr(value.attr(), it, end);
@@ -279,17 +281,14 @@ IGUANA_INLINE void from_xml(U &value, It &&it, It &&end) {
     skip_sapces_and_newline(it, end);
     match<'<'>(it, end);
     if (*it == '?') {
-      skip_till<'>'>(it, end);
+      skip_till_greater(it, end);
       ++it; // skip >
-      // '<?xml ' - xml declaration
-      // or
-      // Parse PI
     } else {
       break;
     }
   }
   auto start = it;
-  skip_till<' ', '>'>(it, end);
+  skip_till_greater_or_space(it, end);
   std::string_view key =
       std::string_view{&*start, static_cast<size_t>(std::distance(start, it))};
   detail::parse_item(value, it, end, key);
