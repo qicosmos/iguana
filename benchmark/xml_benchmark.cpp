@@ -125,7 +125,7 @@ void bench_num() {
 }
 
 int main() {
-  //  bench_de_sample_filelists();
-  //  bench_de_sample_rss();
+  bench_de_sample_filelists();
+  bench_de_sample_rss();
   bench_num();
 }
