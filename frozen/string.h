@@ -62,7 +62,12 @@ public:
   constexpr chr_t operator[](std::size_t i) const { return data_[i]; }
 
   constexpr bool operator==(basic_string other) const {
-    return std::memcmp(data_, other.data_, size_) == 0;
+    if (size_ != other.size_)
+      return false;
+    for (std::size_t i = 0; i < size_; ++i)
+      if (data_[i] != other.data_[i])
+        return false;
+    return true;
   }
 
   constexpr bool operator<(const basic_string &other) const {
