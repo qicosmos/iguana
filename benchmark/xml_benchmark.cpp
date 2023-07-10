@@ -88,6 +88,12 @@ void bench_num() {
   std::string xmlnum = xml_file_content("../data/bench_num.xml");
 
   store_t s;
+  iguana::from_xml(s, xmlnum);
+  auto good = s.goods[1];
+  std::cout << iguana::get_number<int>(good.sales) << ", "
+            << iguana::get_number<double>(good.weight) << "\n";
+  s.goods.clear();
+
   {
     ScopedTimer timer("iguana_xml deserialize bench_num.xml");
     for (int i = 0; i < iterations; ++i) {
@@ -100,7 +106,6 @@ void bench_num() {
   {
     ScopedTimer timer("rapidxml fastest parse bench_num.xml");
     for (int i = 0; i < iterations; ++i) {
-
       doc.parse<rapidxml::parse_fastest>(xmlnum.data());
       doc.clear();
     }
@@ -120,7 +125,7 @@ void bench_num() {
 }
 
 int main() {
-  bench_de_sample_filelists();
-  bench_de_sample_rss();
+  //  bench_de_sample_filelists();
+  //  bench_de_sample_rss();
   bench_num();
 }

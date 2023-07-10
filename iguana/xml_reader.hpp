@@ -298,4 +298,10 @@ IGUANA_INLINE void from_xml(U &value, const View &view) {
   from_xml(value, std::begin(view), std::end(view));
 }
 
+template <num_t Num> IGUANA_INLINE Num get_number(std::string_view str) {
+  Num num;
+  detail::parse_value(num, str.begin(), str.end());
+  return num;
+}
+
 } // namespace iguana
