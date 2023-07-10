@@ -239,7 +239,7 @@ IGUANA_INLINE void skip_ws(auto &&it, auto &&end) {
 IGUANA_INLINE void skip_ws_no_comments(auto &&it, auto &&end) {
   while (it != end) {
     // assuming ascii
-    if (static_cast<uint8_t>(*it) < 33) {
+    if (static_cast<uint8_t>(*it) < 33) [[likely]] {
       ++it;
     } else {
       break;

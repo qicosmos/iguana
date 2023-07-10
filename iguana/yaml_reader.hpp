@@ -462,7 +462,7 @@ IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end, size_t min_spaces) {
     }
     auto subspaces = skip_space_and_lines<false>(it, end, min_spaces);
     if (subspaces < min_spaces) [[unlikely]] {
-      it -= subspaces + 1; // back to the las line end
+      it -= subspaces + 1;
       return;
     }
   }

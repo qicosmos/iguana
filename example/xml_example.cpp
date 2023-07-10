@@ -1,243 +1,79 @@
 #include <iguana/xml_reader.hpp>
 #include <iguana/xml_writer.hpp>
-#include <rapidxml/rapidxml_print.hpp>
 
-namespace client {
-struct madoka {
-  std::string onegayi;
-  double power;
+enum class enum_status {
+  start,
+  stop,
 };
-
-REFLECTION(madoka, onegayi, power);
-} // namespace client
-
-struct Owner_t {
-  std::string ID;
-  std::string DisplayName;
-  auto operator==(const Owner_t &rhs) const {
-    return ID == rhs.ID && DisplayName == rhs.DisplayName;
-  }
+struct child_t {
+  int key1;
+  int key2;
 };
-REFLECTION(Owner_t, ID, DisplayName);
-
-struct Contents {
-  std::string Key;
-  std::string LastModified;
-  std::string ETag;
-  std::string Type;
-  uint32_t Size;
-  std::string StorageClass;
-  Owner_t Owner;
-
-  auto operator==(const Contents &rhs) const {
-    return Key == rhs.Key && LastModified == rhs.LastModified &&
-           ETag == rhs.ETag && Type == rhs.Type && Size == rhs.Size &&
-           StorageClass == rhs.StorageClass && Owner == rhs.Owner;
-  }
+REFLECTION(child_t, key1, key2);
+struct some_type_t {
+  std::vector<float> price;
+  std::optional<std::string> description;
+  std::unique_ptr<child_t> child;
+  bool hasdescription;
+  char c;
+  std::optional<double> d_v;
+  std::string name;
+  std::string_view addr;
+  enum_status status;
 };
-REFLECTION(Contents, Key, LastModified, ETag, Type, Size, StorageClass, Owner);
-
-void test_to_xml() {
-  Contents contents{"key", "ddd", "ccc", "aaa", 123, "aaa", {"bbb", "sss"}};
-
-  // pretty xml
-  std::string ss;
-  iguana::to_xml_pretty(contents, ss);
-  std::cout << ss << "\n";
-
-  // non pretty xml
-  std::string s;
-  iguana::to_xml(contents, s);
-  std::cout << s << "\n";
-}
-
-void test_from_xml() {
-  Contents contents{"key", "ddd", "ccc", "aaa", 123, "aaa", {"bbb", "sss"}};
-
-  // pretty xml
-  std::string ss;
-  iguana::to_xml_pretty(contents, ss);
-  std::cout << ss << "\n";
-
-  Contents contents2{"test"};
-  iguana::from_xml(contents2, ss.data());
-  std::cout << contents2.Size << "\n";
-  std::cout << contents2.Owner.DisplayName << "\n";
-  assert(contents == contents2);
-}
-
-struct status_t {
-  uint32_t fileId;
-  uint32_t length;
-  std::string path;
-  int permission;
-  std::string_view owner;
-  std::string ownerGroup;
-  uint64_t mtime;
-  uint64_t atime;
-  std::string symlink; // optional
-  bool isDir;
-  int storagePolicy;
-  int childNum; // optional
-};
-REFLECTION(status_t, fileId, length, path, permission, owner, ownerGroup, mtime,
-           atime, symlink, isDir, storagePolicy, childNum);
-
-struct response {
-  status_t status;
-};
-REFLECTION(response, status);
-
-void test_parse_status() {
+REFLECTION(some_type_t, price, description, child, hasdescription, c, d_v, name,
+           addr, status);
+void some_type_example() {
   std::string str = R"(
-    <status>
-        <fileId>123456789</fileId>
-        <length>1025</length>
-        <path>/tmp/sample.txt</path>
-        <permission>777</permission>
-        <owner>hadoop</owner>
-        <ownerGroup>hadoop</ownerGroup>
-        <mtime>123476424567890</mtime>
-        <atime>123476424567890</atime>
-        <symlink></symlink>
-        <isDir>false</isDir>
-        <storagePolicy>1</storagePolicy>
-        <childNum>0</childNum>    //only exist when it is a dir
-	</status>
+<?xml version="1.0" encoding="UTF-8"?>
+<some_type_t a="b" b="c">
+	<price>1.23</price>
+	<price>3.25</price>
+	<price>9.57</price>
+  <![CDATA[This is some <b>bold</b> text.]]>
+	<description>Some description </description>
+	<child>
+		<key1>10</key1>
+		<key2>20</key2>
+	</child>
+	<hasdescription>true</hasdescription>
+  <![CDATA[This is some <b>bold</b> text.]]>
+	<c>X</c>
+	<d_v>3.14159</d_v>
+	<name>John Doe</name>
+	<addr>123 Main St</addr>
+	<status>1</status>
+</some_type_t>
 )";
-
-  status_t t{};
-  iguana::from_xml(t, str.data());
-  std::cout << t.owner << "\n";
-  std::cout << t.mtime << ", " << t.atime << "\n";
-  std::cout << t.storagePolicy << "\n";
-
-  std::string ss;
-  iguana::to_xml(t, ss);
-}
-
-void test_parse_response() {
-  std::string str = R"(
-    <response>
-        <status>
-            <fileId>123456789</fileId>
-            <length>1025</length>
-            <path>/tmp/sample.txt</path>
-            <permission>777</permission>
-            <owner>hadoop</owner>
-            <ownerGroup>hadoop</ownerGroup>
-            <mtime>123476424567890</mtime>
-            <atime>123476424567890</atime>
-            <symlink></symlink>
-            <isDir>false</isDir>
-            <storagePolicy>1</storagePolicy>
-            <childNum>0</childNum>    //only exist when it is a dir
-        </status>
-    </response>
-)";
-
-  response t{};
-  iguana::from_xml(t, str.data());
-  std::cout << t.status.owner << "\n";
-}
-
-struct optional_t {
-  int a;
-  std::optional<int> b;
-  std::optional<std::string> c;
-  bool d;
-  char e;
-};
-REFLECTION(optional_t, a, b, c, d, e);
-
-void test_optional() {
-  optional_t op{1, 2};
-  op.d = true;
-  op.e = 'o';
-  std::string ss;
-  iguana::to_xml(op, ss);
-  std::cout << ss << "\n";
-
-  optional_t op1;
-  iguana::from_xml(op1, ss.data());
-  if (op1.b) {
-    std::cout << *op1.b << "\n";
+  some_type_t st;
+  iguana::from_xml(st, str);
+  std::cout << "========= deserialize some_type_t ========\n";
+  std::cout << "price: ";
+  for (auto p : st.price) {
+    std::cout << p << " ";
   }
-  if (op1.c) {
-    std::cout << *op1.c << "\n";
-  }
-
-  std::cout << op1.d << "\n";
-  std::cout << op1.e << "\n";
-}
-
-struct list_t {
-  std::vector<optional_t> list;
-  int id;
-};
-REFLECTION(list_t, list, id);
-void test_list() {
-  list_t l;
-  l.list.push_back(optional_t{1, 2, {}, 0, 'o'});
-  l.list.push_back(optional_t{3, 4, {}, 0, 'k'});
-  l.list.push_back(optional_t{5, 6, {}, 0, 'l'});
-
+  std::cout << "\n description : " << *st.description << "\n";
+  std::cout << st.child->key1 << " " << st.child->key2 << "\n\n";
+  std::cout << "========== serialize person_t =========\n";
   std::string ss;
-  iguana::to_xml(l, ss);
-  std::cout << ss << "\n";
+  iguana::to_xml(st, ss);
+  std::cout << ss << "\n\n";
 
-  list_t l1;
-  iguana::from_xml(l1, ss.data());
-  std::cout << l1.list.size() << "\n";
-
-  std::string s;
-  iguana::to_xml_pretty(l, s);
-  std::cout << s << '\n';
+  some_type_t st1;
+  iguana::from_xml(st1, ss);
 }
 
 struct book_t {
   std::string title;
   std::string author;
-  std::unordered_map<std::string, std::string> __attr;
 };
-std::ostream &operator<<(std::ostream &os, const book_t &b) {
-  os << "book attribute : " << std::endl;
-  for (auto &[k, v] : b.__attr) {
-    os << "[ " << k << " : " << v << "]"
-       << " ";
-  }
-  os << std::endl;
-  os << "author : " << b.author << std::endl;
-  os << "title : " << b.title << std::endl;
-  return os;
-}
-REFLECTION(book_t, title, author, __attr);
-
-void test_attribute() {
-  std::cout << "********** test_attribute ************" << std::endl;
-  std::string str = R"(
-  <book id="1234" language="en" edition="1">
-    <title>Harry Potter and the Philosopher's Stone</title>
-    <author>J.K. Rowling</author>
-  </book>
-)";
-
-  book_t book{};
-  iguana::from_xml(book, str.data());
-  std::cout << book;
-  std::string ss;
-  iguana::to_xml(book, ss);
-  std::cout << "attr to_xml: " << ss << std::endl;
-}
-
-struct library_t {
-  book_t book;
-  std::unordered_map<std::string, std::string> __attr;
+REFLECTION(book_t, title, author);
+struct library {
+  iguana::xml_attr_t<book_t> book;
 };
-REFLECTION(library_t, book, __attr);
+REFLECTION(library, book);
 
-void test_nested_attribute() {
-  std::cout << "********** test_nested_attribute ************" << std::endl;
+void lib_example() {
   std::string str = R"(
   <library name="UESTC library">
     <book id="1234" language="en" edition="1">
@@ -246,182 +82,62 @@ void test_nested_attribute() {
       </book>
   </library>
 )";
-  library_t library;
-  iguana::from_xml(library, str.data());
-  std::cout << "library attribute" << std::endl;
-  for (auto &[k, v] : library.__attr) {
-    std::cout << "[ " << k << " : " << v << "]"
-              << " ";
-  }
-  std::cout << std::endl;
-  std::cout << "\nbook\n" << library.book;
-
-  std::string ss;
-  iguana::to_xml(library, ss);
-  std::cout << "library to_xml: " << ss << std::endl;
-}
-struct movie_t {
-  std::string title;
-  std::string director;
-  std::unordered_map<std::string, iguana::any_t> __attr;
-};
-REFLECTION(movie_t, title, director, __attr);
-void test_any_attribute() {
-  std::cout << "********** test attribute with any ************" << std::endl;
-  std::string str = R"(
-  <movie id="1" time="2.3" price="32.8" language="en">
-    <title>Harry Potter and the Philosopher's Stone</title>
-    <director>Chris Columbus</director>
-  </movie>
-)";
-  movie_t movie;
-  iguana::from_xml(movie, str.data());
-  std::cout << "movie attribute :" << std::endl;
-  auto &attr = movie.__attr;
   {
-    auto [isok, value] = attr["id"].get<int>();
-    assert(isok == true);
-    std::cout << "[ "
-              << "id"
-              << " : " << value << "]";
+    std::cout << "========= serialize book_t with attr ========\n";
+    library lib;
+    iguana::from_xml(lib, str);
+    std::string ss;
+    iguana::to_xml(lib, ss);
+    std::cout << ss << "\n\n";
   }
   {
-    auto [isok, value] = attr["price"].get<float>();
-    assert(isok == true);
-    std::cout << "[ "
-              << "id"
-              << " : " << value << "]";
-  }
-  {
-    auto [isok, value] = attr["language"].get<std::string>();
-    assert(isok == true);
-    std::cout << "[ "
-              << "language"
-              << " : " << value << "]";
-  }
-  std::cout << std::endl;
-}
+    std::cout << "========= serialize library with attr ========\n";
+    iguana::xml_attr_t<library> lib;
+    iguana::from_xml(lib, str);
 
-struct person_t {
-  std::vector<std::string> name;
-};
-REFLECTION(person_t, name);
-void test_vector() {
-  std::cout << "********** test vector toxml ************" << std::endl;
-  person_t p;
-  p.name.push_back("David");
-  p.name.push_back("Bob");
-  p.name.push_back("bbg");
-  std::string ss;
-  iguana::to_xml(p, ss);
-  std::cout << ss << std::endl;
-}
-
-struct item_itunes_t {
-  iguana::namespace_t<std::string_view> itunes_author;
-  iguana::namespace_t<std::string_view> itunes_subtitle;
-  iguana::namespace_t<int> itunes_user;
-};
-REFLECTION(item_itunes_t, itunes_author, itunes_subtitle, itunes_user);
-struct item_t {
-  iguana::namespace_t<item_itunes_t> item_itunes;
-};
-REFLECTION(item_t, item_itunes);
-void test_namespace() {
-  std::cout << "********** test namespace ************" << std::endl;
-  std::string str = R"(
-    <item>
-      <item:itunes>
-        <itunes:author>Jupiter Broadcasting</itunes:author>
-        <itunes:subtitle>Linux enthusiasts talk top news stories, subtitle</itunes:subtitle>
-        <itunes:user>10086</itunes:user>       
-      </item:itunes>
-    </item>
-  )";
-  item_t it;
-  iguana::from_xml(it, str.data());
-  auto itunes = it.item_itunes.get();
-  std::cout << "author : " << itunes.itunes_author.get() << "\n";
-  std::cout << "subtitle : " << itunes.itunes_subtitle.get() << "\n";
-  std::cout << "user : " << itunes.itunes_user.get() << "\n";
-  std::string ss;
-  iguana::to_xml(it, ss);
-  std::cout << "to_xml" << std::endl << ss << "\n";
+    std::string ss;
+    iguana::to_xml(lib, ss);
+    std::cout << ss << "\n\n";
+  }
 }
 
 struct package_t {
-  std::pair<std::string, std::unordered_map<std::string, std::string>> version;
-  std::pair<std::string, std::unordered_map<std::string, std::string>>
-      changelog;
-  std::unordered_map<std::string, std::string> __attr;
+  iguana::xml_attr_t<std::optional<std::string_view>> version;
+  iguana::xml_attr_t<std::string_view> changelog;
 };
-REFLECTION(package_t, version, changelog, __attr);
-void test_leafnode_attribute() {
+REFLECTION(package_t, version, changelog);
+void package_example() {
+  auto validator = [](iguana::xml_attr_t<package_t> package) {
+    assert(package.attr()["name"] == "apr-util-ldap");
+    assert(package.attr()["arch"] == "x86_64");
+    auto &p = package.value();
+    assert(p.version.attr()["epoch"] == "0");
+    assert(p.version.attr()["ver"] == "1.6.1");
+    assert(p.version.attr()["rel"] == "6.el8");
+    assert(p.changelog.attr()["author"] == "Lubo");
+    assert(p.changelog.attr()["date"] == "1508932800");
+    assert(p.changelog.value() == "new version 1.6.1");
+  };
   std::string str = R"(
-    <package name="apr-util-ldap" arch="x86_64">
+    <package_t name="apr-util-ldap" arch="x86_64">
       <version epoch="0" ver="1.6.1" rel="6.el8"/>
-      <changelog author="Lubo" date="1508932800">new version 1.6.1</changelog>
-    </package>
+      <changelog author="Lubo" date="1508932800">
+      new version 1.6.1</changelog>
+    </package_t>
   )";
-  package_t package;
-  iguana::from_xml(package, str.data());
-  std::cout << "package attr : \n";
-  for (auto &[k, v] : package.__attr) {
-    std::cout << "[ " << k << " : " << v << "]  ";
-  }
-  std::cout << "\nchangelog attr : \n";
-  for (auto &[k, v] : package.changelog.second) {
-    std::cout << "[ " << k << " : " << v << "]  ";
-  }
-  std::cout << "\nchangelog value : \n" << package.changelog.first << "\n";
+  iguana::xml_attr_t<package_t> package;
+  iguana::from_xml(package, str);
+  validator(package);
   std::string ss;
   iguana::to_xml(package, ss);
-  std::cout << "to_xml : \n" << ss << "\n";
-}
-
-void parse_error() {
-  std::string str = "error xml";
-  person_t p;
-  bool r = iguana::from_xml(p, str.data());
-  if (!r) {
-    std::cout << iguana::get_last_read_err() << "\n";
-  }
-}
-struct description_t {
-  iguana::cdata_t cdata;
-};
-REFLECTION(description_t, cdata);
-struct node_t {
-  std::string title;
-  description_t description;
-  iguana::cdata_t cdata;
-};
-REFLECTION(node_t, title, description, cdata);
-void test_cdata() {
-  std::string str = R"(
-    <node_t>
-      <title>what's the cdata</title>
-      <description>
-        <![CDATA[<p>nest cdata node</p>]]>
-      </description>
-      <![CDATA[<p>this is a  cdata node</p>]]>
-    </node_t>
-  )";
-  node_t node;
-  iguana::from_xml(node, str.data());
-  std::cout << "title: " << node.title << "\n";
-  std::cout << "description: " << node.description.cdata.get() << "\n";
-  std::cout << "cdata" << node.cdata.get() << "\n";
-  std::string ss;
-  iguana::to_xml(node, ss);
-  std::cout << "to_xml:\n" << ss << "\n";
+  std::cout << "========= serialize package_t with attr ========\n";
+  std::cout << ss << "\n\n";
 }
 
 struct base_t {
   int id;
   std::string name;
 };
-
 struct derived_t : public base_t {
   int version;
   std::string tag;
@@ -437,6 +153,7 @@ void derived_object() {
 
   std::string str;
   iguana::to_xml(d, str);
+  std::cout << "========= serialize the derived object ========\n";
   std::cout << str << "\n";
 
   std::string s = "<derived_t><id>1</id><name>tom</name><version>42</"
@@ -444,25 +161,48 @@ void derived_object() {
   assert(str == s);
 
   derived_t d1{};
-  iguana::from_xml(d1, str.data());
+  iguana::from_xml(d1, str);
   assert(d.tag == d1.tag);
 }
 
+struct description_t {
+  iguana::xml_cdata_t<std::string> cdata;
+};
+REFLECTION(description_t, cdata);
+struct node_t {
+  std::string title;
+  description_t description;
+  iguana::xml_cdata_t<> cdata;
+};
+REFLECTION(node_t, title, description, cdata);
+void cdata_example() {
+  std::string str = R"(
+    <node_t>
+      <title>what's the cdata</title>
+      <description>
+        <![CDATA[<p>nest cdata node1 and </p>]]>
+        <![CDATA[<p>nest cdata node</p>]]>
+      </description>
+      <![CDATA[<p>this is a  cdata node</p>]]>
+    </node_t>
+  )";
+  node_t node;
+  iguana::from_xml(node, str);
+  std::cout << "========= deserialize cdata ========\n";
+  std::cout << "title: " << node.title << "\n";
+  std::cout << "description: " << node.description.cdata.value() << "\n";
+  std::cout << "cdata" << node.cdata.value() << "\n\n";
+  std::cout << "========= serialize cdata ========\n";
+  std::string ss;
+  iguana::to_xml(node, ss);
+  std::cout << ss << "\n\n";
+}
+
 int main(void) {
+  some_type_example();
+  lib_example();
+  package_example();
   derived_object();
-  parse_error();
-  test_parse_response();
-  test_parse_status();
-  test_list();
-  test_to_xml();
-  test_from_xml();
-  test_optional();
-  test_attribute();
-  test_nested_attribute();
-  test_any_attribute();
-  test_vector();
-  test_namespace();
-  test_leafnode_attribute();
-  test_cdata();
+  cdata_example();
   return 0;
 }

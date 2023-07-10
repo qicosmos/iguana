@@ -9,593 +9,348 @@
 #include <iostream>
 #include <optional>
 
-struct simple_t {
-  std::vector<int> a;
-  char b;
-  bool c;
-  bool d;
-  std::optional<std::string> e;
-  bool operator==(const simple_t &other) const {
-    if ((b == other.b) && (c == other.c) && (d == other.d) && (e == other.e)) {
-      auto t1 = a;
-      auto t2 = other.a;
-      sort(t1.begin(), t1.end());
-      sort(t2.begin(), t2.end());
-      return t1 == t2;
-    }
-    return false;
+struct Owner_t {
+  std::string ID;
+  std::string DisplayName;
+  auto operator==(const Owner_t &rhs) const {
+    return ID == rhs.ID && DisplayName == rhs.DisplayName;
   }
 };
-REFLECTION(simple_t, a, b, c, d, e);
-TEST_CASE("test simple xml") {
-  simple_t simple{{1, 2, 3}, '|', 0, 1};
-  std::string str;
-  iguana::to_xml_pretty(simple, str);
+REFLECTION(Owner_t, ID, DisplayName);
 
-  simple_t sfrom;
-  iguana::from_xml(sfrom, str.data());
-  CHECK(sfrom == simple);
+struct Contents {
+  std::string Key;
+  std::string LastModified;
+  std::string ETag;
+  std::string Type;
+  uint32_t Size;
+  std::string StorageClass;
+  Owner_t Owner;
 
-  std::string xmlstr = R"(
-    <simple_t><a>1</a><a>2</a><a>3</a><b>|</b><c>False</c><d>True</d><e>optional?</e></simple_t>
-  )";
-  simple_t sfrom2;
-  iguana::from_xml(sfrom2, xmlstr.data());
-  auto t = sfrom2.a;
-  sort(t.begin(), t.end());
-  CHECK(t == std::vector{1, 2, 3});
-  CHECK(sfrom2.b == '|');
-  CHECK(!sfrom2.c);
-  CHECK(sfrom2.d);
-  CHECK(*sfrom2.e == "optional?");
+  auto operator==(const Contents &rhs) const {
+    return Key == rhs.Key && LastModified == rhs.LastModified &&
+           ETag == rhs.ETag && Type == rhs.Type && Size == rhs.Size &&
+           StorageClass == rhs.StorageClass && Owner == rhs.Owner;
+  }
+};
+REFLECTION(Contents, Key, LastModified, ETag, Type, Size, StorageClass, Owner);
+
+TEST_CASE("simple test") {
+  Contents contents{"key", "ddd", "ccc", "aaa", 123, "aaa", {"bbb", "sss"}};
+  std::string ss;
+  iguana::to_xml(contents, ss);
+
+  Contents contents2;
+  iguana::from_xml(contents2, ss);
+  CHECK(contents == contents2);
 }
 
-struct nested_t {
-  simple_t simple;
-  int code;
+struct optional_t {
+  int a;
+  std::optional<int> b;
+  std::optional<std::string> c;
+  bool d;
+  char e;
 };
-REFLECTION(nested_t, simple, code);
-TEST_CASE("test simple nested") {
-  std::string str = R"(
-    <nested_t>
-    <simple><a>1</a><a>2</a><a>3</a><b>|</b><c>False</c><d>True</d><e></e></simple>
-    <code>10086</code>
-    </nested_t>
-  )";
-  nested_t nest;
-  iguana::from_xml(nest, str.data());
-  simple_t res{{1, 2, 3}, '|', 0, 1};
-  CHECK(res == nest.simple);
-  CHECK(nest.code == 10086);
+REFLECTION(optional_t, a, b, c, d, e);
 
-  std::string toxmlstr;
-  iguana::to_xml_pretty(nest, toxmlstr);
-  nested_t nest2;
-  iguana::from_xml(nest2, toxmlstr.data());
-  CHECK(nest2.simple == nest.simple);
+struct list_t {
+  std::vector<optional_t> list;
+  int id;
+};
+REFLECTION(list_t, list, id);
 
-  nest2.simple.a = std::vector<int>();
+TEST_CASE("test vector") {
+  auto validator = [](list_t l) {
+    CHECK(l.list[0].a == 1);
+    CHECK(*l.list[0].b == 2);
+    CHECK(!l.list[0].c);
+    CHECK(l.list[0].d == false);
+    CHECK(l.list[0].e == 'o');
+
+    CHECK(l.list[1].a == 3);
+    CHECK(*l.list[1].b == 4);
+    CHECK(!l.list[1].c);
+    CHECK(l.list[1].d == true);
+    CHECK(l.list[1].e == 'k');
+  };
+  list_t l;
+  l.list.push_back(optional_t{1, 2, {}, 0, 'o'});
+  l.list.push_back(optional_t{3, 4, {}, 1, 'k'});
+
   std::string ss;
-  iguana::to_xml(nest2, ss);
+  iguana::to_xml(l, ss);
+
+  list_t l1;
+  iguana::from_xml(l1, ss);
+  validator(l1);
+}
+
+struct test_arr_t {
+  std::vector<iguana::xml_attr_t<int, std::map<std::string_view, int>>> item;
+};
+REFLECTION(test_arr_t, item);
+
+TEST_CASE("test vector with attr") {
+  auto validator = [](test_arr_t &array) {
+    auto &arr = array.item;
+    CHECK(arr[0].attr()["index"] == 0);
+    CHECK(arr[1].attr()["index"] == 1);
+    CHECK(arr[2].attr()["index"] == 2);
+    CHECK(arr[3].attr()["index"] == 3);
+    CHECK(arr[0].value() == 1);
+    CHECK(arr[1].value() == 2);
+    CHECK(arr[2].value() == 3);
+    CHECK(arr[3].value() == 4);
+  };
+  std::string str = R"(
+  <test_arr_t size="4">
+    <item index="0">1</item>
+    <item index="1">2</item>
+    <item index="2">3</item>
+    <item index="3">4 </item>
+  </test_arr_t>
+  )";
+  test_arr_t arr;
+  iguana::from_xml(arr, str);
+  validator(arr);
+
+  std::string ss;
+  iguana::to_xml(arr, ss);
+  test_arr_t arr1;
+  iguana::from_xml(arr1, ss);
+  validator(arr1);
+}
+
+enum class enum_status {
+  start,
+  stop,
+};
+struct child_t {
+  int key1;
+  int key2;
+};
+REFLECTION(child_t, key1, key2);
+struct some_type_t {
+  std::vector<float> price;
+  std::optional<std::string> description;
+  std::unique_ptr<child_t> child;
+  bool hasdescription;
+  char c;
+  std::optional<double> d_v;
+  std::string name;
+  std::string_view addr;
+  enum_status status;
+};
+REFLECTION(some_type_t, price, description, child, hasdescription, c, d_v, name,
+           addr, status);
+TEST_CASE("test some type") {
+  auto validator_some_type = [](const some_type_t &s) {
+    CHECK(s.price[0] == 1.23f);
+    CHECK(s.price[1] == 3.25f);
+    CHECK(s.price[2] == 9.57f);
+    CHECK(*s.description == "Some description");
+    CHECK(s.child->key1 == 10);
+    CHECK(s.child->key2 == 20);
+    CHECK(s.hasdescription == true);
+    CHECK(s.c == 'X');
+    CHECK(*s.d_v == 3.14159);
+    CHECK(s.name == "John Doe");
+    CHECK(s.addr == "123 Main St");
+    CHECK(s.status == enum_status::stop);
+  };
+  std::string str = R"(
+<?xml version="1.0" encoding="UTF-8"?>
+<some_type_t a="b" b="c">
+	<price>1.23</price>
+  <?myapp instruction?>
+	<price>3.25</price>
+  <![CDATA[ node2</p>]]>
+	<price>9.57</price>
+	<description>Some description </description>
+	<child>
+		<key1>10</key1>
+		<key2>20</key2>
+	</child>
+	<hasdescription>true</hasdescription>
+	<c>X</c>
+	<d_v>3.14159</d_v>
+	<name>John Doe</name>
+	<addr>123 Main St</addr>
+	<status>1</status>
+</some_type_t>
+)";
+  some_type_t st;
+  iguana::from_xml(st, str);
+  validator_some_type(st);
+
+  std::string ss;
+  iguana::to_xml(st, ss);
+
+  std::string ss2;
+  iguana::render_value(ss2, enum_status::stop);
+  std::cout << ss2 << std::endl;
+  some_type_t st1;
+  iguana::from_xml(st1, ss);
+  validator_some_type(st1);
 }
 
 struct book_t {
   std::string title;
-  int edition;
-  std::vector<std::string> author;
-  std::optional<std::string> description;
-  bool operator==(const book_t &other) const {
-    if ((title == other.title) && (edition == other.edition) &&
-        (description == other.description)) {
-      auto t1 = author;
-      auto t2 = other.author;
-      sort(t1.begin(), t1.end());
-      sort(t2.begin(), t2.end());
-      return t1 == t2;
-    }
-    return false;
-  }
+  std::string author;
 };
-
-REFLECTION(book_t, title, edition, author, description);
-TEST_CASE("test optinal and vector") {
-  std::string str = R"(
-    <book_t>
-      <title>C++ templates</title>
-      <edition>2</edition>
-      <author>David Vandevoorde</author>
-      <author>Nicolai M. Josuttis</author>
-      <author>Douglas Gregor</author>
-      <description>talking about how to use template</description>
-    </book_t> 
-  )";
-  std::string origin_str = str;
-  book_t book;
-  iguana::from_xml(book, str.data());
-  CHECK(book.title == "C++ templates");
-  CHECK(book.author.size() == 3);
-
-  std::vector<std::string> author = {"David Vandevoorde", "Nicolai M. Josuttis",
-                                     "Douglas Gregor"};
-  sort(author.begin(), author.end());
-  auto t = book.author;
-  sort(t.begin(), t.end());
-  CHECK(t == author);
-  CHECK(book.edition == 2);
-  CHECK(book.description);
-  CHECK(*book.description == "talking about how to use template");
-
-  std::string xml_str;
-  iguana::to_xml(book, xml_str);
-  book_t newbook;
-  iguana::from_xml(newbook, xml_str.data());
-  CHECK_MESSAGE(newbook == book, "the newer must be same as the older");
-}
-
-struct library_t {
-  std::vector<book_t> book;
-  int sum;
+REFLECTION(book_t, title, author);
+struct library {
+  iguana::xml_attr_t<book_t> book;
 };
-REFLECTION(library_t, book, sum);
-TEST_CASE("test nested vector") {
+REFLECTION(library, book);
+TEST_CASE("test library with attr") {
+  auto validator = [](library lib) {
+    CHECK(lib.book.attr()["id"] == "1234");
+    CHECK(lib.book.attr()["language"] == "en");
+    CHECK(lib.book.attr()["edition"] == "1");
+    CHECK(lib.book.value().title == "Harry Potter and the Philosopher's Stone");
+    CHECK(lib.book.value().author == "J.K. Rowling");
+  };
   std::string str = R"(
-    <library>
-    <book>
-      <title>C++ templates</title>
-      <edition>2</edition>
-      <author>David Vandevoorde</author>
-      <author>Nicolai M. Josuttis</author>
-      <author>Douglas Gregor</author>
-      <description>talking about how to use template</description>
+  <?xml version="1.0" encoding="UTF-8"?>
+  <library name="UESTC library">
+    <book id="1234" language="en" edition="1">
+      <title>Harry Potter and the Philosopher's Stone</title>
+      <author>J.K. Rowling</author>
     </book>
-    <book>
-      <title>C++ primer</title>
-      <edition>6</edition>
-      <author>Stanley B. Lippman</author>
-      <author>Josée Lajoie</author>
-      <author>Barbara E. Moo</author>
-      <description></description>
-    </book>
-    <sum>2</sum>
-    </library>
-  )";
-  library_t library;
-  iguana::from_xml(library, str.data());
-  CHECK(library.sum == 2);
-  CHECK(library.book[0].title == "C++ templates");
-  CHECK(library.book[1].title == "C++ primer");
-  if (library.book[1].title == "C++ primer") {
-    CHECK(!library.book[1].description);
-    std::vector<std::string> author = {"Stanley B. Lippman", "Josée Lajoie",
-                                       "Barbara E. Moo"};
-    auto t1 = library.book[1].author;
-    CHECK(t1.size() == 3);
-    sort(t1.begin(), t1.end());
-    sort(author.begin(), author.end());
-    CHECK(t1 == author);
+  </library>
+)";
+  {
+    library lib;
+    iguana::from_xml(lib, str);
+    validator(lib);
   }
+  {
+    iguana::xml_attr_t<library> lib;
+    iguana::from_xml(lib, str);
+    CHECK(lib.attr()["name"] == "UESTC library");
+    validator(lib.value());
 
-  std::string xml_str;
-  iguana::to_xml(library, xml_str);
-  library_t newlibrary;
-  iguana::from_xml(newlibrary, xml_str.data());
-  if (newlibrary.book[0].title == library.book[0].title) {
-    CHECK(newlibrary.book[0] == library.book[0]);
-    CHECK(newlibrary.book[1] == library.book[1]);
-  } else {
-    CHECK(newlibrary.book[1] == library.book[0]);
-    CHECK(newlibrary.book[0] == library.book[1]);
+    std::string ss;
+    iguana::to_xml(lib, ss);
+    std::cout << ss << std::endl;
   }
-}
-
-struct library_t2 {
-  std::optional<std::vector<book_t>> book;
-  int sum;
-};
-REFLECTION(library_t2, book, sum);
-TEST_CASE("test optional nested vector") {
-  std::string str = R"(
-    <library>
-    <book>
-      <title>C++ templates</title>
-      <edition>2</edition>
-      <author>David Vandevoorde</author>
-      <author>Nicolai M. Josuttis</author>
-      <author>Douglas Gregor</author>
-      <description>talking about how to use template</description>
-    </book>
-    <book>
-      <title>C++ primer</title>
-      <edition>6</edition>
-      <author>Stanley B. Lippman</author>
-      <author>Josée Lajoie</author>
-      <author>Barbara E. Moo</author>
-      <description></description>
-    </book>
-    <sum>2</sum>
-    </library>
-  )";
-  library_t2 library;
-  iguana::from_xml(library, str.data());
-  CHECK(library.sum == 2);
-  auto books = *library.book;
-  CHECK(books[0].title == "C++ templates");
-  CHECK(books[1].title == "C++ primer");
-  if (books[1].title == "C++ primer") {
-    CHECK(!books[1].description);
-    std::vector<std::string> author = {"Stanley B. Lippman", "Josée Lajoie",
-                                       "Barbara E. Moo"};
-    auto t1 = books[1].author;
-    CHECK(t1.size() == 3);
-    sort(t1.begin(), t1.end());
-    sort(author.begin(), author.end());
-    CHECK(t1 == author);
-  }
-
-  std::string xml_str;
-  iguana::to_xml(library, xml_str);
-  library_t newlibrary;
-  iguana::from_xml(newlibrary, xml_str.data());
-  if (newlibrary.book[0].title == books[0].title) {
-    CHECK(newlibrary.book[0] == books[0]);
-    CHECK(newlibrary.book[1] == books[1]);
-  } else {
-    CHECK(newlibrary.book[1] == books[0]);
-    CHECK(newlibrary.book[0] == books[1]);
-  }
-}
-
-struct book_attr_t {
-  std::map<std::string, float> __attr;
-  std::string title;
-};
-REFLECTION(book_attr_t, __attr, title);
-TEST_CASE("test attribute with map") {
-  std::string str = R"(
-    <book_attr_t id="5" pages="392" price="79.9">
-      <title>C++ templates</title>
-    </book_with_attr_t>
-  )";
-  book_attr_t b;
-  iguana::from_xml(b, str.data());
-  CHECK(b.__attr["id"] == 5);
-  CHECK(b.__attr["pages"] == 392.0f);
-  CHECK(b.__attr["price"] == 79.9f);
-
-  std::string ss;
-  iguana::to_xml_pretty(b, ss);
-  book_attr_t b2;
-  iguana::from_xml(b2, ss.data());
-  CHECK(b2.__attr["id"] == 5);
-  CHECK(b2.__attr["pages"] == 392.0f);
-  CHECK(b2.__attr["price"] == 79.9f);
-}
-
-struct book_attr_any_t {
-  std::unordered_map<std::string, iguana::any_t> __attr;
-  std::string title;
-};
-REFLECTION(book_attr_any_t, __attr, title);
-TEST_CASE("test attribute with any") {
-  std::string str = R"(
-    <book_attr_any_t id="5" language="en" price="79.9">
-      <title>C++ templates</title>
-    </book_attr_any_t>
-  )";
-  book_attr_any_t b;
-  iguana::from_xml(b, str.data());
-  auto &map = b.__attr;
-  CHECK(map["id"].get<int>().first);
-  CHECK(map["id"].get<int>().second == 5);
-  CHECK(map["language"].get<std::string_view>().first);
-  CHECK(map["language"].get<std::string_view>().second == "en");
-  CHECK(map["price"].get<float>().first);
-  CHECK(map["price"].get<float>().second == 79.9f);
-
-  std::string ss;
-  iguana::to_xml(b, ss);
-  book_attr_any_t b1;
-  iguana::from_xml(b1, ss.data());
-  map = b1.__attr;
-  CHECK(map["id"].get<int>().first);
-  CHECK(map["id"].get<int>().second == 5);
-  CHECK(map["language"].get<std::string_view>().first);
-  CHECK(map["language"].get<std::string_view>().second == "en");
-  CHECK(map["price"].get<float>().first);
-  CHECK(map["price"].get<float>().second == 79.9f);
-}
-
-struct library_attr_t {
-  book_attr_any_t book;
-  std::unordered_map<std::string, iguana::any_t> __attr;
-};
-REFLECTION(library_attr_t, book, __attr);
-TEST_CASE("Test nested attribute with any") {
-  std::string str = R"(
-    <library_attr_t code="102" name="UESTC" time="3.2">
-      <book id="5" language="en" price="79.9">
-        <title>C++ templates</title>
-      </book>
-    </library_attr_t>
-  )";
-  library_attr_t library;
-  iguana::from_xml(library, str.data());
-
-  auto map = library.__attr;
-  CHECK(map["code"].get<int>().first);
-  CHECK(map["code"].get<int>().second == 102);
-  CHECK(map["name"].get<std::string>().second == "UESTC");
-  CHECK(map["name"].get<std::string_view>().second == "UESTC");
-  CHECK(map["time"].get<float>().first);
-  CHECK(map["time"].get<float>().second == 3.2f);
-
-  map = library.book.__attr;
-  CHECK(map["id"].get<int>().first);
-  CHECK(map["id"].get<int>().second == 5);
-  CHECK(map["language"].get<std::string_view>().first);
-  CHECK(map["language"].get<std::string_view>().second == "en");
-  CHECK(map["price"].get<float>().first);
-  CHECK(map["price"].get<float>().second == 79.9f);
-
-  std::string ss;
-  iguana::to_xml_pretty(library, ss);
-  std::cout << ss << std::endl;
-  library_attr_t library1;
-  iguana::from_xml(library1, ss.data());
-  map = library1.__attr;
-  CHECK(map["code"].get<int>().first);
-  CHECK(map["code"].get<int>().second == 102);
-  CHECK(map["name"].get<std::string>().second == "UESTC");
-  CHECK(map["name"].get<std::string_view>().second == "UESTC");
-  CHECK(map["time"].get<float>().first);
-  CHECK(map["time"].get<float>().second == 3.2f);
-
-  map = library1.book.__attr;
-  CHECK(map["id"].get<int>().first);
-  CHECK(map["id"].get<int>().second == 5);
-  CHECK(map["language"].get<std::string_view>().first);
-  CHECK(map["language"].get<std::string_view>().second == "en");
-  CHECK(map["price"].get<float>().first);
-  CHECK(map["price"].get<float>().second == 79.9f);
-  CHECK_FALSE(map["language"].get<int>().first); // parse num failed
-}
-
-TEST_CASE("test exception") {
-  simple_t simple;
-  std::string str = R"(
-    <simple_t><a>1</a><a>2</a><a>3</a><b>|</b><c>False</c><d>True</d><e></e></
-  )";
-  CHECK_FALSE(iguana::from_xml(simple, str.data())); // expected >
-  std::string str2 = R"(
-    <simple_t><a>1</a><a>2</a><a>3</a><b>|</b><c>Flase</c><d>tru</d><e></e></simple_t>
-  )";
-  CHECK_NOTHROW(iguana::from_xml(simple, str2.data())); // Failed to parse bool
-  simple_t simple2{{1, 2, 3}, '|', 0, 1};
-  std::string ss = "<<dd>>";
-  CHECK_FALSE(iguana::to_xml_pretty(simple2, ss)); // unexpected end of data
-
-  std::string str3 = R"(
-    <nested_t>
-    <simple><b>|</b><c>False</c><e></e></simple>
-    <code></code>
-    </nested_t>
-  )";
-  nested_t nest;
-  nest.code = 10;
-  iguana::from_xml(nest, str3.data()); // a not found, d not found
-  CHECK(nest.simple.a.size() == 0);    // vector is empty
-  CHECK(nest.code == 10);              // should never touch it
-}
-
-struct item_itunes_t {
-  iguana::namespace_t<std::string_view> itunes_author;
-  iguana::namespace_t<std::string_view> itunes_subtitle;
-  iguana::namespace_t<int> itunes_user;
-};
-REFLECTION(item_itunes_t, itunes_author, itunes_subtitle, itunes_user);
-struct item_t {
-  iguana::namespace_t<item_itunes_t> item_itunes;
-};
-REFLECTION(item_t, item_itunes);
-TEST_CASE("test xml namespace") {
-  std::string str = R"(
-    <item>
-      <item:itunes>
-        <itunes:author>Jupiter Broadcasting</itunes:author>
-        <itunes:subtitle>Linux enthusiasts talk top news stories, subtitle</itunes:subtitle>
-        <itunes:user>10086</itunes:user>       
-      </item:itunes>
-    </item>
-  )";
-  item_t it;
-  iguana::from_xml(it, str.data());
-  auto itunes = it.item_itunes.get();
-  CHECK(itunes.itunes_author.get() == "Jupiter Broadcasting");
-  CHECK(itunes.itunes_user.get() == 10086);
-
-  std::string ss;
-  iguana::to_xml(it, ss);
-  item_t it2;
-  iguana::from_xml(it2, ss.data());
-  auto itunes2 = it2.item_itunes.get();
-  CHECK(itunes2.itunes_author.get() == "Jupiter Broadcasting");
-  CHECK(itunes2.itunes_user.get() == 10086);
 }
 
 struct package_t {
-  std::pair<std::string, std::unordered_map<std::string, std::string>> version;
-  std::pair<std::string, std::unordered_map<std::string, std::string>>
-      changelog;
-  std::unordered_map<std::string, std::string> __attr;
+  iguana::xml_attr_t<std::optional<std::string_view>> version;
+  iguana::xml_attr_t<std::string_view> changelog;
 };
-REFLECTION(package_t, version, changelog, __attr);
-TEST_CASE("test leafnode attribute") {
+REFLECTION(package_t, version, changelog);
+TEST_CASE("test example package") {
+  auto validator = [](iguana::xml_attr_t<package_t> package) {
+    CHECK(package.attr()["name"] == "apr-util-ldap");
+    CHECK(package.attr()["arch"] == "x86_64");
+    auto &p = package.value();
+    CHECK(p.version.attr()["epoch"] == "0");
+    CHECK(p.version.attr()["ver"] == "1.6.1");
+    CHECK(p.version.attr()["rel"] == "6.el8");
+    CHECK(p.changelog.attr()["author"] == "Lubo");
+    CHECK(p.changelog.attr()["date"] == "1508932800");
+    CHECK(p.changelog.value() == "new version 1.6.1");
+  };
   std::string str = R"(
-    <package name="apr-util-ldap" arch="x86_64">
+    <?xml version="1.0" encoding="UTF-8"?>
+    <package_t name="apr-util-ldap" arch="x86_64">
       <version epoch="0" ver="1.6.1" rel="6.el8"/>
-      <changelog author="Lubo" date="1508932800">new version 1.6.1</changelog>
-    </package>
+      <changelog author="Lubo" date="1508932800">
+      new version 1.6.1</changelog>
+    </package_t>
   )";
-  package_t package;
-  iguana::from_xml(package, str.data());
-  using mp = std::unordered_map<std::string, std::string>;
-  mp p_attr = {{"name", "apr-util-ldap"}, {"arch", "x86_64"}};
-  mp v_attr = {{"epoch", "0"}, {"ver", "1.6.1"}, {"rel", "6.el8"}};
-  mp c_attr = {{"author", "Lubo"}, {"date", "1508932800"}};
-  CHECK(p_attr == package.__attr);
-  CHECK(v_attr == package.version.second);
-  CHECK(c_attr == package.changelog.second);
-  CHECK(package.changelog.first == "new version 1.6.1");
-  CHECK(package.version.first.empty());
+  iguana::xml_attr_t<package_t> package;
+  iguana::from_xml(package, str);
+  validator(package);
+
   std::string ss;
   iguana::to_xml(package, ss);
-  package_t package2;
-  iguana::from_xml(package2, ss.data());
-  CHECK(p_attr == package2.__attr);
-  CHECK(v_attr == package2.version.second);
-  CHECK(c_attr == package2.changelog.second);
-  CHECK(package2.changelog.first == "new version 1.6.1");
-  CHECK(package2.version.first.empty());
-}
-
-TEST_CASE("parse error") {
-  std::string str = "error xml";
-  simple_t p;
-  bool r = iguana::from_xml(p, str.data());
-  CHECK(!r);
-  CHECK(!iguana::get_last_read_err().empty());
-
-  std::string xml_str = R"(
-    <book_t>
-      <title>C++ templates</title>
-      <edition>invalid number</edition>
-      <author>David Vandevoorde</author>
-      <author>Nicolai M. Josuttis</author>
-    </book_t>
-  )";
-  book_t book;
-  r = iguana::from_xml(book, xml_str.data());
-  CHECK(!r);
-  CHECK(!iguana::get_last_read_err().empty());
-
-  std::string xmlstr = R"(
-    <simple_t><a>1</a><a>2</a><a>3</a><b>|</b><c>False</c><d>True</d><e>optional?</e></simple_t>
-  )";
-
-  simple_t simple2{{1, 2, 3}, '|', 0, 1};
-  std::string ss = "<<dd>>";
-  CHECK_FALSE(iguana::to_xml_pretty(simple2, ss)); // unexpected end of data
-  CHECK(!iguana::get_last_write_err().empty());
-}
-
-TEST_CASE("field not found") {
-  std::string xml_str = R"(
-    <book_t>
-      <title>C++ templates</title>
-      <edition2>2</edition2>
-      <author>David Vandevoorde</author>
-      <author>Nicolai M. Josuttis</author>
-    </book_t>
-  )";
-  book_t book;
-  bool r = iguana::from_xml(book, xml_str.data());
-  CHECK(r);
-}
-
-struct book_with_required {
-  std::string title;
-  int edition;
-  std::vector<std::string> author;
-  std::optional<std::string> description;
-};
-REFLECTION(book_with_required, title, edition, author, description);
-REQUIRED(book_with_required, edition);
-
-TEST_CASE("required fields") {
-  std::string xml_str = R"(
-    <book_with_required>
-      <title>C++ templates</title>
-      <author>David Vandevoorde</author>
-      <author>Nicolai M. Josuttis</author>
-    </book_with_required>
-  )";
-  book_with_required book;
-  bool r = iguana::from_xml(book, xml_str.data());
-  CHECK(!r);
-  std::cout << iguana::get_last_read_err() << "\n";
-  CHECK(!iguana::get_last_read_err().empty());
+  iguana::xml_attr_t<package_t> package1;
+  iguana::from_xml(package1, ss);
+  validator(package1);
 }
 
 struct description_t {
-  iguana::cdata_t cdata;
+  iguana::xml_cdata_t<std::string> cdata;
 };
 REFLECTION(description_t, cdata);
-struct optionc_t {
-  std::optional<iguana::cdata_t> cdata;
-};
-REFLECTION(optionc_t, cdata);
 struct node_t {
   std::string title;
   description_t description;
-  optionc_t option;
-  std::vector<iguana::cdata_t> cdata;
+  iguana::xml_cdata_t<> cdata;
 };
-REFLECTION(node_t, title, description, option, cdata);
-TEST_CASE("test cdata node") {
+REFLECTION(node_t, title, description, cdata);
+TEST_CASE("test example cdata") {
+  auto validator = [](node_t node) {
+    CHECK(node.title == "what's the cdata");
+    CHECK(node.cdata.value() == "<p>this is a  cdata node</p>");
+    CHECK(node.description.cdata.value() ==
+          "<p>nest cdata node1 and </p>node2</p>");
+  };
   std::string str = R"(
+    <?xml version="1.0" encoding="UTF-8"?>
     <node_t>
       <title>what's the cdata</title>
       <description>
-        <a>what's the cdata</a>
-        <![CDATA[<p>nest cdata node</p>]]>
+        <![CDATA[<p>nest cdata node1 and </p>]]>
+        <!-- This is a comment -->
+        <![CDATA[ node2</p>]]>
       </description>
-      <option>
-        <![CDATA[<p>this is a option cdata</p>]]>
-      </option>
-      <![CDATA[<p>this is a  cdata node</p>]]>
+      <!DOCTYPE test node>
+      <?myapp instruction?>
       <![CDATA[<p>this is a  cdata node</p>]]>
     </node_t>
   )";
+  // only parse cdata node
   node_t node;
-  iguana::from_xml(node, str.data());
-  CHECK(node.title == "what's the cdata");
-  CHECK(node.description.cdata.get() == "<p>nest cdata node</p>");
-  CHECK((*(node.option.cdata)).get() == "<p>this is a option cdata</p>");
-  CHECK(node.cdata[0].get() == "<p>this is a  cdata node</p>");
-  CHECK(node.cdata[1].get() == "<p>this is a  cdata node</p>");
+  iguana::from_xml(node, str);
+  validator(node);
+
   std::string ss;
   iguana::to_xml(node, ss);
   node_t node1;
-  iguana::from_xml(node1, ss.data());
-  CHECK(node1.title == "what's the cdata");
-  CHECK(node1.description.cdata.get() == "<p>nest cdata node</p>");
-  CHECK((*(node1.option.cdata)).get() == "<p>this is a option cdata</p>");
-  CHECK(node1.cdata[0].get() == "<p>this is a  cdata node</p>");
-  CHECK(node1.cdata[1].get() == "<p>this is a  cdata node</p>");
-
-  std::string str2 = R"(
-    <description>
-    </description>
-  )";
-  description_t dscrp;
-  iguana::from_xml(dscrp, str2.data());
-  CHECK(dscrp.cdata.get().empty());
+  iguana::from_xml(node1, ss);
+  validator(node1);
 }
 
-CUSTOM_FIELDS(node_t, (title, user_title), (description, user_desc));
-
-TEST_CASE("get_custom_filed") {
-  CHECK(iguana::has_custom_fields<node_t>());
-  auto title = iguana::get_custom_fields<node_t>("title");
-  std::cout << title << "\n";
-  CHECK(title == "user_title");
-
-  auto desc = iguana::get_custom_fields<node_t>("description");
-  std::cout << desc << "\n";
-  CHECK(desc == "user_desc");
-
-  auto unknown = iguana::get_custom_fields<node_t>("unknown");
-  CHECK(unknown == "");
+struct test_exception_t {
+  std::unique_ptr<int> a;
+  bool b;
+  char c;
+};
+REFLECTION(test_exception_t, a, b, c);
+TEST_CASE("test exception") {
+  {
+    std::string str = "<root> <a>d3</a> </root>";
+    test_exception_t t;
+    CHECK_THROWS(iguana::from_xml(t, str));
+  }
+  {
+    std::string str = "<root> <b>TURE</b> </root>";
+    test_exception_t t;
+    CHECK_THROWS(iguana::from_xml(t, str));
+  }
+  {
+    std::string str = "<root> <c>ab</c> </root>";
+    test_exception_t t;
+    CHECK_THROWS(iguana::from_xml(t, str));
+  }
+  {
+    std::string str = "<root> <d>ab</d> </root>";
+    test_exception_t t;
+    CHECK_THROWS(iguana::from_xml(t, str));
+  }
+  {
+    test_exception_t t;
+    t.b = true;
+    t.c = 'a';
+    std::string ss;
+    iguana::to_xml(t, ss);
+  }
 }
 
 // doctest comments

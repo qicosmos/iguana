@@ -1,3 +1,4 @@
+#include "../rapidxml/rapidxml.hpp"
 #include "xml_bench.hpp"
 
 class ScopedTimer {
@@ -39,59 +40,70 @@ std::string xml_file_content(const std::string &filename) {
   file.read(content.data(), content.size());
   return content;
 }
+const int iterations = 1000;
+void bench_de_sample_filelists() {
 
-void test_deserialize() {
-  int iterations = 1000;
-
-  std::cout << "============ deserialize rpm_filelists.xml  ===============\n";
   std::string xmlfilelist = xml_file_content("../data/rpm_filelists.xml");
   {
-
-    ScopedTimer timer("test deserialize rpm_filelists.xml");
+    ScopedTimer timer("rapidxml fastest parse rpm_filelists.xml");
     for (int i = 0; i < iterations; ++i) {
-      filelists_t filelist;
-      iguana::from_xml<rapidxml::parse_fastest>(filelist, xmlfilelist.data());
+      rapidxml::xml_document<> doc;
+      doc.parse<rapidxml::parse_fastest>(xmlfilelist.data());
     }
   }
-  std::cout << "============ deserialize sample_rss.xml    ===============\n";
+  {
+    ScopedTimer timer("iguana_xml deserialize rpm_filelists.xml");
+    filelists_t filelist;
+    for (int i = 0; i < iterations; ++i) {
+      iguana::from_xml(filelist, xmlfilelist.begin(), xmlfilelist.end());
+      filelist.package.clear();
+    }
+  }
+}
 
+void bench_de_sample_rss() {
   std::string xmlrss = xml_file_content("../data/sample_rss.xml");
   {
-
-    ScopedTimer timer("test deserialize sample_rss.xml");
+    ScopedTimer timer("rapidxml fastest parse sample_rss.xml");
     for (int i = 0; i < iterations; ++i) {
-      rss_t rss;
-      iguana::from_xml<rapidxml::parse_fastest>(rss, xmlrss.data());
-      // assert(rss.channel.item.size() == 99);
+      rapidxml::xml_document<> doc;
+      doc.parse<rapidxml::parse_fastest>(xmlrss.data());
+    }
+  }
+  {
+    ScopedTimer timer("iguana_xml deserialize sample_rss.xml");
+    rss_t rss;
+    for (int i = 0; i < iterations; ++i) {
+      iguana::from_xml(rss, xmlrss.begin(), xmlrss.end());
+      rss.channel.item.clear();
     }
   }
 }
 
 void bench_num() {
-  int iterations = 1000;
-  std::cout << "============ deserialize bench_num.xml  ===============\n";
   std::string xmlnum = xml_file_content("../data/bench_num.xml");
   {
-    ScopedTimer timer("test deserialize bench_num.xml");
+    ScopedTimer timer("iguana_xml deserialize bench_num.xml");
     for (int i = 0; i < iterations; ++i) {
       store_t s;
-      iguana::from_xml<rapidxml::parse_fastest>(s, xmlnum.data());
+      iguana::from_xml(s, xmlnum);
     }
   }
-  std::cout << "============ serialize bench_num.xml  ===============\n";
   store_t store;
-  iguana::from_xml<rapidxml::parse_fastest>(store, xmlnum.data());
+  iguana::from_xml(store, xmlnum);
   std::string ss;
   ss.reserve(xmlnum.size());
   {
-    ScopedTimer timer("test serialize bench_num.xml");
+    ScopedTimer timer("iguana_xml serialize bench_num.xml");
     for (int i = 0; i < iterations; ++i) {
       iguana::to_xml(store, ss);
       ss.clear();
     }
   }
 }
+
 int main() {
-  test_deserialize();
-  bench_num();
+  bench_de_sample_filelists();
+  bench_de_sample_rss();
+  // bench_num();
 }
