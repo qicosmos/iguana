@@ -21,7 +21,7 @@ struct order_t {
 REFLECTION(order_t, status, total);
 
 TEST_CASE("test unkonwn key") {
-  auto validator = [] (order_t od) {
+  auto validator = [](order_t od) {
     CHECK(od.status == enum_status::unpaid);
     CHECK(od.total == 65.0f);
   };
@@ -70,11 +70,8 @@ TEST_CASE("test unkonwn key") {
   validator(od1);
 }
 
-
-
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
 int main(int argc, char **argv) { return doctest::Context(argc, argv).run(); }
 DOCTEST_MSVC_SUPPRESS_WARNING_POP
-
