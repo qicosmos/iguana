@@ -194,6 +194,18 @@ inline constexpr auto has_square_bracket =
           0b0101110101011101010111010101110101011101010111010101110101011101);
     };
 
+inline constexpr auto has_equal = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
+  return has_zero(
+      chunk ^
+      0b0011110100111101001111010011110100111101001111010011110100111101);
+};
+
+auto has_qoute = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
+  return has_zero(
+      chunk ^
+      0b0010001000100010001000100010001000100010001000100010001000100010);
+};
+
 IGUANA_INLINE void skip_sapces_and_newline(auto &&it, auto &&end) {
   while (it != end && (*it < 33)) {
     ++it;
@@ -377,6 +389,58 @@ IGUANA_INLINE void skip_till_square_bracket(auto &&it, auto &&end) {
   throw std::runtime_error("Expected ]");
 }
 
+IGUANA_INLINE void skip_till_equal(auto &&it, auto &&end) {
+  static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
+
+  if (std::distance(it, end) >= 7) [[likely]] {
+    const auto end_m7 = end - 7;
+    for (; it < end_m7; it += 8) {
+      const auto chunk = *reinterpret_cast<const uint64_t *>(&*it);
+      uint64_t test = has_equal(chunk);
+      if (test != 0) {
+        it += (std::countr_zero(test) >> 3);
+        return;
+      }
+    }
+  }
+
+  // Tail end of buffer. Should be rare we even get here
+  while (it < end) {
+    switch (*it) {
+    case '=':
+      return;
+    }
+    ++it;
+  }
+  throw std::runtime_error("Expected =");
+}
+
+IGUANA_INLINE void skip_till_qoute(auto &&it, auto &&end) {
+  static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
+
+  if (std::distance(it, end) >= 7) [[likely]] {
+    const auto end_m7 = end - 7;
+    for (; it < end_m7; it += 8) {
+      const auto chunk = *reinterpret_cast<const uint64_t *>(&*it);
+      uint64_t test = has_qoute(chunk);
+      if (test != 0) {
+        it += (std::countr_zero(test) >> 3);
+        return;
+      }
+    }
+  }
+
+  // Tail end of buffer. Should be rare we even get here
+  while (it < end) {
+    switch (*it) {
+    case '"':
+      return;
+    }
+    ++it;
+  }
+  throw std::runtime_error("Expected \"");
+}
+
 IGUANA_INLINE auto skip_pass_smaller(auto &&it, auto &&end) {
   skip_till_smaller(it, end);
   auto res = it++ - 1;
@@ -396,4 +460,23 @@ IGUANA_INLINE auto skip_pass_square_bracket(auto &&it, auto &&end) {
   return res + 1;
 }
 
+// skip_pass<'='>(it, end);
+IGUANA_INLINE auto skip_pass_equal(auto &&it, auto &&end) {
+  skip_till_equal(it, end);
+  auto res = it++ - 1;
+  while (*res == ' ') {
+    --res;
+  }
+  return res + 1;
+}
+
+// skip_pass<'"'>(it, end);
+IGUANA_INLINE auto skip_pass_qoute(auto &&it, auto &&end) {
+  skip_till_qoute(it, end);
+  auto res = it++ - 1;
+  while (*res == ' ') {
+    --res;
+  }
+  return res + 1;
+}
 } // namespace iguana

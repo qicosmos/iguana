@@ -57,14 +57,14 @@ IGUANA_INLINE void parse_attr(U &&value, It &&it, It &&end) {
       return;
     }
     auto key_begin = it;
-    auto key_end = skip_pass<'='>(it, end);
+    auto key_end = skip_pass_equal(it, end);
     key_type key;
     parse_value(key, key_begin, key_end);
 
     skip_sapces_and_newline(it, end);
     match<'"'>(it, end);
     auto value_begin = it;
-    auto value_end = skip_pass<'"'>(it, end);
+    auto value_end = skip_pass_qoute(it, end);
     value_type v;
     parse_value(v, value_begin, value_end);
     value.emplace(std::move(key), std::move(v));
