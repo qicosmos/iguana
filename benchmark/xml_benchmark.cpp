@@ -1,5 +1,6 @@
 #include "../rapidxml/rapidxml.hpp"
 #include "xml_bench.hpp"
+#include <cstdio>
 
 class ScopedTimer {
 public:

@@ -28,6 +28,7 @@
 #include "frozen/bits/hash_string.h"
 #include "frozen/bits/version.h"
 
+#include <cstring>
 #include <functional>
 
 #ifdef FROZEN_LETITGO_HAS_STRING_VIEW
@@ -61,12 +62,7 @@ public:
   constexpr chr_t operator[](std::size_t i) const { return data_[i]; }
 
   constexpr bool operator==(basic_string other) const {
-    if (size_ != other.size_)
-      return false;
-    for (std::size_t i = 0; i < size_; ++i)
-      if (data_[i] != other.data_[i])
-        return false;
-    return true;
+    return std::memcmp(data_, other.data_, size_) == 0;
   }
 
   constexpr bool operator<(const basic_string &other) const {
