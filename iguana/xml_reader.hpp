@@ -134,7 +134,6 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
     skip_sapces_and_newline(it, end);
     auto value_begin = it;
     auto value_end = skip_pass_smaller(it, end);
-    ;
     if (value_begin == value_end) {
       match_close_tag(it, end, name);
       return;
