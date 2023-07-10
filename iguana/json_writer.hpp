@@ -174,12 +174,12 @@ template <typename Stream, tuple_t T>
 IGUANA_INLINE void render_json_value(Stream &s, T &&t) {
   using U = typename std::decay_t<T>;
   s.push_back('[');
-  const size_t size = std::tuple_size_v<U>;
+  constexpr size_t size = std::tuple_size_v<U>;
   for_each(std::forward<T>(t),
            [&s, size](auto &v, auto i) IGUANA__INLINE_LAMBDA {
              render_json_value(s, v);
 
-             if (i != size - 1)
+             if (i != size - 1) [[likely]]
                s.push_back(',');
            });
   s.push_back(']');
