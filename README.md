@@ -94,11 +94,16 @@ The serialization of `xml` is similar to `json`. The first step is also defining
 // serialization the structure to the string
 person p = {"admin", 20};
 iguana::string_stream ss;  // here use std::string is also ok
-iguana::to_xml(ss, p);
-std::cout << ss.str() << std::endl;
+iguana::to_xml(p, ss);
+std::cout << ss << std::endl;
 
 // deserialization the structure from the string
-std::string xml = "<?xml version=\"1.0\" encoding=\"UTF-8\">  <name>buke</name> <age>30</name>";
+std::string xml = R"(
+<?xml version=\"1.0\" encoding=\"UTF-8\">  
+<root> 
+  <name>buke</name> 
+  <age>30</age> 
+</root>)";
 iguana::from_xml(p, xml);
 ```
 #### Serialization of yaml
@@ -193,7 +198,7 @@ And then, simply call the interface:
 // serialization the structure to the string
 library_t library = {"Pro Lib", 110, {{"tom", 1.8}, {"jack", 2.1}}};
 std::string ss;
-iguana::to_xml(ss, library);
+iguana::to_xml(library, ss);
 std::cout << ss << "\n";
 
 // deserialization the structure from the string
