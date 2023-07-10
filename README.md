@@ -96,14 +96,10 @@ person p = {"admin", 20};
 iguana::string_stream ss;  // here use std::string is also ok
 iguana::to_xml(ss, p);
 std::cout << ss.str() << std::endl;
-// you can also call iguana::to_xml_pretty to get pretty string
-iguana::string_stream s;
-iguana::to_xml_pretty(s, p);
-std::cout << s.str() << std::endl;
 
 // deserialization the structure from the string
 std::string xml = "<?xml version=\"1.0\" encoding=\"UTF-8\">  <name>buke</name> <age>30</name>";
-iguana::from_xml(p, xml.data());
+iguana::from_xml(p, xml);
 ```
 #### Serialization of yaml
 
@@ -212,7 +208,7 @@ std::string str = R"(
 </library>
 )";
 library_t lib;
-iguana::from_xml(lib, str.data());
+iguana::from_xml(lib, str);
 ```
 #### yaml
 

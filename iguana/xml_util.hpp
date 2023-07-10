@@ -165,6 +165,35 @@ template <size_t N> struct string_literal {
   constexpr const std::string_view sv() const noexcept { return {value, size}; }
 };
 
+inline constexpr auto has_zero = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
+  return (((chunk - 0x0101010101010101) & ~chunk) & 0x8080808080808080);
+};
+
+inline constexpr auto has_greater = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
+  return has_zero(
+      chunk ^
+      0b0011111000111110001111100011111000111110001111100011111000111110);
+};
+
+inline constexpr auto has_space = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
+  return has_zero(
+      chunk ^
+      0b0010000000100000001000000010000000100000001000000010000000100000);
+};
+
+inline constexpr auto has_smaller = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
+  return has_zero(
+      chunk ^
+      0b0011110000111100001111000011110000111100001111000011110000111100);
+};
+
+inline constexpr auto has_square_bracket =
+    [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
+      return has_zero(
+          chunk ^
+          0b0101110101011101010111010101110101011101010111010101110101011101);
+    };
+
 IGUANA_INLINE void skip_sapces_and_newline(auto &&it, auto &&end) {
   while (it != end && (*it < 33)) {
     ++it;
@@ -227,9 +256,9 @@ IGUANA_INLINE void match_close_tag(auto &&it, auto &&end,
   if (it == end || (*it++) != '/') [[unlikely]] {
     throw std::runtime_error("unclosed tag: " + std::string(key));
   }
-  auto size = key.size();
-  if ((std::distance(it, end) <= size) || (std::string_view{&*it, size} != key))
-      [[unlikely]] {
+  size_t size = key.size();
+  if (static_cast<size_t>(std::distance(it, end)) <= size ||
+      std::string_view{&*it, size} != key) [[unlikely]] {
     throw std::runtime_error("unclosed tag: " + std::string(key));
   }
   it += size;
@@ -242,15 +271,6 @@ IGUANA_INLINE void match_close_tag(auto &&it, auto &&end,
 // skip_till<'>'>(it, end);
 IGUANA_INLINE void skip_till_greater(auto &&it, auto &&end) {
   static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
-
-  auto has_zero = [](uint64_t chunk) {
-    return (((chunk - 0x0101010101010101) & ~chunk) & 0x8080808080808080);
-  };
-  auto has_greater = [&](uint64_t chunk) {
-    return has_zero(
-        chunk ^
-        0b0011111000111110001111100011111000111110001111100011111000111110);
-  };
 
   if (std::distance(it, end) >= 7) [[likely]] {
     const auto end_m7 = end - 7;
@@ -279,19 +299,6 @@ IGUANA_INLINE void skip_till_greater(auto &&it, auto &&end) {
 IGUANA_INLINE void skip_till_greater_or_space(auto &&it, auto &&end) {
   static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
 
-  auto has_zero = [](uint64_t chunk) {
-    return (((chunk - 0x0101010101010101) & ~chunk) & 0x8080808080808080);
-  };
-  auto has_greater = [&](uint64_t chunk) {
-    return has_zero(
-        chunk ^
-        0b0011111000111110001111100011111000111110001111100011111000111110);
-  };
-  auto has_space = [&](uint64_t chunk) {
-    return has_zero(
-        chunk ^
-        0b0010000000100000001000000010000000100000001000000010000000100000);
-  };
   if (std::distance(it, end) >= 7) [[likely]] {
     const auto end_m7 = end - 7;
     for (; it < end_m7; it += 8) {
@@ -320,15 +327,6 @@ IGUANA_INLINE void skip_till_greater_or_space(auto &&it, auto &&end) {
 IGUANA_INLINE void skip_till_smaller(auto &&it, auto &&end) {
   static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
 
-  auto has_zero = [](uint64_t chunk) {
-    return (((chunk - 0x0101010101010101) & ~chunk) & 0x8080808080808080);
-  };
-  auto has_smaller = [&](uint64_t chunk) {
-    return has_zero(
-        chunk ^
-        0b0011110000111100001111000011110000111100001111000011110000111100);
-  };
-
   if (std::distance(it, end) >= 7) [[likely]] {
     const auto end_m7 = end - 7;
     for (; it < end_m7; it += 8) {
@@ -356,14 +354,6 @@ IGUANA_INLINE void skip_till_smaller(auto &&it, auto &&end) {
 IGUANA_INLINE void skip_till_square_bracket(auto &&it, auto &&end) {
   static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
 
-  auto has_zero = [](uint64_t chunk) {
-    return (((chunk - 0x0101010101010101) & ~chunk) & 0x8080808080808080);
-  };
-  auto has_square_bracket = [&](uint64_t chunk) {
-    return has_zero(
-        chunk ^
-        0b0101110101011101010111010101110101011101010111010101110101011101);
-  };
   if (std::distance(it, end) >= 7) [[likely]] {
     const auto end_m7 = end - 7;
     for (; it < end_m7; it += 8) {

@@ -134,7 +134,6 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
     skip_sapces_and_newline(it, end);
     auto value_begin = it;
     auto value_end = skip_pass_smaller(it, end);
-    ;
     if (value_begin == value_end) {
       match_close_tag(it, end, name);
       return;
@@ -158,6 +157,30 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
                               std::string_view name) {
   parse_attr(value.attr(), it, end);
   parse_item(value.value(), it, end, name);
+}
+
+//  /> or skip <?>、 <!> and <tag></tag> until the </name>
+//  loose inspection here
+template <typename It>
+IGUANA_INLINE void skip_object_value(It &&it, It &&end, std::string_view name) {
+  skip_till_greater(it, end);
+  ++it;
+  if (*(it - 2) == '/') {
+    // .../>
+    return;
+  }
+  // </name>
+  size_t size = name.size();
+  while (it != end) {
+    skip_till_greater(it, end);
+    if (*(it - size - 2) == '<' && *(it - size - 1) == '/' &&
+        (std::string_view{&*(it - size), size} == name)) {
+      ++it;
+      return;
+    }
+    ++it;
+  }
+  throw std::runtime_error("unclosed tag: " + std::string(name));
 }
 
 template <refletable T, typename It>
@@ -242,12 +265,16 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
                 "type must be memberptr");
             using V = std::remove_reference_t<decltype(value.*member_ptr)>;
             if constexpr (!cdata_t<V>) {
-              detail::parse_item(value.*member_ptr, it, end, key);
+              parse_item(value.*member_ptr, it, end, key);
             }
           },
           member_it->second);
     } else [[unlikely]] {
+#ifdef THROW_UNKNOWN_KEY
       throw std::runtime_error("Unknown key: " + std::string(key));
+#else
+      skip_object_value(it, end, key);
+#endif
     }
     skip_sapces_and_newline(it, end);
   }
@@ -297,6 +324,12 @@ IGUANA_INLINE void from_xml(U &value, It &&it, It &&end) {
 template <typename U, string_t View>
 IGUANA_INLINE void from_xml(U &value, const View &view) {
   from_xml(value, std::begin(view), std::end(view));
+}
+
+template <num_t Num> IGUANA_INLINE Num get_number(std::string_view str) {
+  Num num;
+  detail::parse_value(num, str.begin(), str.end());
+  return num;
 }
 
 } // namespace iguana

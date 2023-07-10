@@ -96,13 +96,13 @@ REFLECTION(rss_t, channel);
 // ************ struct for bench_num.xml ****************
 
 struct goods_t {
-  int id;
-  int sales;
-  int inventory;
-  double weight;
-  double price;
-  double rating;
-  double discount;
+  std::string_view id;
+  std::string_view sales;
+  std::string_view inventory;
+  std::string_view weight;
+  std::string_view price;
+  std::string_view rating;
+  std::string_view discount;
 };
 REFLECTION(goods_t, id, sales, inventory, weight, price, rating, discount);
 struct storeowner_t {

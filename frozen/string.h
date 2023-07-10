@@ -28,6 +28,7 @@
 #include "frozen/bits/hash_string.h"
 #include "frozen/bits/version.h"
 
+#include <cstring>
 #include <functional>
 
 #ifdef FROZEN_LETITGO_HAS_STRING_VIEW
