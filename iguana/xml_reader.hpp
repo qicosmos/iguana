@@ -185,58 +185,59 @@ IGUANA_INLINE void skip_object_value(It &&it, It &&end, std::string_view name) {
 // return true means reach the close tag
 template <size_t cdata_idx, refletable T, typename It>
 IGUANA_INLINE auto skip_till_key(T &value, It &&it, It &&end) {
-  match<'<'>(it, end);
-
-  if (*it == '/') [[unlikely]] {
-    // </tag>
-    return true; // reach the close tag
-  } else if (*it == '?') [[unlikely]] {
-    // <? ... ?>
-    skip_till<'>'>(it, end);
-    ++it;
-    skip_sapces_and_newline(it, end);
-    return skip_till_key<cdata_idx>(value, it, end);
-  } else if (*it == '!') [[unlikely]] {
-    ++it;
-    if (*it == '[') {
-      // <![
-      if constexpr (cdata_idx == iguana::get_value<std::decay_t<T>>()) {
-        ++it;
-        skip_till<']'>(it, end);
-        ++it;
-        match<"]>">(it, end);
-        skip_sapces_and_newline(it, end);
-        return skip_till_key<cdata_idx>(value, it, end);
-      } else {
-        // if parse cdata
-        ++it;
-        match<"CDATA[">(it, end);
-        skip_sapces_and_newline(it, end);
-        auto &cdata_value = get<cdata_idx>(value);
-        using VT = typename std::decay_t<decltype(cdata_value)>::value_type;
-        auto vb = it;
-        auto ve = skip_pass<']'>(it, end);
-        if constexpr (str_view_t<VT>) {
-          cdata_value.value() =
-              VT(&*vb, static_cast<size_t>(std::distance(vb, ve)));
-        } else {
-          cdata_value.value().append(
-              &*vb, static_cast<size_t>(std::distance(vb, ve)));
-        }
-        match<"]>">(it, end);
-        skip_sapces_and_newline(it, end);
-        return skip_till_key<cdata_idx>(value, it, end);
-      }
-    } else {
-      // <!-- -->
-      // <!D
+  while (true) {
+    match<'<'>(it, end);
+    if (*it == '/') [[unlikely]] {
+      // </tag>
+      return true; // reach the close tag
+    } else if (*it == '?') [[unlikely]] {
+      // <? ... ?>
       skip_till<'>'>(it, end);
       ++it;
       skip_sapces_and_newline(it, end);
-      return skip_till_key<cdata_idx>(value, it, end);
+      continue;
+    } else if (*it == '!') [[unlikely]] {
+      ++it;
+      if (*it == '[') {
+        // <![
+        if constexpr (cdata_idx == iguana::get_value<std::decay_t<T>>()) {
+          ++it;
+          skip_till<']'>(it, end);
+          ++it;
+          match<"]>">(it, end);
+          skip_sapces_and_newline(it, end);
+          continue;
+        } else {
+          // if parse cdata
+          ++it;
+          match<"CDATA[">(it, end);
+          skip_sapces_and_newline(it, end);
+          auto &cdata_value = get<cdata_idx>(value);
+          using VT = typename std::decay_t<decltype(cdata_value)>::value_type;
+          auto vb = it;
+          auto ve = skip_pass<']'>(it, end);
+          if constexpr (str_view_t<VT>) {
+            cdata_value.value() =
+                VT(&*vb, static_cast<size_t>(std::distance(vb, ve)));
+          } else {
+            cdata_value.value().append(
+                &*vb, static_cast<size_t>(std::distance(vb, ve)));
+          }
+          match<"]>">(it, end);
+          skip_sapces_and_newline(it, end);
+          continue;
+        }
+      } else {
+        // <!-- -->
+        // <!D
+        skip_till<'>'>(it, end);
+        ++it;
+        skip_sapces_and_newline(it, end);
+        continue;
+      }
     }
+    return false;
   }
-  return false;
 }
 
 template <refletable T, typename It>
@@ -256,7 +257,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
       std::string_view{&*start, static_cast<size_t>(std::distance(start, it))};
   bool parse_done = false;
   // sequential parse
-  for_each(value, [&](const auto member_ptr, auto i) {
+  for_each(value, [&](const auto member_ptr, auto i) IGUANA__INLINE_LAMBDA {
     static_assert(std::is_member_pointer_v<std::decay_t<decltype(member_ptr)>>,
                   "type must be member ptr");
     using M = decltype(iguana_reflect_members(value));
