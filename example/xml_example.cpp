@@ -198,11 +198,59 @@ void cdata_example() {
   std::cout << ss << "\n\n";
 }
 
+struct city_t {
+  iguana::xml_attr_t<long> area;
+  iguana::xml_cdata_t<> cd;
+  std::string name;
+};
+REFLECTION(city_t, area, cd, name);
+struct cities_t {
+  std::vector<city_t> city;
+};
+REFLECTION(cities_t, city);
+struct province {
+  iguana::xml_attr_t<long> area;
+  iguana::xml_cdata_t<> cd;
+  std::unique_ptr<cities_t> cities;
+  std::string capital;
+};
+REFLECTION(province, area, cd, cities, capital);
+
+void province_example() {
+  std::string str = R"(
+<province name="Sichuan Province">
+  <capital>Chengdu</capital>
+  <![CDATA[ sichuan <> ]]>
+  <area unit="km^2">485000</area>
+  <cities>
+    <city>
+      <name>Chengdu City</name>
+      <![CDATA[ chengdu <> ]]>
+      <area unit="km^2">14412</area>
+    </city>
+    <city>
+      <name>Suining City</name>
+      <![CDATA[ Suining <> ]]>
+      <area unit="km^2">20788</area>
+    </city>
+    <!-- More cities -->
+  </cities>
+</province>
+  )";
+  province p;
+  iguana::from_xml(p, str);
+  std::cout << "========= serialize province ========\n";
+  std::string ss;
+  iguana::to_xml(p, ss);
+  std::cout << ss << "n\n";
+}
+
 int main(void) {
   some_type_example();
   lib_example();
   package_example();
   derived_object();
   cdata_example();
+  province_example();
   return 0;
 }
