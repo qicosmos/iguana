@@ -200,7 +200,7 @@ inline constexpr auto has_equal = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
       0b0011110100111101001111010011110100111101001111010011110100111101);
 };
 
-auto has_qoute = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
+inline constexpr auto has_qoute = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
   return has_zero(
       chunk ^
       0b0010001000100010001000100010001000100010001000100010001000100010);
@@ -211,6 +211,7 @@ IGUANA_INLINE void skip_sapces_and_newline(auto &&it, auto &&end) {
     ++it;
   }
 }
+
 // match c and skip
 template <char c> IGUANA_INLINE void match(auto &&it, auto &&end) {
   if (it == end || *it != c) [[unlikely]] {

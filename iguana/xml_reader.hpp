@@ -259,14 +259,8 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
   bool parse_done = false;
   // sequential parse
   for_each(value, [&](const auto member_ptr, auto i) IGUANA__INLINE_LAMBDA {
-    static_assert(std::is_member_pointer_v<std::decay_t<decltype(member_ptr)>>,
-                  "type must be member ptr");
-    using M = decltype(iguana_reflect_members(value));
     using item_type = std::remove_reference_t<decltype(value.*member_ptr)>;
-    constexpr auto Idx = decltype(i)::value;
-    constexpr auto Count = M::value();
-    static_assert(Idx < Count);
-    constexpr auto mkey = M::arr()[Idx];
+    constexpr auto mkey = iguana::get_name<T, decltype(i)::value>();
     constexpr std::string_view st_key(mkey.data(), mkey.size());
     if constexpr (cdata_t<item_type>) {
       return;
@@ -280,9 +274,6 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
     if (skip_till_key<cdata_idx>(value, it, end)) {
       match_close_tag(it, end, name);
       parse_done = true;
-      return;
-    }
-    if (parse_done) [[unlikely]] {
       return;
     }
     start = it;
