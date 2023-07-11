@@ -144,6 +144,18 @@ struct some_type_t {
 };
 REFLECTION(some_type_t, price, description, child, hasdescription, c, d_v, name,
            addr, status);
+
+TEST_CASE("test parse_done") {
+  std::string str = R"(
+<child>
+  <key1>10</key1>
+</child>
+  )";
+  child_t c;
+  iguana::from_xml(c, str);
+  CHECK(c.key1 == 10);
+}
+
 TEST_CASE("test some type") {
   auto validator_some_type = [](const some_type_t &s) {
     CHECK(s.price[0] == 1.23f);
@@ -187,9 +199,6 @@ TEST_CASE("test some type") {
   std::string ss;
   iguana::to_xml(st, ss);
 
-  std::string ss2;
-  iguana::render_value(ss2, enum_status::stop);
-  std::cout << ss2 << std::endl;
   some_type_t st1;
   iguana::from_xml(st1, ss);
   validator_some_type(st1);
@@ -416,6 +425,11 @@ TEST_CASE("test province example") {
   province p1;
   iguana::from_xml(p1, str);
   validator(p1);
+}
+
+TEST_CASE("test get_number") {
+  std::string str = "3.14";
+  CHECK(iguana::get_number<float>(str) == 3.14f);
 }
 
 // doctest comments

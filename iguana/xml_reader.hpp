@@ -178,6 +178,7 @@ IGUANA_INLINE void skip_object_value(It &&it, It &&end, std::string_view name) {
       return;
     }
     ++it;
+    skip_sapces_and_newline(it, end);
   }
   throw std::runtime_error("unclosed tag: " + std::string(name));
 }
@@ -185,6 +186,7 @@ IGUANA_INLINE void skip_object_value(It &&it, It &&end, std::string_view name) {
 // return true means reach the close tag
 template <size_t cdata_idx, refletable T, typename It>
 IGUANA_INLINE auto skip_till_key(T &value, It &&it, It &&end) {
+  skip_sapces_and_newline(it, end);
   while (true) {
     match<'<'>(it, end);
     if (*it == '/') [[unlikely]] {
@@ -246,7 +248,6 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
   constexpr auto cdata_idx = get_type_index<is_cdata_t, std::decay_t<T>>();
   skip_till<'>'>(it, end);
   ++it;
-  skip_sapces_and_newline(it, end);
   if (skip_till_key<cdata_idx>(value, it, end)) {
     match_close_tag(it, end, name);
     return;
@@ -276,7 +277,6 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
     if constexpr (!cdata_t<item_type>) {
       parse_item(value.*member_ptr, it, end, key);
     }
-    skip_sapces_and_newline(it, end);
     if (skip_till_key<cdata_idx>(value, it, end)) {
       match_close_tag(it, end, name);
       parse_done = true;
@@ -294,7 +294,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
     return;
   }
   // map parse
-  while (it != end) {
+  while (true) {
     static constexpr auto frozen_map = get_iguana_struct_map<T>();
     const auto &member_it = frozen_map.find(key);
     if (member_it != frozen_map.end()) [[likely]] {
@@ -316,7 +316,6 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
       skip_object_value(it, end, key);
 #endif
     }
-    skip_sapces_and_newline(it, end);
     if (skip_till_key<cdata_idx>(value, it, end)) {
       match_close_tag(it, end, name);
       return;
@@ -326,7 +325,6 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
     key = std::string_view{&*start,
                            static_cast<size_t>(std::distance(start, it))};
   }
-  throw std::runtime_error("unclosed tag: " + std::string(name));
 }
 
 } // namespace detail

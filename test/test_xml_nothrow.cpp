@@ -70,6 +70,18 @@ TEST_CASE("test unkonwn key") {
   validator(od1);
 }
 
+TEST_CASE("test exception") {
+  std::string str = R"(
+<order_t>
+  <orderID>12345</orderID>
+  <c>a</c>
+  <e>
+</order_t>
+)";
+  order_t od;
+  CHECK_THROWS(iguana::from_xml(od, str));
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
