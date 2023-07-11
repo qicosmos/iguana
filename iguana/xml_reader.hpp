@@ -182,6 +182,63 @@ IGUANA_INLINE void skip_object_value(It &&it, It &&end, std::string_view name) {
   throw std::runtime_error("unclosed tag: " + std::string(name));
 }
 
+// return true means reach the close tag
+template <size_t cdata_idx, refletable T, typename It>
+IGUANA_INLINE auto skip_till_key(T &value, It &&it, It &&end) {
+  match<'<'>(it, end);
+
+  if (*it == '/') [[unlikely]] {
+    // </tag>
+    return true; // reach the close tag
+  } else if (*it == '?') [[unlikely]] {
+    // <? ... ?>
+    skip_till<'>'>(it, end);
+    ++it;
+    skip_sapces_and_newline(it, end);
+    return skip_till_key<cdata_idx>(value, it, end);
+  } else if (*it == '!') [[unlikely]] {
+    ++it;
+    if (*it == '[') {
+      // <![
+      if constexpr (cdata_idx == iguana::get_value<std::decay_t<T>>()) {
+        ++it;
+        skip_till<']'>(it, end);
+        ++it;
+        match<"]>">(it, end);
+        skip_sapces_and_newline(it, end);
+        return skip_till_key<cdata_idx>(value, it, end);
+      } else {
+        // if parse cdata
+        ++it;
+        match<"CDATA[">(it, end);
+        skip_sapces_and_newline(it, end);
+        auto &cdata_value = get<cdata_idx>(value);
+        using VT = typename std::decay_t<decltype(cdata_value)>::value_type;
+        auto vb = it;
+        auto ve = skip_pass<']'>(it, end);
+        if constexpr (str_view_t<VT>) {
+          cdata_value.value() =
+              VT(&*vb, static_cast<size_t>(std::distance(vb, ve)));
+        } else {
+          cdata_value.value().append(
+              &*vb, static_cast<size_t>(std::distance(vb, ve)));
+        }
+        match<"]>">(it, end);
+        skip_sapces_and_newline(it, end);
+        return skip_till_key<cdata_idx>(value, it, end);
+      }
+    } else {
+      // <!-- -->
+      // <!D
+      skip_till<'>'>(it, end);
+      ++it;
+      skip_sapces_and_newline(it, end);
+      return skip_till_key<cdata_idx>(value, it, end);
+    }
+  }
+  return false;
+}
+
 template <refletable T, typename It>
 IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
                               std::string_view name) {
@@ -189,70 +246,54 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
   skip_till<'>'>(it, end);
   ++it;
   skip_sapces_and_newline(it, end);
-  while (it != end) {
-    match<'<'>(it, end);
-
-    if (*it == '/') [[unlikely]] {
-      // </tag>
-      match_close_tag(it, end, name);
-      return; // reach the close tag
-    } else if (*it == '?') [[unlikely]] {
-      // <? ... ?>
-      skip_till<'>'>(it, end);
-      ++it;
-      skip_sapces_and_newline(it, end);
-      continue;
-    } else if (*it == '!') [[unlikely]] {
-      ++it;
-      if (*it == '[') {
-        // <![
-        if constexpr (cdata_idx == iguana::get_value<std::decay_t<T>>()) {
-          ++it;
-          skip_till<']'>(it, end);
-          ++it;
-          match<"]>">(it, end);
-          skip_sapces_and_newline(it, end);
-          continue;
-        } else {
-          // if parse cdata
-          ++it;
-          match<"CDATA[">(it, end);
-          skip_sapces_and_newline(it, end);
-          auto &cdata_value = get<cdata_idx>(value);
-          using VT = typename std::decay_t<decltype(cdata_value)>::value_type;
-          auto vb = it;
-          auto ve = skip_pass<']'>(it, end);
-          if constexpr (str_view_t<VT>) {
-            cdata_value.value() =
-                VT(&*vb, static_cast<size_t>(std::distance(vb, ve)));
-          } else {
-            cdata_value.value().append(
-                &*vb, static_cast<size_t>(std::distance(vb, ve)));
-          }
-          match<"]>">(it, end);
-          skip_sapces_and_newline(it, end);
-          continue;
-        }
-      } else if (*it == 'D') {
-        // <!D
-        ++it;
-        skip_till<'>'>(it, end);
-        ++it;
-        skip_sapces_and_newline(it, end);
-        continue;
-      } else {
-        // <!-- -->
-        ++it;
-        skip_till<'>'>(it, end);
-        ++it;
-        skip_sapces_and_newline(it, end);
-        continue;
-      }
+  if (skip_till_key<cdata_idx>(value, it, end)) {
+    match_close_tag(it, end, name);
+    return;
+  }
+  auto start = it;
+  skip_till_greater_or_space(it, end);
+  std::string_view key =
+      std::string_view{&*start, static_cast<size_t>(std::distance(start, it))};
+  bool parse_done = false;
+  // sequential parse
+  for_each(value, [&](const auto member_ptr, auto i) {
+    static_assert(std::is_member_pointer_v<std::decay_t<decltype(member_ptr)>>,
+                  "type must be member ptr");
+    using M = decltype(iguana_reflect_members(value));
+    using item_type = std::remove_reference_t<decltype(value.*member_ptr)>;
+    constexpr auto Idx = decltype(i)::value;
+    constexpr auto Count = M::value();
+    static_assert(Idx < Count);
+    constexpr auto mkey = M::arr()[Idx];
+    constexpr std::string_view st_key(mkey.data(), mkey.size());
+    if constexpr (cdata_t<item_type>) {
+      return;
     }
-    auto start = it;
+    if (key != st_key) [[unlikely]] {
+      return;
+    }
+    if constexpr (!cdata_t<item_type>) {
+      parse_item(value.*member_ptr, it, end, key);
+    }
+    skip_sapces_and_newline(it, end);
+    if (skip_till_key<cdata_idx>(value, it, end)) {
+      match_close_tag(it, end, name);
+      parse_done = true;
+      return;
+    }
+    if (parse_done) [[unlikely]] {
+      return;
+    }
+    start = it;
     skip_till_greater_or_space(it, end);
-    std::string_view key = std::string_view{
-        &*start, static_cast<size_t>(std::distance(start, it))};
+    key = std::string_view{&*start,
+                           static_cast<size_t>(std::distance(start, it))};
+  });
+  if (parse_done) [[unlikely]] {
+    return;
+  }
+  // map parse
+  while (it != end) {
     static constexpr auto frozen_map = get_iguana_struct_map<T>();
     const auto &member_it = frozen_map.find(key);
     if (member_it != frozen_map.end()) [[likely]] {
@@ -275,7 +316,16 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
 #endif
     }
     skip_sapces_and_newline(it, end);
+    if (skip_till_key<cdata_idx>(value, it, end)) {
+      match_close_tag(it, end, name);
+      return;
+    }
+    start = it;
+    skip_till_greater_or_space(it, end);
+    key = std::string_view{&*start,
+                           static_cast<size_t>(std::distance(start, it))};
   }
+  throw std::runtime_error("unclosed tag: " + std::string(name));
 }
 
 } // namespace detail
@@ -299,7 +349,6 @@ IGUANA_INLINE void from_xml(U &value, It &&it, It &&end) {
   detail::parse_attr(value.attr(), it, end);
   detail::parse_item(value.value(), it, end, key);
 }
-
 template <refletable U, typename It>
 IGUANA_INLINE void from_xml(U &value, It &&it, It &&end) {
   while (it != end) {
