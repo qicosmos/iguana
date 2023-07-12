@@ -44,14 +44,14 @@ struct item_t {
   std::string_view itunes_explicit;
   std::string_view itunes_duration;
   std::string_view dc_creator;
-  std::string_view author;
   std::optional<std::string_view> media_thumbnail;
+  std::string_view author;
   std::optional<std::string_view> media_content;
   std::string_view itunes_keywords;
 };
 REFLECTION(item_t, title, link, description, pubDate, enclosure, guid,
            itunes_author, itunes_subtitle, itunes_summary, itunes_explicit,
-           itunes_duration, dc_creator, author, media_thumbnail, media_content,
+           itunes_duration, dc_creator, media_thumbnail, author, media_content,
            itunes_keywords);
 
 struct image_t {
@@ -73,7 +73,6 @@ struct channel_t {
   image_t image;
   std::string_view itunes_author;
   std::string_view itunes_subtitle;
-  std::string_view itunes_summary;
   std::string_view itunes_keywords;
   std::optional<std::string_view> itunes_image;
   std::string_view itunes_explicit;
@@ -85,8 +84,8 @@ struct channel_t {
 };
 REFLECTION(channel_t, title, link, description, generator, docs, language,
            pubDate, lastBuildDate, image, itunes_author, itunes_subtitle,
-           itunes_summary, itunes_keywords, itunes_image, itunes_explicit,
-           itunes_block, item, media_credit, media_rating, media_description);
+           itunes_keywords, itunes_image, itunes_explicit, itunes_block, item,
+           media_credit, media_rating, media_description);
 
 struct rss_t {
   channel_t channel;

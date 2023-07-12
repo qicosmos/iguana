@@ -194,11 +194,24 @@ inline constexpr auto has_square_bracket =
           0b0101110101011101010111010101110101011101010111010101110101011101);
     };
 
+inline constexpr auto has_equal = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
+  return has_zero(
+      chunk ^
+      0b0011110100111101001111010011110100111101001111010011110100111101);
+};
+
+inline constexpr auto has_qoute = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
+  return has_zero(
+      chunk ^
+      0b0010001000100010001000100010001000100010001000100010001000100010);
+};
+
 IGUANA_INLINE void skip_sapces_and_newline(auto &&it, auto &&end) {
   while (it != end && (*it < 33)) {
     ++it;
   }
 }
+
 // match c and skip
 template <char c> IGUANA_INLINE void match(auto &&it, auto &&end) {
   if (it == end || *it != c) [[unlikely]] {
@@ -231,26 +244,6 @@ template <string_literal str> IGUANA_INLINE void match(auto &&it, auto &&end) {
   }
 }
 
-template <char... C> IGUANA_INLINE auto skip_pass(auto &&it, auto &&end) {
-  std::decay_t<decltype(it)> res = it;
-  while ((it != end) && (!((... || (*it == C))))) {
-    if (*it == ' ') [[unlikely]] {
-      res = it;
-      while (it != end && *it == ' ')
-        ++it;
-    } else [[likely]] {
-      ++it;
-    }
-  }
-  if (it == end) [[unlikely]] {
-    static constexpr char b[] = {C..., '\0'};
-    std::string error = std::string("Expected one of these: ").append(b);
-    throw std::runtime_error(error);
-  }
-  ++it; // skip
-  return (*(it - 2) == ' ') ? res : it - 1;
-}
-
 IGUANA_INLINE void match_close_tag(auto &&it, auto &&end,
                                    std::string_view key) {
   if (it == end || (*it++) != '/') [[unlikely]] {
@@ -268,15 +261,28 @@ IGUANA_INLINE void match_close_tag(auto &&it, auto &&end,
   // ++it;
 }
 
-// skip_till<'>'>(it, end);
-IGUANA_INLINE void skip_till_greater(auto &&it, auto &&end) {
+template <char c> IGUANA_INLINE void skip_till(auto &&it, auto &&end) {
   static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
 
   if (std::distance(it, end) >= 7) [[likely]] {
     const auto end_m7 = end - 7;
     for (; it < end_m7; it += 8) {
       const auto chunk = *reinterpret_cast<const uint64_t *>(&*it);
-      uint64_t test = has_greater(chunk);
+      uint64_t test;
+      if constexpr (c == '>')
+        test = has_greater(chunk);
+      else if constexpr (c == '<')
+        test = has_smaller(chunk);
+      else if constexpr (c == '"')
+        test = has_qoute(chunk);
+      else if constexpr (c == ' ')
+        test = has_space(chunk);
+      else if constexpr (c == ']')
+        test = has_square_bracket(chunk);
+      else if constexpr (c == '=')
+        test = has_equal(chunk);
+      else
+        static_assert(!c, "not support this character");
       if (test != 0) {
         it += (std::countr_zero(test) >> 3);
         return;
@@ -286,13 +292,13 @@ IGUANA_INLINE void skip_till_greater(auto &&it, auto &&end) {
 
   // Tail end of buffer. Should be rare we even get here
   while (it < end) {
-    switch (*it) {
-    case '>':
+    if (*it == c)
       return;
-    }
     ++it;
   }
-  throw std::runtime_error("Expected >");
+  static constexpr char b[] = {c, '\0'};
+  std::string error = std::string("Expected: ").append(b);
+  throw std::runtime_error(error);
 }
 
 // skip_till<'>', '<'>(it, end);
@@ -323,72 +329,8 @@ IGUANA_INLINE void skip_till_greater_or_space(auto &&it, auto &&end) {
   throw std::runtime_error("Expected > or space");
 }
 
-// skip_till<'<'>(it, end);
-IGUANA_INLINE void skip_till_smaller(auto &&it, auto &&end) {
-  static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
-
-  if (std::distance(it, end) >= 7) [[likely]] {
-    const auto end_m7 = end - 7;
-    for (; it < end_m7; it += 8) {
-      const auto chunk = *reinterpret_cast<const uint64_t *>(&*it);
-      uint64_t test = has_smaller(chunk);
-      if (test != 0) {
-        it += (std::countr_zero(test) >> 3);
-        return;
-      }
-    }
-  }
-
-  // Tail end of buffer. Should be rare we even get here
-  while (it < end) {
-    switch (*it) {
-    case '>':
-      return;
-    }
-    ++it;
-  }
-  throw std::runtime_error("Expected >");
-}
-
-// skip_till<']'>(it, end);
-IGUANA_INLINE void skip_till_square_bracket(auto &&it, auto &&end) {
-  static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
-
-  if (std::distance(it, end) >= 7) [[likely]] {
-    const auto end_m7 = end - 7;
-    for (; it < end_m7; it += 8) {
-      const auto chunk = *reinterpret_cast<const uint64_t *>(&*it);
-      uint64_t test = has_square_bracket(chunk);
-      if (test != 0) {
-        it += (std::countr_zero(test) >> 3);
-        return;
-      }
-    }
-  }
-
-  // Tail end of buffer. Should be rare we even get here
-  while (it < end) {
-    switch (*it) {
-    case ']':
-      return;
-    }
-    ++it;
-  }
-  throw std::runtime_error("Expected ]");
-}
-
-IGUANA_INLINE auto skip_pass_smaller(auto &&it, auto &&end) {
-  skip_till_smaller(it, end);
-  auto res = it++ - 1;
-  while (*res == ' ') {
-    --res;
-  }
-  return res + 1;
-}
-
-// skip_pass<']'>(it, end);
-IGUANA_INLINE auto skip_pass_square_bracket(auto &&it, auto &&end) {
-  skip_till_square_bracket(it, end);
+template <char c> IGUANA_INLINE auto skip_pass(auto &&it, auto &&end) {
+  skip_till<c>(it, end);
   auto res = it++ - 1;
   while (*res == ' ') {
     --res;

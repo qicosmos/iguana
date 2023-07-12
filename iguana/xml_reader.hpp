@@ -74,12 +74,11 @@ IGUANA_INLINE void parse_attr(U &&value, It &&it, It &&end) {
 template <plain_t U, typename It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
                               std::string_view name) {
-  skip_till_greater(it, end);
+  skip_till<'>'>(it, end);
   ++it;
   skip_sapces_and_newline(it, end);
   auto value_begin = it;
-  auto value_end = skip_pass_smaller(it, end);
-  ;
+  auto value_end = skip_pass<'<'>(it, end);
   parse_value(value, value_begin, value_end);
   match_close_tag(it, end, name);
 }
@@ -97,7 +96,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
         --it;
         return;
       } else {
-        skip_till_greater(it, end);
+        skip_till<'>'>(it, end);
         ++it;
         skip_sapces_and_newline(it, end);
         continue;
@@ -120,7 +119,7 @@ template <optional_t U, typename It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
                               std::string_view name) {
   using value_type = typename std::remove_reference_t<U>::value_type;
-  skip_till_greater(it, end);
+  skip_till<'>'>(it, end);
   if (*(it - 1) == '/') [[likely]] {
     ++it;
     return;
@@ -129,11 +128,11 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
   if constexpr (plain_t<value_type>) {
     // The following code is for option not to be emplaced
     // when parse  "...> <..."
-    skip_till_greater(it, end);
+    skip_till<'>'>(it, end);
     ++it;
     skip_sapces_and_newline(it, end);
     auto value_begin = it;
-    auto value_end = skip_pass_smaller(it, end);
+    auto value_end = skip_pass<'<'>(it, end);
     if (value_begin == value_end) {
       match_close_tag(it, end, name);
       return;
@@ -163,7 +162,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
 //  loose inspection here
 template <typename It>
 IGUANA_INLINE void skip_object_value(It &&it, It &&end, std::string_view name) {
-  skip_till_greater(it, end);
+  skip_till<'>'>(it, end);
   ++it;
   if (*(it - 2) == '/') {
     // .../>
@@ -172,34 +171,30 @@ IGUANA_INLINE void skip_object_value(It &&it, It &&end, std::string_view name) {
   // </name>
   size_t size = name.size();
   while (it != end) {
-    skip_till_greater(it, end);
+    skip_till<'>'>(it, end);
     if (*(it - size - 2) == '<' && *(it - size - 1) == '/' &&
         (std::string_view{&*(it - size), size} == name)) {
       ++it;
       return;
     }
     ++it;
+    skip_sapces_and_newline(it, end);
   }
   throw std::runtime_error("unclosed tag: " + std::string(name));
 }
 
-template <refletable T, typename It>
-IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
-                              std::string_view name) {
-  constexpr auto cdata_idx = get_type_index<is_cdata_t, std::decay_t<T>>();
-  skip_till_greater(it, end);
-  ++it;
+// return true means reach the close tag
+template <size_t cdata_idx, refletable T, typename It>
+IGUANA_INLINE auto skip_till_key(T &value, It &&it, It &&end) {
   skip_sapces_and_newline(it, end);
-  while (it != end) {
+  while (true) {
     match<'<'>(it, end);
-
     if (*it == '/') [[unlikely]] {
       // </tag>
-      match_close_tag(it, end, name);
-      return; // reach the close tag
+      return true; // reach the close tag
     } else if (*it == '?') [[unlikely]] {
       // <? ... ?>
-      skip_till_greater(it, end);
+      skip_till<'>'>(it, end);
       ++it;
       skip_sapces_and_newline(it, end);
       continue;
@@ -209,7 +204,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
         // <![
         if constexpr (cdata_idx == iguana::get_value<std::decay_t<T>>()) {
           ++it;
-          skip_till_square_bracket(it, end);
+          skip_till<']'>(it, end);
           ++it;
           match<"]>">(it, end);
           skip_sapces_and_newline(it, end);
@@ -222,7 +217,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
           auto &cdata_value = get<cdata_idx>(value);
           using VT = typename std::decay_t<decltype(cdata_value)>::value_type;
           auto vb = it;
-          auto ve = skip_pass_square_bracket(it, end);
+          auto ve = skip_pass<']'>(it, end);
           if constexpr (str_view_t<VT>) {
             cdata_value.value() =
                 VT(&*vb, static_cast<size_t>(std::distance(vb, ve)));
@@ -234,27 +229,63 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
           skip_sapces_and_newline(it, end);
           continue;
         }
-      } else if (*it == 'D') {
-        // <!D
-        ++it;
-        skip_till_greater(it, end);
-        ++it;
-        skip_sapces_and_newline(it, end);
-        continue;
       } else {
         // <!-- -->
-        ++it;
-        skip_till_greater(it, end);
+        // <!D
+        skip_till<'>'>(it, end);
         ++it;
         skip_sapces_and_newline(it, end);
         continue;
       }
     }
+    return false;
+  }
+}
 
-    auto start = it;
+template <refletable T, typename It>
+IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
+                              std::string_view name) {
+  constexpr auto cdata_idx = get_type_index<is_cdata_t, std::decay_t<T>>();
+  skip_till<'>'>(it, end);
+  ++it;
+  if (skip_till_key<cdata_idx>(value, it, end)) {
+    match_close_tag(it, end, name);
+    return;
+  }
+  auto start = it;
+  skip_till_greater_or_space(it, end);
+  std::string_view key =
+      std::string_view{&*start, static_cast<size_t>(std::distance(start, it))};
+  bool parse_done = false;
+  // sequential parse
+  for_each(value, [&](const auto member_ptr, auto i) IGUANA__INLINE_LAMBDA {
+    using item_type = std::remove_reference_t<decltype(value.*member_ptr)>;
+    constexpr auto mkey = iguana::get_name<T, decltype(i)::value>();
+    constexpr std::string_view st_key(mkey.data(), mkey.size());
+    if constexpr (cdata_t<item_type>) {
+      return;
+    }
+    if (key != st_key) [[unlikely]] {
+      return;
+    }
+    if constexpr (!cdata_t<item_type>) {
+      parse_item(value.*member_ptr, it, end, key);
+    }
+    if (skip_till_key<cdata_idx>(value, it, end)) {
+      match_close_tag(it, end, name);
+      parse_done = true;
+      return;
+    }
+    start = it;
     skip_till_greater_or_space(it, end);
-    std::string_view key = std::string_view{
-        &*start, static_cast<size_t>(std::distance(start, it))};
+    key = std::string_view{&*start,
+                           static_cast<size_t>(std::distance(start, it))};
+  });
+  if (parse_done) [[unlikely]] {
+    return;
+  }
+  // map parse
+  while (true) {
     static constexpr auto frozen_map = get_iguana_struct_map<T>();
     const auto &member_it = frozen_map.find(key);
     if (member_it != frozen_map.end()) [[likely]] {
@@ -276,7 +307,14 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
       skip_object_value(it, end, key);
 #endif
     }
-    skip_sapces_and_newline(it, end);
+    if (skip_till_key<cdata_idx>(value, it, end)) {
+      match_close_tag(it, end, name);
+      return;
+    }
+    start = it;
+    skip_till_greater_or_space(it, end);
+    key = std::string_view{&*start,
+                           static_cast<size_t>(std::distance(start, it))};
   }
 }
 
@@ -288,7 +326,7 @@ IGUANA_INLINE void from_xml(U &value, It &&it, It &&end) {
     skip_sapces_and_newline(it, end);
     match<'<'>(it, end);
     if (*it == '?') {
-      skip_till_greater(it, end);
+      skip_till<'>'>(it, end);
       ++it;
     } else {
       break;
@@ -301,14 +339,13 @@ IGUANA_INLINE void from_xml(U &value, It &&it, It &&end) {
   detail::parse_attr(value.attr(), it, end);
   detail::parse_item(value.value(), it, end, key);
 }
-
 template <refletable U, typename It>
 IGUANA_INLINE void from_xml(U &value, It &&it, It &&end) {
   while (it != end) {
     skip_sapces_and_newline(it, end);
     match<'<'>(it, end);
     if (*it == '?') {
-      skip_till_greater(it, end);
+      skip_till<'>'>(it, end);
       ++it; // skip >
     } else {
       break;

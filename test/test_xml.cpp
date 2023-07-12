@@ -144,6 +144,18 @@ struct some_type_t {
 };
 REFLECTION(some_type_t, price, description, child, hasdescription, c, d_v, name,
            addr, status);
+
+TEST_CASE("test parse_done") {
+  std::string str = R"(
+<child>
+  <key1>10</key1>
+</child>
+  )";
+  child_t c;
+  iguana::from_xml(c, str);
+  CHECK(c.key1 == 10);
+}
+
 TEST_CASE("test some type") {
   auto validator_some_type = [](const some_type_t &s) {
     CHECK(s.price[0] == 1.23f);
@@ -187,9 +199,6 @@ TEST_CASE("test some type") {
   std::string ss;
   iguana::to_xml(st, ss);
 
-  std::string ss2;
-  iguana::render_value(ss2, enum_status::stop);
-  std::cout << ss2 << std::endl;
   some_type_t st1;
   iguana::from_xml(st1, ss);
   validator_some_type(st1);
@@ -351,6 +360,76 @@ TEST_CASE("test exception") {
     std::string ss;
     iguana::to_xml(t, ss);
   }
+}
+
+struct city_t {
+  iguana::xml_attr_t<long> area;
+  iguana::xml_cdata_t<> cd;
+  std::string name;
+};
+REFLECTION(city_t, area, cd, name);
+struct cities_t {
+  std::vector<city_t> city;
+};
+REFLECTION(cities_t, city);
+struct province {
+  iguana::xml_attr_t<long> area;
+  iguana::xml_cdata_t<> cd;
+  std::unique_ptr<cities_t> cities;
+  std::string capital;
+};
+REFLECTION(province, area, cd, cities, capital);
+
+TEST_CASE("test province example") {
+  auto validator = [](province &p) {
+    CHECK(p.capital == "Chengdu");
+    CHECK(p.cd.value() == "sichuan <>");
+    CHECK(p.area.value() == 485000);
+    CHECK(p.area.attr()["unit"] == "km^2");
+    CHECK(p.cities->city[0].name == "Chengdu City");
+    CHECK(p.cities->city[0].cd.value() == "chengdu <>");
+    CHECK(p.cities->city[0].area.attr()["unit"] == "km^2");
+    CHECK(p.cities->city[0].area.value() == 14412);
+
+    CHECK(p.cities->city[1].name == "Suining City");
+    CHECK(p.cities->city[1].cd.value() == "Suining <>");
+    CHECK(p.cities->city[1].area.attr()["unit"] == "km^2");
+    CHECK(p.cities->city[1].area.value() == 20788);
+  };
+  std::string str = R"(
+<province name="Sichuan Province">
+  <capital>Chengdu</capital>
+  <![CDATA[ sichuan <> ]]>
+  <area unit="km^2">485000</area>
+  <cities>
+    <city>
+      <name>Chengdu City</name>
+      <![CDATA[ chengdu <> ]]>
+      <area unit="km^2">14412</area>
+    </city>
+    <city>
+      <name>Suining City</name>
+      <![CDATA[ Suining <> ]]>
+      <area unit="km^2">20788</area>
+    </city>
+    <!-- More cities -->
+  </cities>
+</province>
+  )";
+  province p;
+  iguana::from_xml(p, str);
+  validator(p);
+
+  std::string ss;
+  iguana::to_xml(p, ss);
+  province p1;
+  iguana::from_xml(p1, str);
+  validator(p1);
+}
+
+TEST_CASE("test get_number") {
+  std::string str = "3.14";
+  CHECK(iguana::get_number<float>(str) == 3.14f);
 }
 
 // doctest comments
