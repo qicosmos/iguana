@@ -432,6 +432,28 @@ TEST_CASE("test get_number") {
   CHECK(iguana::get_number<float>(str) == 3.14f);
 }
 
+struct some_book {
+  std::string_view title;
+  std::string_view author;
+};
+REFLECTION(some_book, title, author);
+REQUIRED(some_book, title, author);
+
+TEST_CASE("test required filed") {
+  some_book book{"book", "tom"};
+  std::string xml_str;
+  iguana::to_xml(book, xml_str);
+
+  std::cout << xml_str << "\n";
+
+  std::string s1 = R"(<book_t><title>book</title></book_t>)";
+  some_book b;
+  CHECK_THROWS_AS(iguana::from_xml(b, s1), std::invalid_argument);
+
+  std::string s2 = R"(<book_t><author>tom</author></book_t>)";
+  CHECK_THROWS_AS(iguana::from_xml(b, s2), std::invalid_argument);
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)

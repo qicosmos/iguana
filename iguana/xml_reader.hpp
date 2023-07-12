@@ -3,6 +3,7 @@
 #include "detail/utf.hpp"
 #include "xml_util.hpp"
 #include <charconv>
+#include <unordered_set>
 
 namespace iguana {
 namespace detail {
@@ -242,10 +243,27 @@ IGUANA_INLINE auto skip_till_key(T &value, It &&it, It &&end) {
   }
 }
 
+template <typename T>
+IGUANA_INLINE void
+check_required(const std::unordered_set<std::string_view> &set) {
+  if constexpr (iguana::has_iguana_required_arr_v<T>) {
+    constexpr auto required_set =
+        iguana::iguana_required_struct<T>::requied_arr();
+    for (auto &item : required_set) {
+      if (set.find(item) == set.end()) {
+        std::string err = "required filed ";
+        err.append(item).append(" not found!");
+        throw std::invalid_argument(err);
+      }
+    }
+  }
+}
+
 template <refletable T, typename It>
 IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
                               std::string_view name) {
-  constexpr auto cdata_idx = get_type_index<is_cdata_t, std::decay_t<T>>();
+  using U = std::decay_t<T>;
+  constexpr auto cdata_idx = get_type_index<is_cdata_t, U>();
   skip_till<'>'>(it, end);
   ++it;
   if (skip_till_key<cdata_idx>(value, it, end)) {
@@ -256,6 +274,8 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
   skip_till_greater_or_space(it, end);
   std::string_view key =
       std::string_view{&*start, static_cast<size_t>(std::distance(start, it))};
+
+  [[maybe_unused]] std::unordered_set<std::string_view> set;
   bool parse_done = false;
   // sequential parse
   for_each(value, [&](const auto member_ptr, auto i) IGUANA__INLINE_LAMBDA {
@@ -270,6 +290,9 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
     }
     if constexpr (!cdata_t<item_type>) {
       parse_item(value.*member_ptr, it, end, key);
+      if constexpr (iguana::has_iguana_required_arr_v<U>) {
+        set.emplace(key);
+      }
     }
     if (skip_till_key<cdata_idx>(value, it, end)) {
       match_close_tag(it, end, name);
@@ -282,6 +305,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
                            static_cast<size_t>(std::distance(start, it))};
   });
   if (parse_done) [[unlikely]] {
+    check_required<U>(set);
     return;
   }
   // map parse
@@ -297,6 +321,9 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
             using V = std::remove_reference_t<decltype(value.*member_ptr)>;
             if constexpr (!cdata_t<V>) {
               parse_item(value.*member_ptr, it, end, key);
+              if constexpr (iguana::has_iguana_required_arr_v<U>) {
+                set.emplace(key);
+              }
             }
           },
           member_it->second);
@@ -309,6 +336,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
     }
     if (skip_till_key<cdata_idx>(value, it, end)) {
       match_close_tag(it, end, name);
+      check_required<U>(set);
       return;
     }
     start = it;
