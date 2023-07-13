@@ -55,12 +55,16 @@ void some_type_example() {
   std::cout << "\n description : " << *st.description << "\n";
   std::cout << st.child->key1 << " " << st.child->key2 << "\n\n";
   std::cout << "========== serialize person_t =========\n";
+
   std::string ss;
   iguana::to_xml(st, ss);
-  std::cout << ss << "\n\n";
+  std::cout << "minify serialize:\n";
+  std::cout << ss << "\n";
 
-  some_type_t st1;
-  iguana::from_xml(st1, ss);
+  std::string ss1;
+  iguana::to_xml<true>(st, ss1);
+  std::cout << "pretty serialize:\n";
+  std::cout << ss1;
 }
 
 struct book_t {
@@ -88,7 +92,13 @@ void lib_example() {
     iguana::from_xml(lib, str);
     std::string ss;
     iguana::to_xml(lib, ss);
-    std::cout << ss << "\n\n";
+    std::cout << "minify serialize:\n";
+    std::cout << ss << "\n";
+
+    std::string ss1;
+    iguana::to_xml<true>(lib, ss1);
+    std::cout << "pretty serialize:\n";
+    std::cout << ss1;
   }
   {
     std::cout << "========= serialize library with attr ========\n";
@@ -97,7 +107,13 @@ void lib_example() {
 
     std::string ss;
     iguana::to_xml(lib, ss);
-    std::cout << ss << "\n\n";
+    std::cout << "minify serialize:\n";
+    std::cout << ss << "\n";
+
+    std::string ss1;
+    iguana::to_xml<true>(lib, ss1);
+    std::cout << "pretty serialize:\n";
+    std::cout << ss1;
   }
 }
 
@@ -131,7 +147,13 @@ void package_example() {
   std::string ss;
   iguana::to_xml(package, ss);
   std::cout << "========= serialize package_t with attr ========\n";
-  std::cout << ss << "\n\n";
+  std::cout << "minify serialize:\n";
+  std::cout << ss << "\n";
+
+  std::string ss1;
+  iguana::to_xml<true>(package, ss1);
+  std::cout << "pretty serialize:\n";
+  std::cout << ss1;
 }
 
 struct base_t {
@@ -195,7 +217,13 @@ void cdata_example() {
   std::cout << "========= serialize cdata ========\n";
   std::string ss;
   iguana::to_xml(node, ss);
-  std::cout << ss << "\n\n";
+  std::cout << "minify serialize:\n";
+  std::cout << ss << "\n";
+
+  std::string ss1;
+  iguana::to_xml<true>(node, ss1);
+  std::cout << "pretty serialize:\n";
+  std::cout << ss1;
 }
 
 struct city_t {
@@ -242,7 +270,13 @@ void province_example() {
   std::cout << "========= serialize province ========\n";
   std::string ss;
   iguana::to_xml(p, ss);
-  std::cout << ss << "n\n";
+  std::cout << "minify serialize:\n";
+  std::cout << ss << "\n";
+
+  std::string ss1;
+  iguana::to_xml<true>(p, ss1);
+  std::cout << "pretty serialize:\n";
+  std::cout << ss1;
 }
 
 int main(void) {

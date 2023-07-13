@@ -37,12 +37,22 @@ REFLECTION(Contents, Key, LastModified, ETag, Type, Size, StorageClass, Owner);
 
 TEST_CASE("simple test") {
   Contents contents{"key", "ddd", "ccc", "aaa", 123, "aaa", {"bbb", "sss"}};
-  std::string ss;
-  iguana::to_xml(contents, ss);
+  {
+    std::string ss;
+    iguana::to_xml(contents, ss);
 
-  Contents contents2;
-  iguana::from_xml(contents2, ss);
-  CHECK(contents == contents2);
+    Contents contents2;
+    iguana::from_xml(contents2, ss);
+    CHECK(contents == contents2);
+  }
+  {
+    std::string ss;
+    iguana::to_xml<true>(contents, ss);
+
+    Contents contents2;
+    iguana::from_xml(contents2, ss);
+    CHECK(contents == contents2);
+  }
 }
 
 struct optional_t {
@@ -78,12 +88,22 @@ TEST_CASE("test vector") {
   l.list.push_back(optional_t{1, 2, {}, 0, 'o'});
   l.list.push_back(optional_t{3, 4, {}, 1, 'k'});
 
-  std::string ss;
-  iguana::to_xml(l, ss);
+  {
+    std::string ss;
+    iguana::to_xml(l, ss);
 
-  list_t l1;
-  iguana::from_xml(l1, ss);
-  validator(l1);
+    list_t l1;
+    iguana::from_xml(l1, ss);
+    validator(l1);
+  }
+  {
+    std::string ss;
+    iguana::to_xml<true>(l, ss);
+
+    list_t l1;
+    iguana::from_xml(l1, ss);
+    validator(l1);
+  }
 }
 
 struct test_arr_t {
@@ -115,11 +135,20 @@ TEST_CASE("test vector with attr") {
   iguana::from_xml(arr, str);
   validator(arr);
 
-  std::string ss;
-  iguana::to_xml(arr, ss);
-  test_arr_t arr1;
-  iguana::from_xml(arr1, ss);
-  validator(arr1);
+  {
+    std::string ss;
+    iguana::to_xml(arr, ss);
+    test_arr_t arr1;
+    iguana::from_xml(arr1, ss);
+    validator(arr1);
+  }
+  {
+    std::string ss;
+    iguana::to_xml<true>(arr, ss);
+    test_arr_t arr1;
+    iguana::from_xml(arr1, ss);
+    validator(arr1);
+  }
 }
 
 enum class enum_status {
@@ -196,12 +225,22 @@ TEST_CASE("test some type") {
   iguana::from_xml(st, str);
   validator_some_type(st);
 
-  std::string ss;
-  iguana::to_xml(st, ss);
+  {
+    std::string ss;
+    iguana::to_xml(st, ss);
 
-  some_type_t st1;
-  iguana::from_xml(st1, ss);
-  validator_some_type(st1);
+    some_type_t st1;
+    iguana::from_xml(st1, ss);
+    validator_some_type(st1);
+  }
+  {
+    std::string ss;
+    iguana::to_xml<true>(st, ss);
+
+    some_type_t st1;
+    iguana::from_xml(st1, ss);
+    validator_some_type(st1);
+  }
 }
 
 struct book_t {
@@ -241,9 +280,22 @@ TEST_CASE("test library with attr") {
     CHECK(lib.attr()["name"] == "UESTC library");
     validator(lib.value());
 
-    std::string ss;
-    iguana::to_xml(lib, ss);
-    std::cout << ss << std::endl;
+    {
+      std::string ss;
+      iguana::to_xml(lib, ss);
+      iguana::xml_attr_t<library> lib1;
+      iguana::from_xml(lib1, ss);
+      validator(lib1.value());
+      std::cout << ss << std::endl;
+    }
+    {
+      std::string ss;
+      iguana::to_xml<true>(lib, ss);
+      iguana::xml_attr_t<library> lib1;
+      iguana::from_xml(lib1, ss);
+      validator(lib1.value());
+      std::cout << ss << std::endl;
+    }
   }
 }
 
@@ -276,11 +328,20 @@ TEST_CASE("test example package") {
   iguana::from_xml(package, str);
   validator(package);
 
-  std::string ss;
-  iguana::to_xml(package, ss);
-  iguana::xml_attr_t<package_t> package1;
-  iguana::from_xml(package1, ss);
-  validator(package1);
+  {
+    std::string ss;
+    iguana::to_xml(package, ss);
+    iguana::xml_attr_t<package_t> package1;
+    iguana::from_xml(package1, ss);
+    validator(package1);
+  }
+  {
+    std::string ss;
+    iguana::to_xml<true>(package, ss);
+    iguana::xml_attr_t<package_t> package1;
+    iguana::from_xml(package1, ss);
+    validator(package1);
+  }
 }
 
 struct description_t {
@@ -319,11 +380,20 @@ TEST_CASE("test example cdata") {
   iguana::from_xml(node, str);
   validator(node);
 
-  std::string ss;
-  iguana::to_xml(node, ss);
-  node_t node1;
-  iguana::from_xml(node1, ss);
-  validator(node1);
+  {
+    std::string ss;
+    iguana::to_xml(node, ss);
+    node_t node1;
+    iguana::from_xml(node1, ss);
+    validator(node1);
+  }
+  {
+    std::string ss;
+    iguana::to_xml<true>(node, ss);
+    node_t node1;
+    iguana::from_xml(node1, ss);
+    validator(node1);
+  }
 }
 
 struct test_exception_t {
@@ -420,11 +490,20 @@ TEST_CASE("test province example") {
   iguana::from_xml(p, str);
   validator(p);
 
-  std::string ss;
-  iguana::to_xml(p, ss);
-  province p1;
-  iguana::from_xml(p1, str);
-  validator(p1);
+  {
+    std::string ss;
+    iguana::to_xml(p, ss);
+    province p1;
+    iguana::from_xml(p1, str);
+    validator(p1);
+  }
+  {
+    std::string ss;
+    iguana::to_xml<true>(p, ss);
+    province p1;
+    iguana::from_xml(p1, str);
+    validator(p1);
+  }
 }
 
 TEST_CASE("test get_number") {

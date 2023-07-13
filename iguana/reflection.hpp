@@ -17,7 +17,7 @@
 #include <variant>
 #include <vector>
 
-#include "../frozen/string.h"
+#include "frozen/string.h"
 #include "frozen/unordered_map.h"
 
 #include "detail/itoa.hpp"
