@@ -48,7 +48,7 @@ TEST_CASE("simple test") {
   {
     std::string ss;
     iguana::to_xml<true>(contents, ss);
-
+    std::cout << ss;
     Contents contents2;
     iguana::from_xml(contents2, ss);
     CHECK(contents == contents2);
@@ -236,7 +236,7 @@ TEST_CASE("test some type") {
   {
     std::string ss;
     iguana::to_xml<true>(st, ss);
-
+    std::cout << ss;
     some_type_t st1;
     iguana::from_xml(st1, ss);
     validator_some_type(st1);
