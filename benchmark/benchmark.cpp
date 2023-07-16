@@ -281,8 +281,8 @@ static std::map<std::string, variant> test_map{
     {"../data/gsoc-2018.json", gsoc_object_t{}},
     {"../data/mesh.pretty.json", mesh_t{}},
     {"../data/random.json", random_t{}},
-    {"../data/github_events.json", githubEvents::events_t{}},
-    {"../data/marine_ik.json", marine_ik::marine_ik_t{}},
+    // {"../data/github_events.json", githubEvents::events_t{}},
+    // {"../data/marine_ik.json", marine_ik::marine_ik_t{}},
     {"../data/numbers.json", std::vector<double>{}},
     {"../data/instruments.json", instruments_t{}},
 };
