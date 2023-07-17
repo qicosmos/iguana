@@ -297,6 +297,37 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   throw std::runtime_error("Expected ]");
 }
 
+template <typename It> IGUANA_INLINE auto get_key(It &&it, It &&end) {
+  if constexpr (std::contiguous_iterator<std::decay_t<It>>) {
+    // skip white space and escape characters and find the string
+    skip_ws(it, end);
+    match<'"'>(it, end);
+    auto start = it;
+    skip_till_escape_or_qoute(it, end);
+    if (*it == '\\') [[unlikely]] {
+      // we dont' optimize this currently because it would increase binary
+      // size significantly with the complexity of generating escaped
+      // compile time versions of keys
+      it = start;
+      static thread_local std::string static_key{};
+      detail::parse_item<true>(static_key, it, end);
+      return std::string_view(static_key);
+    } else [[likely]] {
+      auto key = std::string_view{
+          &*start, static_cast<size_t>(std::distance(start, it))};
+      ++it;
+      if (key[0] == '@') [[unlikely]] {
+        return key.substr(1);
+      }
+      return key;
+    }
+  } else {
+    static thread_local std::string static_key{};
+    detail::parse_item(static_key, it, end);
+    return std::string_view(static_key);
+  }
+}
+
 template <map_container U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   using T = std::remove_reference_t<U>;
@@ -316,8 +347,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
       match<','>(it, end);
     }
 
-    static thread_local std::string_view key{};
-    parse_item(key, it, end);
+    std::string_view key = get_key(it, end);
 
     skip_ws(it, end);
     match<':'>(it, end);
@@ -431,38 +461,6 @@ IGUANA_INLINE void skip_object_value(auto &&it, auto &&end) {
     }
     }
     break;
-  }
-}
-
-// spaces "key"
-template <typename It> IGUANA_INLINE auto get_key(It &&it, It &&end) {
-  if constexpr (std::contiguous_iterator<std::decay_t<It>>) {
-    // skip white space and escape characters and find the string
-    skip_ws(it, end);
-    match<'"'>(it, end);
-    auto start = it;
-    skip_till_escape_or_qoute(it, end);
-    if (*it == '\\') [[unlikely]] {
-      // we dont' optimize this currently because it would increase binary
-      // size significantly with the complexity of generating escaped
-      // compile time versions of keys
-      it = start;
-      static thread_local std::string static_key{};
-      detail::parse_item<true>(static_key, it, end);
-      return std::string_view(static_key);
-    } else [[likely]] {
-      auto key = std::string_view{
-          &*start, static_cast<size_t>(std::distance(start, it))};
-      ++it;
-      if (key[0] == '@') [[unlikely]] {
-        return key.substr(1);
-      }
-      return key;
-    }
-  } else {
-    static thread_local std::string static_key{};
-    detail::parse_item(static_key, it, end);
-    return std::string_view(static_key);
   }
 }
 

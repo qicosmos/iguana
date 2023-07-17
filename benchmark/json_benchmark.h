@@ -130,10 +130,11 @@ struct venueNames_t {
 REFLECTION(venueNames_t, PLEYEL_PLEYEL);
 
 struct citm_object_t {
-  std::unordered_map<std::int64_t, std::string_view> areaNames;
-  std::unordered_map<std::int64_t, std::string_view> audienceSubCategoryNames;
+  std::unordered_map<std::string_view, std::string_view> areaNames;
+  std::unordered_map<std::string_view, std::string_view>
+      audienceSubCategoryNames;
   apache_empty_t blockNames;
-  std::unordered_map<std::int64_t, events_value_t> events;
+  std::unordered_map<std::string_view, events_value_t> events;
   std::vector<performances_element_t> performances;
   std::unordered_map<std::string_view, std::string_view> seatCategoryNames;
   std::unordered_map<std::string_view, std::string_view> subTopicNames;
