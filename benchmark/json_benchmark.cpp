@@ -1,15 +1,4 @@
-#include "iguana/json_reader.hpp"
-#include "iguana/json_writer.hpp"
-#include "iguana/value.hpp"
-#include <chrono>
-#include <iostream>
-#include <map>
-#include <tuple>
-#ifdef HAS_RAPIDJSON
-#include <rapidjson/document.h>
-#include <rapidjson/writer.h>
-#endif
-#include "../test/test_headers.h"
+#include "json_benchmark.h"
 
 class ScopedTimer {
 public:
@@ -202,9 +191,7 @@ obj_t create_object() {
 void test_from_json(std::string filename, auto &obj, const auto &json_str,
                     const int size) {
   iguana::from_json(obj, std::begin(json_str), std::end(json_str));
-
   std::string iguana_str = "iguana from_json " + filename;
-
   {
     ScopedTimer timer(iguana_str.data());
     for (int i = 0; i < size; ++i) {
@@ -215,12 +202,16 @@ void test_from_json(std::string filename, auto &obj, const auto &json_str,
 #ifdef HAS_RAPIDJSON
   rapidjson::Document doc;
   doc.Parse(json_str.data(), json_str.size());
+  std::vector<std::string> json_str_arr(size);
+  for (int i = 0; i < size; ++i) {
+    json_str_arr[i] = json_str;
+  }
   std::string rapidjson_str = "rapidjson parse " + filename;
   {
     ScopedTimer timer(rapidjson_str.data());
     for (int i = 0; i < size; ++i) {
       doc = {};
-      doc.Parse(json_str.data(), json_str.size());
+      doc.ParseInsitu(const_cast<char *>(json_str_arr[i].data()));
     }
   }
 #endif
@@ -281,8 +272,8 @@ static std::map<std::string, variant> test_map{
     {"../data/gsoc-2018.json", gsoc_object_t{}},
     {"../data/mesh.pretty.json", mesh_t{}},
     {"../data/random.json", random_t{}},
-    // {"../data/github_events.json", githubEvents::events_t{}},
-    // {"../data/marine_ik.json", marine_ik::marine_ik_t{}},
+    {"../data/github_events.json", githubEvents::events_t{}},
+    {"../data/marine_ik.json", marine_ik::marine_ik_t{}},
     {"../data/numbers.json", std::vector<double>{}},
     {"../data/instruments.json", instruments_t{}},
 };

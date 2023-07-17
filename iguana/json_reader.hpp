@@ -208,16 +208,16 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   }
   using T = std::decay_t<U>;
   auto start = it;
-  while (it < end) {
-    skip_till_escape_or_qoute(it, end);
-    if (*it == '"') {
+  while (it != end) {
+    skip_till_qoute(it, end);
+    if (*(it - 1) != '\\') {
       value = T(&*start, static_cast<size_t>(std::distance(start, it)));
       ++it;
       return;
     }
-    it += 2;
+    ++it;
   }
-  throw std::runtime_error("Expected \""); // is needed?
+  throw std::runtime_error("Expected \"");
 }
 
 template <fixed_array U, class It>
@@ -509,7 +509,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
       const auto &member_it = frozen_map.find(key);
       skip_ws(it, end);
       match<':'>(it, end);
-      if (member_it != frozen_map.end()) {
+      if (member_it != frozen_map.end()) [[likely]] {
         std::visit(
             [&](auto &&member_ptr) IGUANA__INLINE_LAMBDA {
               using V = std::decay_t<decltype(member_ptr)>;
