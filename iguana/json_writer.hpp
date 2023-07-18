@@ -10,19 +10,23 @@
 
 namespace iguana {
 
-template <typename Stream, refletable T>
+template <typename Stream, typename T,
+          std::enable_if_t<refletable_v<T>, int> = 0>
 IGUANA_INLINE void to_json(T &&t, Stream &s);
 
-template <typename Stream, sequence_container_t T>
+template <typename Stream, typename T,
+          std::enable_if_t<sequence_container_v<T>, int> = 0>
 IGUANA_INLINE void render_json_value(Stream &ss, const T &v);
 
-template <typename Stream, unique_ptr_t T>
+template <typename Stream, typename T,
+          std::enable_if_t<unique_ptr_v<T>, int> = 0>
 IGUANA_INLINE void render_json_value(Stream &ss, const T &v);
 
-template <typename Stream, associat_container_t T>
+template <typename Stream, typename T,
+          std::enable_if_t<map_container_v<T>, int> = 0>
 IGUANA_INLINE void render_json_value(Stream &ss, const T &o);
 
-template <typename Stream, tuple_t T>
+template <typename Stream, typename T, std::enable_if_t<tuple_v<T>, int> = 0>
 IGUANA_INLINE void render_json_value(Stream &ss, const T &v);
 
 template <typename Stream, typename InputIt, typename T, typename F>
@@ -55,7 +59,7 @@ IGUANA_INLINE void render_json_value(Stream &ss, char value) {
   ss.append("\"");
 }
 
-template <typename Stream, num_t T>
+template <typename Stream, typename T, std::enable_if_t<num_v<T>, int> = 0>
 IGUANA_INLINE void render_json_value(Stream &ss, T value) {
   char temp[65];
   auto p = detail::to_chars(temp, value);
@@ -74,24 +78,26 @@ IGUANA_INLINE void render_json_value(Stream &ss, T &&t) {
   ss.push_back('"');
 }
 
-template <typename Stream, arithmetic_t T>
+template <typename Stream, typename T, std::enable_if_t<num_v<T>, int> = 0>
 IGUANA_INLINE void render_key(Stream &ss, T &t) {
   ss.push_back('"');
   render_json_value(ss, t);
   ss.push_back('"');
 }
 
-template <typename Stream, string_container_t T>
+template <typename Stream, typename T,
+          std::enable_if_t<string_container_v<T>, int> = 0>
 IGUANA_INLINE void render_key(Stream &ss, T &&t) {
   render_json_value(ss, std::forward<T>(t));
 }
 
-template <typename Stream, refletable T>
+template <typename Stream, typename T,
+          std::enable_if_t<refletable_v<T>, int> = 0>
 IGUANA_INLINE void render_json_value(Stream &ss, T &&t) {
   to_json(std::forward<T>(t), ss);
 }
 
-template <typename Stream, enum_t T>
+template <typename Stream, typename T, std::enable_if_t<enum_v<T>, int> = 0>
 IGUANA_INLINE void render_json_value(Stream &ss, T val) {
   render_json_value(ss, static_cast<std::underlying_type_t<T>>(val));
 }
@@ -114,7 +120,8 @@ IGUANA_INLINE void render_array(Stream &ss, const T &v) {
   ss.push_back(']');
 }
 
-template <typename Stream, fixed_array T>
+template <typename Stream, typename T,
+          std::enable_if_t<fixed_array_v<T>, int> = 0>
 IGUANA_INLINE void render_json_value(Stream &ss, const T &t) {
   if constexpr (std::is_same_v<char, std::remove_reference_t<
                                          decltype(std::declval<T>()[0])>>) {
@@ -135,7 +142,8 @@ IGUANA_INLINE void render_json_value(Stream &ss, const T &t) {
   }
 }
 
-template <typename Stream, associat_container_t T>
+template <typename Stream, typename T,
+          std::enable_if_t<map_container_v<T>, int>>
 IGUANA_INLINE void render_json_value(Stream &ss, const T &o) {
   ss.push_back('{');
   join(ss, o.cbegin(), o.cend(), ',',
@@ -147,7 +155,8 @@ IGUANA_INLINE void render_json_value(Stream &ss, const T &o) {
   ss.push_back('}');
 }
 
-template <typename Stream, sequence_container_t T>
+template <typename Stream, typename T,
+          std::enable_if_t<sequence_container_v<T>, int>>
 IGUANA_INLINE void render_json_value(Stream &ss, const T &v) {
   ss.push_back('[');
   join(ss, v.cbegin(), v.cend(), ',',
@@ -166,7 +175,7 @@ constexpr auto write_json_key = [](auto &s, auto i,
   s.push_back('"');
 };
 
-template <typename Stream, unique_ptr_t T>
+template <typename Stream, typename T, std::enable_if_t<unique_ptr_v<T>, int>>
 IGUANA_INLINE void render_json_value(Stream &ss, const T &v) {
   if (v) {
     render_json_value(ss, *v);
@@ -175,7 +184,7 @@ IGUANA_INLINE void render_json_value(Stream &ss, const T &v) {
   }
 }
 
-template <typename Stream, tuple_t T>
+template <typename Stream, typename T, std::enable_if_t<tuple_v<T>, int> = 0>
 IGUANA_INLINE void render_json_value(Stream &s, T &&t) {
   using U = typename std::decay_t<T>;
   s.push_back('[');
@@ -184,13 +193,14 @@ IGUANA_INLINE void render_json_value(Stream &s, T &&t) {
            [&s, size](auto &v, auto i) IGUANA__INLINE_LAMBDA {
              render_json_value(s, v);
 
-             if (i != size - 1) [[likely]]
-               s.push_back(',');
+             if (i != size - 1)
+               AS_LIKELY
+             s.push_back(',');
            });
   s.push_back(']');
 }
 
-template <typename Stream, refletable T>
+template <typename Stream, typename T, std::enable_if_t<refletable_v<T>, int>>
 IGUANA_INLINE void to_json(T &&t, Stream &s) {
   s.push_back('{');
   for_each(std::forward<T>(t),
@@ -215,7 +225,8 @@ IGUANA_INLINE void to_json(T &&t, Stream &s) {
   s.push_back('}');
 }
 
-template <typename Stream, non_refletable T>
+template <typename Stream, typename T,
+          std::enable_if_t<non_refletable_v<T>, int> = 0>
 IGUANA_INLINE void to_json(T &&t, Stream &s) {
   render_json_value(s, t);
 }
