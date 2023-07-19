@@ -57,7 +57,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   using T = std::remove_reference_t<U>;
 
-  if constexpr (std::contiguous_iterator<std::decay_t<It>>) {
+  if constexpr (contiguous_iterator<std::decay_t<It>>) {
     if constexpr (std::is_floating_point_v<T>) {
       const auto size = std::distance(it, end);
       if (size == 0)
@@ -158,13 +158,13 @@ IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end) {
       switch (*it) {
       case 't': {
         ++it;
-        match<"rue">(it, end);
+        match<'r', 'u', 'e'>(it, end);
         value = true;
         break;
       }
       case 'f': {
         ++it;
-        match<"alse">(it, end);
+        match<'a', 'l', 's', 'e'>(it, end);
         value = false;
         break;
       }
@@ -184,7 +184,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     match<'"'>(it, end);
   }
   value.clear();
-  if constexpr (std::contiguous_iterator<std::decay_t<It>>) {
+  if constexpr (contiguous_iterator<std::decay_t<It>>) {
     auto start = it;
     while (it < end) {
       skip_till_escape_or_qoute(it, end);
@@ -225,8 +225,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 template <bool skip = false, typename U, typename It,
           std::enable_if_t<string_view_v<U>, int> = 0>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
-  static_assert(std::contiguous_iterator<std::decay_t<It>>,
-                "must be contiguous");
+  static_assert(contiguous_iterator<std::decay_t<It>>, "must be contiguous");
   if constexpr (!skip) {
     skip_ws(it, end);
     match<'"'>(it, end);
@@ -325,7 +324,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 }
 
 template <typename It> IGUANA_INLINE auto get_key(It &&it, It &&end) {
-  if constexpr (std::contiguous_iterator<std::decay_t<It>>) {
+  if constexpr (contiguous_iterator<std::decay_t<It>>) {
     // skip white space and escape characters and find the string
     skip_ws(it, end);
     match<'"'>(it, end);
@@ -428,7 +427,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     AS_UNLIKELY { throw std::runtime_error("Unexexpected eof"); }
   if (*it == 'n') {
     ++it;
-    match<"ull">(it, end);
+    match<'u', 'l', 'l'>(it, end);
     if constexpr (!std::is_pointer_v<T>) {
       value.reset();
       if (it < end && *it == '"') {
@@ -456,7 +455,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     AS_UNLIKELY { throw std::runtime_error("Unexexpected eof"); }
   if (*it == 'n') {
     ++it;
-    match<"ull">(it, end);
+    match<'u', 'l', 'l'>(it, end);
   } else {
     using value_type = typename std::remove_reference_t<U>::element_type;
     value = std::make_unique<value_type>();
@@ -464,7 +463,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   }
 }
 
-IGUANA_INLINE void skip_object_value(auto &&it, auto &&end) {
+template <typename It> IGUANA_INLINE void skip_object_value(It &&it, It &&end) {
   skip_ws(it, end);
   while (it != end) {
     switch (*it) {
@@ -700,7 +699,8 @@ inline void parse(jvalue &result, It &&it, It &&end) {
   skip_ws(it, end);
   switch (*it) {
   case 'n':
-    match<"null">(it, end);
+    ++it;
+    match<'u', 'l', 'l'>(it, end);
     result.template emplace<std::nullptr_t>();
     break;
 

@@ -6,7 +6,6 @@
 #include "define.h"
 #include "reflection.hpp"
 #include "value.hpp"
-#include <bit>
 #include <filesystem>
 #include <forward_list>
 #include <fstream>
@@ -15,14 +14,6 @@
 #include <stdexcept>
 #include <string_view>
 #include <type_traits>
-
-#if __has_cpp_attribute(likely) && __has_cpp_attribute(unlikely)
-#define AS_LIKELY [[likely]]
-#define AS_UNLIKELY [[unlikely]]
-#else
-#define AS_LIKELY
-#define AS_UNLIKELY
-#endif
 
 namespace iguana {
 
@@ -68,7 +59,7 @@ struct is_map_container<
     : is_container<T> {};
 
 template <typename T>
-constexpr inline bool container_v = is_container<std::remove_cvref_t<T>>::value;
+constexpr inline bool container_v = is_container<T>::value;
 
 template <typename T>
 constexpr inline bool map_container_v =
@@ -188,42 +179,37 @@ template <size_t N> struct string_literal {
   constexpr const std::string_view sv() const noexcept { return {value, size}; }
 };
 
-template <char c> IGUANA_INLINE void match(auto &&it, auto &&end) {
-  if (it == end || *it != c)
-    AS_UNLIKELY {
-      static constexpr char b[] = {c, '\0'};
-      //         static constexpr auto error = concat_arrays("Expected:", b);
-      std::string error = std::string("Expected:").append(b);
-      throw std::runtime_error(error);
-    }
-  else
-    AS_LIKELY { ++it; }
-}
+// template <char c, typename It> IGUANA_INLINE void match(It &&it, It &&end) {
+//   if (it == end || *it != c)
+//     AS_UNLIKELY {
+//       static constexpr char b[] = {c, '\0'};
+//       //         static constexpr auto error = concat_arrays("Expected:", b);
+//       std::string error = std::string("Expected:").append(b);
+//       throw std::runtime_error(error);
+//     }
+//   else
+//     AS_LIKELY { ++it; }
+// }
 
-template <string_literal str> IGUANA_INLINE void match(auto &&it, auto &&end) {
+template <char... C, typename It> IGUANA_INLINE void match(It &&it, It &&end) {
   const auto n = static_cast<size_t>(std::distance(it, end));
-  if (n < str.size)
+  if (n < sizeof...(C))
     AS_UNLIKELY {
       // TODO: compile time generate this message, currently borken with
       // MSVC
       static constexpr auto error = "Unexpected end of buffer. Expected:";
       throw std::runtime_error(error);
     }
-  size_t i{};
-  // clang and gcc will vectorize this loop
-  for (auto *c = str.value; c < str.end(); ++it, ++c) {
-    i += *it != *c;
-  }
-  if (i != 0)
+  if (((... || (*it++ != C))))
     AS_UNLIKELY {
       // TODO: compile time generate this message, currently borken with
       // MSVC
-      static constexpr auto error = "Expected: ";
-      throw std::runtime_error(error);
+      static constexpr char b[] = {C..., '\0'};
+      throw std::runtime_error(std::string("Expected these: ").append(b));
     }
 }
 
-IGUANA_INLINE void skip_comment(auto &&it, auto &&end) {
+template <typename It> IGUANA_INLINE void skip_comment(It &&it, It &&end) {
   ++it;
   if (it == end)
     AS_UNLIKELY
@@ -249,7 +235,7 @@ IGUANA_INLINE void skip_comment(auto &&it, auto &&end) {
   else AS_UNLIKELY throw std::runtime_error("Expected / or * after /");
 }
 
-IGUANA_INLINE void skip_ws(auto &&it, auto &&end) {
+template <typename It> IGUANA_INLINE void skip_ws(It &&it, It &&end) {
   while (it != end) {
     // assuming ascii
     if (static_cast<uint8_t>(*it) < 33) {
@@ -262,7 +248,8 @@ IGUANA_INLINE void skip_ws(auto &&it, auto &&end) {
   }
 }
 
-IGUANA_INLINE void skip_ws_no_comments(auto &&it, auto &&end) {
+template <typename It>
+IGUANA_INLINE void skip_ws_no_comments(It &&it, It &&end) {
   while (it != end) {
     // assuming ascii
     if (static_cast<uint8_t>(*it) < 33)
@@ -289,8 +276,9 @@ inline constexpr auto has_escape = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
       0b0101110001011100010111000101110001011100010111000101110001011100);
 };
 
-IGUANA_INLINE void skip_till_escape_or_qoute(auto &&it, auto &&end) {
-  static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
+template <typename It>
+IGUANA_INLINE void skip_till_escape_or_qoute(It &&it, It &&end) {
+  static_assert(contiguous_iterator<std::decay_t<decltype(it)>>);
   if (std::distance(it, end) >= 7)
     AS_LIKELY {
       const auto end_m7 = end - 7;
@@ -298,7 +286,7 @@ IGUANA_INLINE void skip_till_escape_or_qoute(auto &&it, auto &&end) {
         const auto chunk = *reinterpret_cast<const uint64_t *>(&*it);
         uint64_t test = has_qoute(chunk) | has_escape(chunk);
         if (test != 0) {
-          it += (std::countr_zero(test) >> 3);
+          it += (countr_zero(test) >> 3);
           return;
         }
       }
@@ -316,8 +304,8 @@ IGUANA_INLINE void skip_till_escape_or_qoute(auto &&it, auto &&end) {
   throw std::runtime_error("Expected \"");
 }
 
-IGUANA_INLINE void skip_till_qoute(auto &&it, auto &&end) {
-  static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
+template <typename It> IGUANA_INLINE void skip_till_qoute(It &&it, It &&end) {
+  static_assert(contiguous_iterator<std::decay_t<decltype(it)>>);
   if (std::distance(it, end) >= 7)
     AS_LIKELY {
       const auto end_m7 = end - 7;
@@ -325,7 +313,7 @@ IGUANA_INLINE void skip_till_qoute(auto &&it, auto &&end) {
         const auto chunk = *reinterpret_cast<const uint64_t *>(&*it);
         uint64_t test = has_qoute(chunk);
         if (test != 0) {
-          it += (std::countr_zero(test) >> 3);
+          it += (countr_zero(test) >> 3);
           return;
         }
       }
@@ -340,7 +328,8 @@ IGUANA_INLINE void skip_till_qoute(auto &&it, auto &&end) {
   throw std::runtime_error("Expected \"");
 }
 
-IGUANA_INLINE void skip_string(auto &&it, auto &&end) noexcept {
+template <typename It>
+IGUANA_INLINE void skip_string(It &&it, It &&end) noexcept {
   ++it;
   while (it < end) {
     if (*it == '"') {
@@ -353,8 +342,8 @@ IGUANA_INLINE void skip_string(auto &&it, auto &&end) noexcept {
   }
 }
 
-template <char open, char close>
-IGUANA_INLINE void skip_until_closed(auto &&it, auto &&end) {
+template <char open, char close, typename It>
+IGUANA_INLINE void skip_until_closed(It &&it, It &&end) {
   ++it;
   size_t open_count = 1;
   size_t close_count = 0;
