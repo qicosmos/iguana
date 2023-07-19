@@ -39,7 +39,7 @@ constexpr inline bool contiguous_iterator = std::contiguous_iterator<T>;
 IGUANA_INLINE int countr_zero(unsigned long long x) {
   // x will never be zero in iguana
   unsigned long pos;
-  _BitScanReverse64(&pos, x);
+  _BitScanForward64(&pos, x);
   return pos;
 }
 

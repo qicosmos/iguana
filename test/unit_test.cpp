@@ -223,7 +223,7 @@ struct ee_t {
 REFLECTION(ee_t, e);
 
 TEST_CASE("test enum") {
-  ee_t t{.e = ee::bb};
+  ee_t t{ee::bb};
   std::string str;
   iguana::to_json(t, str);
 
@@ -552,7 +552,7 @@ TEST_CASE("test pmr") {
 #else
   iguana::string_stream str;
 #endif
-  person obj{.name = "tom", .age = 20};
+  person obj{"tom", 20};
   iguana::to_json(obj, str);
 }
 
