@@ -4,8 +4,6 @@
 
 #ifndef SERIALIZE_JSON_HPP
 #define SERIALIZE_JSON_HPP
-#include "define.h"
-#include "detail/charconv.h"
 #include "json_util.hpp"
 
 namespace iguana {
@@ -168,9 +166,8 @@ IGUANA_INLINE void render_json_value(Stream &ss, const T &v) {
 constexpr auto write_json_key = [](auto &s, auto i,
                                    auto &t) IGUANA__INLINE_LAMBDA {
   s.push_back('"');
-  constexpr auto name =
-      get_name<decltype(t),
-               decltype(i)::value>(); // will be replaced by string_view later
+  // will be replaced by string_view later
+  constexpr auto name = get_name<decltype(t), decltype(i)::value>();
   s.append(name.data(), name.size());
   s.push_back('"');
 };
@@ -194,8 +191,7 @@ IGUANA_INLINE void render_json_value(Stream &s, T &&t) {
              render_json_value(s, v);
 
              if (i != size - 1)
-               AS_LIKELY
-             s.push_back(',');
+               AS_LIKELY { s.push_back(','); }
            });
   s.push_back(']');
 }

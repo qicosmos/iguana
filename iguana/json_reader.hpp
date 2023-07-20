@@ -1,9 +1,7 @@
 #pragma once
-#include "detail/charconv.h"
 #include "detail/utf.hpp"
 #include "error_code.h"
 #include "json_util.hpp"
-#include <charconv>
 namespace iguana {
 
 template <typename T, typename It, std::enable_if_t<refletable_v<T>, int> = 0>
@@ -23,8 +21,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 template <typename U, typename It, std::enable_if_t<string_v<U>, int> = 0>
 IGUANA_INLINE void parse_escape(U &value, It &&it, It &&end) {
   if (it == end)
-    AS_UNLIKELY
-  throw std::runtime_error(R"(Expected ")");
+    AS_UNLIKELY { throw std::runtime_error(R"(Expected ")"); }
   if (*it == 'u') {
     ++it;
     if (std::distance(it, end) <= 4)
@@ -55,44 +52,32 @@ IGUANA_INLINE void parse_escape(U &value, It &&it, It &&end) {
 template <typename U, typename It, std::enable_if_t<num_v<U>, int> = 0>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
+<<<<<<< HEAD
   using T = std::remove_reference_t<U>;
 
+=======
+>>>>>>> simplify the code
   if constexpr (contiguous_iterator<std::decay_t<It>>) {
-    if constexpr (std::is_floating_point_v<T>) {
-      const auto size = std::distance(it, end);
-      if (size == 0)
-        AS_UNLIKELY
-      throw std::runtime_error("Failed to parse number");
-      const auto start = &*it;
-      auto [p, ec] = detail::from_chars(start, start + size, value);
-      if (ec != std::errc{})
-        AS_UNLIKELY
-      throw std::runtime_error("Failed to parse number");
-      it += (p - &*it);
-    } else {
-      // TODO: remove this later
-      const auto size = std::distance(it, end);
-      const auto start = &*it;
-      auto [p, ec] = std::from_chars(start, start + size, value);
-      if (ec != std::errc{})
-        AS_UNLIKELY
-      throw std::runtime_error("Failed to parse number");
-      it += (p - &*it);
-    }
+    const auto size = std::distance(it, end);
+    if (size == 0)
+      AS_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
+    const auto start = &*it;
+    auto [p, ec] = detail::from_chars(start, start + size, value);
+    if (ec != std::errc{})
+      AS_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
+    it += (p - &*it);
   } else {
     char buffer[256];
     size_t i{};
     while (it != end && is_numeric(*it)) {
       if (i > 254)
-        AS_UNLIKELY
-      throw std::runtime_error("Number is too long");
+        AS_UNLIKELY { throw std::runtime_error("Number is too long"); }
       buffer[i] = *it++;
       ++i;
     }
     auto [p, ec] = detail::from_chars(buffer, buffer + i, value);
     if (ec != std::errc{})
-      AS_UNLIKELY
-    throw std::runtime_error("Failed to parse number");
+      AS_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
   }
 }
 
@@ -121,8 +106,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     match<'"'>(it, end);
   }
   if (it == end)
-    AS_UNLIKELY
-  throw std::runtime_error("Unxpected end of buffer");
+    AS_UNLIKELY { throw std::runtime_error("Unxpected end of buffer"); }
   if (*it == '\\')
     AS_UNLIKELY {
       if (++it == end)
@@ -156,18 +140,16 @@ IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end) {
   if (it < end)
     AS_LIKELY {
       switch (*it) {
-      case 't': {
+      case 't':
         ++it;
         match<'r', 'u', 'e'>(it, end);
         value = true;
         break;
-      }
-      case 'f': {
+      case 'f':
         ++it;
         match<'a', 'l', 's', 'e'>(it, end);
         value = false;
         break;
-      }
         AS_UNLIKELY default
             : throw std::runtime_error("Expected true or false");
       }
@@ -203,20 +185,14 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   } else {
     while (it != end) {
       switch (*it) {
-        AS_UNLIKELY case '\\' : {
-          ++it;
-          parse_escape(value, it, end);
-          break;
-        }
-        AS_UNLIKELY case ']' : { return; }
-        AS_UNLIKELY case '"' : {
-          ++it;
-          return;
-        }
-        AS_LIKELY default : {
-          value.push_back(*it);
-          ++it;
-        }
+        AS_UNLIKELY case '\\' : ++it;
+        parse_escape(value, it, end);
+        break;
+        AS_UNLIKELY case ']' : return;
+        AS_UNLIKELY case '"' : ++it;
+        return;
+        AS_LIKELY default : value.push_back(*it);
+        ++it;
       }
     }
   }
@@ -265,9 +241,8 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   }
   match<'['>(it, end);
   skip_ws(it, end);
-  if (it == end) {
-    throw std::runtime_error("Unexpected end");
-  }
+  if (it == end)
+    AS_UNLIKELY { throw std::runtime_error("Unexpected end"); }
 
   if (*it == ']')
     AS_UNLIKELY {
@@ -311,13 +286,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     if (i > 0)
       AS_LIKELY { match<','>(it, end); }
 
-    using value_type = typename std::remove_cv_t<U>::value_type;
-    if constexpr (refletable_v<value_type>) {
-      from_json(value.emplace_back(), it, end);
-    } else {
-      parse_item(value.emplace_back(), it, end);
-    }
-
+    parse_item(value.emplace_back(), it, end);
     skip_ws(it, end);
   }
   throw std::runtime_error("Expected ]");
@@ -373,11 +342,9 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
         return;
       }
     else if (first)
-      AS_UNLIKELY
-    first = false;
-    else AS_LIKELY {
-      match<','>(it, end);
-    }
+      AS_UNLIKELY { first = false; }
+    else
+      AS_LIKELY { match<','>(it, end); }
 
     std::string_view key = get_key(it, end);
 
@@ -779,14 +746,6 @@ inline void parse(T &result, const View &view, std::error_code &ec) noexcept {
     ec = iguana::make_error_code(e.what());
   }
 }
-
-// template <typename T, typename It>
-// IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
-//   static_assert(!sizeof(T), "The type is not support, please check if you
-//   have "
-//                             "defined REFLECTION for the type, otherwise the "
-//                             "type is not supported now!");
-// }
 
 IGUANA_INLINE std::string json_file_content(const std::string &filename) {
   std::error_code ec;

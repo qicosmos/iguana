@@ -4,6 +4,7 @@
 #pragma once
 
 #include "define.h"
+#include "detail/charconv.h"
 #include "reflection.hpp"
 #include "value.hpp"
 #include <filesystem>
@@ -59,7 +60,7 @@ struct is_map_container<
     : is_container<T> {};
 
 template <typename T>
-constexpr inline bool container_v = is_container<T>::value;
+constexpr inline bool container_v = is_container<std::remove_cvref_t<T>>::value;
 
 template <typename T>
 constexpr inline bool map_container_v =
@@ -77,12 +78,6 @@ struct is_array<
                    typename std::enable_if_t<(std::tuple_size<T>::value != 0)>>>
     : std::true_type {};
 
-// template <class, class = void> struct is_array : std::false_type {};
-
-// template <typename T>
-// struct is_array<T, std::void_t<decltype(std::declval<T>().size())>>
-//     : std::tuple_size<std::remove_cv_t<T>> {};
-
 template <typename T>
 constexpr inline bool array_v = is_array<std::remove_cvref_t<T>>::value;
 
@@ -98,20 +93,14 @@ template <typename T>
 constexpr inline bool string_v =
     is_template_instant_of<std::basic_string, std::remove_cvref_t<T>>::value;
 
-// template <typename Type>
-// concept json_view = requires(Type container) {
-//   container.size();
-//   container.begin();
-//   container.end();
-// };
 // TODO: type must be char
-template <typename Type>
-constexpr inline bool json_view_v = is_container<Type>::value;
+template <typename T> constexpr inline bool json_view_v = container_v<T>;
 
 template <typename T>
 constexpr inline bool json_byte_v =
-    std::is_same_v<char, T> || std::is_same_v<unsigned char, T> ||
-    std::is_same_v<std::byte, T>;
+    std::is_same_v<char, std::remove_cvref_t<T>> ||
+    std::is_same_v<unsigned char, std::remove_cvref_t<T>> ||
+    std::is_same_v<std::byte, std::remove_cvref_t<T>>;
 
 template <typename T>
 constexpr inline bool sequence_container_v =
@@ -123,12 +112,6 @@ constexpr inline bool tuple_v = is_tuple<std::remove_cvref_t<T>>::value;
 template <typename T>
 constexpr inline bool string_container_v = string_v<T> || string_view_v<T>;
 
-// template <typename Type>
-// concept unique_ptr_t = requires(Type ptr) {
-//   ptr.operator*();
-//   typename std::remove_cvref_t<Type>::element_type;
-// }
-// &&!requires(Type ptr, Type ptr2) { ptr = ptr2; };
 template <typename T>
 constexpr inline bool unique_ptr_v =
     is_template_instant_of<std::unique_ptr, std::remove_cvref_t<T>>::value;
@@ -136,7 +119,7 @@ constexpr inline bool unique_ptr_v =
 template <class T>
 constexpr inline bool non_refletable_v =
     container_v<T> || c_array_v<T> || tuple_v<T> || optional_v<T> ||
-    unique_ptr_v<T> || std::is_fundamental_v<T>;
+    unique_ptr_v<T> || std::is_fundamental_v<std::remove_cvref_t<T>>;
 
 template <typename T>
 constexpr inline bool refletable_v = is_reflection_v<std::remove_cvref_t<T>>;
@@ -212,27 +195,27 @@ template <char... C, typename It> IGUANA_INLINE void match(It &&it, It &&end) {
 template <typename It> IGUANA_INLINE void skip_comment(It &&it, It &&end) {
   ++it;
   if (it == end)
-    AS_UNLIKELY
-  throw std::runtime_error("Unexpected end, expected comment");
+    AS_UNLIKELY {
+      throw std::runtime_error("Unexpected end, expected comment");
+    }
   else if (*it == '/') {
     while (++it != end && *it != '\n')
       ;
-  }
-  else if (*it == '*') {
+  } else if (*it == '*') {
     while (++it != end) {
       if (*it == '*')
         AS_UNLIKELY {
           if (++it == end)
-            AS_UNLIKELY
-          break;
-          else if (*it == '/') AS_LIKELY {
-            ++it;
-            break;
-          }
+            AS_UNLIKELY { break; }
+          else if (*it == '/')
+            AS_LIKELY {
+              ++it;
+              break;
+            }
         }
     }
-  }
-  else AS_UNLIKELY throw std::runtime_error("Expected / or * after /");
+  } else
+    AS_UNLIKELY throw std::runtime_error("Expected / or * after /");
 }
 
 template <typename It> IGUANA_INLINE void skip_ws(It &&it, It &&end) {
