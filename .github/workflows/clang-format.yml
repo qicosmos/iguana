@@ -2,9 +2,9 @@ name: Clang Format Diff
 
 on:
   push:
-    branches: [ master, improve_json]
+    branches: [ master]
   pull_request:
-    branches: [ master, improve_json]
+    branches: [ master]
     
 jobs:
   build:
