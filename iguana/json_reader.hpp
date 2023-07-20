@@ -89,6 +89,17 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   }
 }
 
+template <numeric_str_v U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+  skip_ws(it, end);
+  auto start = it;
+  while (it != end && is_numeric(*it)) {
+    ++it;
+  }
+  value.value() =
+      std::string_view(&*start, static_cast<size_t>(std::distance(start, it)));
+}
+
 template <enum_t U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   using T = std::underlying_type_t<std::decay_t<U>>;

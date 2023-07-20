@@ -62,6 +62,11 @@ IGUANA_INLINE void render_json_value(Stream &ss, T value) {
   ss.append(temp, p - temp);
 }
 
+template <typename Stream, numeric_str_v T>
+IGUANA_INLINE void render_json_value(Stream &ss, T v) {
+  ss.append(v.value().data(), v.value().size());
+}
+
 template <typename Stream, string_container_t T>
 IGUANA_INLINE void render_json_value(Stream &ss, T &&t) {
   ss.push_back('"');

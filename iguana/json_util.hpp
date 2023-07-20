@@ -156,6 +156,31 @@ template <class T>
 concept non_refletable = container<T> || c_array<T> || tuple<T> ||
     optional<T> || unique_ptr_t<T> || std::is_fundamental_v<T>;
 
+class numeric_str {
+public:
+  std::string_view &value() { return val_; }
+  std::string_view value() const { return val_; }
+  template <typename T> T convert() {
+    static_assert(num_t<T>, "T must be numeric type");
+    if (val_.empty()) [[unlikely]] {
+      throw std::runtime_error("Failed to parse number");
+    }
+    T res;
+    auto [_, ec] =
+        detail::from_chars(val_.data(), val_.data() + val_.size(), res);
+    if (ec != std::errc{}) [[unlikely]] {
+      throw std::runtime_error("Failed to parse number");
+    }
+    return res;
+  }
+
+private:
+  std::string_view val_;
+};
+
+template <typename T>
+concept numeric_str_v = std::is_same_v<numeric_str, std::remove_cvref_t<T>>;
+
 template <size_t N> struct string_literal {
   static constexpr size_t size = (N > 0) ? (N - 1) : 0;
 
