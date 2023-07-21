@@ -488,6 +488,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
     return;
   }
   std::string_view key = detail::get_key(it, end);
+#ifdef SEQUENTIAL_PARSE
   bool parse_done = false;
   for_each(value, [&](const auto member_ptr, auto i) IGUANA__INLINE_LAMBDA {
     constexpr auto mkey = iguana::get_name<T, decltype(i)::value>();
@@ -512,6 +513,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
   if (parse_done) [[unlikely]] {
     return;
   }
+#endif
   while (it != end) {
     static constexpr auto frozen_map = get_iguana_struct_map<T>();
     if constexpr (frozen_map.size() > 0) {
