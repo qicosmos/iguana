@@ -2,9 +2,9 @@ name: Ubuntu (clang)
 
 on:
   push:
-    branches: [ master, improve_xml]
+    branches: [ master]
   pull_request:
-    branches: [ master, improve_xml]
+    branches: [ master]
     
 jobs:
   build:

@@ -777,6 +777,34 @@ TEST_CASE("test vector<bool>") {
   validator(v1);
 }
 
+struct test_numeric_t {
+  std::vector<iguana::numeric_str> arr;
+  iguana::numeric_str num;
+};
+REFLECTION(test_numeric_t, arr, num);
+TEST_CASE("test numeric string") {
+  std::string str = R"(
+{ "arr": [1.5 , 2.4 , 3.7],
+  "num": 420}
+  )";
+  auto validator = [](test_numeric_t &t) {
+    CHECK(t.arr[0].convert<float>() == 1.5f);
+    CHECK(t.arr[1].convert<float>() == 2.4f);
+    CHECK(t.arr[2].convert<float>() == 3.7f);
+    CHECK(t.num.convert<int>() == 420);
+  };
+  test_numeric_t t;
+  iguana::from_json(t, str);
+  validator(t);
+
+  std::string ss;
+  iguana::to_json(t, ss);
+  std::cout << ss << std::endl;
+  test_numeric_t t1;
+  iguana::from_json(t1, ss);
+  validator(t1);
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007) int main(int argc, char **argv) {

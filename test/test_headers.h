@@ -88,17 +88,17 @@ struct apache_builds {
   std::string description;
   std::vector<jobs_t> jobs;
   apache_empty_t overallLoad;
-  apache_empty_t unlabeledLoad;
   views_t primaryView;
   bool quietingDown;
   int64_t slaveAgentPort;
+  apache_empty_t unlabeledLoad;
   bool useCrumbs;
   bool useSecurity;
   std::vector<views_t> views;
 };
 REFLECTION(apache_builds, assignedLabels, mode, nodeDescription, nodeName,
-           numExecutors, description, jobs, overallLoad, unlabeledLoad,
-           primaryView, quietingDown, slaveAgentPort, useCrumbs, useSecurity,
+           numExecutors, description, jobs, overallLoad, primaryView,
+           quietingDown, slaveAgentPort, unlabeledLoad, useCrumbs, useSecurity,
            views);
 
 // citm_catalog.json
@@ -157,17 +157,17 @@ struct citm_object_t {
   std::unordered_map<std::int64_t, std::string> areaNames;
   std::unordered_map<std::int64_t, std::string> audienceSubCategoryNames;
   apache_empty_t blockNames;
-  apache_empty_t subjectNames;
   std::unordered_map<std::int64_t, events_value_t> events;
   std::vector<performances_element_t> performances;
   std::unordered_map<std::string, std::string> seatCategoryNames;
   std::unordered_map<std::string, std::string> subTopicNames;
+  apache_empty_t subjectNames;
   std::unordered_map<std::string, std::string> topicNames;
   std::unordered_map<std::string, std::vector<std::int64_t>> topicSubTopics;
   std::optional<venueNames_t> venueNames;
 }; // citm_object_t
 REFLECTION(citm_object_t, areaNames, audienceSubCategoryNames, blockNames,
-           subjectNames, events, performances, seatCategoryNames, subTopicNames,
+           events, performances, seatCategoryNames, subTopicNames, subjectNames,
            topicNames, topicSubTopics, venueNames);
 
 // gsoc-2018.json
@@ -442,6 +442,7 @@ REFLECTION(commit_t, url, message, distinct, sha, author);
 struct payload_t {
   std::optional<std::vector<commit_t>> commits;
   std::optional<int> distinct_size;
+  std::optional<std::string> ref;
   std::optional<int> push_id;
   std::optional<std::string> head;
   std::optional<std::string> before;
@@ -453,24 +454,24 @@ struct payload_t {
   std::optional<issue_t> issue;
   std::optional<std::string> description;
   std::optional<std::string> master_branch;
-  std::optional<std::string> ref;
+
   std::optional<std::string> ref_type;
 };
-REFLECTION(payload_t, commits, distinct_size, push_id, head, before, size,
+REFLECTION(payload_t, commits, distinct_size, ref, push_id, head, before, size,
            forkee, pages, action, comment, issue, description, master_branch,
-           ref, ref_type);
+           ref_type);
 
 struct event_t {
   std::string type;
   std::string created_at;
   std::optional<actor_org_t> actor;
-  std::optional<actor_org_t> org;
   repo_t repo;
   bool ___public;
+  std::optional<actor_org_t> org;
   payload_t payload;
   std::string id;
 };
-REFLECTION(event_t, type, created_at, actor, org, repo, ___public, payload, id);
+REFLECTION(event_t, type, created_at, actor, repo, ___public, org, payload, id);
 
 using events_t = std::vector<event_t>;
 } // namespace githubEvents
@@ -491,12 +492,12 @@ struct item_t {
 REFLECTION(item_t, name, type, uuid);
 
 struct key_element_t {
-  std::array<float, 3> pos;
-  float time{};
   std::array<float, 4> rot;
+  float time{};
   std::array<float, 3> scl;
+  std::array<float, 3> pos;
 };
-REFLECTION(key_element_t, pos, time, rot, scl);
+REFLECTION(key_element_t, rot, time, scl, pos);
 
 struct hierarchy_element_t {
   int parent;

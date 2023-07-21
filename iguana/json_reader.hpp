@@ -53,7 +53,6 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 template <num_t U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
-
   using T = std::remove_reference_t<U>;
 
   if constexpr (std::contiguous_iterator<std::decay_t<It>>) {
@@ -87,6 +86,17 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     if (ec != std::errc{}) [[unlikely]]
       throw std::runtime_error("Failed to parse number");
   }
+}
+
+template <numeric_str_v U, class It>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+  skip_ws(it, end);
+  auto start = it;
+  while (it != end && is_numeric(*it)) {
+    ++it;
+  }
+  value.value() =
+      std::string_view(&*start, static_cast<size_t>(std::distance(start, it)));
 }
 
 template <enum_t U, class It>
@@ -208,16 +218,16 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   }
   using T = std::decay_t<U>;
   auto start = it;
-  while (it < end) {
-    skip_till_escape_or_qoute(it, end);
-    if (*it == '"') {
+  while (it != end) {
+    skip_till_qoute(it, end);
+    if (*(it - 1) != '\\') {
       value = T(&*start, static_cast<size_t>(std::distance(start, it)));
       ++it;
       return;
     }
-    it += 2;
+    ++it;
   }
-  throw std::runtime_error("Expected \""); // is needed?
+  throw std::runtime_error("Expected \"");
 }
 
 template <fixed_array U, class It>
@@ -297,6 +307,37 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   throw std::runtime_error("Expected ]");
 }
 
+template <typename It> IGUANA_INLINE auto get_key(It &&it, It &&end) {
+  if constexpr (std::contiguous_iterator<std::decay_t<It>>) {
+    // skip white space and escape characters and find the string
+    skip_ws(it, end);
+    match<'"'>(it, end);
+    auto start = it;
+    skip_till_escape_or_qoute(it, end);
+    if (*it == '\\') [[unlikely]] {
+      // we dont' optimize this currently because it would increase binary
+      // size significantly with the complexity of generating escaped
+      // compile time versions of keys
+      it = start;
+      static thread_local std::string static_key{};
+      detail::parse_item<true>(static_key, it, end);
+      return std::string_view(static_key);
+    } else [[likely]] {
+      auto key = std::string_view{
+          &*start, static_cast<size_t>(std::distance(start, it))};
+      ++it;
+      if (key[0] == '@') [[unlikely]] {
+        return key.substr(1);
+      }
+      return key;
+    }
+  } else {
+    static thread_local std::string static_key{};
+    detail::parse_item(static_key, it, end);
+    return std::string_view(static_key);
+  }
+}
+
 template <map_container U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   using T = std::remove_reference_t<U>;
@@ -316,8 +357,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
       match<','>(it, end);
     }
 
-    static thread_local std::string_view key{};
-    parse_item(key, it, end);
+    std::string_view key = get_key(it, end);
 
     skip_ws(it, end);
     match<':'>(it, end);
@@ -433,82 +473,80 @@ IGUANA_INLINE void skip_object_value(auto &&it, auto &&end) {
     break;
   }
 }
+
 } // namespace detail
 
 template <refletable T, typename It>
 IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
   skip_ws(it, end);
-
   match<'{'>(it, end);
+
   skip_ws(it, end);
-  bool first = true;
-  while (it != end) {
+  if (*it == '}') [[unlikely]] {
+    ++it;
+    return;
+  }
+  std::string_view key = detail::get_key(it, end);
+#ifdef SEQUENTIAL_PARSE
+  bool parse_done = false;
+  for_each(value, [&](const auto member_ptr, auto i) IGUANA__INLINE_LAMBDA {
+    constexpr auto mkey = iguana::get_name<T, decltype(i)::value>();
+    constexpr std::string_view st_key(mkey.data(), mkey.size());
+    if (parse_done || (key != st_key)) [[unlikely]] {
+      return;
+    }
+    skip_ws(it, end);
+    match<':'>(it, end);
+    detail::parse_item(value.*member_ptr, it, end);
+
+    skip_ws(it, end);
     if (*it == '}') [[unlikely]] {
       ++it;
+      parse_done = true;
       return;
-    } else if (first) [[unlikely]]
-      first = false;
-    else [[likely]] {
+    } else [[likely]] {
       match<','>(it, end);
     }
-
-    if constexpr (refletable<T>) {
-      std::string_view key;
-      if constexpr (std::contiguous_iterator<std::decay_t<It>>) {
-        // skip white space and escape characters and find the string
-        skip_ws(it, end);
-        match<'"'>(it, end);
-        auto start = it;
-        skip_till_escape_or_qoute(it, end);
-        if (*it == '\\') [[unlikely]] {
-          // we dont' optimize this currently because it would increase binary
-          // size significantly with the complexity of generating escaped
-          // compile time versions of keys
-          it = start;
-          static thread_local std::string static_key{};
-          detail::parse_item<true>(static_key, it, end);
-          key = static_key;
-        } else [[likely]] {
-          key = std::string_view{&*start,
-                                 static_cast<size_t>(std::distance(start, it))};
-          if (key[0] == '@') [[unlikely]] {
-            key = key.substr(1);
-          }
-          ++it;
-        }
-      } else {
-        static thread_local std::string static_key{};
-        detail::parse_item(static_key, it, end);
-        key = static_key;
-      }
-
+    key = detail::get_key(it, end);
+  });
+  if (parse_done) [[unlikely]] {
+    return;
+  }
+#endif
+  while (it != end) {
+    static constexpr auto frozen_map = get_iguana_struct_map<T>();
+    if constexpr (frozen_map.size() > 0) {
+      const auto &member_it = frozen_map.find(key);
       skip_ws(it, end);
       match<':'>(it, end);
+      if (member_it != frozen_map.end()) [[likely]] {
+        std::visit(
+            [&](auto &&member_ptr) IGUANA__INLINE_LAMBDA {
+              using V = std::decay_t<decltype(member_ptr)>;
+              if constexpr (std::is_member_pointer_v<V>) {
+                detail::parse_item(value.*member_ptr, it, end);
+              } else {
+                static_assert(!sizeof(V), "type not supported");
+              }
+            },
+            member_it->second);
 
-      static constexpr auto frozen_map = get_iguana_struct_map<T>();
-      if constexpr (frozen_map.size() > 0) {
-        const auto &member_it = frozen_map.find(key);
-        if (member_it != frozen_map.end()) {
-          std::visit(
-              [&](auto &&member_ptr) IGUANA__INLINE_LAMBDA {
-                using V = std::decay_t<decltype(member_ptr)>;
-                if constexpr (std::is_member_pointer_v<V>) {
-                  detail::parse_item(value.*member_ptr, it, end);
-                } else {
-                  static_assert(!sizeof(V), "type not supported");
-                }
-              },
-              member_it->second);
-        } else [[unlikely]] {
+      } else [[unlikely]] {
 #ifdef THROW_UNKNOWN_KEY
-          throw std::runtime_error("Unknown key: " + std::string(key));
+        throw std::runtime_error("Unknown key: " + std::string(key));
 #else
-          detail::skip_object_value(it, end);
+        detail::skip_object_value(it, end);
 #endif
-        }
       }
     }
     skip_ws(it, end);
+    if (*it == '}') [[unlikely]] {
+      ++it;
+      return;
+    } else [[likely]] {
+      match<','>(it, end);
+    }
+    key = detail::get_key(it, end);
   }
 }
 

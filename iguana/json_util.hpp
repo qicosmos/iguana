@@ -156,6 +156,31 @@ template <class T>
 concept non_refletable = container<T> || c_array<T> || tuple<T> ||
     optional<T> || unique_ptr_t<T> || std::is_fundamental_v<T>;
 
+class numeric_str {
+public:
+  std::string_view &value() { return val_; }
+  std::string_view value() const { return val_; }
+  template <typename T> T convert() {
+    static_assert(num_t<T>, "T must be numeric type");
+    if (val_.empty()) [[unlikely]] {
+      throw std::runtime_error("Failed to parse number");
+    }
+    T res;
+    auto [_, ec] =
+        detail::from_chars(val_.data(), val_.data() + val_.size(), res);
+    if (ec != std::errc{}) [[unlikely]] {
+      throw std::runtime_error("Failed to parse number");
+    }
+    return res;
+  }
+
+private:
+  std::string_view val_;
+};
+
+template <typename T>
+concept numeric_str_v = std::is_same_v<numeric_str, std::remove_cvref_t<T>>;
+
 template <size_t N> struct string_literal {
   static constexpr size_t size = (N > 0) ? (N - 1) : 0;
 
@@ -247,25 +272,24 @@ IGUANA_INLINE void skip_ws_no_comments(auto &&it, auto &&end) {
   }
 }
 
+inline constexpr auto has_zero = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
+  return (((chunk - 0x0101010101010101) & ~chunk) & 0x8080808080808080);
+};
+
+inline constexpr auto has_qoute = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
+  return has_zero(
+      chunk ^
+      0b0010001000100010001000100010001000100010001000100010001000100010);
+};
+
+inline constexpr auto has_escape = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
+  return has_zero(
+      chunk ^
+      0b0101110001011100010111000101110001011100010111000101110001011100);
+};
+
 IGUANA_INLINE void skip_till_escape_or_qoute(auto &&it, auto &&end) {
   static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
-
-  auto has_zero = [](uint64_t chunk) {
-    return (((chunk - 0x0101010101010101) & ~chunk) & 0x8080808080808080);
-  };
-
-  auto has_qoute = [&](uint64_t chunk) IGUANA__INLINE_LAMBDA {
-    return has_zero(
-        chunk ^
-        0b0010001000100010001000100010001000100010001000100010001000100010);
-  };
-
-  auto has_escape = [&](uint64_t chunk) IGUANA__INLINE_LAMBDA {
-    return has_zero(
-        chunk ^
-        0b0101110001011100010111000101110001011100010111000101110001011100);
-  };
-
   if (std::distance(it, end) >= 7) [[likely]] {
     const auto end_m7 = end - 7;
     for (; it < end_m7; it += 8) {
@@ -285,6 +309,29 @@ IGUANA_INLINE void skip_till_escape_or_qoute(auto &&it, auto &&end) {
     case '"':
       return;
     }
+    ++it;
+  }
+  throw std::runtime_error("Expected \"");
+}
+
+IGUANA_INLINE void skip_till_qoute(auto &&it, auto &&end) {
+  static_assert(std::contiguous_iterator<std::decay_t<decltype(it)>>);
+  if (std::distance(it, end) >= 7) [[likely]] {
+    const auto end_m7 = end - 7;
+    for (; it < end_m7; it += 8) {
+      const auto chunk = *reinterpret_cast<const uint64_t *>(&*it);
+      uint64_t test = has_qoute(chunk);
+      if (test != 0) {
+        it += (std::countr_zero(test) >> 3);
+        return;
+      }
+    }
+  }
+
+  // Tail end of buffer. Should be rare we even get here
+  while (it < end) {
+    if (*it == '"')
+      return;
     ++it;
   }
   throw std::runtime_error("Expected \"");
@@ -329,26 +376,27 @@ IGUANA_INLINE void skip_until_closed(auto &&it, auto &&end) {
   }
 }
 
-IGUANA_INLINE constexpr bool is_numeric(const auto c) noexcept {
-  switch (c) {
-  case '0':
-  case '1':
-  case '2':
-  case '3': //
-  case '4':
-  case '5':
-  case '6':
-  case '7': //
-  case '8':
-  case '9': //
-  case '.':
-  case '+':
-  case '-': //
-  case 'e':
-  case 'E': //
-    return true;
-  }
-  return false;
+IGUANA_INLINE bool is_numeric(auto c) noexcept {
+  static constexpr int is_num[256] = {
+      // 0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 1
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, // 2
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, // 3
+      0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 4
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 5
+      0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 6
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 7
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 8
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 9
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // A
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // B
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // C
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // D
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // E
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  // F
+  };
+  return static_cast<bool>(is_num[static_cast<unsigned int>(c)]);
 }
 
 constexpr bool is_digit(char c) { return c <= '9' && c >= '0'; }
