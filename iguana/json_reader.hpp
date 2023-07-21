@@ -52,11 +52,6 @@ IGUANA_INLINE void parse_escape(U &value, It &&it, It &&end) {
 template <typename U, typename It, std::enable_if_t<num_v<U>, int> = 0>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
-<<<<<<< HEAD
-  using T = std::remove_reference_t<U>;
-
-=======
->>>>>>> simplify the code
   if constexpr (contiguous_iterator<std::decay_t<It>>) {
     const auto size = std::distance(it, end);
     if (size == 0)
@@ -81,7 +76,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   }
 }
 
-template <numeric_str_v U, class It>
+template <typename U, typename It, std::enable_if_t<numeric_str_v<U>, int> = 0>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   auto start = it;
@@ -92,7 +87,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
       std::string_view(&*start, static_cast<size_t>(std::distance(start, it)));
 }
 
-template <enum_t U, class It>
+template <typename U, typename It, std::enable_if_t<enum_v<U>, int> = 0>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   using T = std::underlying_type_t<std::decay_t<U>>;
   parse_item(reinterpret_cast<T &>(value), it, end);

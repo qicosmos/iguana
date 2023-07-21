@@ -129,7 +129,7 @@ public:
   std::string_view &value() { return val_; }
   std::string_view value() const { return val_; }
   template <typename T> T convert() {
-    static_assert(num_t<T>, "T must be numeric type");
+    static_assert(num_v<T>, "T must be numeric type");
     if (val_.empty()) [[unlikely]] {
       throw std::runtime_error("Failed to parse number");
     }
@@ -147,7 +147,8 @@ private:
 };
 
 template <typename T>
-concept numeric_str_v = std::is_same_v<numeric_str, std::remove_cvref_t<T>>;
+constexpr inline bool numeric_str_v =
+    std::is_same_v<numeric_str, std::remove_cvref_t<T>>;
 
 template <size_t N> struct string_literal {
   static constexpr size_t size = (N > 0) ? (N - 1) : 0;
@@ -352,7 +353,7 @@ IGUANA_INLINE void skip_until_closed(It &&it, It &&end) {
   }
 }
 
-IGUANA_INLINE bool is_numeric(auto c) noexcept {
+IGUANA_INLINE bool is_numeric(char c) noexcept {
   static constexpr int is_num[256] = {
       // 0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0

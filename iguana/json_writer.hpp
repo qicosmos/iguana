@@ -64,12 +64,14 @@ IGUANA_INLINE void render_json_value(Stream &ss, T value) {
   ss.append(temp, p - temp);
 }
 
-template <typename Stream, numeric_str_v T>
+template <typename Stream, typename T,
+          std::enable_if_t<numeric_str_v<T>, int> = 0>
 IGUANA_INLINE void render_json_value(Stream &ss, T v) {
   ss.append(v.value().data(), v.value().size());
 }
 
-template <typename Stream, string_container_t T>
+template <typename Stream, typename T,
+          std::enable_if_t<string_container_v<T>, int> = 0>
 IGUANA_INLINE void render_json_value(Stream &ss, T &&t) {
   ss.push_back('"');
   ss.append(t.data(), t.size());
