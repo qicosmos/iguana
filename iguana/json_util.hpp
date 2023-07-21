@@ -376,26 +376,27 @@ IGUANA_INLINE void skip_until_closed(auto &&it, auto &&end) {
   }
 }
 
-IGUANA_INLINE constexpr bool is_numeric(const auto c) noexcept {
-  switch (c) {
-  case '0':
-  case '1':
-  case '2':
-  case '3': //
-  case '4':
-  case '5':
-  case '6':
-  case '7': //
-  case '8':
-  case '9': //
-  case '.':
-  case '+':
-  case '-': //
-  case 'e':
-  case 'E': //
-    return true;
-  }
-  return false;
+IGUANA_INLINE bool is_numeric(auto c) noexcept {
+  static constexpr int is_num[256] = {
+      // 0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 1
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, // 2
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, // 3
+      0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 4
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 5
+      0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 6
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 7
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 8
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 9
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // A
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // B
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // C
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // D
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // E
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  // F
+  };
+  return static_cast<bool>(is_num[static_cast<unsigned int>(c)]);
 }
 
 constexpr bool is_digit(char c) { return c <= '9' && c >= '0'; }

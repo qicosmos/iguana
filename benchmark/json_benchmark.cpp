@@ -261,10 +261,10 @@ void test_to_json() {
 #endif
 }
 
-using variant =
-    std::variant<FeatureCollection, apache_builds, citm_object_t, gsoc_object_t,
-                 mesh_t, random_t, githubEvents::events_t,
-                 marine_ik::marine_ik_t, std::vector<double>, instruments_t>;
+using variant = std::variant<FeatureCollection, apache_builds, citm_object_t,
+                             gsoc_object_t, mesh_t, random_t,
+                             githubEvents::events_t, marine_ik::marine_ik_t,
+                             std::vector<iguana::numeric_str>, instruments_t>;
 
 static std::map<std::string, variant> test_map{
     {"../data/canada.json", FeatureCollection{}},
@@ -275,7 +275,7 @@ static std::map<std::string, variant> test_map{
     {"../data/random.json", random_t{}},
     {"../data/github_events.json", githubEvents::events_t{}},
     {"../data/marine_ik.json", marine_ik::marine_ik_t{}},
-    {"../data/numbers.json", std::vector<double>{}},
+    {"../data/numbers.json", std::vector<iguana::numeric_str>{}},
     {"../data/instruments.json", instruments_t{}},
 };
 

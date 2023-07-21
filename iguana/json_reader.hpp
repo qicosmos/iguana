@@ -53,7 +53,6 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 template <num_t U, class It>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
-
   using T = std::remove_reference_t<U>;
 
   if constexpr (std::contiguous_iterator<std::decay_t<It>>) {
