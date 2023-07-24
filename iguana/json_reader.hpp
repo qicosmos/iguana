@@ -87,12 +87,6 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
       std::string_view(&*start, static_cast<size_t>(std::distance(start, it)));
 }
 
-template <typename U, typename It, std::enable_if_t<enum_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
-  using T = std::underlying_type_t<std::decay_t<U>>;
-  parse_item(reinterpret_cast<T &>(value), it, end);
-}
-
 template <bool skip = false, typename U, typename It,
           std::enable_if_t<char_v<U>, int> = 0>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
@@ -213,6 +207,14 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     ++it;
   }
   throw std::runtime_error("Expected \"");
+}
+
+template <typename U, typename It, std::enable_if_t<enum_v<U>, int> = 0>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+  static constexpr auto str_to_enum = get_enum_map<true, std::decay_t<U>>();
+  std::string_view enum_names;
+  parse_item(enum_names, it, end);
+  value = str_to_enum.find(enum_names)->second;
 }
 
 template <typename U, typename It, std::enable_if_t<fixed_array_v<U>, int> = 0>

@@ -6,6 +6,7 @@
 #include "define.h"
 #include "detail/charconv.h"
 #include "reflection.hpp"
+#include "enum_reflection.hpp"
 #include "value.hpp"
 #include <filesystem>
 #include <forward_list>

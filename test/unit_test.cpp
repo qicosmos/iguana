@@ -212,24 +212,31 @@ TEST_CASE("test parse item seq container") {
   }
 }
 
-enum class ee {
-  aa,
-  bb,
-};
+enum class Color { RED = 1, GREEN = 3, BLUE = 4 };
 
-struct ee_t {
-  ee e;
+struct test_enum_t {
+  Color a;
+  Color b;
 };
-REFLECTION(ee_t, e);
+REFLECTION(test_enum_t, a, b);
 
 TEST_CASE("test enum") {
-  ee_t t{ee::bb};
-  std::string str;
-  iguana::to_json(t, str);
+  auto validator = [](test_enum_t e) {
+    CHECK(e.a == Color::RED);
+    CHECK(e.b == Color::BLUE);
+  };
+  std::string str = R"(
+{"a": "RED", "b": "BLUE" })";
+  test_enum_t e;
+  iguana::from_json(e, str);
+  validator(e);
 
-  ee_t t1;
-  iguana::from_json(t1, str);
-  CHECK(t1.e == ee::bb);
+  std::string ss;
+  iguana::to_json(e, ss);
+  std::cout << ss << std::endl;
+  test_enum_t e1;
+  iguana::from_json(e1, ss);
+  validator(e1);
 }
 
 TEST_CASE("test parse item map container") {
