@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         mode: [ Debug, Release ]
-        
+        cpp_version: [17, 20]
     runs-on: ubuntu-22.04
     
     steps:
@@ -22,7 +22,7 @@ jobs:
       run: gcc --version
 
     - name: configure cmake
-      run: CXX=g++ CC=gcc cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }}
+      run: CXX=g++ CC=gcc cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -DCMAKE_CXX_STANDARD=${{ matrix.cpp_version }}
       
     - name: build project
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.mode }}

@@ -21,7 +21,7 @@ struct person {
   std::string name;
   bool ok;
   bool operator==(person const &rhs) const {
-    return name == rhs.name and ok == rhs.ok;
+    return name == rhs.name && ok == rhs.ok;
   }
 };
 REFLECTION(person, name, ok);
@@ -399,7 +399,7 @@ TEST_CASE("test two_fields object") {
 }
 
 TEST_CASE("test simple nested object") {
-  person o{.name = "tom", .ok = false};
+  person o{"tom", false};
   simple_nested_t t{1, o};
   iguana::string_stream ss;
   iguana::to_json(t, ss);

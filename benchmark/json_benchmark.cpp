@@ -189,7 +189,8 @@ obj_t create_object() {
   return obj;
 }
 
-void test_from_json(std::string filename, auto &obj, const auto &json_str,
+template <typename T, typename S>
+void test_from_json(std::string filename, T &obj, const S &json_str,
                     const int size) {
   iguana::from_json(obj, std::begin(json_str), std::end(json_str));
   std::string iguana_str = "iguana from_json " + filename;
@@ -218,8 +219,8 @@ void test_from_json(std::string filename, auto &obj, const auto &json_str,
 #endif
 }
 
-void test_dom_parse(std::string filename, const auto &json_str,
-                    const int size) {
+template <typename S>
+void test_dom_parse(std::string filename, const S &json_str, const int size) {
   std::string iguana_str = "iguana parse " + filename;
   iguana::jvalue val;
   {

@@ -743,11 +743,6 @@ constexpr int tuple_element_index() {
   return element_index_helper<0, Condition, Tuple, T>();
 }
 
-#if _MSC_VER || (__cplusplus >= 201402L)
-template <class T>
-concept refletable = is_reflection_v<std::remove_cvref_t<T>>;
-#endif
-
 template <size_t I, typename T> constexpr decltype(auto) get(T &&t) {
   using M = decltype(iguana_reflect_members(std::forward<T>(t)));
   using U = decltype(std::forward<T>(t).*(std::get<I>(M::apply_impl())));
