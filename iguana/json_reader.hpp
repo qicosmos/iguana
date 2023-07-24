@@ -21,7 +21,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 template <typename U, typename It, std::enable_if_t<string_v<U>, int> = 0>
 IGUANA_INLINE void parse_escape(U &value, It &&it, It &&end) {
   if (it == end)
-    AS_UNLIKELY { throw std::runtime_error(R"(Expected ")"); }
+    IGUANA_UNLIKELY { throw std::runtime_error(R"(Expected ")"); }
   if (*it == 'u') {
     ++it;
     if (std::distance(it, end) <= 4)
@@ -55,24 +55,24 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   if constexpr (contiguous_iterator<std::decay_t<It>>) {
     const auto size = std::distance(it, end);
     if (size == 0)
-      AS_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
+      IGUANA_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
     const auto start = &*it;
     auto [p, ec] = detail::from_chars(start, start + size, value);
     if (ec != std::errc{})
-      AS_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
+      IGUANA_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
     it += (p - &*it);
   } else {
     char buffer[256];
     size_t i{};
     while (it != end && is_numeric(*it)) {
       if (i > 254)
-        AS_UNLIKELY { throw std::runtime_error("Number is too long"); }
+        IGUANA_UNLIKELY { throw std::runtime_error("Number is too long"); }
       buffer[i] = *it++;
       ++i;
     }
     auto [p, ec] = detail::from_chars(buffer, buffer + i, value);
     if (ec != std::errc{})
-      AS_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
+      IGUANA_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
   }
 }
 
@@ -101,11 +101,11 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     match<'"'>(it, end);
   }
   if (it == end)
-    AS_UNLIKELY { throw std::runtime_error("Unxpected end of buffer"); }
+    IGUANA_UNLIKELY { throw std::runtime_error("Unxpected end of buffer"); }
   if (*it == '\\')
-    AS_UNLIKELY {
+    IGUANA_UNLIKELY {
       if (++it == end)
-        AS_UNLIKELY { throw std::runtime_error("Unxpected end of buffer"); }
+        IGUANA_UNLIKELY { throw std::runtime_error("Unxpected end of buffer"); }
       else if (*it == 'n') {
         value = '\n';
       } else if (*it == 't') {
@@ -117,7 +117,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
       } else if (*it == 'f') {
         value = '\f';
       } else
-        AS_UNLIKELY { value = *it; }
+        IGUANA_UNLIKELY { value = *it; }
     }
   else {
     value = *it;
@@ -133,7 +133,7 @@ IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end) {
   skip_ws(it, end);
 
   if (it < end)
-    AS_LIKELY {
+    IGUANA_LIKELY {
       switch (*it) {
       case 't':
         ++it;
@@ -145,12 +145,12 @@ IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end) {
         match<'a', 'l', 's', 'e'>(it, end);
         value = false;
         break;
-        AS_UNLIKELY default
+        IGUANA_UNLIKELY default
             : throw std::runtime_error("Expected true or false");
       }
     }
   else
-    AS_UNLIKELY { throw std::runtime_error("Expected true or false"); }
+    IGUANA_UNLIKELY { throw std::runtime_error("Expected true or false"); }
 }
 
 template <bool skip = false, typename U, typename It,
@@ -180,13 +180,13 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   } else {
     while (it != end) {
       switch (*it) {
-        AS_UNLIKELY case '\\' : ++it;
+        IGUANA_UNLIKELY case '\\' : ++it;
         parse_escape(value, it, end);
         break;
-        AS_UNLIKELY case ']' : return;
-        AS_UNLIKELY case '"' : ++it;
+        IGUANA_UNLIKELY case ']' : return;
+        IGUANA_UNLIKELY case '"' : ++it;
         return;
-        AS_LIKELY default : value.push_back(*it);
+        IGUANA_LIKELY default : value.push_back(*it);
         ++it;
       }
     }
@@ -228,7 +228,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
       auto value_it = std::begin(value);
       for (size_t i = 0; i < n; ++i) {
         if (*it != '"')
-          AS_LIKELY { parse_item<true>(*value_it++, it, end); }
+          IGUANA_LIKELY { parse_item<true>(*value_it++, it, end); }
       }
       match<'"'>(it, end);
       return;
@@ -237,10 +237,10 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   match<'['>(it, end);
   skip_ws(it, end);
   if (it == end)
-    AS_UNLIKELY { throw std::runtime_error("Unexpected end"); }
+    IGUANA_UNLIKELY { throw std::runtime_error("Unexpected end"); }
 
   if (*it == ']')
-    AS_UNLIKELY {
+    IGUANA_UNLIKELY {
       ++it;
       return;
     }
@@ -252,7 +252,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
       throw std::runtime_error("Unexpected end");
     }
     if (*it == ',')
-      AS_LIKELY {
+      IGUANA_LIKELY {
         ++it;
         skip_ws(it, end);
       }
@@ -260,7 +260,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
       ++it;
       return;
     } else
-      AS_UNLIKELY { throw std::runtime_error("Expected ]"); }
+      IGUANA_UNLIKELY { throw std::runtime_error("Expected ]"); }
   }
 }
 
@@ -274,12 +274,12 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   for (size_t i = 0; it != end; ++i) {
     if (*it == ']')
-      AS_UNLIKELY {
+      IGUANA_UNLIKELY {
         ++it;
         return;
       }
     if (i > 0)
-      AS_LIKELY { match<','>(it, end); }
+      IGUANA_LIKELY { match<','>(it, end); }
 
     parse_item(value.emplace_back(), it, end);
     skip_ws(it, end);
@@ -295,7 +295,7 @@ template <typename It> IGUANA_INLINE auto get_key(It &&it, It &&end) {
     auto start = it;
     skip_till_escape_or_qoute(it, end);
     if (*it == '\\')
-      AS_UNLIKELY {
+      IGUANA_UNLIKELY {
         // we dont' optimize this currently because it would increase binary
         // size significantly with the complexity of generating escaped
         // compile time versions of keys
@@ -305,12 +305,12 @@ template <typename It> IGUANA_INLINE auto get_key(It &&it, It &&end) {
         return std::string_view(static_key);
       }
     else
-      AS_LIKELY {
+      IGUANA_LIKELY {
         auto key = std::string_view{
             &*start, static_cast<size_t>(std::distance(start, it))};
         ++it;
         if (key[0] == '@')
-          AS_UNLIKELY { return key.substr(1); }
+          IGUANA_UNLIKELY { return key.substr(1); }
         return key;
       }
   } else {
@@ -332,14 +332,14 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   bool first = true;
   while (it != end) {
     if (*it == '}')
-      AS_UNLIKELY {
+      IGUANA_UNLIKELY {
         ++it;
         return;
       }
     else if (first)
-      AS_UNLIKELY { first = false; }
+      IGUANA_UNLIKELY { first = false; }
     else
-      AS_LIKELY { match<','>(it, end); }
+      IGUANA_LIKELY { match<','>(it, end); }
 
     std::string_view key = get_key(it, end);
 
@@ -383,10 +383,10 @@ template <typename U, typename It, std::enable_if_t<optional_v<U>, int> = 0>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   if (it < end && *it == '"')
-    AS_LIKELY { ++it; }
+    IGUANA_LIKELY { ++it; }
   using T = std::remove_reference_t<U>;
   if (it == end)
-    AS_UNLIKELY { throw std::runtime_error("Unexexpected eof"); }
+    IGUANA_UNLIKELY { throw std::runtime_error("Unexexpected eof"); }
   if (*it == 'n') {
     ++it;
     match<'u', 'l', 'l'>(it, end);
@@ -412,9 +412,9 @@ template <typename U, typename It, std::enable_if_t<unique_ptr_v<U>, int> = 0>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   if (it < end && *it == '"')
-    AS_LIKELY { ++it; }
+    IGUANA_LIKELY { ++it; }
   if (it == end)
-    AS_UNLIKELY { throw std::runtime_error("Unexexpected eof"); }
+    IGUANA_UNLIKELY { throw std::runtime_error("Unexexpected eof"); }
   if (*it == 'n') {
     ++it;
     match<'u', 'l', 'l'>(it, end);
@@ -463,7 +463,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
 
   skip_ws(it, end);
   if (*it == '}')
-    AS_UNLIKELY {
+    IGUANA_UNLIKELY {
       ++it;
       return;
     }
@@ -474,20 +474,20 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
     constexpr auto mkey = iguana::get_name<T, decltype(i)::value>();
     constexpr std::string_view st_key(mkey.data(), mkey.size());
     if (parse_done || (key != st_key))
-      AS_UNLIKELY { return; }
+      IGUANA_UNLIKELY { return; }
     skip_ws(it, end);
     match<':'>(it, end);
     detail::parse_item(value.*member_ptr, it, end);
 
     skip_ws(it, end);
     if (*it == '}')
-      AS_UNLIKELY {
+      IGUANA_UNLIKELY {
         ++it;
         parse_done = true;
         return;
       }
     else
-      AS_LIKELY { match<','>(it, end); }
+      IGUANA_LIKELY { match<','>(it, end); }
     key = detail::get_key(it, end);
   });
   if (parse_done) [[unlikely]] {
@@ -501,7 +501,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
       skip_ws(it, end);
       match<':'>(it, end);
       if (member_it != frozen_map.end())
-        AS_LIKELY {
+        IGUANA_LIKELY {
           std::visit(
               [&](auto &&member_ptr) IGUANA__INLINE_LAMBDA {
                 using V = std::decay_t<decltype(member_ptr)>;
@@ -514,7 +514,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
               member_it->second);
         }
       else
-        AS_UNLIKELY {
+        IGUANA_UNLIKELY {
 #ifdef THROW_UNKNOWN_KEY
           throw std::runtime_error("Unknown key: " + std::string(key));
 #else
@@ -524,12 +524,12 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
     }
     skip_ws(it, end);
     if (*it == '}')
-      AS_UNLIKELY {
+      IGUANA_UNLIKELY {
         ++it;
         return;
       }
     else
-      AS_LIKELY { match<','>(it, end); }
+      IGUANA_LIKELY { match<','>(it, end); }
     key = detail::get_key(it, end);
   }
 }
@@ -596,7 +596,7 @@ inline void parse_array(jarray &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'['>(it, end);
   if (*it == ']')
-    AS_UNLIKELY {
+    IGUANA_UNLIKELY {
       ++it;
       return;
     }
@@ -609,7 +609,7 @@ inline void parse_array(jarray &result, It &&it, It &&end) {
     parse<Is_view>(result.back(), it, end);
 
     if (*it == ']')
-      AS_UNLIKELY {
+      IGUANA_UNLIKELY {
         ++it;
         return;
       }
@@ -624,7 +624,7 @@ inline void parse_object(jobject &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'{'>(it, end);
   if (*it == '}')
-    AS_UNLIKELY {
+    IGUANA_UNLIKELY {
       ++it;
       return;
     }
@@ -647,7 +647,7 @@ inline void parse_object(jobject &result, It &&it, It &&end) {
     parse<Is_view>(emplaced.first->second, it, end);
 
     if (*it == '}')
-      AS_UNLIKELY {
+      IGUANA_UNLIKELY {
         ++it;
         return;
       }

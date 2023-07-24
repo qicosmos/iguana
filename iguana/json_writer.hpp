@@ -193,7 +193,7 @@ IGUANA_INLINE void render_json_value(Stream &s, T &&t) {
              render_json_value(s, v);
 
              if (i != size - 1)
-               AS_LIKELY { s.push_back(','); }
+               IGUANA_LIKELY { s.push_back(','); }
            });
   s.push_back(']');
 }

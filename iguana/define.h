@@ -19,11 +19,11 @@
 #endif
 
 #if __has_cpp_attribute(likely) && __has_cpp_attribute(unlikely)
-#define AS_LIKELY [[likely]]
-#define AS_UNLIKELY [[unlikely]]
+#define IGUANA_LIKELY [[likely]]
+#define IGUANA_UNLIKELY [[unlikely]]
 #else
-#define AS_LIKELY
-#define AS_UNLIKELY
+#define IGUANA_LIKELY
+#define IGUANA_UNLIKELY
 #endif
 
 #ifdef _MSC_VER
@@ -74,8 +74,6 @@ template <typename T>
 constexpr inline bool contiguous_iterator = std::contiguous_iterator<T>;
 #else
 IGUANA_INLINE int countr_zero(unsigned long long x) {
-  // if (x == 0) AS_UNLIKELY
-  //   return 0;
   // x will never be zero in iguana
   return __builtin_ctzll(x);
 }

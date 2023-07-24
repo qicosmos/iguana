@@ -163,29 +163,17 @@ template <size_t N> struct string_literal {
   constexpr const std::string_view sv() const noexcept { return {value, size}; }
 };
 
-// template <char c, typename It> IGUANA_INLINE void match(It &&it, It &&end) {
-//   if (it == end || *it != c)
-//     AS_UNLIKELY {
-//       static constexpr char b[] = {c, '\0'};
-//       //         static constexpr auto error = concat_arrays("Expected:", b);
-//       std::string error = std::string("Expected:").append(b);
-//       throw std::runtime_error(error);
-//     }
-//   else
-//     AS_LIKELY { ++it; }
-// }
-
 template <char... C, typename It> IGUANA_INLINE void match(It &&it, It &&end) {
   const auto n = static_cast<size_t>(std::distance(it, end));
   if (n < sizeof...(C))
-    AS_UNLIKELY {
+    IGUANA_UNLIKELY {
       // TODO: compile time generate this message, currently borken with
       // MSVC
       static constexpr auto error = "Unexpected end of buffer. Expected:";
       throw std::runtime_error(error);
     }
   if (((... || (*it++ != C))))
-    AS_UNLIKELY {
+    IGUANA_UNLIKELY {
       // TODO: compile time generate this message, currently borken with
       // MSVC
       static constexpr char b[] = {C..., '\0'};
@@ -196,7 +184,7 @@ template <char... C, typename It> IGUANA_INLINE void match(It &&it, It &&end) {
 template <typename It> IGUANA_INLINE void skip_comment(It &&it, It &&end) {
   ++it;
   if (it == end)
-    AS_UNLIKELY {
+    IGUANA_UNLIKELY {
       throw std::runtime_error("Unexpected end, expected comment");
     }
   else if (*it == '/') {
@@ -205,18 +193,18 @@ template <typename It> IGUANA_INLINE void skip_comment(It &&it, It &&end) {
   } else if (*it == '*') {
     while (++it != end) {
       if (*it == '*')
-        AS_UNLIKELY {
+        IGUANA_UNLIKELY {
           if (++it == end)
-            AS_UNLIKELY { break; }
+            IGUANA_UNLIKELY { break; }
           else if (*it == '/')
-            AS_LIKELY {
+            IGUANA_LIKELY {
               ++it;
               break;
             }
         }
     }
   } else
-    AS_UNLIKELY throw std::runtime_error("Expected / or * after /");
+    IGUANA_UNLIKELY throw std::runtime_error("Expected / or * after /");
 }
 
 template <typename It> IGUANA_INLINE void skip_ws(It &&it, It &&end) {
@@ -237,7 +225,7 @@ IGUANA_INLINE void skip_ws_no_comments(It &&it, It &&end) {
   while (it != end) {
     // assuming ascii
     if (static_cast<uint8_t>(*it) < 33)
-      AS_LIKELY { ++it; }
+      IGUANA_LIKELY { ++it; }
     else {
       break;
     }
@@ -264,7 +252,7 @@ template <typename It>
 IGUANA_INLINE void skip_till_escape_or_qoute(It &&it, It &&end) {
   static_assert(contiguous_iterator<std::decay_t<decltype(it)>>);
   if (std::distance(it, end) >= 7)
-    AS_LIKELY {
+    IGUANA_LIKELY {
       const auto end_m7 = end - 7;
       for (; it < end_m7; it += 8) {
         const auto chunk = *reinterpret_cast<const uint64_t *>(&*it);
@@ -291,7 +279,7 @@ IGUANA_INLINE void skip_till_escape_or_qoute(It &&it, It &&end) {
 template <typename It> IGUANA_INLINE void skip_till_qoute(It &&it, It &&end) {
   static_assert(contiguous_iterator<std::decay_t<decltype(it)>>);
   if (std::distance(it, end) >= 7)
-    AS_LIKELY {
+    IGUANA_LIKELY {
       const auto end_m7 = end - 7;
       for (; it < end_m7; it += 8) {
         const auto chunk = *reinterpret_cast<const uint64_t *>(&*it);
@@ -320,7 +308,7 @@ IGUANA_INLINE void skip_string(It &&it, It &&end) noexcept {
       ++it;
       break;
     } else if (*it == '\\' && ++it == end)
-      AS_UNLIKELY
+      IGUANA_UNLIKELY
     break;
     ++it;
   }
