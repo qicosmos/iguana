@@ -1,4 +1,3 @@
-#define SEQUENTIAL_PARSE
 #include "json_benchmark.h"
 
 class ScopedTimer {
