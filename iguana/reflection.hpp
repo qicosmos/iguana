@@ -17,12 +17,11 @@
 #include <variant>
 #include <vector>
 
-#include "frozen/string.h"
-#include "frozen/unordered_map.h"
-
 #include "detail/itoa.hpp"
 #include "detail/string_stream.hpp"
 #include "detail/traits.hpp"
+#include "frozen/string.h"
+#include "frozen/unordered_map.h"
 
 namespace iguana::detail {
 /******************************************/
@@ -560,8 +559,12 @@ namespace iguana::detail {
       }                                                                        \
       using size_type =                                                        \
           std::integral_constant<size_t, GET_ARG_COUNT(__VA_ARGS__)>;          \
-      constexpr static std::string_view name() {                               \
+      constexpr static std::string_view name() { return name_##STRUCT_NAME; }  \
+      constexpr static std::string_view struct_name() {                        \
         return std::string_view(#STRUCT_NAME, sizeof(#STRUCT_NAME) - 1);       \
+      }                                                                        \
+      constexpr static std::string_view fields() {                             \
+        return fields_##STRUCT_NAME;                                           \
       }                                                                        \
       constexpr static size_t value() { return size_type::value; }             \
       constexpr static std::array<frozen::string, size_type::value> arr() {    \
@@ -571,9 +574,12 @@ namespace iguana::detail {
     return reflect_members{};                                                  \
   }
 
-#define MAKE_META_DATA(STRUCT_NAME, N, ...)                                    \
+#define MAKE_META_DATA(STRUCT_NAME, TABLE_NAME, N, ...)                        \
   constexpr inline std::array<frozen::string, N> arr_##STRUCT_NAME = {         \
       MARCO_EXPAND(MACRO_CONCAT(CON_STR, N)(__VA_ARGS__))};                    \
+  constexpr inline std::string_view fields_##STRUCT_NAME = {                   \
+      MAKE_NAMES(__VA_ARGS__)};                                                \
+  constexpr inline std::string_view name_##STRUCT_NAME = TABLE_NAME;           \
   MAKE_META_DATA_IMPL(STRUCT_NAME,                                             \
                       MAKE_ARG_LIST(N, &STRUCT_NAME::FIELD, __VA_ARGS__))
 
@@ -623,6 +629,10 @@ get_iguana_struct_map_impl(const std::array<frozen::string, sizeof...(Is)> &arr,
 } // namespace iguana::detail
 
 namespace iguana {
+#define REFLECTION_WITH_NAME(STRUCT_NAME, TABLE_NAME, ...)                     \
+  MAKE_META_DATA(STRUCT_NAME, TABLE_NAME, GET_ARG_COUNT(__VA_ARGS__),          \
+                 __VA_ARGS__)
+
 inline std::unordered_map<
     std::string_view,
     std::vector<std::pair<std::string_view, std::string_view>>>
@@ -639,7 +649,8 @@ template <typename T> inline constexpr auto get_iguana_struct_map() {
 }
 
 #define REFLECTION(STRUCT_NAME, ...)                                           \
-  MAKE_META_DATA(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)
+  MAKE_META_DATA(STRUCT_NAME, #STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__),        \
+                 __VA_ARGS__)
 
 #define REFLECTION_EMPTY(STRUCT_NAME) MAKE_META_DATA_EMPTY(STRUCT_NAME)
 
@@ -699,6 +710,12 @@ inline int add_custom_fields(std::string_view key,
   g_iguana_custom_map.emplace(key, std::move(vec));
   return 0;
 }
+
+#ifdef _MSC_VER
+#define IGUANA_UNIQUE_VARIABLE(str) MACRO_CONCAT(str, __COUNTER__)
+#else
+#define IGUANA_UNIQUE_VARIABLE(str) MACRO_CONCAT(str, __LINE__)
+#endif
 
 #define CUSTOM_FIELDS_IMPL(STRUCT_NAME, N, ...)                                \
   inline auto IGUANA_UNIQUE_VARIABLE(STRUCT_NAME) = iguana::add_custom_fields( \
@@ -796,6 +813,11 @@ template <typename T> constexpr const auto get_name(size_t i) {
 template <typename T> constexpr const std::string_view get_name() {
   using M = decltype(iguana_reflect_members(std::declval<T>()));
   return M::name();
+}
+
+template <typename T> constexpr const std::string_view get_fields() {
+  using M = Reflect_members<T>;
+  return M::fields();
 }
 
 template <typename T>
