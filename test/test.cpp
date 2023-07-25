@@ -766,6 +766,57 @@ TEST_CASE("check some types") {
                 value_type{std::in_place_index_t<1>{}, &point_t::y});
 }
 
+TEST_CASE("test exception") {
+  {
+    std::string str = R"({"\u8001": "name"})";
+    std::unordered_map<std::string_view, std::string> mp;
+    iguana::from_json(mp, str);
+    CHECK(mp["老"] == "name");
+  }
+  {
+    std::string str = R"({"a": "\)";
+    std::unordered_map<std::string, std::string> mp;
+    CHECK_THROWS(iguana::from_json(mp, str));
+  }
+  {
+    std::string str = R"({"a": "\u8")";
+    std::unordered_map<std::string, std::string> mp;
+    CHECK_THROWS(iguana::from_json(mp, str));
+  }
+  {
+    std::string str = R"([10, d5])";
+    std::deque<char> char_q(str.begin(), str.end());
+    std::vector<int> arr;
+    CHECK_THROWS(iguana::from_json(arr, char_q));
+  }
+  {
+    std::string str = R"({"a": "\)";
+    std::unordered_map<std::string, char> mp;
+    CHECK_THROWS(iguana::from_json(mp, str));
+  }
+  {
+    std::string str = R"({"a: "\")";
+    std::unordered_map<std::string, std::string_view> mp;
+    CHECK_THROWS(iguana::from_json(mp, str));
+  }
+  {
+    std::string str = R"(bb)";
+    iguana::jvalue val;
+    CHECK_THROWS(iguana::parse(val, str.begin(), str.end()));
+  }
+  {
+    // THREW exception: duplicated key a
+    std::string str = R"({"a": "b", "a": "c"})";
+    iguana::jvalue val;
+    CHECK_THROWS(iguana::parse(val, str.begin(), str.end()));
+  }
+  {
+    std::string str = R"({"a": "c",)";
+    iguana::jvalue val;
+    CHECK_THROWS(iguana::parse(val, str.begin(), str.end()));
+  }
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)

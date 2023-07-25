@@ -691,7 +691,7 @@ TEST_CASE("test the string_view") {
 }
 
 struct st_char_t {
-  char a;
+  std::vector<char> a;
   char b[5];
   char c[5];
 };
@@ -699,13 +699,17 @@ REFLECTION(st_char_t, a, b, c);
 TEST_CASE("test char") {
   std::string str = R"(
   {
-    "a": "\n",
+    "a": ["\n", "\t", "\f", "\r", "\b"],
     "b": ["1", "2", "3", "4", "5"],
     "c": "1234\n"
   }
   )";
   auto validator = [](st_char_t c) {
-    CHECK(c.a == '\n');
+    CHECK(c.a[0] == '\n');
+    CHECK(c.a[1] == '\t');
+    CHECK(c.a[2] == '\f');
+    CHECK(c.a[3] == '\r');
+    CHECK(c.a[4] == '\b');
     CHECK(c.b[0] == '1');
     CHECK(c.b[1] == '2');
     CHECK(c.b[2] == '3');
