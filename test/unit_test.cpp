@@ -619,6 +619,12 @@ TEST_CASE("test the string_view") {
     CHECK(*(b.edition) == "invalid number");
   }
   {
+    auto validator = [](book_t b) {
+      CHECK(b.title == "C++ templates");
+      CHECK(*(b.edition) == "invalid number");
+      CHECK(b.author[0] == "David Vandevoorde");
+      CHECK(b.author[1] == "Nicolai M. Josuttis");
+    };
     std::string str = R"({
     "title": "C++ templates",
     "edition": "invalid number",
@@ -628,19 +634,23 @@ TEST_CASE("test the string_view") {
     ]})";
     book_t b;
     iguana::from_json(b, str);
-    CHECK(b.title == "C++ templates");
-    CHECK(*(b.edition) == "invalid number");
-    CHECK(b.author[0] == "David Vandevoorde");
-    CHECK(b.author[1] == "Nicolai M. Josuttis");
-
-    std::string ss;
-    iguana::to_json(b, ss);
-    book_t b1;
-    iguana::from_json(b1, str);
-    CHECK(b1.title == "C++ templates");
-    CHECK(*(b1.edition) == "invalid number");
-    CHECK(b1.author[0] == "David Vandevoorde");
-    CHECK(b1.author[1] == "Nicolai M. Josuttis");
+    validator(b);
+    {
+      std::string ss;
+      iguana::to_json(b, ss);
+      book_t b1;
+      iguana::from_json(b1, ss);
+      validator(b1);
+    }
+    {
+      // test variant
+      std::variant<int, book_t> vb = b;
+      std::string ss;
+      iguana::to_json(vb, ss);
+      book_t b1;
+      iguana::from_json(b1, ss);
+      validator(b1);
+    }
   }
   {
     std::string str = R"(["tom", 30, 25.8])";
