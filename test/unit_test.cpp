@@ -212,21 +212,58 @@ TEST_CASE("test parse item seq container") {
   }
 }
 
-enum class Color { RED = 1, GREEN = 3, BLUE = 4 };
-
-struct test_enum_t {
-  Color a;
-  Color b;
+enum class Fruit {
+  APPLE = 9999,
+  BANANA = -4,
+  ORANGE = 10,
+  MANGO = 99,
+  CHERRY = 7,
+  GRAPE = 100000
 };
-REFLECTION(test_enum_t, a, b);
+enum class Color {
+  BULE = 10,
+  RED = 15,
+};
+namespace iguana {
+template <> struct enum_value<Fruit> {
+  constexpr static std::array<int, 6> value = {9999, -4, 10, 99, 7, 100000};
+};
+} // namespace iguana
+struct test_enum_t {
+  Fruit a;
+  Fruit b;
+  Fruit c;
+  Fruit d;
+  Fruit e;
+  Fruit f;
+  Color g;
+  Color h;
+};
+REFLECTION(test_enum_t, a, b, c, d, e, f, g, h);
 
 TEST_CASE("test enum") {
   auto validator = [](test_enum_t e) {
-    CHECK(e.a == Color::RED);
-    CHECK(e.b == Color::BLUE);
+    CHECK(e.a == Fruit::APPLE);
+    CHECK(e.b == Fruit::BANANA);
+    CHECK(e.c == Fruit::ORANGE);
+    CHECK(e.d == Fruit::MANGO);
+    CHECK(e.e == Fruit::CHERRY);
+    CHECK(e.f == Fruit::GRAPE);
+    CHECK(e.g == Color::BULE);
+    CHECK(e.h == Color::RED);
   };
   std::string str = R"(
-{"a": "RED", "b": "BLUE" })";
+{
+  "a": "APPLE",
+  "b": "BANANA",
+  "c": "ORANGE",
+  "d": "MANGO",
+  "e": "CHERRY",
+  "f": "GRAPE",
+  "g": "BULE",
+  "h": "RED"
+}
+  )";
   test_enum_t e;
   iguana::from_json(e, str);
   validator(e);
