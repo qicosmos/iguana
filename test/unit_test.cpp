@@ -224,10 +224,12 @@ enum class Color {
   BULE = 10,
   RED = 15,
 };
+enum class Status { stop = 10, start };
 namespace iguana {
 template <> struct enum_value<Fruit> {
   constexpr static std::array<int, 6> value = {9999, -4, 10, 99, 7, 100000};
 };
+
 } // namespace iguana
 struct test_enum_t {
   Fruit a;
@@ -260,8 +262,8 @@ TEST_CASE("test enum") {
   "d": "MANGO",
   "e": "CHERRY",
   "f": "GRAPE",
-  "g": "BULE",
-  "h": "RED"
+  "g": 10,
+  "h": 15
 }
   )";
   test_enum_t e;

@@ -214,9 +214,21 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 template <typename U, typename It, std::enable_if_t<enum_v<U>, int> = 0>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   static constexpr auto str_to_enum = get_enum_map<true, std::decay_t<U>>();
-  std::string_view enum_names;
-  parse_item(enum_names, it, end);
-  value = str_to_enum.find(enum_names)->second;
+  if constexpr (bool_v<decltype(str_to_enum)>) {
+    // not defined a specialization template
+    using T = std::underlying_type_t<std::decay_t<U>>;
+    parse_item(reinterpret_cast<T &>(value), it, end);
+  } else {
+    std::string_view enum_names;
+    parse_item(enum_names, it, end);
+    auto it = str_to_enum.find(enum_names);
+    if (it != str_to_enum.end())
+      IGUANA_LIKELY { value = it->second; }
+    else {
+      throw std::runtime_error(std::string(enum_names) +
+                               " missing corresponding value in enum_value");
+    }
+  }
 }
 
 template <typename U, typename It, std::enable_if_t<fixed_array_v<U>, int> = 0>

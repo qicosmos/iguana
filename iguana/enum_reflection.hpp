@@ -84,12 +84,6 @@ constexpr std::pair<bool, std::string_view> try_get_enum_name() {
           res.substr(pos_colon == std::string_view::npos ? 0 : pos_colon + 2)};
 }
 
-// get the size of integer_sequence
-template <typename T, T... I>
-constexpr std::size_t integer_sequence_size(std::integer_sequence<T, I...>) {
-  return sizeof...(I);
-}
-
 // Enumerate the numbers in a integer sequence to see if they are legal enum
 // value
 template <typename E, std::int64_t... Is>
@@ -112,32 +106,9 @@ get_enum_arr(const std::integer_sequence<std::int64_t, Is...> &) {
   return std::make_tuple(num, enum_values, enum_names);
 }
 
-template <std::int64_t... I1, std::int64_t... I2>
-constexpr auto
-concatenate_sequences(std::integer_sequence<std::int64_t, I1...>,
-                      std::integer_sequence<std::int64_t, I2...>) {
-  return std::integer_sequence<std::int64_t, I1..., I2...>{};
-}
-
-// convert the array to integer sequence, number in [0, Filter) will be ignore
-template <std::size_t Filter, std::int64_t N, const std::array<int, N> &arr,
-          std::int64_t I = N - 1>
-constexpr auto array_to_seq() {
-  if constexpr (I > 0) {
-    if constexpr (arr[I] < Filter && arr[I] >= 0) {
-      return array_to_seq<Filter, N, arr, I - 1>();
-    } else {
-      return concatenate_sequences(
-          std::integer_sequence<std::int64_t, arr[I]>{},
-          array_to_seq<Filter, N, arr, I - 1>());
-    }
-  } else {
-    if constexpr (arr[I] < Filter && arr[I] >= 0) {
-      return std::integer_sequence<std::int64_t>();
-    } else {
-      return std::integer_sequence<std::int64_t, arr[I]>();
-    }
-  }
+template <std::size_t N, const std::array<int, N> &arr, size_t... Is>
+constexpr auto array_to_seq(const std::index_sequence<Is...> &) {
+  return std::integer_sequence<std::int64_t, arr[Is]...>();
 }
 
 // convert array to map
@@ -165,41 +136,28 @@ template <typename T> struct enum_value {
   constexpr static std::array<int, 0> value = {};
 };
 
-// by default, numbers in the range [0, Filter) will be enumerated.
-template <bool str_to_enum, typename E, size_t Filter = 50>
-constexpr inline auto get_enum_map() {
-  constexpr auto default_seq =
-      std::make_integer_sequence<std::int64_t, Filter>();
+template <bool str_to_enum, typename E> constexpr inline auto get_enum_map() {
   constexpr auto &arr = enum_value<E>::value;
   constexpr auto arr_size = arr.size();
   if constexpr (arr_size > 0) {
     // the user has defined a specialization template
-    constexpr auto arr_seq = array_to_seq<Filter, arr_size, arr>();
-    constexpr auto all_seq = concatenate_sequences(arr_seq, default_seq);
-    constexpr auto seq_size = integer_sequence_size(all_seq);
-    constexpr auto t = get_enum_arr<E>(all_seq);
+    constexpr auto arr_seq =
+        array_to_seq<arr_size, arr>(std::make_index_sequence<arr_size>());
+    constexpr auto t = get_enum_arr<E>(arr_seq);
     if constexpr (str_to_enum) {
-      return get_str_to_enum_map<E, seq_size>(
+      return get_str_to_enum_map<E, arr_size>(
           std::get<2>(t), std::get<1>(t),
           std::make_index_sequence<std::get<0>(t)>{});
     } else {
-      return get_enum_to_str_map<E, seq_size>(
+      return get_enum_to_str_map<E, arr_size>(
           std::get<2>(t), std::get<1>(t),
           std::make_index_sequence<std::get<0>(t)>{});
     }
   } else {
-    constexpr auto t = get_enum_arr<E>(default_seq);
-    if constexpr (str_to_enum) {
-      return get_str_to_enum_map<E, Filter>(
-          std::get<2>(t), std::get<1>(t),
-          std::make_index_sequence<std::get<0>(t)>{});
-    } else {
-      return get_enum_to_str_map<E, Filter>(
-          std::get<2>(t), std::get<1>(t),
-          std::make_index_sequence<std::get<0>(t)>{});
-    }
+    return false;
   }
 }
+
 #if defined(__clang__) && (__clang_major__ >= 17)
 #pragma clang diagnostic pop
 #endif

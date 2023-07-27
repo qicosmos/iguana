@@ -766,6 +766,12 @@ TEST_CASE("check some types") {
                 value_type{std::in_place_index_t<1>{}, &point_t::y});
 }
 
+enum class Status { STOP = 10, START };
+namespace iguana {
+template <> struct enum_value<Status> {
+  constexpr static std::array<int, 1> value = {10};
+};
+} // namespace iguana
 TEST_CASE("test exception") {
   {
     std::string str = R"({"\u8001": "name"})";
@@ -814,6 +820,23 @@ TEST_CASE("test exception") {
     std::string str = R"({"a": "c",)";
     iguana::jvalue val;
     CHECK_THROWS(iguana::parse(val, str.begin(), str.end()));
+  }
+  {
+    std::string str = R"(
+{
+  "a": "START",
+  "b": "STOP",
+}
+  )";
+    std::unordered_map<std::string, Status> mp;
+    CHECK_THROWS(iguana::from_json(mp, str));
+  }
+  {
+    std::unordered_map<std::string, Status> mp;
+    mp["a"] = Status::START;
+    mp["b"] = Status::STOP;
+    std::string ss;
+    CHECK_THROWS(iguana::to_json(mp, ss));
   }
 }
 
