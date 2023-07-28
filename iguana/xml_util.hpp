@@ -33,7 +33,7 @@ template <typename T> constexpr inline bool is_attr_t_v = false;
 
 template <typename T, typename map_type>
 constexpr inline bool is_attr_t_v<xml_attr_t<T, map_type>> = true;
-// TODO: replace decay_t
+
 template <typename T>
 constexpr inline bool attr_v = is_attr_t_v<std::remove_cvref_t<T>>;
 

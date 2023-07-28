@@ -52,7 +52,22 @@ IGUANA_INLINE void render_value(Stream &ss, const T &value) {
   } else if constexpr (bool_v<T>) {
     ss.append(value ? "true" : "false");
   } else if constexpr (enum_v<T>) {
-    render_value(ss, static_cast<std::underlying_type_t<T>>(value));
+    static constexpr auto enum_to_str = get_enum_map<false, std::decay_t<T>>();
+    if constexpr (bool_v<decltype(enum_to_str)>) {
+      render_value(ss, static_cast<std::underlying_type_t<T>>(value));
+    } else {
+      auto it = enum_to_str.find(value);
+      if (it != enum_to_str.end())
+        IGUANA_LIKELY {
+          auto str = it->second;
+          render_value(ss, std::string_view(str.data(), str.size()));
+        }
+      else {
+        throw std::runtime_error(
+            std::to_string(static_cast<std::underlying_type_t<T>>(value)) +
+            " is a missing value in enum_value");
+      }
+    }
   } else {
     static_assert(!sizeof(T), "type is not supported");
   }

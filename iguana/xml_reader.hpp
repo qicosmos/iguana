@@ -49,11 +49,24 @@ IGUANA_INLINE void parse_value(U &&value, It &&begin, It &&end) {
     } else
       IGUANA_UNLIKELY { throw std::runtime_error("Expected true or false"); }
   } else if constexpr (enum_v<T>) {
-    using T = std::underlying_type_t<std::decay_t<U>>;
-    parse_value(reinterpret_cast<T &>(value), begin, end);
+    static constexpr auto str_to_enum = get_enum_map<true, T>();
+    if constexpr (bool_v<decltype(str_to_enum)>) {
+      // not defined a specialization template
+      parse_value(reinterpret_cast<std::underlying_type_t<T> &>(value), begin,
+                  end);
+    } else {
+      auto enum_names = std::string_view(
+          &*begin, static_cast<size_t>(std::distance(begin, end)));
+      auto it = str_to_enum.find(enum_names);
+      if (it != str_to_enum.end())
+        IGUANA_LIKELY { value = it->second; }
+      else {
+        throw std::runtime_error(std::string(enum_names) +
+                                 " missing corresponding value in enum_value");
+      }
+    }
   }
 }
-
 template <typename U, typename It,
           std::enable_if_t<map_container_v<U>, int> = 0>
 IGUANA_INLINE void parse_attr(U &&value, It &&it, It &&end) {
