@@ -109,7 +109,22 @@ IGUANA_INLINE void render_json_value(Stream &ss, T &&t) {
 
 template <typename Stream, typename T, std::enable_if_t<enum_v<T>, int> = 0>
 IGUANA_INLINE void render_json_value(Stream &ss, T val) {
-  render_json_value(ss, static_cast<std::underlying_type_t<T>>(val));
+  static constexpr auto enum_to_str = get_enum_map<false, std::decay_t<T>>();
+  if constexpr (bool_v<decltype(enum_to_str)>) {
+    render_json_value(ss, static_cast<std::underlying_type_t<T>>(val));
+  } else {
+    auto it = enum_to_str.find(val);
+    if (it != enum_to_str.end())
+      IGUANA_LIKELY {
+        auto str = it->second;
+        render_json_value(ss, std::string_view(str.data(), str.size()));
+      }
+    else {
+      throw std::runtime_error(
+          std::to_string(static_cast<std::underlying_type_t<T>>(val)) +
+          " is a missing value in enum_value");
+    }
+  }
 }
 
 template <typename Stream, typename T>

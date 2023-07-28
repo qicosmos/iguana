@@ -212,24 +212,70 @@ TEST_CASE("test parse item seq container") {
   }
 }
 
-enum class ee {
-  aa,
-  bb,
+enum class Fruit {
+  APPLE = 9999,
+  BANANA = -4,
+  ORANGE = 10,
+  MANGO = 99,
+  CHERRY = 7,
+  GRAPE = 100000
+};
+enum class Color {
+  BULE = 10,
+  RED = 15,
+};
+enum class Status { stop = 10, start };
+namespace iguana {
+template <> struct enum_value<Fruit> {
+  constexpr static std::array<int, 6> value = {9999, -4, 10, 99, 7, 100000};
 };
 
-struct ee_t {
-  ee e;
+} // namespace iguana
+struct test_enum_t {
+  Fruit a;
+  Fruit b;
+  Fruit c;
+  Fruit d;
+  Fruit e;
+  Fruit f;
+  Color g;
+  Color h;
 };
-REFLECTION(ee_t, e);
+REFLECTION(test_enum_t, a, b, c, d, e, f, g, h);
 
 TEST_CASE("test enum") {
-  ee_t t{ee::bb};
-  std::string str;
-  iguana::to_json(t, str);
+  auto validator = [](test_enum_t e) {
+    CHECK(e.a == Fruit::APPLE);
+    CHECK(e.b == Fruit::BANANA);
+    CHECK(e.c == Fruit::ORANGE);
+    CHECK(e.d == Fruit::MANGO);
+    CHECK(e.e == Fruit::CHERRY);
+    CHECK(e.f == Fruit::GRAPE);
+    CHECK(e.g == Color::BULE);
+    CHECK(e.h == Color::RED);
+  };
+  std::string str = R"(
+{
+  "a": "APPLE",
+  "b": "BANANA",
+  "c": "ORANGE",
+  "d": "MANGO",
+  "e": "CHERRY",
+  "f": "GRAPE",
+  "g": 10,
+  "h": 15
+}
+  )";
+  test_enum_t e;
+  iguana::from_json(e, str);
+  validator(e);
 
-  ee_t t1;
-  iguana::from_json(t1, str);
-  CHECK(t1.e == ee::bb);
+  std::string ss;
+  iguana::to_json(e, ss);
+  std::cout << ss << std::endl;
+  test_enum_t e1;
+  iguana::from_json(e1, ss);
+  validator(e1);
 }
 
 TEST_CASE("test parse item map container") {
@@ -684,7 +730,7 @@ TEST_CASE("test the string_view") {
 }
 
 struct st_char_t {
-  char a;
+  std::vector<char> a;
   char b[5];
   char c[5];
 };
@@ -692,13 +738,17 @@ REFLECTION(st_char_t, a, b, c);
 TEST_CASE("test char") {
   std::string str = R"(
   {
-    "a": "\n",
+    "a": ["\n", "\t", "\f", "\r", "\b"],
     "b": ["1", "2", "3", "4", "5"],
     "c": "1234\n"
   }
   )";
   auto validator = [](st_char_t c) {
-    CHECK(c.a == '\n');
+    CHECK(c.a[0] == '\n');
+    CHECK(c.a[1] == '\t');
+    CHECK(c.a[2] == '\f');
+    CHECK(c.a[3] == '\r');
+    CHECK(c.a[4] == '\b');
     CHECK(c.b[0] == '1');
     CHECK(c.b[1] == '2');
     CHECK(c.b[2] == '3');
