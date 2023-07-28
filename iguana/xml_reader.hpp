@@ -294,6 +294,10 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
   bool parse_done = false;
   // sequential parse
   for_each(value, [&](const auto member_ptr, auto i) IGUANA__INLINE_LAMBDA {
+#if defined(_MSC_VER) && _MSVC_LANG < 202002L
+    // seems MVSC can't pass a constexpr value to lambda
+    constexpr auto cdata_idx = get_type_index<is_cdata_t, U>();
+#endif
     using item_type = std::remove_reference_t<decltype(value.*member_ptr)>;
     constexpr auto mkey = iguana::get_name<T, decltype(i)::value>();
     constexpr std::string_view st_key(mkey.data(), mkey.size());
