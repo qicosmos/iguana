@@ -54,8 +54,24 @@ IGUANA_INLINE void render_yaml_value(Stream &ss, bool value,
 template <bool appendLf = true, typename Stream, typename T,
           std::enable_if_t<enum_v<T>, int> = 0>
 IGUANA_INLINE void render_yaml_value(Stream &ss, T value, size_t min_spaces) {
-  render_yaml_value(ss, static_cast<std::underlying_type_t<T>>(value),
-                    min_spaces);
+  static constexpr auto enum_to_str = get_enum_map<false, std::decay_t<T>>();
+  if constexpr (bool_v<decltype(enum_to_str)>) {
+    render_yaml_value(ss, static_cast<std::underlying_type_t<T>>(value),
+                      min_spaces);
+  } else {
+    auto it = enum_to_str.find(value);
+    if (it != enum_to_str.end())
+      IGUANA_LIKELY {
+        auto str = it->second;
+        render_yaml_value(ss, std::string_view(str.data(), str.size()),
+                          min_spaces);
+      }
+    else {
+      throw std::runtime_error(
+          std::to_string(static_cast<std::underlying_type_t<T>>(value)) +
+          " is a missing value in enum_value");
+    }
+  }
 }
 
 template <typename Stream, typename T, std::enable_if_t<optional_v<T>, int> = 0>

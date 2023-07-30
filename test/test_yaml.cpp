@@ -765,6 +765,103 @@ TEST_CASE("test_tuple_example") {
   iguana::from_yaml(tuple2, ss);
   validator(tuple2);
 }
+
+enum class Fruit {
+  APPLE = 9999,
+  BANANA = -4,
+  ORANGE = 10,
+  MANGO = 99,
+  CHERRY = 7,
+  GRAPE = 100000
+};
+enum class Color {
+  BULE = 10,
+  RED = 15,
+};
+enum class Status { stop = 10, start };
+namespace iguana {
+template <> struct enum_value<Fruit> {
+  constexpr static std::array<int, 6> value = {9999, -4, 10, 99, 7, 100000};
+};
+
+} // namespace iguana
+struct test_enum_t {
+  Fruit a;
+  Fruit b;
+  Fruit c;
+  Fruit d;
+  Fruit e;
+  Fruit f;
+  Color g;
+  Color h;
+};
+REFLECTION(test_enum_t, a, b, c, d, e, f, g, h);
+
+TEST_CASE("test enum") {
+  auto validator = [](test_enum_t e) {
+    CHECK(e.a == Fruit::APPLE);
+    CHECK(e.b == Fruit::BANANA);
+    CHECK(e.c == Fruit::ORANGE);
+    CHECK(e.d == Fruit::MANGO);
+    CHECK(e.e == Fruit::CHERRY);
+    CHECK(e.f == Fruit::GRAPE);
+    CHECK(e.g == Color::BULE);
+    CHECK(e.h == Color::RED);
+  };
+  std::string str = R"(
+---
+a: APPLE
+b: BANANA
+c: ORANGE
+d: MANGO
+e: CHERRY
+f: GRAPE
+g: 10
+h: 15
+  )";
+  test_enum_t e;
+  iguana::from_yaml(e, str);
+  validator(e);
+
+  std::string ss;
+  iguana::to_yaml(e, ss);
+  std::cout << ss << std::endl;
+  test_enum_t e1;
+  iguana::from_yaml(e1, ss);
+  validator(e1);
+}
+
+enum class State { STOP = 10, START };
+namespace iguana {
+template <> struct enum_value<State> {
+  constexpr static std::array<int, 1> value = {10};
+};
+} // namespace iguana
+
+struct enum_exception_t {
+  State a;
+  State b;
+};
+REFLECTION(enum_exception_t, a, b);
+
+TEST_CASE("enum exception") {
+  std::string str = R"(
+a: START
+b: STOP
+  )";
+  {
+    enum_exception_t e;
+    CHECK_THROWS(iguana::from_yaml(e, str));
+  }
+  {
+    enum_exception_t e;
+    std::string ss;
+    e.a = State::START;
+    e.b = State::STOP;
+    CHECK_THROWS(iguana::to_yaml(e, ss));
+  }
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
