@@ -123,7 +123,16 @@ IGUANA_INLINE void parse_value(U &value, It &&value_begin, It &&value_end) {
     ++start;
     --end;
     if (*end != '"')
-      IGUANA_UNLIKELY { throw std::runtime_error(R"(Expected ")"); }
+      IGUANA_UNLIKELY {
+        // TODO: improve
+        auto it = start;
+        while (*it != '"' && it != end) {
+          ++it;
+        }
+        if (it == end || (*(it + 1) != '#'))
+          IGUANA_UNLIKELY { throw std::runtime_error(R"(Expected ")"); }
+        end = it;
+      }
     if constexpr (string_v<T>) {
       parse_escape_str(value, start, end);
       return;

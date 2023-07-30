@@ -6,7 +6,7 @@ namespace iguana {
 // return true when it==end
 template <typename It>
 IGUANA_INLINE bool skip_space_till_end(It &&it, It &&end) {
-  while (it != end && *it == ' ')
+  while (it != end && *it < 33)
     ++it;
   return it == end;
 }
@@ -25,14 +25,15 @@ template <typename It> IGUANA_INLINE auto skip_till_newline(It &&it, It &&end) {
       }
     else if (*it == '#')
       IGUANA_UNLIKELY {
-        if (*(it - 1) == ' ')
-          IGUANA_UNLIKELY {
-            // it - 1 should be legal because this func is for parse value
-            while ((it != end) && *it != '\n') {
-              ++it;
-            }
-            return res;
+        if (*(it - 1) == ' ') {
+          // it - 1 should be legal because this func is for parse value
+          while ((it != end) && *it != '\n') {
+            ++it;
           }
+          return res;
+        } else {
+          ++it;
+        }
       }
     else
       IGUANA_LIKELY { ++it; }
@@ -100,7 +101,7 @@ IGUANA_INLINE size_t skip_space_and_lines(It &&it, It &&end, size_t minspaces) {
             it = start;
           }
         }
-    } else if (*it == ' ') {
+    } else if (*it == ' ' || *it == '\t') {
       ++it;
       ++res;
     } else if (*it == '#') {
