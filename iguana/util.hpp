@@ -3,6 +3,7 @@
 #include "define.h"
 #include "detail/charconv.h"
 #include "enum_reflection.hpp"
+#include "error_code.h"
 #include "reflection.hpp"
 
 #include <filesystem>
