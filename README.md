@@ -269,6 +269,57 @@ We can slove the problem1 easily with c++17:
   //now you can operate the file
 ```
 
+### how to handle the enum type as strings?
+
+By default, Iguana handle enum type as  number type during serialization and deserialization.
+To handle the enum type as strings during serialization and deserialization with Iguana, we need to define a  full specialization template in the "iguana" namespace. This template is a struct that contains an array with the underlying numbers corresponding to the enum type.
+For example, if we have the following enum type:
+
+```c++
+enum class Status { STOP = 10, START };
+```
+
+And we want to handle the enum type as strings when parsing JSON:
+
+```c++
+    std::string str = R"(
+{
+  "a": "START",
+  "b": "STOP",
+}
+  )";
+```
+
+To do this, we define the full specialization template in the "iguana" namespace:
+
+```c++
+namespace iguana {
+template <> struct enum_value<Status> {
+  constexpr static std::array<int, 2> value = {10, 11};
+};
+} // namespace iguana
+```
+
+Once this is done, we can continue writing the rest of the code as usual.
+
+```c++
+struct enum_t {
+    Status a;
+    Status b;
+};
+REFLECTION(enum_t, a, b);
+
+// deserialization
+enum_t e;
+iguana::from_json(e, str);
+// serialization
+enum_t e;
+e.a = Status::START;
+e.b = Status::STOP;
+std::string ss;
+iguana::to_json(e ss);
+```
+
 ### Full sources:
 
 

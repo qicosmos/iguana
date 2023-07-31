@@ -229,7 +229,7 @@ void library_example() {
 libraries:
   - name: 
       Central Library
-    location: "Main\tStreet"
+    location: "Main\tStreet" #this is a comment
     books:
       - title:
         categories: 
