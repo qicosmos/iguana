@@ -865,6 +865,36 @@ TEST_CASE("test numeric string") {
   validator(t1);
 }
 
+struct test_uint8_t {
+  uint8_t a;
+  int8_t b;
+  char c;
+};
+REFLECTION(test_uint8_t, a, b, c);
+TEST_CASE("test uint8 and int8") {
+  std::string str = R"(
+{ 
+"a" : 50,
+"b" : -10,
+"c" : "c"
+}
+  )";
+  auto validator = [](test_uint8_t &t) {
+    CHECK(t.a == 50);
+    CHECK(t.b == -10);
+    CHECK(t.c == 'c');
+  };
+
+  test_uint8_t t;
+  iguana::from_json(t, str);
+  validator(t);
+
+  std::string ss;
+  iguana::to_json(t, ss);
+  test_uint8_t t1;
+  iguana::from_json(t1, ss);
+  validator(t1);
+}
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007) int main(int argc, char **argv) {
