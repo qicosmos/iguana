@@ -1,6 +1,6 @@
 # A Universal Serialization Engine Based on compile-time Reflection #
 
-*iguana* is a modern, universal and easy-to-use serialization engine developed in c++20.
+*iguana* is a modern, universal and easy-to-use serialization engine developed in C++20 and C++17.
 
 | OS (Compiler Version)                          | Status                                                                                                   |
 |------------------------------------------------|----------------------------------------------------------------------------------------------------------|
@@ -435,5 +435,5 @@ frozen lib
 
 ### Update
 
-1. Support C++20
+1. Support C++20 and C++17
 2. Refactor json reader, modification based on glaze  [json/read.hpp](https://github.com/stephenberry/glaze/blob/main/include/glaze/json/read.hpp)
