@@ -7,12 +7,36 @@ on:
     branches: [ master]
     
 jobs:
-  build:
+  ubuntu_gcc:
     strategy:
       matrix:
         mode: [ Debug, Release ]
-        cpp_version: [17, 20]
+        cpp_version: [20]
     runs-on: ubuntu-22.04
+    
+    steps:
+    - name: check out
+      uses: actions/checkout@v3
+    
+    - name: checkout gcc version
+      run: gcc --version
+
+    - name: configure cmake
+      run: CXX=g++ CC=gcc cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -DCMAKE_CXX_STANDARD=${{ matrix.cpp_version }}
+      
+    - name: build project
+      run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.mode }}
+      
+    - name: test
+      working-directory: ${{ github.workspace }}/build
+      run: ctest -C ${{ matrix.mode }} -j 1 -V
+
+  ubuntu_gcc9:
+    strategy:
+      matrix:
+        mode: [ Debug, Release ]
+        cpp_version: [17]
+    runs-on: ubuntu-20.04
     
     steps:
     - name: check out
