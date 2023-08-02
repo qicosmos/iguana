@@ -1,4 +1,3 @@
-
 #include <deque>
 #include <iterator>
 #include <list>

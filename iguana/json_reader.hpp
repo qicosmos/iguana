@@ -608,7 +608,7 @@ template <bool Is_view = false, typename It>
 void parse(jvalue &result, It &&it, It &&end);
 
 template <bool Is_view = false, typename It>
-inline void parse_array(jarray &result, It &&it, It &&end) {
+inline void parse(jarray &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'['>(it, end);
   if (*it == ']')
@@ -636,7 +636,7 @@ inline void parse_array(jarray &result, It &&it, It &&end) {
 }
 
 template <bool Is_view = false, typename It>
-inline void parse_object(jobject &result, It &&it, It &&end) {
+inline void parse(jobject &result, It &&it, It &&end) {
   skip_ws(it, end);
   match<'{'>(it, end);
   if (*it == '}')
@@ -715,11 +715,11 @@ inline void parse(jvalue &result, It &&it, It &&end) {
     break;
   case '[':
     result.template emplace<jarray>();
-    parse_array<Is_view>(std::get<jarray>(result), it, end);
+    parse<Is_view>(std::get<jarray>(result), it, end);
     break;
   case '{': {
     result.template emplace<jobject>();
-    parse_object<Is_view>(std::get<jobject>(result), it, end);
+    parse<Is_view>(std::get<jobject>(result), it, end);
     break;
   }
   default:
@@ -729,6 +729,7 @@ inline void parse(jvalue &result, It &&it, It &&end) {
   skip_ws(it, end);
 }
 
+// when Is_view is true, parse str as string_view
 template <bool Is_view = false, typename It>
 inline void parse(jvalue &result, It &&it, It &&end, std::error_code &ec) {
   try {

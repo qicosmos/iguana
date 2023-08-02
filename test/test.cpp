@@ -354,6 +354,14 @@ TEST_CASE("test dom parse") {
     auto submap = val.at<iguana::jobject>("parent");
     CHECK(submap["name"].to_string_view() == "jone");
   }
+  {
+    std::string str = R"(["cpp", "go", "java"])";
+    iguana::jarray arr;
+    iguana::parse(arr, str);
+    CHECK(arr[0].to_string() == "cpp");
+    CHECK(arr[1].to_string() == "go");
+    CHECK(arr[2].to_string() == "java");
+  }
 
   std::cout << "test dom parse ok\n";
 }
