@@ -633,6 +633,30 @@ TEST_CASE("enum exception") {
   }
 }
 
+class some_object {
+  int id;
+  std::string name;
+
+public:
+  some_object() = default;
+  some_object(int i, std::string str) : id(i), name(str) {}
+  int get_id() const { return id; }
+  std::string get_name() const { return name; }
+  REFLECTION(some_object, id, name);
+};
+
+TEST_CASE("test inner reflection") {
+  some_object obj{20, "tom"};
+  std::string str;
+  iguana::to_xml(obj, str);
+  std::cout << str << "\n";
+
+  some_object obj1;
+  iguana::from_xml(obj1, str);
+  CHECK(obj1.get_id() == 20);
+  CHECK(obj1.get_name() == "tom");
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
