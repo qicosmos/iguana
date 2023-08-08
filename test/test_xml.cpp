@@ -657,6 +657,27 @@ TEST_CASE("test inner reflection") {
   CHECK(obj1.get_name() == "tom");
 }
 
+struct Contents_t {
+  std::unique_ptr<std::vector<std::unique_ptr<int>>> vec;
+  std::string b;
+};
+REFLECTION(Contents_t, vec, b);
+
+TEST_CASE("test issue") {
+  auto vec = std::make_unique<std::vector<std::unique_ptr<int>>>();
+  vec->push_back(std::make_unique<int>(42));
+  vec->push_back(std::make_unique<int>(21));
+  Contents_t contents{std::move(vec), "test"};
+  std::string str;
+  iguana::to_xml(contents, str);
+
+  Contents_t cont;
+  iguana::from_xml(cont, str);
+  CHECK(cont.b == "test");
+  CHECK(*(*cont.vec)[0] == 42);
+  CHECK(*(*cont.vec)[1] == 21);
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)

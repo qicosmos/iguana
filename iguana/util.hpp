@@ -137,6 +137,23 @@ template <typename T>
 constexpr inline bool plain_v =
     string_container_v<T> || num_v<T> || char_v<T> || bool_v<T> || enum_v<T>;
 
+template <typename T> struct underline_type { using type = T; };
+
+template <typename T> struct underline_type<std::unique_ptr<T>> {
+  using type = typename underline_type<T>::type;
+};
+
+template <typename T> struct underline_type<std::shared_ptr<T>> {
+  using type = typename underline_type<T>::type;
+};
+
+template <typename T> struct underline_type<std::optional<T>> {
+  using type = typename underline_type<T>::type;
+};
+
+template <typename T>
+using underline_type_t = typename underline_type<std::remove_cvref_t<T>>::type;
+
 template <char... C, typename It> IGUANA_INLINE void match(It &&it, It &&end) {
   const auto n = static_cast<size_t>(std::distance(it, end));
   if (n < sizeof...(C))
