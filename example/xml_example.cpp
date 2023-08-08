@@ -279,7 +279,26 @@ void province_example() {
   std::cout << ss1;
 }
 
+struct Contents_t {
+  std::shared_ptr<int> a;
+  std::string b;
+};
+REFLECTION(Contents_t, a, b);
+
+void test_sp() {
+  Contents_t contents{std::make_shared<int>(42), "test"};
+  std::string str;
+  iguana::to_xml(contents, str);
+  std::cout << str << "\n";
+
+  //    std::string str = "<Contents_t><a>42</a><b>test</b></Contents_t>";
+  Contents_t cont;
+  iguana::from_xml(cont, str);
+  std::cout << cont.b << "\n";
+}
+
 int main(void) {
+  test_sp();
   some_type_example();
   lib_example();
   package_example();

@@ -226,7 +226,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
 template <typename U, typename It, std::enable_if_t<optional_v<U>, int> = 0>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces);
 
-template <typename U, typename It, std::enable_if_t<unique_ptr_v<U>, int> = 0>
+template <typename U, typename It, std::enable_if_t<smart_ptr_v<U>, int> = 0>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces);
 
 // minspaces : The minimum indentation
@@ -390,7 +390,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
   }
 }
 
-template <typename U, typename It, std::enable_if_t<unique_ptr_v<U>, int>>
+template <typename U, typename It, std::enable_if_t<smart_ptr_v<U>, int>>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
   using T = std::remove_reference_t<U>;
   value = std::make_unique<typename T::element_type>();

@@ -11,7 +11,7 @@ template <typename U, typename It, std::enable_if_t<optional_v<U>, int> = 0>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
                               std::string_view name);
 
-template <typename U, typename It, std::enable_if_t<unique_ptr_v<U>, int> = 0>
+template <typename U, typename It, std::enable_if_t<smart_ptr_v<U>, int> = 0>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
                               std::string_view name);
 
@@ -168,7 +168,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
   }
 }
 
-template <typename U, typename It, std::enable_if_t<unique_ptr_v<U>, int>>
+template <typename U, typename It, std::enable_if_t<smart_ptr_v<U>, int>>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
                               std::string_view name) {
   value = std::make_unique<typename std::remove_cvref_t<U>::element_type>();

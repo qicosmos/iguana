@@ -424,7 +424,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   }
 }
 
-template <typename U, typename It, std::enable_if_t<unique_ptr_v<U>, int> = 0>
+template <typename U, typename It, std::enable_if_t<smart_ptr_v<U>, int> = 0>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   if (it < end && *it == '"')

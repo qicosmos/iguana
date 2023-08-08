@@ -113,8 +113,9 @@ template <typename T>
 constexpr inline bool string_container_v = string_v<T> || string_view_v<T>;
 
 template <typename T>
-constexpr inline bool unique_ptr_v =
-    is_template_instant_of<std::unique_ptr, std::remove_cvref_t<T>>::value;
+constexpr inline bool smart_ptr_v =
+    is_template_instant_of<std::unique_ptr, std::remove_cvref_t<T>>::value ||
+    is_template_instant_of<std::shared_ptr, std::remove_cvref_t<T>>::value;
 
 template <typename T> struct is_variant : std::false_type {};
 
@@ -127,7 +128,7 @@ constexpr inline bool variant_v = is_variant<std::remove_cvref_t<T>>::value;
 template <class T>
 constexpr inline bool non_refletable_v =
     container_v<T> || c_array_v<T> || tuple_v<T> || optional_v<T> ||
-    unique_ptr_v<T> || std::is_fundamental_v<std::remove_cvref_t<T>> ||
+    smart_ptr_v<T> || std::is_fundamental_v<std::remove_cvref_t<T>> ||
     variant_v<T>;
 
 template <typename T>
