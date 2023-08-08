@@ -112,7 +112,7 @@ IGUANA_INLINE void render_xml_value(Stream &ss, const T &value,
 }
 
 template <bool pretty, size_t spaces, typename Stream, typename T,
-          std::enable_if_t<unique_ptr_v<T>, int> = 0>
+          std::enable_if_t<smart_ptr_v<T>, int> = 0>
 IGUANA_INLINE void render_xml_value(Stream &ss, const T &value,
                                     std::string_view name) {
   if (value) {

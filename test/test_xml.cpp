@@ -659,23 +659,38 @@ TEST_CASE("test inner reflection") {
 
 struct Contents_t {
   std::unique_ptr<std::vector<std::unique_ptr<int>>> vec;
+  std::shared_ptr<std::vector<std::unique_ptr<int>>> vec_s;
   std::string b;
 };
-REFLECTION(Contents_t, vec, b);
+REFLECTION(Contents_t, vec, vec_s, b);
 
-TEST_CASE("test issue") {
-  auto vec = std::make_unique<std::vector<std::unique_ptr<int>>>();
-  vec->push_back(std::make_unique<int>(42));
-  vec->push_back(std::make_unique<int>(21));
-  Contents_t contents{std::move(vec), "test"};
-  std::string str;
-  iguana::to_xml(contents, str);
+TEST_CASE("test smart_ptr") {
+  std::string str = R"(
+<Contents_t>
+	<vec>42</vec>
+	<vec>21</vec>
+	<vec_s>15</vec_s>
+	<vec_s>16</vec_s>
+	<b>test</b>
+</Contents_t>
+  )";
+  auto validator = [](Contents_t &cont) {
+    CHECK(cont.b == "test");
+    CHECK(*(*cont.vec)[0] == 42);
+    CHECK(*(*cont.vec)[1] == 21);
+    CHECK(*(*cont.vec_s)[0] == 15);
+    CHECK(*(*cont.vec_s)[1] == 16);
+  };
 
   Contents_t cont;
   iguana::from_xml(cont, str);
-  CHECK(cont.b == "test");
-  CHECK(*(*cont.vec)[0] == 42);
-  CHECK(*(*cont.vec)[1] == 21);
+  validator(cont);
+
+  std::string ss;
+  iguana::to_xml(cont, ss);
+  Contents_t cont1;
+  iguana::from_xml(cont1, ss);
+  validator(cont1);
 }
 
 // doctest comments
