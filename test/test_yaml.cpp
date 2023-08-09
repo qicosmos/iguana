@@ -886,6 +886,42 @@ TEST_CASE("test inner reflection") {
   CHECK(obj1.get_name() == "tom");
 }
 
+struct Contents_t {
+  std::unique_ptr<std::vector<std::unique_ptr<int>>> vec;
+  std::shared_ptr<std::vector<std::unique_ptr<int>>> vec_s;
+  std::string b;
+};
+REFLECTION(Contents_t, vec, vec_s, b);
+
+TEST_CASE("test smart_ptr") {
+  std::string str = R"(
+vec:
+  - 42
+  - 21
+vec_s:
+  - 15
+  - 16
+b: test
+  )";
+  auto validator = [](Contents_t &cont) {
+    CHECK(cont.b == "test");
+    CHECK(*(*cont.vec)[0] == 42);
+    CHECK(*(*cont.vec)[1] == 21);
+    CHECK(*(*cont.vec_s)[0] == 15);
+    CHECK(*(*cont.vec_s)[1] == 16);
+  };
+
+  Contents_t cont;
+  iguana::from_yaml(cont, str);
+  validator(cont);
+
+  std::string ss;
+  iguana::to_yaml(cont, ss);
+  Contents_t cont1;
+  iguana::from_yaml(cont1, ss);
+  validator(cont1);
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)

@@ -13,6 +13,9 @@ template <typename U, typename It,
           std::enable_if_t<sequence_container_v<U>, int> = 0>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end);
 
+template <typename U, typename It, std::enable_if_t<smart_ptr_v<U>, int> = 0>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end);
+
 template <typename U, typename It, std::enable_if_t<refletable_v<U>, int> = 0>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   from_json(value, it, end);
@@ -424,7 +427,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   }
 }
 
-template <typename U, typename It, std::enable_if_t<unique_ptr_v<U>, int> = 0>
+template <typename U, typename It, std::enable_if_t<smart_ptr_v<U>, int>>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   if (it < end && *it == '"')
@@ -436,7 +439,11 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     match<'u', 'l', 'l'>(it, end);
   } else {
     using value_type = typename std::remove_reference_t<U>::element_type;
-    value = std::make_unique<value_type>();
+    if constexpr (unique_ptr_v<U>) {
+      value = std::make_unique<value_type>();
+    } else {
+      value = std::make_shared<value_type>();
+    }
     parse_item(*value, it, end);
   }
 }
