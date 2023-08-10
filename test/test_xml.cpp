@@ -693,6 +693,32 @@ TEST_CASE("test smart_ptr") {
   validator(cont1);
 }
 
+struct next_obj_t{
+    int x;
+    int y;
+};
+REFLECTION_ALIAS(next_obj_t, "next", FLDALIAS(&next_obj_t::x, "w"), FLDALIAS(&next_obj_t::y, "h"));
+
+struct out_object{
+    std::unique_ptr<int> id;
+    std::string_view name;
+    next_obj_t obj;
+    REFLECTION_ALIAS(out_object, "qi", FLDALIAS(&out_object::id, "i"), FLDALIAS(&out_object::name, "na"), FLDALIAS(&out_object::obj, "obj"));
+};
+
+
+TEST_CASE("test alias") {
+  out_object m{std::make_unique<int>(20), "tom", {21, 42}};
+  std::string xml_str;
+  iguana::to_xml(m, xml_str);
+
+  out_object m1;
+  iguana::from_xml(m1, xml_str);
+  CHECK(m1.name=="tom");
+  CHECK(m1.obj.x == 21);
+  CHECK(m1.obj.y == 42);
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
