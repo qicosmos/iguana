@@ -245,7 +245,7 @@ struct province {
 REFLECTION(province, area, cd, cities, capital);
 
 void province_example() {
-  std::string str = R"(
+  std::string_view str = R"(
 <province name="Sichuan Province">
   <capital>Chengdu</capital>
   <![CDATA[ sichuan <> ]]>
