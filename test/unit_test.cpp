@@ -243,6 +243,9 @@ struct test_enum_t {
 };
 REFLECTION(test_enum_t, a, b, c, d, e, f, g, h);
 
+#if defined(__clang__) || defined(_MSC_VER) ||                                 \
+    (defined(__GNUC__) && __GNUC__ > 8)
+
 TEST_CASE("test enum") {
   auto validator = [](test_enum_t e) {
     CHECK(e.a == Fruit::APPLE);
@@ -277,6 +280,7 @@ TEST_CASE("test enum") {
   iguana::from_json(e1, ss);
   validator(e1);
 }
+#endif
 
 TEST_CASE("test parse item map container") {
   {

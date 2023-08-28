@@ -46,7 +46,7 @@ include_directories(
 	${IGUANA_DIR}
 )
 
-if (NOT MSVC)
+if(CMAKE_COMPILER_IS_GNUCXX)
 link_libraries(stdc++fs)
 endif()
 
