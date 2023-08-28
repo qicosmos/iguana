@@ -46,6 +46,9 @@ include_directories(
 	${IGUANA_DIR}
 )
 
+if (NOT MSVC)
+link_libraries(stdc++fs)
+endif()
 
 set(JSON_EXAMPLE
 	example/json_example.cpp

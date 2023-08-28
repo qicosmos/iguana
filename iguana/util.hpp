@@ -2,13 +2,7 @@
 
 #include "define.h"
 #include "detail/charconv.h"
-#ifdef __GNUC__
-#if __GNUC__ > 8 || defined(__clang__)
 #include "enum_reflection.hpp"
-#endif
-#else
-#include "enum_reflection.hpp"
-#endif
 #include "error_code.h"
 #include "reflection.hpp"
 

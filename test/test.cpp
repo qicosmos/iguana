@@ -839,6 +839,8 @@ TEST_CASE("test exception") {
     std::unordered_map<std::string, Status> mp;
     CHECK_THROWS(iguana::from_json(mp, str));
   }
+#if defined(__clang__) || defined(_MSC_VER) ||                                 \
+    (defined(__GNUC__) && __GNUC__ > 8)
   {
     std::unordered_map<std::string, Status> mp;
     mp["a"] = Status::START;
@@ -846,6 +848,7 @@ TEST_CASE("test exception") {
     std::string ss;
     CHECK_THROWS(iguana::to_json(mp, ss));
   }
+#endif
 }
 
 // doctest comments
