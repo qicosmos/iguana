@@ -1,6 +1,6 @@
 # 简介
 
-iguana 是C++17 实现的header only, 高性能易用的序列化库，包括xml/json/yaml 的序列化和反序列化。
+iguana 是C++17 实现的header only、跨平台、高性能易用的序列化库，包括xml/json/yaml 的序列化和反序列化。
 
 iguana 的目标是通过编译期间反射将对象序列化到任意数据格式并大幅提升对象的序列化和反序列化的易用性。
 
@@ -15,6 +15,8 @@ iguana 是header only的，从github 将iguana clone 下来之后，在cmake 里
 ```
 
 # 编译器要求
+
+gcc9+、clang11+、msvc2019+
 
 # json 序列化/反序列化
 iguana 序列化需要先定义一个可反射的对象，通过REFLECTION 可以轻松定义一个可反射对象。
