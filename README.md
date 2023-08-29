@@ -285,7 +285,7 @@ And we want to handle the enum type as strings when parsing JSON:
     std::string str = R"(
 {
   "a": "START",
-  "b": "STOP",
+  "b": "STOP"
 }
   )";
 ```
@@ -313,11 +313,11 @@ REFLECTION(enum_t, a, b);
 enum_t e;
 iguana::from_json(e, str);
 // serialization
-enum_t e;
-e.a = Status::START;
-e.b = Status::STOP;
+enum_t e1;
+e1.a = Status::START;
+e1.b = Status::STOP;
 std::string ss;
-iguana::to_json(e ss);
+iguana::to_json(e1, ss);
 ```
 
 ### Full sources:
