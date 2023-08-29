@@ -4,6 +4,8 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
 
+#if defined(__clang__) || defined(_MSC_VER) ||                                 \
+    (defined(__GNUC__) && __GNUC__ > 8)
 class message {};
 
 namespace ns {
@@ -81,6 +83,7 @@ TEST_CASE("test enum string") {
   std::cout << s5 << "\n";
   CHECK(s5 == "ns::ns2::large");
 }
+#endif
 
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
 int main(int argc, char **argv) { return doctest::Context(argc, argv).run(); }

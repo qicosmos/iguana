@@ -46,6 +46,9 @@ include_directories(
 	${IGUANA_DIR}
 )
 
+if(CMAKE_COMPILER_IS_GNUCXX)
+link_libraries(stdc++fs)
+endif()
 
 set(JSON_EXAMPLE
 	example/json_example.cpp

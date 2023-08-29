@@ -797,6 +797,9 @@ struct test_enum_t {
 };
 REFLECTION(test_enum_t, a, b, c, d, e, f, g, h);
 
+#if defined(__clang__) || defined(_MSC_VER) ||                                 \
+    (defined(__GNUC__) && __GNUC__ > 8)
+
 TEST_CASE("test enum") {
   auto validator = [](test_enum_t e) {
     CHECK(e.a == Fruit::APPLE);
@@ -830,6 +833,7 @@ h: 15
   iguana::from_yaml(e1, ss);
   validator(e1);
 }
+#endif
 
 enum class State { STOP = 10, START };
 namespace iguana {
@@ -843,6 +847,9 @@ struct enum_exception_t {
   State b;
 };
 REFLECTION(enum_exception_t, a, b);
+
+#if defined(__clang__) || defined(_MSC_VER) ||                                 \
+    (defined(__GNUC__) && __GNUC__ > 8)
 
 TEST_CASE("enum exception") {
   std::string str = R"(
@@ -861,6 +868,8 @@ b: STOP
     CHECK_THROWS(iguana::to_yaml(e, ss));
   }
 }
+
+#endif
 
 class some_object {
   int id;
