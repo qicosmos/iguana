@@ -954,6 +954,25 @@ TEST_CASE("test smart_ptr") {
   validator(cont1);
 }
 
+struct person1 {
+  std::shared_ptr<std::string> name;
+  std::shared_ptr<int64_t> age;
+};
+REFLECTION(person1, name, age);
+
+TEST_CASE("test smart point issue 223") {
+  person1 p{std::make_shared<std::string>("tom"),
+            std::make_shared<int64_t>(42)};
+  std::string str;
+  iguana::to_json(p, str);
+
+  person1 p1;
+  iguana::from_json(p1, str); // here throw exception
+
+  CHECK(*p1.name == "tom");
+  CHECK(*p1.age == 42);
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007) int main(int argc, char **argv) {
