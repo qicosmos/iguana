@@ -78,12 +78,6 @@ inline constexpr auto has_equal = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
       0b0011110100111101001111010011110100111101001111010011110100111101);
 };
 
-inline constexpr auto has_qoute = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
-  return has_zero(
-      chunk ^
-      0b0010001000100010001000100010001000100010001000100010001000100010);
-};
-
 template <typename It>
 IGUANA_INLINE void skip_sapces_and_newline(It &&it, It &&end) {
   while (it != end && (*it < 33)) {
