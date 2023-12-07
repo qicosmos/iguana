@@ -80,7 +80,7 @@ inline constexpr auto has_equal = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
 
 template <typename It>
 IGUANA_INLINE void skip_sapces_and_newline(It &&it, It &&end) {
-  while (it != end && (*it < 33)) {
+  while (it != end && (static_cast<uint8_t>(*it) < 33)) {
     ++it;
   }
 }
