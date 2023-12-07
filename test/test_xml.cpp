@@ -3,11 +3,12 @@
 #include <list>
 #include <vector>
 #define DOCTEST_CONFIG_IMPLEMENT
+#include <iostream>
+#include <optional>
+
 #include "doctest.h"
 #include "iguana/xml_reader.hpp"
 #include "iguana/xml_writer.hpp"
-#include <iostream>
-#include <optional>
 
 struct Owner_t {
   std::string ID;
@@ -196,7 +197,7 @@ TEST_CASE("test some type") {
     CHECK(s.hasdescription == true);
     CHECK(s.c == 'X');
     CHECK(*s.d_v == 3.14159);
-    CHECK(s.name == "John Doe");
+    CHECK(s.name == "张三");
     CHECK(s.addr == "123 Main St");
     CHECK(s.status == enum_status::stop);
   };
@@ -216,7 +217,7 @@ TEST_CASE("test some type") {
 	<hasdescription>true</hasdescription>
 	<c>X</c>
 	<d_v>3.14159</d_v>
-	<name>John Doe</name>
+	<name>张三</name>
 	<addr>123 Main St</addr>
 	<status>1</status>
 </some_type_t>
@@ -547,11 +548,12 @@ enum class Color {
 };
 enum class Status { stop = 10, start };
 namespace iguana {
-template <> struct enum_value<Fruit> {
+template <>
+struct enum_value<Fruit> {
   constexpr static std::array<int, 6> value = {9999, -4, 10, 99, 7, 100000};
 };
 
-} // namespace iguana
+}  // namespace iguana
 struct test_enum_t {
   Fruit a;
   Fruit b;
@@ -564,7 +566,7 @@ struct test_enum_t {
 };
 REFLECTION(test_enum_t, a, b, c, d, e, f, g, h);
 
-#if defined(__clang__) || defined(_MSC_VER) ||                                 \
+#if defined(__clang__) || defined(_MSC_VER) || \
     (defined(__GNUC__) && __GNUC__ > 8)
 
 TEST_CASE("test enum") {
@@ -605,10 +607,11 @@ TEST_CASE("test enum") {
 
 enum class State { STOP = 10, START };
 namespace iguana {
-template <> struct enum_value<State> {
+template <>
+struct enum_value<State> {
   constexpr static std::array<int, 1> value = {10};
 };
-} // namespace iguana
+}  // namespace iguana
 
 struct enum_exception_t {
   State a;
@@ -641,7 +644,7 @@ class some_object {
   int id;
   std::string name;
 
-public:
+ public:
   some_object() = default;
   some_object(int i, std::string str) : id(i), name(str) {}
   int get_id() const { return id; }
