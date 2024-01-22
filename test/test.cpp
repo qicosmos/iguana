@@ -2,14 +2,15 @@
 #include <string>
 #include <vector>
 #define DOCTEST_CONFIG_IMPLEMENT
-#include "doctest.h"
-#include "iguana/json_reader.hpp"
-#include "iguana/prettify.hpp"
-#include "iguana/value.hpp"
 #include <iguana/json_util.hpp>
 #include <iguana/json_writer.hpp>
 #include <iostream>
 #include <optional>
+
+#include "doctest.h"
+#include "iguana/json_reader.hpp"
+#include "iguana/prettify.hpp"
+#include "iguana/value.hpp"
 
 struct point_t {
   int x;
@@ -362,6 +363,12 @@ TEST_CASE("test dom parse") {
     CHECK(arr[1].to_string() == "go");
     CHECK(arr[2].to_string() == "java");
   }
+  {
+    std::string str = R"({"name": "tom", "age": 5})";
+    iguana::jvalue val;
+    iguana::parse(val, str.begin(), str.end(), true);
+    CHECK(5.0f == (val.to_object())["age"].to_double());
+  }
 
   std::cout << "test dom parse ok\n";
 }
@@ -676,7 +683,7 @@ TEST_CASE("test file interface") {
     CHECK(obj.string == "Hello world");
 
     fs::remove(filename);
-  } // namespace fs=std::filesystem;
+  }  // namespace fs=std::filesystem;
   {
     fs::path p = "empty_file.bin";
     std::ofstream{p};
@@ -776,10 +783,11 @@ TEST_CASE("check some types") {
 
 enum class Status { STOP = 10, START };
 namespace iguana {
-template <> struct enum_value<Status> {
+template <>
+struct enum_value<Status> {
   constexpr static std::array<int, 1> value = {10};
 };
-} // namespace iguana
+}  // namespace iguana
 TEST_CASE("test exception") {
   {
     std::string str = R"({"\u8001": "name"})";
@@ -839,7 +847,7 @@ TEST_CASE("test exception") {
     std::unordered_map<std::string, Status> mp;
     CHECK_THROWS(iguana::from_json(mp, str));
   }
-#if defined(__clang__) || defined(_MSC_VER) ||                                 \
+#if defined(__clang__) || defined(_MSC_VER) || \
     (defined(__GNUC__) && __GNUC__ > 8)
   {
     std::unordered_map<std::string, Status> mp;
