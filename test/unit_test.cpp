@@ -1,16 +1,18 @@
-#include "iguana/reflection.hpp"
 #include <deque>
 #include <iterator>
 #include <list>
 #include <vector>
+
+#include "iguana/reflection.hpp"
 #define DOCTEST_CONFIG_IMPLEMENT
-#include "doctest.h"
-#include "iguana/json_reader.hpp"
-#include "test_headers.h"
 #include <iguana/json_util.hpp>
 #include <iguana/json_writer.hpp>
 #include <iostream>
 #include <optional>
+
+#include "doctest.h"
+#include "iguana/json_reader.hpp"
+#include "test_headers.h"
 
 TEST_CASE("test parse item num_t") {
   {
@@ -174,7 +176,7 @@ TEST_CASE("test parse item str_t") {
 
 #ifdef __GNUC__
     CHECK(test == "老");
-#endif // __GNUC__
+#endif  // __GNUC__
   }
 }
 
@@ -226,11 +228,12 @@ enum class Color {
 };
 enum class Status { stop = 10, start };
 namespace iguana {
-template <> struct enum_value<Fruit> {
+template <>
+struct enum_value<Fruit> {
   constexpr static std::array<int, 6> value = {9999, -4, 10, 99, 7, 100000};
 };
 
-} // namespace iguana
+}  // namespace iguana
 struct test_enum_t {
   Fruit a;
   Fruit b;
@@ -243,7 +246,7 @@ struct test_enum_t {
 };
 REFLECTION(test_enum_t, a, b, c, d, e, f, g, h);
 
-#if defined(__clang__) || defined(_MSC_VER) ||                                 \
+#if defined(__clang__) || defined(_MSC_VER) || \
     (defined(__GNUC__) && __GNUC__ > 8)
 
 TEST_CASE("test enum") {
@@ -417,7 +420,7 @@ REFLECTION(struct_container_t, values);
 
 struct struct_container_1_t {
   std::optional<struct_container_t> val;
-}; // entities_t
+};  // entities_t
 REFLECTION(struct_container_1_t, val);
 
 TEST_CASE("test optional") {
@@ -576,6 +579,33 @@ TEST_CASE("test escape in string") {
     iguana::from_json(p, str);
     CHECK(p.name == "A\nB\tC\rD\bEF\n\f\n");
     CHECK(p.age == 20);
+    {
+      std::string ss;
+      iguana::to_json(p, ss);
+      person p1;
+      iguana::from_json(p1, ss);
+      CHECK(p1.name == "A\nB\tC\rD\bEF\n\f\n");
+      CHECK(p1.age == 20);
+    }
+    {
+      person p0;
+      p0.name.push_back(0x1E);
+      std::string ss;
+      iguana::to_json<false>(p0, ss);
+      person p1;
+      CHECK(ss != R"({"name":"\u001E","age":0})");
+    }
+  }
+  {
+    std::string str1 = R"({"name":"\u001E", "age": 20})";
+    person p;
+    iguana::from_json(p, str1);
+    CHECK(static_cast<unsigned>((p.name)[0]) == 0x1E);
+    std::string ss;
+    iguana::to_json(p, ss);
+    person p1;
+    iguana::from_json(p1, ss);
+    CHECK(static_cast<unsigned>((p1.name)[0]) == 0x1E);
   }
   {
     std::string slist = R"({"name":"\u8001", "age":20})";
@@ -584,6 +614,12 @@ TEST_CASE("test escape in string") {
     iguana::from_json(p, strlist);
     CHECK(p.name == "老");
     CHECK(p.age == 20);
+    std::string ss;
+    iguana::to_json(p, ss);
+    std::cout << ss << std::endl;
+    person p1;
+    iguana::from_json(p1, ss);
+    CHECK(p1.name == "老");
   }
   {
     std::list<char> strlist(str.begin(), str.end());
@@ -904,7 +940,7 @@ class some_object {
   int id;
   std::string name;
 
-public:
+ public:
   some_object() = default;
   some_object(int i, std::string str) : id(i), name(str) {}
   int get_id() const { return id; }
@@ -967,7 +1003,7 @@ TEST_CASE("test smart point issue 223") {
   iguana::to_json(p, str);
 
   person1 p1;
-  iguana::from_json(p1, str); // here throw exception
+  iguana::from_json(p1, str);  // here throw exception
 
   CHECK(*p1.name == "tom");
   CHECK(*p1.age == 42);
