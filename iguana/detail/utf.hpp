@@ -52,7 +52,7 @@ inline void encode_utf8(OutputStream &os, unsigned codepoint) {
 }
 
 // https://github.com/Tencent/rapidjson/blob/master/include/rapidjson/encodings.h
-static unsigned char GetRange(unsigned char c) {
+static inline unsigned char GetRange(unsigned char c) {
   static const unsigned char type[] = {
       0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
       0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,

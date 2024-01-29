@@ -3,11 +3,12 @@
 #include <list>
 #include <vector>
 #define DOCTEST_CONFIG_IMPLEMENT
+#include <iostream>
+#include <optional>
+
 #include "doctest.h"
 #include "iguana/yaml_reader.hpp"
 #include "iguana/yaml_writer.hpp"
-#include <iostream>
-#include <optional>
 
 TEST_CASE("test without struct") {
   using MapType = std::unordered_map<int, std::vector<int>>;
@@ -253,7 +254,7 @@ txt:
   CHECK(s.txt[0] == "Hello\nWorld\n");
   CHECK(s.txt[1] == "Hello World\n");
   CHECK(s.txt[2] == "Hello World");
-  CHECK(s.txt[3] == "Hello\nWorld\n"); // escape
+  CHECK(s.txt[3] == "Hello\nWorld\n");  // escape
   CHECK(s.txt[4] == "老A\nB\tC\rD\bEF\n\f\n123");
   CHECK(s.txt[5] == "\n");
   CHECK(s.txt[6].empty());
@@ -780,11 +781,12 @@ enum class Color {
 };
 enum class Status { stop = 10, start };
 namespace iguana {
-template <> struct enum_value<Fruit> {
+template <>
+struct enum_value<Fruit> {
   constexpr static std::array<int, 6> value = {9999, -4, 10, 99, 7, 100000};
 };
 
-} // namespace iguana
+}  // namespace iguana
 struct test_enum_t {
   Fruit a;
   Fruit b;
@@ -797,7 +799,7 @@ struct test_enum_t {
 };
 REFLECTION(test_enum_t, a, b, c, d, e, f, g, h);
 
-#if defined(__clang__) || defined(_MSC_VER) ||                                 \
+#if defined(__clang__) || defined(_MSC_VER) || \
     (defined(__GNUC__) && __GNUC__ > 8)
 
 TEST_CASE("test enum") {
@@ -837,10 +839,11 @@ h: 15
 
 enum class State { STOP = 10, START };
 namespace iguana {
-template <> struct enum_value<State> {
+template <>
+struct enum_value<State> {
   constexpr static std::array<int, 1> value = {10};
 };
-} // namespace iguana
+}  // namespace iguana
 
 struct enum_exception_t {
   State a;
@@ -848,7 +851,7 @@ struct enum_exception_t {
 };
 REFLECTION(enum_exception_t, a, b);
 
-#if defined(__clang__) || defined(_MSC_VER) ||                                 \
+#if defined(__clang__) || defined(_MSC_VER) || \
     (defined(__GNUC__) && __GNUC__ > 8)
 
 TEST_CASE("enum exception") {
@@ -875,7 +878,7 @@ class some_object {
   int id;
   std::string name;
 
-public:
+ public:
   some_object() = default;
   some_object(int i, std::string str) : id(i), name(str) {}
   int get_id() const { return id; }
@@ -924,11 +927,22 @@ b: test
   iguana::from_yaml(cont, str);
   validator(cont);
 
-  std::string ss;
-  iguana::to_yaml(cont, ss);
-  Contents_t cont1;
-  iguana::from_yaml(cont1, ss);
-  validator(cont1);
+  {
+    std::string ss;
+    iguana::to_yaml(cont, ss);
+    Contents_t cont1;
+    iguana::from_yaml(cont1, ss);
+    validator(cont1);
+  }
+  {
+    cont.b = "\n老";
+    std::string ss;
+    iguana::to_yaml<true>(cont, ss);
+    std::cout << ss << std::endl;
+    Contents_t cont1;
+    iguana::from_yaml(cont1, ss);
+    CHECK(cont1.b == cont.b);
+  }
 }
 
 // doctest comments
