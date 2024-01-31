@@ -28,7 +28,12 @@ template <typename U, typename It, std::enable_if_t<plain_v<U>, int> = 0>
 IGUANA_INLINE void parse_value(U &&value, It &&begin, It &&end) {
   using T = std::decay_t<U>;
   if constexpr (string_container_v<T>) {
-    value = T(&*begin, static_cast<size_t>(std::distance(begin, end)));
+    if constexpr (string_view_v<T>) {
+      value = T(&*begin, static_cast<size_t>(std::distance(begin, end)));
+    }
+    else {
+      parse_escape_xml(value, begin, end);
+    }
   }
   else if constexpr (num_v<T>) {
     auto size = std::distance(begin, end);
