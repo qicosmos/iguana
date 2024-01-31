@@ -12,13 +12,14 @@ IGUANA_INLINE void render_string_with_escape_xml(const Ch *it, SizeType length,
   auto end = it;
   std::advance(end, length);
   while (it < end) {
+#ifdef XML_ESCAPE_UNICODE
     if (static_cast<unsigned>(*it) >= 0x80)
       IGUANA_UNLIKELY {
         write_unicode_to_string<true>(it, ss);
         continue;
-        ss.push_back(*it);
       }
-    else if (*it == '\'')
+#endif
+    if (*it == '\'')
       IGUANA_UNLIKELY { ss.append("&apos;"); }
     else if (*it == '"')
       IGUANA_UNLIKELY { ss.append("&quot;"); }
