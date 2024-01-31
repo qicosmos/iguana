@@ -6,6 +6,35 @@
 
 namespace iguana {
 
+template <typename Ch, typename SizeType, typename Stream>
+IGUANA_INLINE void render_string_with_escape_xml(const Ch *it, SizeType length,
+                                                 Stream &ss) {
+  auto end = it;
+  std::advance(end, length);
+  while (it < end) {
+    if (static_cast<unsigned>(*it) >= 0x80)
+      IGUANA_UNLIKELY {
+        write_unicode_to_string<true>(it, ss);
+        continue;
+        ss.push_back(*it);
+      }
+    else if (*it == '\'')
+      IGUANA_UNLIKELY { ss.append("&apos;"); }
+    else if (*it == '"')
+      IGUANA_UNLIKELY { ss.append("&quot;"); }
+    else if (*it == '&')
+      IGUANA_UNLIKELY { ss.append("&amp;"); }
+    else if (*it == '>')
+      IGUANA_UNLIKELY { ss.append("&gt;"); }
+    else if (*it == '<')
+      IGUANA_UNLIKELY { ss.append("&lt;"); }
+    else {
+      ss.push_back(*it);
+    }
+    ++it;
+  }
+}
+
 template <bool pretty, size_t spaces, typename Stream, typename T,
           std::enable_if_t<sequence_container_v<T>, int> = 0>
 IGUANA_INLINE void render_xml_value(Stream &ss, const T &value,
@@ -42,7 +71,7 @@ IGUANA_INLINE void render_head(Stream &ss, std::string_view str) {
 template <typename Stream, typename T, std::enable_if_t<plain_v<T>, int> = 0>
 IGUANA_INLINE void render_value(Stream &ss, const T &value) {
   if constexpr (string_container_v<T>) {
-    ss.append(value.data(), value.size());
+    render_string_with_escape_xml(value.data(), value.size(), ss);
   }
   else if constexpr (num_v<T>) {
     char temp[65];
