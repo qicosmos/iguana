@@ -683,7 +683,7 @@ TEST_CASE("test file interface") {
     CHECK(obj.string == "Hello world");
 
     fs::remove(filename);
-  }  // namespace fs=std::filesystem;
+  }  // namespace std::filesystem;
   {
     fs::path p = "empty_file.bin";
     std::ofstream{p};
@@ -857,6 +857,59 @@ TEST_CASE("test exception") {
     CHECK_THROWS(iguana::to_json(mp, ss));
   }
 #endif
+}
+
+namespace my_space {
+struct my_struct {
+  int x, y, z;
+  bool operator==(const my_struct &o) const {
+    return x == o.x && y == o.y && z == o.z;
+  }
+};
+
+template <bool Is_writing_escape, typename Stream>
+inline void to_json_impl(Stream &s, const my_struct &t) {
+  iguana::to_json(*(int(*)[3]) & t, s);
+}
+
+template <typename It>
+IGUANA_INLINE void from_json_impl(my_struct &value, It &&it, It &&end) {
+  iguana::from_json(*(int(*)[3]) & value, it, end);
+}
+
+}  // namespace my_space
+
+struct nest {
+  std::string name;
+  my_space::my_struct value;
+  bool operator==(const nest &o) const {
+    return name == o.name && value == o.value;
+  }
+};
+
+REFLECTION(nest, name, value);
+
+void example1() {
+  my_space::my_struct v{1, 2, 3}, v2;
+  std::string s;
+  iguana::to_json(v, s);
+  std::cout << s << std::endl;
+  iguana::from_json(v2, s);
+  CHECK(v == v2);
+};
+
+void example2() {
+  nest v{"Hi", {1, 2, 3}}, v2;
+  std::string s;
+  iguana::to_json(v, s);
+  std::cout << s << std::endl;
+  iguana::from_json(v2, s);
+  CHECK(v == v2);
+};
+
+void test_user_defined_struct() {
+  example1();
+  example2();
 }
 
 // doctest comments

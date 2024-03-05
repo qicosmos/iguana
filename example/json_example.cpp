@@ -10,7 +10,7 @@ struct person {
 };
 
 REFLECTION(person, name, age);
-} // namespace client
+}  // namespace client
 
 struct MyStruct {
   uint64_t a;
@@ -33,55 +33,6 @@ void test() {
   iguana::from_json(p2, ss);
   std::cout << p2.a << std::endl;
 }
-
-// void test_tuple()
-//{
-//	client::person p = { "zombie chow", -311 };
-//	std::tuple<int, std::string, double, client::person> tp(20, "tom", 2.5,
-// p); 	iguana::string_stream ss; 	iguana::to_json(tp, ss);
-//
-//	auto json_str = ss.str();
-//	std::cout << json_str << std::endl;
-//
-//	std::tuple<int, std::string, double, client::person> tp1;
-//	iguana::from_json(tp1, json_str.data(), json_str.length());
-//	std::cout << std::get<1>(tp1) << '\n';
-//
-//	{
-//		std::tuple<int, std::string, std::vector<int>> tp(20, "tom",
-//{1,2,3}); 		iguana::string_stream ss;
-// iguana::to_json(tp, ss);
-//
-//		auto json_str = ss.str();
-//		std::cout << json_str << std::endl;
-//
-//		std::tuple<int, std::string, std::vector<int>> tp1;
-//		iguana::from_json(tp1, json_str.data(),
-// json_str.length());
-//	}
-// }
-
-// void compare_speed(){
-//	std::string s1 = "{\"name\":\"zombie chow\",\"age\":-311}";
-//	std::string s2 = "{\"age\":-311,\"name\":\"zombie chow\"}";
-//
-//	client::person p2;
-//	const size_t Size = 1000000;
-//
-//	boost::timer t;
-//	for (auto i = 0; i < Size; ++i) {
-//		iguana::from_json(p2, s1.data(), s1.length()); //the
-// sequence must be limited
-//	}
-//	std::cout<<t.elapsed()<<'\n';
-//	t.restart();
-//
-//	for (auto i = 0; i < Size; ++i) {
-//		iguana::from_json(p2, s2.data(), s2.length()); //no
-// limitation, but slower
-//	}
-//	std::cout<<t.elapsed()<<'\n';
-// }
 
 void test_v() {
   client::person p1 = {"tom", 20};
@@ -142,6 +93,55 @@ void test_str_view() {
   }
 }
 
+namespace my_space {
+struct my_struct {
+  int x, y, z;
+  bool operator==(const my_struct& o) const {
+    return x == o.x && y == o.y && z == o.z;
+  }
+};
+
+template <bool Is_writing_escape, typename Stream>
+inline void to_json_impl(Stream& s, const my_struct& t) {
+  iguana::to_json(*(int(*)[3]) & t, s);
+}
+
+template <typename It>
+IGUANA_INLINE void from_json_impl(my_struct& value, It&& it, It&& end) {
+  iguana::from_json(*(int(*)[3]) & value, it, end);
+}
+
+}  // namespace my_space
+
+struct nest {
+  std::string name;
+  my_space::my_struct value;
+  bool operator==(const nest& o) const {
+    return name == o.name && value == o.value;
+  }
+};
+
+REFLECTION(nest, name, value);
+
+void user_defined_struct_example() {
+  {
+    my_space::my_struct v{1, 2, 3}, v2;
+    std::string s;
+    iguana::to_json(v, s);
+    std::cout << s << std::endl;
+    iguana::from_json(v2, s);
+    assert(v == v2);
+  }
+  {
+    nest v{"Hi", {1, 2, 3}}, v2;
+    std::string s;
+    iguana::to_json(v, s);
+    std::cout << s << std::endl;
+    iguana::from_json(v2, s);
+    assert(v == v2);
+  }
+}
+
 int main(void) {
   test_disorder();
   test_v();
@@ -157,6 +157,8 @@ int main(void) {
 
   std::cout << p2.name << " - " << p2.age << std::endl;
   test_str_view();
+
+  user_defined_struct_example();
 
   return 0;
 }

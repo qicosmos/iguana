@@ -126,7 +126,7 @@ void package_example() {
   auto validator = [](iguana::xml_attr_t<package_t> package) {
     assert(package.attr()["name"] == "apr-util-ldap");
     assert(package.attr()["arch"] == "x86_64");
-    auto &p = package.value();
+    auto& p = package.value();
     assert(p.version.attr()["epoch"] == "0");
     assert(p.version.attr()["ver"] == "1.6.1");
     assert(p.version.attr()["rel"] == "6.el8");
@@ -178,8 +178,9 @@ void derived_object() {
   std::cout << "========= serialize the derived object ========\n";
   std::cout << str << "\n";
 
-  std::string s = "<derived_t><id>1</id><name>tom</name><version>42</"
-                  "version><tag>tag</tag></derived_t>";
+  std::string s =
+      "<derived_t><id>1</id><name>tom</name><version>42</"
+      "version><tag>tag</tag></derived_t>";
   assert(str == s);
 
   derived_t d1{};
