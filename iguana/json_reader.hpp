@@ -11,13 +11,13 @@ namespace detail {
 
 template <typename U, typename It,
           std::enable_if_t<sequence_container_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end);
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end);
 
 template <typename U, typename It, std::enable_if_t<smart_ptr_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end);
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end);
 
 template <typename U, typename It, std::enable_if_t<refletable_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   from_json(value, it, end);
 }
 
@@ -61,7 +61,7 @@ IGUANA_INLINE void parse_escape(U &value, It &&it, It &&end) {
 }
 
 template <typename U, typename It, std::enable_if_t<num_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   if constexpr (contiguous_iterator<std::decay_t<It>>) {
     const auto size = std::distance(it, end);
@@ -89,7 +89,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 }
 
 template <typename U, typename It, std::enable_if_t<numeric_str_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   auto start = it;
   while (it != end && is_numeric(*it)) {
@@ -101,7 +101,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 
 template <bool skip = false, typename U, typename It,
           std::enable_if_t<char_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   if constexpr (!skip) {
     skip_ws(it, end);
     match<'"'>(it, end);
@@ -140,7 +140,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 }
 
 template <typename U, typename It, std::enable_if_t<bool_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end) {
+IGUANA_INLINE void from_json_impl(U &&value, It &&it, It &&end) {
   skip_ws(it, end);
 
   if (it < end)
@@ -166,7 +166,7 @@ IGUANA_INLINE void parse_item(U &&value, It &&it, It &&end) {
 
 template <bool skip = false, typename U, typename It,
           std::enable_if_t<string_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   if constexpr (!skip) {
     skip_ws(it, end);
     match<'"'>(it, end);
@@ -208,7 +208,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 
 template <bool skip = false, typename U, typename It,
           std::enable_if_t<string_view_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   static_assert(contiguous_iterator<std::decay_t<It>>, "must be contiguous");
   if constexpr (!skip) {
     skip_ws(it, end);
@@ -229,16 +229,16 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 }
 
 template <typename U, typename It, std::enable_if_t<enum_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   static constexpr auto str_to_enum = get_enum_map<true, std::decay_t<U>>();
   if constexpr (bool_v<decltype(str_to_enum)>) {
     // not defined a specialization template
     using T = std::underlying_type_t<std::decay_t<U>>;
-    parse_item(reinterpret_cast<T &>(value), it, end);
+    from_json_impl(reinterpret_cast<T &>(value), it, end);
   }
   else {
     std::string_view enum_names;
-    parse_item(enum_names, it, end);
+    from_json_impl(enum_names, it, end);
     auto it = str_to_enum.find(enum_names);
     if (it != str_to_enum.end())
       IGUANA_LIKELY { value = it->second; }
@@ -250,7 +250,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 }
 
 template <typename U, typename It, std::enable_if_t<fixed_array_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   using T = std::remove_reference_t<U>;
   constexpr auto n = sizeof(T) / sizeof(decltype(std::declval<T>()[0]));
   skip_ws(it, end);
@@ -262,7 +262,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
       auto value_it = std::begin(value);
       for (size_t i = 0; i < n; ++i) {
         if (*it != '"')
-          IGUANA_LIKELY { parse_item<true>(*value_it++, it, end); }
+          IGUANA_LIKELY { from_json_impl<true>(*value_it++, it, end); }
       }
       match<'"'>(it, end);
       return;
@@ -280,7 +280,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     }
   auto value_it = std::begin(value);
   for (size_t i = 0; i < n; ++i) {
-    parse_item(*value_it++, it, end);
+    from_json_impl(*value_it++, it, end);
     skip_ws(it, end);
     if (it == end) {
       throw std::runtime_error("Unexpected end");
@@ -301,7 +301,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 
 template <typename U, typename It,
           std::enable_if_t<sequence_container_v<U>, int>>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   value.clear();
   skip_ws(it, end);
 
@@ -316,7 +316,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     if (i > 0)
       IGUANA_LIKELY { match<','>(it, end); }
 
-    parse_item(value.emplace_back(), it, end);
+    from_json_impl(value.emplace_back(), it, end);
     skip_ws(it, end);
   }
   throw std::runtime_error("Expected ]");
@@ -337,7 +337,7 @@ IGUANA_INLINE auto get_key(It &&it, It &&end) {
         // compile time versions of keys
         it = start;
         static thread_local std::string static_key{};
-        detail::parse_item<true>(static_key, it, end);
+        detail::from_json_impl<true>(static_key, it, end);
         return std::string_view(static_key);
       }
     else
@@ -352,14 +352,14 @@ IGUANA_INLINE auto get_key(It &&it, It &&end) {
   }
   else {
     static thread_local std::string static_key{};
-    detail::parse_item(static_key, it, end);
+    detail::from_json_impl(static_key, it, end);
     return std::string_view(static_key);
   }
 }
 
 template <typename U, typename It,
           std::enable_if_t<map_container_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   using T = std::remove_reference_t<U>;
   using key_type = typename T::key_type;
   skip_ws(it, end);
@@ -384,19 +384,19 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     match<':'>(it, end);
 
     if constexpr (string_v<key_type> || string_view_v<key_type>) {
-      parse_item(value[key_type(key)], it, end);
+      from_json_impl(value[key_type(key)], it, end);
     }
     else {
       static thread_local key_type key_value{};
-      parse_item(key_value, key.begin(), key.end());
-      parse_item(value[key_value], it, end);
+      from_json_impl(key_value, key.begin(), key.end());
+      from_json_impl(value[key_value], it, end);
     }
     skip_ws(it, end);
   }
 }
 
 template <typename U, typename It, std::enable_if_t<tuple_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   match<'['>(it, end);
   skip_ws(it, end);
@@ -410,7 +410,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
       match<','>(it, end);
       skip_ws(it, end);
     }
-    parse_item(v, it, end);
+    from_json_impl(v, it, end);
     skip_ws(it, end);
   });
 
@@ -418,7 +418,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
 }
 
 template <typename U, typename It, std::enable_if_t<optional_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   if (it < end && *it == '"')
     IGUANA_LIKELY { ++it; }
@@ -439,17 +439,17 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     using value_type = typename T::value_type;
     value_type t;
     if constexpr (string_v<value_type> || string_view_v<value_type>) {
-      parse_item<true>(t, it, end);
+      from_json_impl<true>(t, it, end);
     }
     else {
-      parse_item(t, it, end);
+      from_json_impl(t, it, end);
     }
     value = std::move(t);
   }
 }
 
 template <typename U, typename It, std::enable_if_t<smart_ptr_v<U>, int>>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   if (it == end)
     IGUANA_UNLIKELY { throw std::runtime_error("Unexexpected eof"); }
@@ -465,7 +465,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end) {
     else {
       value = std::make_shared<value_type>();
     }
-    parse_item(*value, it, end);
+    from_json_impl(*value, it, end);
   }
 }
 
@@ -522,7 +522,10 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
       IGUANA_UNLIKELY { return; }
     skip_ws(it, end);
     match<':'>(it, end);
-    detail::parse_item(value.*member_ptr, it, end);
+    {
+      using namespace detail;
+      from_json_impl(value.*member_ptr, it, end);
+    }
 
     skip_ws(it, end);
     if (*it == '}')
@@ -551,7 +554,8 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
               [&](auto &&member_ptr) IGUANA__INLINE_LAMBDA {
                 using V = std::decay_t<decltype(member_ptr)>;
                 if constexpr (std::is_member_pointer_v<V>) {
-                  detail::parse_item(value.*member_ptr, it, end);
+                  using namespace detail;
+                  from_json_impl(value.*member_ptr, it, end);
                 }
                 else {
                   static_assert(!sizeof(V), "type not supported");
@@ -583,7 +587,8 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
 template <typename T, typename It,
           std::enable_if_t<non_refletable_v<T>, int> = 0>
 IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
-  detail::parse_item(value, it, end);
+  using namespace detail;
+  from_json_impl(value, it, end);
 }
 
 template <typename T, typename It>
@@ -683,7 +688,8 @@ inline void parse(jobject &result, It &&it, It &&end,
     if (it == end)
       IGUANA_UNLIKELY { throw std::runtime_error("Expected }"); }
     std::string key;
-    detail::parse_item(key, it, end);
+    using namespace detail;
+    from_json_impl(key, it, end);
 
     auto emplaced = result.try_emplace(key);
     if (!emplaced.second)
@@ -705,6 +711,7 @@ inline void parse(jobject &result, It &&it, It &&end,
 
 template <bool Is_view, typename It>
 inline void parse(jvalue &result, It &&it, It &&end, bool parse_as_double) {
+  using namespace detail;
   skip_ws(it, end);
   switch (*it) {
     case 'n':
@@ -715,7 +722,7 @@ inline void parse(jvalue &result, It &&it, It &&end, bool parse_as_double) {
 
     case 'f':
     case 't':
-      detail::parse_item(result.template emplace<bool>(), it, end);
+      from_json_impl(result.template emplace<bool>(), it, end);
       break;
     case '0':
     case '1':
@@ -729,7 +736,7 @@ inline void parse(jvalue &result, It &&it, It &&end, bool parse_as_double) {
     case '9':
     case '-': {
       double d{};
-      detail::parse_item(d, it, end);
+      from_json_impl(d, it, end);
       if (!parse_as_double && (static_cast<int>(d) == d))
         result.emplace<int>(d);
       else
@@ -739,11 +746,11 @@ inline void parse(jvalue &result, It &&it, It &&end, bool parse_as_double) {
     case '"':
       if constexpr (Is_view) {
         result.template emplace<std::string_view>();
-        detail::parse_item(std::get<std::string_view>(result), it, end);
+        from_json_impl(std::get<std::string_view>(result), it, end);
       }
       else {
         result.template emplace<std::string>();
-        detail::parse_item(std::get<std::string>(result), it, end);
+        from_json_impl(std::get<std::string>(result), it, end);
       }
       break;
     case '[':
