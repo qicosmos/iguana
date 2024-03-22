@@ -499,6 +499,14 @@ IGUANA_INLINE void skip_object_value(It &&it, It &&end) {
   }
 }
 
+template <typename U, typename It, std::enable_if_t<variant_v<U>, int> = 0>
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
+  std::visit(
+      [&](auto &val) {
+        from_json_impl(val, it, end);
+      },
+      value);
+}
 }  // namespace detail
 
 template <typename T, typename It, std::enable_if_t<refletable_v<T>, int>>
