@@ -1,6 +1,8 @@
 #include <cstddef>
 #include <string>
 #include <vector>
+
+#include "iguana/reflection.hpp"
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <iguana/json_util.hpp>
 #include <iguana/json_writer.hpp>
@@ -159,6 +161,33 @@ void get_value_test_helper(const std::string &json_str, const T &expect) {
   T actual{};
   CHECK_NOTHROW(jv.get_to(actual));
   CHECK(actual == expect);
+}
+
+namespace my_space {
+struct inner_struct {
+  int x;
+  int y;
+  int z;
+};
+REFLECTION(inner_struct, x, y, z);
+}  // namespace my_space
+
+struct nest_t {
+  std::string name;
+  my_space::inner_struct value;
+  std::variant<int, std::string> var;
+};
+REFLECTION(nest_t, name, value, var);
+
+TEST_CASE("test variant") {
+  std::variant<int, std::string> var;
+  var = 1;
+  nest_t v{"Hi", {1, 2, 3}, var}, v2;
+  std::string s;
+  iguana::to_json(v, s);
+  std::cout << s << std::endl;
+  iguana::from_json(v2, s);
+  CHECK(v.name == v2.name);
 }
 
 TEST_CASE("test from issues") {
