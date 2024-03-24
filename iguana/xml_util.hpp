@@ -186,4 +186,115 @@ IGUANA_INLINE auto skip_pass(It &&it, It &&end) {
   return res + 1;
 }
 
+template <char... C, typename It>
+IGUANA_INLINE bool is_match(It &&it, const It &end) {
+  const auto n = static_cast<size_t>(std::distance(it, end));
+  if ((n < sizeof...(C)) || (... || (*it++ != C))) {
+    return false;
+  }
+  return true;
+}
+
+// loose policy: allow '&'
+template <typename U, typename It, std::enable_if_t<string_v<U>, int> = 0>
+IGUANA_INLINE void parse_escape_xml(U &value, It &&it, It &&end) {
+  static const unsigned char lookup_digits[256] = {
+      255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+      255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+      255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+      255, 255, 255, 0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   255, 255,
+      255, 255, 255, 255, 255, 10,  11,  12,  13,  14,  15,  255, 255, 255, 255,
+      255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+      255, 255, 255, 255, 255, 255, 255, 10,  11,  12,  13,  14,  15,  255, 255,
+      255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+      255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+      255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+      255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+      255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+      255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+      255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+      255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+      255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+      255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+      255};
+  while (it < end) {
+    if (*it == '&')
+      IGUANA_UNLIKELY {
+        switch (*(it + 1)) {
+          // &amp; &apos;
+          case 'a':
+            if (is_match<'m', 'p', ';'>(it + 2, end)) {
+              value.push_back('&');
+              it += 5;
+              continue;
+            }
+            if (is_match<'p', 'o', 's', ';'>(it + 2, end)) {
+              value.push_back('\'');
+              it += 6;
+              continue;
+            }
+            break;
+          // &quot;
+          case 'q':
+            if (is_match<'u', 'o', 't', ';'>(it + 2, end)) {
+              value.push_back('\"');
+              it += 6;
+              continue;
+            }
+            break;
+          // &gt;
+          case 'g':
+            if (is_match<'t', ';'>(it + 2, end)) {
+              value.push_back('>');
+              it += 4;
+              continue;
+            }
+            break;
+          // &lt;
+          case 'l':
+            if (is_match<'t', ';'>(it + 2, end)) {
+              value.push_back('<');
+              it += 4;
+              continue;
+            }
+            break;
+          case '#':
+            if (*(it + 2) == 'x') {
+              // &#x
+              unsigned long codepoint = 0;
+              it += 3;
+              while (true) {
+                auto digit = lookup_digits[static_cast<unsigned char>(*it)];
+                if (digit == 0xFF)
+                  break;
+                codepoint = codepoint * 16 + digit;
+                ++it;
+              }
+              encode_utf8(value, codepoint);
+            }
+            else {
+              unsigned long codepoint = 0;
+              it += 2;
+              while (true) {
+                auto digit = lookup_digits[static_cast<unsigned char>(*it)];
+                if (digit == 0xFF)
+                  break;
+                codepoint = codepoint * 10 + digit;
+                ++it;
+              }
+              encode_utf8(value, codepoint);
+            }
+            match<';'>(it, end);
+            continue;
+          default:
+            break;
+        }
+        value.push_back(*(it++));
+      }
+    else {
+      value.push_back(*(it++));
+    }
+  }
+}
+
 }  // namespace iguana
