@@ -725,18 +725,40 @@ struct field_type_t<std::tuple<Args...>> {
   using value_type = std::variant<field_t<Args>...>;
 };
 
+struct field_helper {
+  template <size_t... I>
+  auto operator()(auto &tp, auto arr, std::index_sequence<I...>) {
+    return std::make_tuple(
+        field_t{std::get<I>(tp), I + 1, std::string(arr[I].data())}...);
+  }
+};
+
 template <typename T>
 inline auto get_members_impl(T &&) {
   using reflect_members = decltype(iguana_reflect_type(std::declval<T>()));
   using Tuple = decltype(reflect_members::apply_impl());
   const auto &tp = reflect_members::apply_impl();
   const auto &arr = reflect_members::arr();
-  return [&]<size_t... I>(std::index_sequence<I...>) mutable {
-    return std::make_tuple(
-        field_t{std::get<I>(tp), I + 1, std::string(arr[I].data())}...);
-  }
-  (std::make_index_sequence<std::tuple_size_v<Tuple>>{});
+  return field_helper{}(tp, arr,
+                        std::make_index_sequence<std::tuple_size_v<Tuple>>{});
+  // return [&]<size_t... I>(std::index_sequence<I...>) mutable {
+  //   return std::make_tuple(
+  //       field_t{std::get<I>(tp), I + 1, std::string(arr[I].data())}...);
+  // }
+  // (std::make_index_sequence<std::tuple_size_v<Tuple>>{});
 }
+
+template <typename T, size_t Size>
+struct member_helper {
+  template <size_t... I>
+  auto operator()(auto &&tp, std::index_sequence<I...>) {
+    std::array<T, Size> arr;
+    ((arr[std::get<I>(tp).tag - 1] =
+          T{std::in_place_index<I>, std::move(std::get<I>(tp))}),
+     ...);
+    return arr;
+  }
+};
 
 template <typename T>
 inline decltype(auto) get_members(T &&t) {
@@ -744,15 +766,17 @@ inline decltype(auto) get_members(T &&t) {
   using value_type = typename field_type_t<
       decltype(reflect_members::apply_impl())>::value_type;
   constexpr size_t Size = reflect_members::value();
-  static std::array<value_type, Size> arr = [&]<size_t... I>(
-      auto &&tp, std::index_sequence<I...>) mutable {
-    std::array<value_type, Size> arr;
-    ((arr[std::get<I>(tp).tag - 1] =
-          value_type{std::in_place_index<I>, std::move(std::get<I>(tp))}),
-     ...);
-    return arr;
-  }
-  (get_members_impl(t), std::make_index_sequence<Size>{});
+  static std::array<value_type, Size> arr = member_helper<value_type, Size>{}(
+      get_members_impl(t), std::make_index_sequence<Size>{});
+  // static std::array<value_type, Size> arr = [&]<size_t... I>(
+  //     auto &&tp, std::index_sequence<I...>) mutable {
+  //   std::array<value_type, Size> arr;
+  //   ((arr[std::get<I>(tp).tag - 1] =
+  //         value_type{std::in_place_index<I>, std::move(std::get<I>(tp))}),
+  //    ...);
+  //   return arr;
+  // }
+  // (get_members_impl(t), std::make_index_sequence<Size>{});
   return arr;
 }
 

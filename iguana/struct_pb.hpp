@@ -59,7 +59,7 @@ inline void write_tag_wire_type(uint32_t tag, WireType wire_type, auto& out) {
 }
 
 struct varint_serializer {
-  void serialize(uint32_t tag, int32_t value, auto& out) {
+  static void serialize(uint32_t tag, int32_t value, auto& out) {
     if (value == 0) {
       return;
     }
@@ -81,8 +81,7 @@ inline void to_pb(T& t, std::string& out) {
         [&t, &out](auto& val) {
           using value_type = typename std::decay_t<decltype(val)>::value_type;
           if constexpr (std::is_integral_v<value_type>) {
-            detail::varint_serializer ser;
-            ser.serialize(val.tag, val.value(t), out);
+            detail::varint_serializer::serialize(val.tag, val.value(t), out);
           }
           else {
             static_assert(sizeof(value_type), "err");
