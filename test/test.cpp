@@ -12,6 +12,7 @@
 #include "doctest.h"
 #include "iguana/json_reader.hpp"
 #include "iguana/prettify.hpp"
+#include "iguana/struct_pb.hpp"
 #include "iguana/value.hpp"
 
 struct point_t {
@@ -186,6 +187,14 @@ struct nest_t {
   std::variant<int, std::string> var;
 };
 REFLECTION(nest_t, name, value, var);
+
+TEST_CASE("test struct_pb") {
+  my_space::inner_struct inner{41, 42, 43};
+
+  std::string str;
+  iguana::to_pb(inner, str);
+  std::cout << str << "\n";
+}
 
 TEST_CASE("test members") {
   using namespace iguana;
