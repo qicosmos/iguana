@@ -170,6 +170,14 @@ struct inner_struct {
   int z;
 };
 REFLECTION(inner_struct, x, y, z);
+
+template <typename T>
+inline auto get_fileds_impl(inner_struct &&) {
+  using namespace iguana;
+  return std::make_tuple(field_t{&inner_struct::x, 1, "x"},
+                         field_t{&inner_struct::x, 2, "y"},
+                         field_t{&inner_struct::x, 3, "z"});
+}
 }  // namespace my_space
 
 struct nest_t {
@@ -178,6 +186,33 @@ struct nest_t {
   std::variant<int, std::string> var;
 };
 REFLECTION(nest_t, name, value, var);
+
+TEST_CASE("test members") {
+  using namespace iguana;
+  using namespace iguana::detail;
+
+  my_space::inner_struct inner{41, 42, 43};
+  const auto &arr = iguana::get_members(inner);
+  std::visit(
+      [&inner](auto &member) mutable {
+        CHECK(member.tag == 2);
+        CHECK(member.field_name == "y");
+        CHECK(member.value(inner) == 42);
+      },
+      arr.at(1));
+
+  point_t pt{2, 3};
+  iguana::get_members(pt);
+  const auto &arr1 = iguana::get_members(pt);
+  auto &val = arr1.at(0);
+  std::visit(
+      [&pt](auto &member) mutable {
+        CHECK(member.tag == 1);
+        CHECK(member.field_name == "x");
+        CHECK(member.value(pt) == 2);
+      },
+      val);
+}
 
 TEST_CASE("test variant") {
   std::variant<int, std::string> var;

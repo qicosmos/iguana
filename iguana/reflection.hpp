@@ -692,6 +692,70 @@ inline constexpr auto get_iguana_struct_map() {
   }
 }
 
+template <class T>
+struct member_tratis {};
+
+template <class T, class Owner>
+struct member_tratis<T Owner::*> {
+  using owner_type = Owner;
+  using value_type = T;
+};
+
+template <typename T>
+struct field_t {
+  using member_type = T;
+  using owner_type = typename member_tratis<T>::owner_type;
+  using value_type = typename member_tratis<T>::value_type;
+  field_t() = default;
+  field_t(T member, uint32_t tag_val, const std::string &name = "")
+      : member_ptr(member), field_name(name), tag(tag_val) {}
+
+  T member_ptr;
+  std::string field_name;
+  uint32_t tag;
+
+  auto &value(owner_type &value) const { return value.*member_ptr; }
+};
+
+template <typename T>
+struct field_type_t;
+
+template <typename... Args>
+struct field_type_t<std::tuple<Args...>> {
+  using value_type = std::variant<field_t<Args>...>;
+};
+
+template <typename T>
+inline auto get_members_impl(T &&) {
+  using reflect_members = decltype(iguana_reflect_type(std::declval<T>()));
+  using Tuple = decltype(reflect_members::apply_impl());
+  const auto &tp = reflect_members::apply_impl();
+  const auto &arr = reflect_members::arr();
+  return [&]<size_t... I>(std::index_sequence<I...>) mutable {
+    return std::make_tuple(
+        field_t{std::get<I>(tp), I + 1, std::string(arr[I].data())}...);
+  }
+  (std::make_index_sequence<std::tuple_size_v<Tuple>>{});
+}
+
+template <typename T>
+inline decltype(auto) get_members(T &&t) {
+  using reflect_members = decltype(iguana_reflect_type(std::declval<T>()));
+  using value_type = typename field_type_t<
+      decltype(reflect_members::apply_impl())>::value_type;
+  constexpr size_t Size = reflect_members::value();
+  static std::array<value_type, Size> arr = [&]<size_t... I>(
+      auto &&tp, std::index_sequence<I...>) mutable {
+    std::array<value_type, Size> arr;
+    ((arr[std::get<I>(tp).tag - 1] =
+          value_type{std::in_place_index<I>, std::move(std::get<I>(tp))}),
+     ...);
+    return arr;
+  }
+  (get_members_impl(t), std::make_index_sequence<Size>{});
+  return arr;
+}
+
 #define REFLECTION(STRUCT_NAME, ...)                                    \
   MAKE_META_DATA(STRUCT_NAME, #STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), \
                  __VA_ARGS__)
