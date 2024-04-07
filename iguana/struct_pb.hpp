@@ -7,7 +7,9 @@
 #include <utility>
 #include <variant>
 
+#include "pb_util.hpp"
 #include "reflection.hpp"
+
 namespace iguana {
 namespace detail {
 enum class WireType : uint32_t {
@@ -19,53 +21,21 @@ enum class WireType : uint32_t {
   Fixed32 = 5,
 };
 
-template <class To, class From>
-inline To bit_cast(From from) {
-  static_assert(sizeof(To) == sizeof(From), "");
-  static_assert(std::is_trivially_copyable_v<To>, "");
-  static_assert(std::is_trivially_copyable_v<From>, "");
-
-  To to;
-  std::memcpy(&to, &from, sizeof(from));
-  return to;
-}
-
-inline void write_varint(uint32_t value, auto& out) {
-  uint8_t b[5]{};
-  for (size_t i = 0; i < 5; ++i) {
-    b[i] = value & 0b0111'1111;
-    value >>= 7;
-    if (value) {
-      b[i] |= 0b1000'0000;
-    }
-    else {
-      out.append((const char*)b, i + 1);
-      // out.write(b, i + 1);
-      break;
-    }
-  }
-}
-
-inline void write_varint(int32_t value, auto& out) {
-  write_varint(bit_cast<uint32_t>(value), out);
-}
-
 inline uint32_t make_tag_wire_type(uint32_t tag, WireType wire_type) {
   return (tag << 3) | static_cast<uint32_t>(wire_type);
 }
 
-inline void write_tag_wire_type(uint32_t tag, WireType wire_type, auto& out) {
-  write_varint(make_tag_wire_type(tag, wire_type), out);
-}
-
 struct varint_serializer {
-  static void serialize(uint32_t tag, int32_t value, auto& out) {
+  template <typename T>
+  static void serialize(uint32_t field_number, int32_t value, T& out) {
     if (value == 0) {
       return;
     }
 
-    write_tag_wire_type(tag, WireType::Varint, out);
-    write_varint(value, out);
+    uint32_t key =
+        (field_number << 3) | static_cast<uint32_t>(WireType::Varint);
+    serialize_varint(key, out);
+    serialize_varint(value, out);
   }
 };
 }  // namespace detail
