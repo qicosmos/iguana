@@ -726,8 +726,8 @@ struct field_type_t<std::tuple<Args...>> {
 };
 
 struct field_helper {
-  template <size_t... I>
-  auto operator()(auto &tp, auto arr, std::index_sequence<I...>) {
+  template <typename T, typename U, size_t... I>
+  auto operator()(T &tp, U arr, std::index_sequence<I...>) {
     return std::make_tuple(
         field_t{std::get<I>(tp), I + 1, std::string(arr[I].data())}...);
   }
@@ -750,8 +750,8 @@ inline auto get_members_impl(T &&) {
 
 template <typename T, size_t Size>
 struct member_helper {
-  template <size_t... I>
-  auto operator()(auto &&tp, std::index_sequence<I...>) {
+  template <typename Tuple, size_t... I>
+  auto operator()(Tuple &&tp, std::index_sequence<I...>) {
     std::array<T, Size> arr;
     ((arr[std::get<I>(tp).tag - 1] =
           T{std::in_place_index<I>, std::move(std::get<I>(tp))}),
