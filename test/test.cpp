@@ -194,6 +194,12 @@ TEST_CASE("test struct_pb") {
   std::string str;
   iguana::to_pb(inner, str);
   std::cout << str << "\n";
+
+  my_space::inner_struct inner1;
+  iguana::from_pb(inner1, str);
+  CHECK(inner.x == inner1.x);
+  CHECK(inner.y == inner1.y);
+  CHECK(inner.z == inner1.z);
 }
 
 TEST_CASE("test members") {

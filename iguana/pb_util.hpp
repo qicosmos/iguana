@@ -27,49 +27,84 @@ namespace detail {
          static_cast<uint64_t>(-static_cast<int64_t>(u & 1U));
 }
 
-[[nodiscard]] inline bool decode_varint(const char* data, std::size_t& pos_,
-                                        std::size_t size_, uint64_t& v) {
-  // fix test failed on arm due to different char definition
-  const signed char* data_ = reinterpret_cast<const signed char*>(data);
-  // from https://github.com/facebook/folly/blob/main/folly/Varint.h
-  if (pos_ < size_ && (static_cast<uint64_t>(data_[pos_]) & 0x80U) == 0) {
-    v = static_cast<uint64_t>(data_[pos_]);
-    pos_++;
-    return true;
-  }
-  constexpr const int8_t max_varint_length = sizeof(uint64_t) * 8 / 7 + 1;
+template <class T>
+inline uint64_t decode_varint(T& data, size_t& pos) {
+  const int8_t* begin = reinterpret_cast<const int8_t*>(data.begin());
+  const int8_t* end = reinterpret_cast<const int8_t*>(data.end());
+  const int8_t* p = begin;
   uint64_t val = 0;
-  if (size_ - pos_ >= max_varint_length) [[likely]] {
+
+  // end is always greater than or equal to begin, so this subtraction is safe
+  if (size_t(end - begin) >= 10) {  // fast path
+    int64_t b;
     do {
-      // clang-format off
-                int64_t b = data_[pos_++];
-                val  = ((uint64_t(b) & 0x7fU)       ); if (b >= 0) { break; }
-                b = data_[pos_++]; val |= ((uint64_t(b) & 0x7fU) <<  7U); if (b >= 0) { break; }
-                b = data_[pos_++]; val |= ((uint64_t(b) & 0x7fU) << 14U); if (b >= 0) { break; }
-                b = data_[pos_++]; val |= ((uint64_t(b) & 0x7fU) << 21U); if (b >= 0) { break; }
-                b = data_[pos_++]; val |= ((uint64_t(b) & 0x7fU) << 28U); if (b >= 0) { break; }
-                b = data_[pos_++]; val |= ((uint64_t(b) & 0x7fU) << 35U); if (b >= 0) { break; }
-                b = data_[pos_++]; val |= ((uint64_t(b) & 0x7fU) << 42U); if (b >= 0) { break; }
-                b = data_[pos_++]; val |= ((uint64_t(b) & 0x7fU) << 49U); if (b >= 0) { break; }
-                b = data_[pos_++]; val |= ((uint64_t(b) & 0x7fU) << 56U); if (b >= 0) { break; }
-                b = data_[pos_++]; val |= ((uint64_t(b) & 0x01U) << 63U); if (b >= 0) { break; }
-      // clang-format on
-      return false;
+      b = *p++;
+      val = (b & 0x7f);
+      if (b >= 0) {
+        break;
+      }
+      b = *p++;
+      val |= (b & 0x7f) << 7;
+      if (b >= 0) {
+        break;
+      }
+      b = *p++;
+      val |= (b & 0x7f) << 14;
+      if (b >= 0) {
+        break;
+      }
+      b = *p++;
+      val |= (b & 0x7f) << 21;
+      if (b >= 0) {
+        break;
+      }
+      b = *p++;
+      val |= (b & 0x7f) << 28;
+      if (b >= 0) {
+        break;
+      }
+      b = *p++;
+      val |= (b & 0x7f) << 35;
+      if (b >= 0) {
+        break;
+      }
+      b = *p++;
+      val |= (b & 0x7f) << 42;
+      if (b >= 0) {
+        break;
+      }
+      b = *p++;
+      val |= (b & 0x7f) << 49;
+      if (b >= 0) {
+        break;
+      }
+      b = *p++;
+      val |= (b & 0x7f) << 56;
+      if (b >= 0) {
+        break;
+      }
+      b = *p++;
+      val |= (b & 0x01) << 63;
+      if (b >= 0) {
+        break;
+      }
+      throw std::invalid_argument("Invalid varint value: too many bytes.");
     } while (false);
   }
   else {
-    unsigned int shift = 0;
-    while (pos_ != size_ && int64_t(data_[pos_]) < 0) {
-      val |= (uint64_t(data_[pos_++]) & 0x7fU) << shift;
+    int shift = 0;
+    while (p != end && *p < 0) {
+      val |= static_cast<uint64_t>(*p++ & 0x7f) << shift;
       shift += 7;
     }
-    if (pos_ == size_) {
-      return false;
+    if (p == end) {
+      throw std::invalid_argument("Invalid varint value: too few bytes.");
     }
-    val |= uint64_t(data_[pos_++]) << shift;
+    val |= static_cast<uint64_t>(*p++) << shift;
   }
-  v = val;
-  return true;
+
+  pos = (p - begin);
+  return val;
 }
 
 template <typename Stream>
@@ -80,13 +115,6 @@ inline void serialize_varint(uint64_t v, Stream& out) {
   }
   out.push_back(static_cast<uint8_t>(v));
 }
-[[nodiscard]] inline bool deserialize_varint(const char* data, std::size_t& pos,
-                                             std::size_t size, uint64_t& v) {
-  return decode_varint(data, pos, size, v);
-}
-[[nodiscard]] inline bool read_tag(const char* data, std::size_t& pos,
-                                   std::size_t size, uint64_t& tag) {
-  return deserialize_varint(data, pos, size, tag);
-}
+
 }  // namespace detail
 }  // namespace iguana
