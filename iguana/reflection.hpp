@@ -707,12 +707,12 @@ struct field_t {
   using owner_type = typename member_tratis<T>::owner_type;
   using value_type = typename member_tratis<T>::value_type;
   field_t() = default;
-  field_t(T member, uint32_t tag_val, const std::string &name = "")
-      : member_ptr(member), field_name(name), tag(tag_val) {}
+  field_t(T member, uint32_t number, const std::string &name = "")
+      : member_ptr(member), field_name(name), field_no(number) {}
 
   T member_ptr;
   std::string field_name;
-  uint32_t tag;
+  uint32_t field_no;
 
   auto &value(owner_type &value) const { return value.*member_ptr; }
 };
@@ -753,7 +753,7 @@ struct member_helper {
   template <typename Tuple, size_t... I>
   auto operator()(Tuple &&tp, std::index_sequence<I...>) {
     std::array<T, Size> arr;
-    ((arr[std::get<I>(tp).tag - 1] =
+    ((arr[std::get<I>(tp).field_no - 1] =
           T{std::in_place_index<I>, std::move(std::get<I>(tp))}),
      ...);
     return arr;

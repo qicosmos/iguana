@@ -188,18 +188,68 @@ struct nest_t {
 };
 REFLECTION(nest_t, name, value, var);
 
+struct test_pb_st1 {
+  int x;
+  iguana::sint32_t y;
+  iguana::sint64_t z;
+};
+REFLECTION(test_pb_st1, x, y, z);
+
+struct test_pb_st2 {
+  int x;
+  iguana::fixed32_t y;
+  iguana::fixed64_t z;
+};
+REFLECTION(test_pb_st2, x, y, z);
+
+struct test_pb_st3 {
+  int x;
+  iguana::sfixed32_t y;
+  iguana::sfixed64_t z;
+};
+REFLECTION(test_pb_st3, x, y, z);
+
 TEST_CASE("test struct_pb") {
-  my_space::inner_struct inner{41, 42, 43};
+  {
+    my_space::inner_struct inner{41, 42, 43};
 
-  std::string str;
-  iguana::to_pb(inner, str);
-  std::cout << str << "\n";
+    std::string str;
+    iguana::to_pb(inner, str);
 
-  my_space::inner_struct inner1;
-  iguana::from_pb(inner1, str);
-  CHECK(inner.x == inner1.x);
-  CHECK(inner.y == inner1.y);
-  CHECK(inner.z == inner1.z);
+    my_space::inner_struct inner1;
+    iguana::from_pb(inner1, str);
+    CHECK(inner.x == inner1.x);
+    CHECK(inner.y == inner1.y);
+    CHECK(inner.z == inner1.z);
+  }
+
+  {
+    test_pb_st1 st1{41, {42}, {43}};
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st1 st2;
+    iguana::from_pb(st2, str);
+    std::cout << st2.y.val << "\n";
+  }
+
+  {
+    test_pb_st2 st1{41, {42}, {43}};
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st2 st2;
+    iguana::from_pb(st2, str);
+    std::cout << st2.y.val << "\n";
+  }
+  {
+    test_pb_st3 st1{41, {42}, {43}};
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st3 st2;
+    iguana::from_pb(st2, str);
+  }
 }
 
 TEST_CASE("test members") {
@@ -210,7 +260,7 @@ TEST_CASE("test members") {
   const auto &arr = iguana::get_members(inner);
   std::visit(
       [&inner](auto &member) mutable {
-        CHECK(member.tag == 2);
+        CHECK(member.field_no == 2);
         CHECK(member.field_name == "y");
         CHECK(member.value(inner) == 42);
       },
@@ -222,7 +272,7 @@ TEST_CASE("test members") {
   auto &val = arr1.at(0);
   std::visit(
       [&pt](auto &member) mutable {
-        CHECK(member.tag == 1);
+        CHECK(member.field_no == 1);
         CHECK(member.field_name == "x");
         CHECK(member.value(pt) == 2);
       },
