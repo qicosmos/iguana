@@ -221,6 +221,18 @@ struct test_pb_st5 {
 };
 REFLECTION(test_pb_st5, x, y);
 
+struct test_pb_st6 {
+  std::optional<int> x;
+  std::optional<std::string> y;
+};
+REFLECTION(test_pb_st6, x, y);
+
+struct test_pb_st7 {
+  std::variant<int, double> x;
+  std::variant<std::string, int> y;
+};
+REFLECTION(test_pb_st7, x, y);
+
 TEST_CASE("test struct_pb") {
   {
     my_space::inner_struct inner{41, 42, 43};
@@ -281,6 +293,43 @@ TEST_CASE("test struct_pb") {
     test_pb_st5 st2;
     iguana::from_pb(st2, str);
     CHECK(st1.y == st1.y);
+  }
+
+  {
+    test_pb_st5 st1{41, "it is a test"};
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st5 st2;
+    iguana::from_pb(st2, str);
+    CHECK(st1.y == st1.y);
+  }
+  {
+    // optional
+    test_pb_st6 st1{41, "it is a test"};
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st6 st2;
+    iguana::from_pb(st2, str);
+    CHECK(st1.y == st1.y);
+  }
+  //  {
+  //      // variant
+  //    test_pb_st7 st1{1, std::string("test")};
+  //    std::string str;
+  //    iguana::to_pb(st1, str);
+  //
+  //    test_pb_st7 st2;
+  //    iguana::from_pb(st2, str);
+  //    CHECK(st1.y == st1.y);
+  //  }
+  {
+      // sub nested objects
+  } {
+    // vector<int> vector<string> vector<object>
+    // vector<optional<T>>
+    // vector<variant<T>>
   }
 }
 

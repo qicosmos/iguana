@@ -9,6 +9,7 @@
 
 #include "pb_util.hpp"
 #include "reflection.hpp"
+#include "util.hpp"
 
 namespace iguana {
 enum class WireType : uint32_t {
@@ -101,6 +102,9 @@ constexpr inline WireType get_wire_type() {
                      std::is_same_v<T, std::string_view>) {
     return WireType::LengthDelimeted;
   }
+  else if constexpr (optional_v<T>) {
+    return get_wire_type<typename T::value_type>();
+  }
   else {
     return WireType::Unknown;
   }
@@ -161,6 +165,99 @@ inline void encode_string_field(uint32_t field_number, WireType type,
   out.append(str);
 }
 
+template <typename value_type, typename T>
+inline void from_pb_impl(T& val, std::string_view& pb_str) {
+  size_t pos = 0;
+  if constexpr (std::is_integral_v<value_type>) {
+    val = detail::decode_varint(pb_str, pos);
+    pb_str = pb_str.substr(pos);
+  }
+  else if constexpr (detail::is_signed_varint_v<value_type>) {
+    constexpr size_t len = sizeof(typename value_type::value_type);
+
+    uint64_t temp = detail::decode_varint(pb_str, pos);
+    if constexpr (len == 8) {
+      val = detail::decode_zigzag(temp);
+    }
+    else {
+      val = detail::decode_zigzag((uint32_t)temp);
+    }
+    pb_str = pb_str.substr(pos);
+  }
+  else if constexpr (detail::is_fixed_v<value_type>) {
+    constexpr size_t size = sizeof(typename value_type::value_type);
+    if (pb_str.size() < size) {
+      throw std::invalid_argument("Invalid fixed int value: too few bytes.");
+    }
+    memcpy(&(val), pb_str.data(), size);
+    pb_str = pb_str.substr(size);
+  }
+  else if constexpr (std::is_same_v<value_type, std::string> ||
+                     std::is_same_v<value_type, std::string_view>) {
+    size_t size = detail::decode_varint(pb_str, pos);
+    if (pb_str.size() < pos + size) {
+      throw std::invalid_argument("Invalid string value: too few bytes.");
+    }
+
+    if constexpr (std::is_same_v<value_type, std::string_view>) {
+      val = std::string_view(pb_str.data() + pos, size);
+    }
+    else {
+      val.resize(size);
+      memcpy(val.data(), pb_str.data() + pos, size);
+    }
+    pb_str = pb_str.substr(size + pos);
+  }
+  else if constexpr (optional_v<value_type>) {
+    from_pb_impl<typename value_type::value_type>(val.emplace(), pb_str);
+  }
+  else if constexpr (variant_v<value_type>) {
+  }
+  else {
+    static_assert(!sizeof(value_type), "err");
+  }
+}
+
+template <typename value_type, typename T>
+inline void to_pb_impl(T& val, size_t field_no, std::string& out) {
+  if constexpr (std::is_integral_v<value_type>) {
+    detail::encode_varint_field(field_no, WireType::Varint, val, out);
+  }
+  else if constexpr (detail::is_signed_varint_v<value_type>) {
+    detail::encode_signed_varint_field(field_no, WireType::Varint, val, out);
+  }
+  else if constexpr (detail::is_fixed_v<value_type>) {
+    if constexpr (sizeof(value_type) == 8) {
+      detail::encode_fixed_field(field_no, WireType::Fixed64, (uint64_t)(val),
+                                 out);
+    }
+    else {
+      detail::encode_fixed_field(field_no, WireType::Fixed32, (uint32_t)(val),
+                                 out);
+    }
+  }
+  else if constexpr (std::is_same_v<value_type, std::string> ||
+                     std::is_same_v<value_type, std::string_view>) {
+    detail::encode_string_field(field_no, WireType::LengthDelimeted, val, out);
+  }
+  else if constexpr (optional_v<value_type>) {
+    if (!val.has_value()) {
+      return;
+    }
+
+    to_pb_impl<typename value_type::value_type>(*val, field_no, out);
+  }
+  else if constexpr (variant_v<value_type>) {
+    //    std::visit([field_no, &out](const auto& value){
+    //      using U =
+    //      std::remove_const_t<std::remove_reference_t<decltype(value)>>;
+    ////        to_pb_impl<U>(value, field_no, out);
+    //    }, val);
+  }
+  else {
+    static_assert(!sizeof(value_type), "err");
+  }
+}
 }  // namespace detail
 
 template <typename T>
@@ -177,57 +274,18 @@ inline void from_pb(T& t, std::string_view pb_str) {
     const auto& arr = get_members(t);
     auto& member = arr.at(field_number - 1);
     std::visit(
-        [&t, &pb_str, &pos, wire_type](auto& val) {
+        [&t, &pb_str, wire_type](auto& val) {
           using value_type = typename std::decay_t<decltype(val)>::value_type;
           if (wire_type != detail::get_wire_type<value_type>()) {
             return;
           }
 
-          if constexpr (std::is_integral_v<value_type>) {
-            val.value(t) = detail::decode_varint(pb_str, pos);
-            pb_str = pb_str.substr(pos);
-          }
-          else if constexpr (detail::is_signed_varint_v<value_type>) {
-            constexpr size_t len = sizeof(typename value_type::value_type);
-
-            uint64_t temp = detail::decode_varint(pb_str, pos);
-            if constexpr (len == 8) {
-              val.value(t).val = detail::decode_zigzag(temp);
-            }
-            else {
-              val.value(t).val = detail::decode_zigzag((uint32_t)temp);
-            }
-            pb_str = pb_str.substr(pos);
-          }
-          else if constexpr (detail::is_fixed_v<value_type>) {
-            constexpr size_t size = sizeof(typename value_type::value_type);
-            if (pb_str.size() < size) {
-              throw std::invalid_argument(
-                  "Invalid fixed int value: too few bytes.");
-            }
-            memcpy(&(val.value(t).val), pb_str.data(), size);
-            pb_str = pb_str.substr(size);
-          }
-          else if constexpr (std::is_same_v<value_type, std::string> ||
-                             std::is_same_v<value_type, std::string_view>) {
-            size_t size = detail::decode_varint(pb_str, pos);
-            if (pb_str.size() < pos + size) {
-              throw std::invalid_argument(
-                  "Invalid string value: too few bytes.");
-            }
-
-            if constexpr (std::is_same_v<value_type, std::string_view>) {
-              val.value(t) = std::string_view(pb_str.data() + pos, size);
-            }
-            else {
-              auto& str = val.value(t);
-              str.resize(size);
-              memcpy(str.data(), pb_str.data() + pos, size);
-            }
-            pb_str = pb_str.substr(size + pos);
+          if constexpr (detail::is_signed_varint_v<value_type> ||
+                        detail::is_fixed_v<value_type>) {
+            detail::from_pb_impl<value_type>(val.value(t).val, pb_str);
           }
           else {
-            static_assert(!sizeof(value_type), "err");
+            detail::from_pb_impl<value_type>(val.value(t), pb_str);
           }
         },
         member);
@@ -241,31 +299,11 @@ inline void to_pb(T& t, std::string& out) {
     std::visit(
         [&t, &out](auto& val) {
           using value_type = typename std::decay_t<decltype(val)>::value_type;
-          if constexpr (std::is_integral_v<value_type>) {
-            detail::encode_varint_field(val.field_no, WireType::Varint,
-                                        val.value(t), out);
-          }
-          else if constexpr (detail::is_signed_varint_v<value_type>) {
-            detail::encode_signed_varint_field(val.field_no, WireType::Varint,
-                                               val.value(t), out);
-          }
-          else if constexpr (detail::is_fixed_v<value_type>) {
-            if constexpr (sizeof(value_type) == 8) {
-              detail::encode_fixed_field(val.field_no, WireType::Fixed64,
-                                         (uint64_t)(val.value(t).val), out);
-            }
-            else {
-              detail::encode_fixed_field(val.field_no, WireType::Fixed32,
-                                         (uint32_t)(val.value(t).val), out);
-            }
-          }
-          else if constexpr (std::is_same_v<value_type, std::string> ||
-                             std::is_same_v<value_type, std::string_view>) {
-            detail::encode_string_field(val.field_no, WireType::LengthDelimeted,
-                                        val.value(t), out);
+          if constexpr (detail::is_fixed_v<value_type>) {
+            detail::to_pb_impl<value_type>(val.value(t).val, val.field_no, out);
           }
           else {
-            static_assert(!sizeof(value_type), "err");
+            detail::to_pb_impl<value_type>(val.value(t), val.field_no, out);
           }
         },
         member);
