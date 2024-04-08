@@ -209,6 +209,18 @@ struct test_pb_st3 {
 };
 REFLECTION(test_pb_st3, x, y, z);
 
+struct test_pb_st4 {
+  int x;
+  std::string y;
+};
+REFLECTION(test_pb_st4, x, y);
+
+struct test_pb_st5 {
+  int x;
+  std::string_view y;
+};
+REFLECTION(test_pb_st5, x, y);
+
 TEST_CASE("test struct_pb") {
   {
     my_space::inner_struct inner{41, 42, 43};
@@ -230,7 +242,7 @@ TEST_CASE("test struct_pb") {
 
     test_pb_st1 st2;
     iguana::from_pb(st2, str);
-    std::cout << st2.y.val << "\n";
+    CHECK(st1.y.val == st1.y.val);
   }
 
   {
@@ -240,7 +252,7 @@ TEST_CASE("test struct_pb") {
 
     test_pb_st2 st2;
     iguana::from_pb(st2, str);
-    std::cout << st2.y.val << "\n";
+    CHECK(st1.y.val == st1.y.val);
   }
   {
     test_pb_st3 st1{41, {42}, {43}};
@@ -249,6 +261,26 @@ TEST_CASE("test struct_pb") {
 
     test_pb_st3 st2;
     iguana::from_pb(st2, str);
+    CHECK(st1.y.val == st1.y.val);
+  }
+  {
+    test_pb_st4 st1{41, "it is a test"};
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st4 st2;
+    iguana::from_pb(st2, str);
+    CHECK(st1.y == st1.y);
+  }
+
+  {
+    test_pb_st5 st1{41, "it is a test"};
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st5 st2;
+    iguana::from_pb(st2, str);
+    CHECK(st1.y == st1.y);
   }
 }
 

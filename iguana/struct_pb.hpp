@@ -86,7 +86,7 @@ constexpr bool is_signed_varint_v =
 
 template <typename T>
 constexpr inline WireType get_wire_type() {
-  if constexpr (std::is_integral_v<T>) {
+  if constexpr (std::is_integral_v<T> || is_signed_varint_v<T>) {
     return WireType::Varint;
   }
   else if constexpr (std::is_same_v<T, fixed32_t> ||
@@ -96,6 +96,10 @@ constexpr inline WireType get_wire_type() {
   else if constexpr (std::is_same_v<T, fixed64_t> ||
                      std::is_same_v<T, sfixed64_t>) {
     return WireType::Fixed64;
+  }
+  else if constexpr (std::is_same_v<T, std::string> ||
+                     std::is_same_v<T, std::string_view>) {
+    return WireType::LengthDelimeted;
   }
   else {
     return WireType::Unknown;
@@ -143,6 +147,20 @@ inline void encode_fixed_field(uint32_t field_number, WireType type,
   out.append(buf, size);
 }
 
+template <typename T>
+inline void encode_string_field(uint32_t field_number, WireType type,
+                                std::string_view str, T& out) {
+  if (str.empty()) {
+    return;
+  }
+
+  uint32_t key = (field_number << 3) | static_cast<uint32_t>(type);
+  serialize_varint(key, out);
+
+  serialize_varint(str.size(), out);
+  out.append(str);
+}
+
 }  // namespace detail
 
 template <typename T>
@@ -161,19 +179,15 @@ inline void from_pb(T& t, std::string_view pb_str) {
     std::visit(
         [&t, &pb_str, &pos, wire_type](auto& val) {
           using value_type = typename std::decay_t<decltype(val)>::value_type;
+          if (wire_type != detail::get_wire_type<value_type>()) {
+            return;
+          }
+
           if constexpr (std::is_integral_v<value_type>) {
-            if (wire_type != detail::get_wire_type<value_type>()) {
-              return;
-            }
             val.value(t) = detail::decode_varint(pb_str, pos);
             pb_str = pb_str.substr(pos);
           }
           else if constexpr (detail::is_signed_varint_v<value_type>) {
-            if (wire_type !=
-                detail::get_wire_type<typename value_type::value_type>()) {
-              return;
-            }
-
             constexpr size_t len = sizeof(typename value_type::value_type);
 
             uint64_t temp = detail::decode_varint(pb_str, pos);
@@ -186,10 +200,6 @@ inline void from_pb(T& t, std::string_view pb_str) {
             pb_str = pb_str.substr(pos);
           }
           else if constexpr (detail::is_fixed_v<value_type>) {
-            if (wire_type != detail::get_wire_type<value_type>()) {
-              return;
-            }
-
             constexpr size_t size = sizeof(typename value_type::value_type);
             if (pb_str.size() < size) {
               throw std::invalid_argument(
@@ -197,6 +207,24 @@ inline void from_pb(T& t, std::string_view pb_str) {
             }
             memcpy(&(val.value(t).val), pb_str.data(), size);
             pb_str = pb_str.substr(size);
+          }
+          else if constexpr (std::is_same_v<value_type, std::string> ||
+                             std::is_same_v<value_type, std::string_view>) {
+            size_t size = detail::decode_varint(pb_str, pos);
+            if (pb_str.size() < pos + size) {
+              throw std::invalid_argument(
+                  "Invalid string value: too few bytes.");
+            }
+
+            if constexpr (std::is_same_v<value_type, std::string_view>) {
+              val.value(t) = std::string_view(pb_str.data() + pos, size);
+            }
+            else {
+              auto& str = val.value(t);
+              str.resize(size);
+              memcpy(str.data(), pb_str.data() + pos, size);
+            }
+            pb_str = pb_str.substr(size + pos);
           }
           else {
             static_assert(!sizeof(value_type), "err");
@@ -230,6 +258,11 @@ inline void to_pb(T& t, std::string& out) {
               detail::encode_fixed_field(val.field_no, WireType::Fixed32,
                                          (uint32_t)(val.value(t).val), out);
             }
+          }
+          else if constexpr (std::is_same_v<value_type, std::string> ||
+                             std::is_same_v<value_type, std::string_view>) {
+            detail::encode_string_field(val.field_no, WireType::LengthDelimeted,
+                                        val.value(t), out);
           }
           else {
             static_assert(!sizeof(value_type), "err");
