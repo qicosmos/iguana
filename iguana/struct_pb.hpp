@@ -190,9 +190,13 @@ inline void from_pb(T& t, std::string_view pb_str) {
               return;
             }
 
-            constexpr size_t len = sizeof(typename value_type::value_type);
-            memcpy(&(val.value(t).val), pb_str.data(), len);
-            pb_str = pb_str.substr(len);
+            constexpr size_t size = sizeof(typename value_type::value_type);
+            if (pb_str.size() < size) {
+              throw std::invalid_argument(
+                  "Invalid fixed int value: too few bytes.");
+            }
+            memcpy(&(val.value(t).val), pb_str.data(), size);
+            pb_str = pb_str.substr(size);
           }
           else {
             static_assert(!sizeof(value_type), "err");
