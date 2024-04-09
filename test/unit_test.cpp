@@ -36,7 +36,7 @@ TEST_CASE("test parse item num_t") {
     CHECK(ec);
   }
   {
-    std::string str{"1.0"};
+    std::string str{"1"};
     int p{};
     iguana::from_json(p, str.begin(), str.end());
     CHECK(p == 1);
@@ -304,9 +304,9 @@ TEST_CASE("test parse item char") {
     CHECK(test == 'c');
   }
   {
-      // std::string str{"\""};
-      // char test{};
-      // CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
+    // std::string str{"\""};
+    // char test{};
+    // CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
   } {
     std::string str{R"("\)"};
     char test{};
