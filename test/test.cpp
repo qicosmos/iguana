@@ -179,6 +179,25 @@ struct nest_t {
 };
 REFLECTION(nest_t, name, value, var);
 
+struct point_t1 {
+  int x;
+  int y;
+};
+REFLECTION(point_t1, x, y);
+
+TEST_CASE("test double to int") {
+  point_t p{1, 0.45};
+  std::string s;
+  iguana::to_json(p, s);
+  std::cout << s << std::endl;
+  point_t1 p2;
+  CHECK_THROWS(iguana::from_json(p2, s));
+
+  point_t p3;
+  iguana::from_json(p3, s);
+  CHECK(p.y == p3.y);
+}
+
 TEST_CASE("test variant") {
   std::variant<int, std::string> var;
   var = 1;
