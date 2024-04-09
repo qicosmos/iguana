@@ -304,9 +304,9 @@ TEST_CASE("test parse item char") {
     CHECK(test == 'c');
   }
   {
-    // std::string str{"\""};
-    // char test{};
-    // CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
+      // std::string str{"\""};
+      // char test{};
+      // CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
   } {
     std::string str{R"("\)"};
     char test{};
