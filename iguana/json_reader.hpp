@@ -196,7 +196,7 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
         IGUANA_UNLIKELY case '\\' : ++it;
         parse_escape(value, it, end);
         break;
-      // IGUANA_UNLIKELY case ']' : return;
+        // IGUANA_UNLIKELY case ']' : return;
         IGUANA_UNLIKELY case '"' : ++it;
         return;
         IGUANA_LIKELY default : value.push_back(*it);
