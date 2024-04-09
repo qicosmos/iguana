@@ -227,9 +227,10 @@ struct test_pb_st6 {
 };
 REFLECTION(test_pb_st6, x, y);
 
+using Variant1 = std::variant<std::string, int>;
 struct test_pb_st7 {
-  std::variant<int, double> x;
-  std::variant<std::string, int> y;
+  iguana::one_of_t<0, Variant1> x;
+  iguana::one_of_t<1, Variant1> y;
 };
 REFLECTION(test_pb_st7, x, y);
 
@@ -254,7 +255,7 @@ TEST_CASE("test struct_pb") {
 
     test_pb_st1 st2;
     iguana::from_pb(st2, str);
-    CHECK(st1.y.val == st1.y.val);
+    CHECK(st1.y.val == st2.y.val);
   }
 
   {
@@ -264,7 +265,7 @@ TEST_CASE("test struct_pb") {
 
     test_pb_st2 st2;
     iguana::from_pb(st2, str);
-    CHECK(st1.y.val == st1.y.val);
+    CHECK(st1.y.val == st2.y.val);
   }
   {
     test_pb_st3 st1{41, {42}, {43}};
@@ -273,7 +274,7 @@ TEST_CASE("test struct_pb") {
 
     test_pb_st3 st2;
     iguana::from_pb(st2, str);
-    CHECK(st1.y.val == st1.y.val);
+    CHECK(st1.y.val == st2.y.val);
   }
   {
     test_pb_st4 st1{41, "it is a test"};
@@ -282,7 +283,7 @@ TEST_CASE("test struct_pb") {
 
     test_pb_st4 st2;
     iguana::from_pb(st2, str);
-    CHECK(st1.y == st1.y);
+    CHECK(st1.y == st2.y);
   }
 
   {
@@ -292,7 +293,7 @@ TEST_CASE("test struct_pb") {
 
     test_pb_st5 st2;
     iguana::from_pb(st2, str);
-    CHECK(st1.y == st1.y);
+    CHECK(st1.y == st2.y);
   }
 
   {
@@ -302,7 +303,7 @@ TEST_CASE("test struct_pb") {
 
     test_pb_st5 st2;
     iguana::from_pb(st2, str);
-    CHECK(st1.y == st1.y);
+    CHECK(st1.y == st2.y);
   }
   {
     // optional
@@ -312,18 +313,18 @@ TEST_CASE("test struct_pb") {
 
     test_pb_st6 st2;
     iguana::from_pb(st2, str);
-    CHECK(st1.y == st1.y);
+    CHECK(st1.y == st2.y);
   }
-  //  {
-  //      // variant
-  //    test_pb_st7 st1{1, std::string("test")};
-  //    std::string str;
-  //    iguana::to_pb(st1, str);
-  //
-  //    test_pb_st7 st2;
-  //    iguana::from_pb(st2, str);
-  //    CHECK(st1.y == st1.y);
-  //  }
+  {
+    // variant
+    test_pb_st7 st1{{"test"}};
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st7 st2;
+    iguana::from_pb(st2, str);
+    CHECK(st1.x.value == st2.x.value);
+  }
   {
       // sub nested objects
   } {

@@ -75,6 +75,14 @@ inline bool operator==(sfixed32_t value1, int64_t value2) {
   return value1.val == value2;
 }
 
+template <size_t Idx, typename V>
+struct one_of_t {
+  static constexpr bool is_one_of_v = true;
+  using value_type = std::optional<
+      std::remove_reference_t<decltype(std::get<Idx>(std::declval<V>()))>>;
+  value_type value;
+};
+
 namespace detail {
 template <typename T>
 constexpr bool is_fixed_v =
@@ -84,6 +92,16 @@ constexpr bool is_fixed_v =
 template <typename T>
 constexpr bool is_signed_varint_v =
     std::is_same_v<T, sint32_t> || std::is_same_v<T, sint64_t>;
+
+template <typename Type, typename = void>
+struct is_one_of_t : std::false_type {};
+
+template <typename T>
+struct is_one_of_t<T, std::void_t<decltype(T::is_one_of_v)>> : std::true_type {
+};
+
+template <typename T>
+constexpr bool is_one_of_v = is_one_of_t<T>::value;
 
 template <typename T>
 constexpr inline WireType get_wire_type() {
@@ -102,7 +120,7 @@ constexpr inline WireType get_wire_type() {
                      std::is_same_v<T, std::string_view>) {
     return WireType::LengthDelimeted;
   }
-  else if constexpr (optional_v<T>) {
+  else if constexpr (optional_v<T> || is_one_of_v<T>) {
     return get_wire_type<typename T::value_type>();
   }
   else {
@@ -211,7 +229,8 @@ inline void from_pb_impl(T& val, std::string_view& pb_str) {
   else if constexpr (optional_v<value_type>) {
     from_pb_impl<typename value_type::value_type>(val.emplace(), pb_str);
   }
-  else if constexpr (variant_v<value_type>) {
+  else if constexpr (is_one_of_v<value_type>) {
+    from_pb_impl<typename value_type::value_type>(val.value, pb_str);
   }
   else {
     static_assert(!sizeof(value_type), "err");
@@ -247,12 +266,8 @@ inline void to_pb_impl(T& val, size_t field_no, std::string& out) {
 
     to_pb_impl<typename value_type::value_type>(*val, field_no, out);
   }
-  else if constexpr (variant_v<value_type>) {
-    //    std::visit([field_no, &out](const auto& value){
-    //      using U =
-    //      std::remove_const_t<std::remove_reference_t<decltype(value)>>;
-    ////        to_pb_impl<U>(value, field_no, out);
-    //    }, val);
+  else if constexpr (is_one_of_v<value_type>) {
+    to_pb_impl<typename value_type::value_type>(val.value, field_no, out);
   }
   else {
     static_assert(!sizeof(value_type), "err");
