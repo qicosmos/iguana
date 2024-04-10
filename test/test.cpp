@@ -175,9 +175,10 @@ REFLECTION(inner_struct, x, y, z);
 struct nest_t {
   std::string name;
   my_space::inner_struct value;
-  std::variant<int, std::string> var;
+  std::variant<int, std::string, double> var;
+  std::variant<int, std::string, my_space::inner_struct> var2;
 };
-REFLECTION(nest_t, name, value, var);
+REFLECTION(nest_t, name, value, var, var2);
 
 struct point_t1 {
   int x;
@@ -199,14 +200,16 @@ TEST_CASE("test double to int") {
 }
 
 TEST_CASE("test variant") {
-  std::variant<int, std::string> var;
-  var = 1;
-  nest_t v{"Hi", {1, 2, 3}, var}, v2;
+  std::variant<int, std::string, double> var;
+  var = "test";
+  nest_t v{"Hi", {1, 2, 3}, var, my_space::inner_struct{2, 4, 6}};
   std::string s;
   iguana::to_json(v, s);
   std::cout << s << std::endl;
+
+  nest_t v2;
   iguana::from_json(v2, s);
-  CHECK(v.name == v2.name);
+  CHECK(v.var == v2.var);
 }
 
 TEST_CASE("test from issues") {
