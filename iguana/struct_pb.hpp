@@ -117,7 +117,8 @@ constexpr inline WireType get_wire_type() {
     return WireType::Fixed64;
   }
   else if constexpr (std::is_same_v<T, std::string> ||
-                     std::is_same_v<T, std::string_view>) {
+                     std::is_same_v<T, std::string_view> ||
+                     is_reflection_v<T>) {
     return WireType::LengthDelimeted;
   }
   else if constexpr (optional_v<T> || is_one_of_v<T>) {
@@ -277,6 +278,7 @@ inline void to_pb_impl(T& val, size_t field_no, std::string& out) {
 
 template <typename T>
 inline void from_pb(T& t, std::string_view pb_str) {
+  constexpr size_t Count = iguana::get_value<std::remove_reference_t<T>>();
   size_t pos = 0;
   while (!pb_str.empty()) {
     uint32_t key = detail::decode_varint(pb_str, pos);
@@ -295,8 +297,16 @@ inline void from_pb(T& t, std::string_view pb_str) {
             return;
           }
 
-          if constexpr (detail::is_signed_varint_v<value_type> ||
-                        detail::is_fixed_v<value_type>) {
+          if constexpr (is_reflection_v<value_type>) {
+            size_t pos;
+            uint32_t size = detail::decode_varint(pb_str, pos);
+            pb_str = pb_str.substr(pos);
+
+            from_pb(val.value(t), pb_str);
+            pb_str = pb_str.substr(size);
+          }
+          else if constexpr (detail::is_signed_varint_v<value_type> ||
+                             detail::is_fixed_v<value_type>) {
             detail::from_pb_impl<value_type>(val.value(t).val, pb_str);
           }
           else {
@@ -304,6 +314,10 @@ inline void from_pb(T& t, std::string_view pb_str) {
           }
         },
         member);
+
+    if (field_number == Count) {
+      break;
+    }
   }
 }
 
@@ -314,7 +328,13 @@ inline void to_pb(T& t, std::string& out) {
     std::visit(
         [&t, &out](auto& val) {
           using value_type = typename std::decay_t<decltype(val)>::value_type;
-          if constexpr (detail::is_fixed_v<value_type>) {
+          if constexpr (is_reflection_v<value_type>) {
+            std::string temp;
+            to_pb(val.value(t), temp);
+            detail::encode_string_field(val.field_no, WireType::LengthDelimeted,
+                                        temp, out);
+          }
+          else if constexpr (detail::is_fixed_v<value_type>) {
             detail::to_pb_impl<value_type>(val.value(t).val, val.field_no, out);
           }
           else {

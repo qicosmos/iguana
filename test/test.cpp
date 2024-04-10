@@ -234,6 +234,49 @@ struct test_pb_st7 {
 };
 REFLECTION(test_pb_st7, x, y);
 
+struct pair_t {
+  int x;
+  int y;
+};
+REFLECTION(pair_t, x, y);
+
+struct message_t {
+  int id;
+  pair_t t;
+};
+REFLECTION(message_t, id, t);
+
+struct test_pb_st8 {
+  int x;
+  pair_t y;
+  message_t z;
+};
+REFLECTION(test_pb_st8, x, y, z);
+
+namespace client {
+struct person {
+  std::string name;
+  int64_t age;
+};
+
+REFLECTION(person, name, age);
+}  // namespace client
+
+struct my_struct {
+  int x;
+  int y;
+  int z;
+};
+REFLECTION(my_struct, x, y, z);
+
+struct nest1 {
+  std::string name;
+  my_struct value;
+  int var;
+};
+
+REFLECTION(nest1, name, value, var);
+
 TEST_CASE("test struct_pb") {
   {
     my_space::inner_struct inner{41, 42, 43};
@@ -326,8 +369,22 @@ TEST_CASE("test struct_pb") {
     CHECK(st1.x.value == st2.x.value);
   }
   {
-      // sub nested objects
-  } {
+    // sub nested objects
+    nest1 v{"Hi", {1, 2, 3}, 5}, v2;
+    std::string s;
+    iguana::to_pb(v, s);
+    iguana::from_pb(v2, s);
+    CHECK(v.var == v2.var);
+
+    test_pb_st8 st1{1, {3, 4}, {5, {7, 8}}};
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st8 st2;
+    iguana::from_pb(st2, str);
+    CHECK(st1.z.t.y == st2.z.t.y);
+  }
+  {
     // vector<int> vector<string> vector<object>
     // vector<optional<T>>
     // vector<variant<T>>
