@@ -18,25 +18,23 @@ namespace detail {
 template <bool check_number = true, typename U>
 std::pair<const char *, std::errc> from_chars(const char *first,
                                               const char *last, U &value) {
-#define CHECK_NUM                     \
-  if (p != last || ec != std::errc{}) \
-    IGUANA_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
   using T = std::decay_t<U>;
   if constexpr (std::is_floating_point_v<T>) {
     auto [p, ec] = fast_float::from_chars(first, last, value);
     if constexpr (check_number) {
-      CHECK_NUM
+      if (p != last || ec != std::errc{})
+        IGUANA_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
     }
     return {p, ec};
   }
   else {
     auto [p, ec] = std::from_chars(first, last, value);
     if constexpr (check_number) {
-      CHECK_NUM
+      if (p != last || ec != std::errc{})
+        IGUANA_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
     }
     return {p, ec};
   }
-#undef CHECK_NUM
 }
 
 // not support uint8 for now
