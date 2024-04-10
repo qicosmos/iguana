@@ -83,6 +83,12 @@ struct one_of_t {
   value_type value;
 };
 
+template <typename T>
+inline void to_pb(T& t, std::string& out);
+
+template <typename T>
+inline void from_pb(T& t, std::string_view pb_str);
+
 namespace detail {
 template <typename T>
 constexpr bool is_fixed_v =
@@ -187,7 +193,15 @@ inline void encode_string_field(uint32_t field_number, WireType type,
 template <typename value_type, typename T>
 inline void from_pb_impl(T& val, std::string_view& pb_str) {
   size_t pos = 0;
-  if constexpr (std::is_integral_v<value_type>) {
+  if constexpr (is_reflection_v<value_type>) {
+    size_t pos;
+    uint32_t size = detail::decode_varint(pb_str, pos);
+    pb_str = pb_str.substr(pos);
+
+    from_pb(val, pb_str);
+    pb_str = pb_str.substr(size);
+  }
+  else if constexpr (std::is_integral_v<value_type>) {
     val = detail::decode_varint(pb_str, pos);
     pb_str = pb_str.substr(pos);
   }
@@ -240,7 +254,12 @@ inline void from_pb_impl(T& val, std::string_view& pb_str) {
 
 template <typename value_type, typename T>
 inline void to_pb_impl(T& val, size_t field_no, std::string& out) {
-  if constexpr (std::is_integral_v<value_type>) {
+  if constexpr (is_reflection_v<value_type>) {
+    std::string temp;
+    to_pb(val, temp);
+    detail::encode_string_field(field_no, WireType::LengthDelimeted, temp, out);
+  }
+  else if constexpr (std::is_integral_v<value_type>) {
     detail::encode_varint_field(field_no, WireType::Varint, val, out);
   }
   else if constexpr (detail::is_signed_varint_v<value_type>) {
@@ -297,16 +316,8 @@ inline void from_pb(T& t, std::string_view pb_str) {
             return;
           }
 
-          if constexpr (is_reflection_v<value_type>) {
-            size_t pos;
-            uint32_t size = detail::decode_varint(pb_str, pos);
-            pb_str = pb_str.substr(pos);
-
-            from_pb(val.value(t), pb_str);
-            pb_str = pb_str.substr(size);
-          }
-          else if constexpr (detail::is_signed_varint_v<value_type> ||
-                             detail::is_fixed_v<value_type>) {
+          if constexpr (detail::is_signed_varint_v<value_type> ||
+                        detail::is_fixed_v<value_type>) {
             detail::from_pb_impl<value_type>(val.value(t).val, pb_str);
           }
           else {
@@ -328,13 +339,7 @@ inline void to_pb(T& t, std::string& out) {
     std::visit(
         [&t, &out](auto& val) {
           using value_type = typename std::decay_t<decltype(val)>::value_type;
-          if constexpr (is_reflection_v<value_type>) {
-            std::string temp;
-            to_pb(val.value(t), temp);
-            detail::encode_string_field(val.field_no, WireType::LengthDelimeted,
-                                        temp, out);
-          }
-          else if constexpr (detail::is_fixed_v<value_type>) {
+          if constexpr (detail::is_fixed_v<value_type>) {
             detail::to_pb_impl<value_type>(val.value(t).val, val.field_no, out);
           }
           else {
