@@ -180,23 +180,22 @@ struct nest_t {
 };
 REFLECTION(nest_t, name, value, var, var2);
 
-struct point_t1 {
-  int x;
-  int y;
-};
-REFLECTION(point_t1, x, y);
-
-TEST_CASE("test double to int") {
-  point_t p{1, 0.45};
-  std::string s;
-  iguana::to_json(p, s);
-  std::cout << s << std::endl;
-  point_t1 p2;
-  CHECK_THROWS(iguana::from_json(p2, s));
-
-  point_t p3;
-  iguana::from_json(p3, s);
-  CHECK(p.y == p3.y);
+TEST_CASE("test throw while parsing an illegal number") {
+  {
+    std::string str{"[0,1.0]"};
+    std::vector<int> test{};
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
+  }
+  {
+    std::string str{"1A"};
+    int test{};
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
+  }
+  {
+    std::string str{"1.0"};
+    int test{};
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
+  }
 }
 
 TEST_CASE("test variant") {

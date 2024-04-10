@@ -18,10 +18,7 @@ class numeric_str {
     if (val_.empty())
       IGUANA_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
     T res;
-    auto [_, ec] =
-        detail::from_chars(val_.data(), val_.data() + val_.size(), res);
-    if (ec != std::errc{})
-      IGUANA_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
+    detail::from_chars(val_.data(), val_.data() + val_.size(), res);
     return res;
   }
 

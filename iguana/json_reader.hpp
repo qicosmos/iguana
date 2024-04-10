@@ -68,8 +68,11 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
     if (size == 0)
       IGUANA_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
     const auto start = &*it;
-    auto [p, ec] = detail::from_chars(start, start + size, value);
-    if (ec != std::errc{} || *p == '.')
+    auto [p, ec] = detail::from_chars<false>(start, start + size, value);
+    // TODO: improve by static array
+    if (ec != std::errc{} ||
+        !(*p == '}' || *p == ']' || *p == ',' || *p == ' ' || *p == '\0' ||
+          *p == '"' || *p == '\n'))
       IGUANA_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
     it += (p - &*it);
   }
@@ -82,9 +85,7 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
       buffer[i] = *it++;
       ++i;
     }
-    auto [p, ec] = detail::from_chars(buffer, buffer + i, value);
-    if (ec != std::errc{})
-      IGUANA_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
+    detail::from_chars(buffer, buffer + i, value);
   }
 }
 
