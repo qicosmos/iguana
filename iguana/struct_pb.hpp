@@ -124,7 +124,7 @@ constexpr inline WireType get_wire_type() {
   }
   else if constexpr (std::is_same_v<T, std::string> ||
                      std::is_same_v<T, std::string_view> ||
-                     is_reflection_v<T>) {
+                     is_reflection_v<T> || is_sequence_container<T>::value) {
     return WireType::LengthDelimeted;
   }
   else if constexpr (optional_v<T> || is_one_of_v<T>) {
@@ -135,6 +135,16 @@ constexpr inline WireType get_wire_type() {
   }
 }
 
+template <typename T>
+inline void encode_key(uint32_t field_number, WireType type, T& out) {
+  if (field_number == 0) {
+    return;
+  }
+
+  uint32_t key = (field_number << 3) | static_cast<uint32_t>(type);
+  serialize_varint(key, out);
+}
+
 template <typename Value, typename T>
 inline void encode_varint_field(uint32_t field_number, WireType type,
                                 Value value, T& out) {
@@ -143,8 +153,7 @@ inline void encode_varint_field(uint32_t field_number, WireType type,
     return;
   }
 
-  uint32_t key = (field_number << 3) | static_cast<uint32_t>(type);
-  serialize_varint(key, out);
+  encode_key(field_number, type, out);
   serialize_varint(value, out);
 }
 
@@ -155,8 +164,7 @@ inline void encode_signed_varint_field(uint32_t field_number, WireType type,
     return;
   }
 
-  uint32_t key = (field_number << 3) | static_cast<uint32_t>(type);
-  serialize_varint(key, out);
+  encode_key(field_number, type, out);
   serialize_varint(encode_zigzag(value.val), out);
 }
 
@@ -167,8 +175,7 @@ inline void encode_fixed_field(uint32_t field_number, WireType type,
     return;
   }
 
-  uint32_t key = (field_number << 3) | static_cast<uint32_t>(type);
-  serialize_varint(key, out);
+  encode_key(field_number, type, out);
 
   constexpr size_t size = sizeof(Value);
   char buf[size]{};
@@ -183,8 +190,7 @@ inline void encode_string_field(uint32_t field_number, WireType type,
     return;
   }
 
-  uint32_t key = (field_number << 3) | static_cast<uint32_t>(type);
-  serialize_varint(key, out);
+  encode_key(field_number, type, out);
 
   serialize_varint(str.size(), out);
   out.append(str);
@@ -200,6 +206,23 @@ inline void from_pb_impl(T& val, std::string_view& pb_str) {
 
     from_pb(val, pb_str);
     pb_str = pb_str.substr(size);
+  }
+  else if constexpr (is_sequence_container<value_type>::value) {
+    size_t pos;
+    uint32_t size = detail::decode_varint(pb_str, pos);
+    pb_str = pb_str.substr(pos);
+
+    using item_type = typename value_type::value_type;
+    size_t start = pb_str.size();
+
+    while (!pb_str.empty()) {
+      item_type item;
+      from_pb_impl<item_type>(item, pb_str);
+      val.push_back(std::move(item));
+      if (start - pb_str.size() == size) {
+        break;
+      }
+    }
   }
   else if constexpr (std::is_integral_v<value_type>) {
     val = detail::decode_varint(pb_str, pos);
@@ -257,6 +280,14 @@ inline void to_pb_impl(T& val, size_t field_no, std::string& out) {
   if constexpr (is_reflection_v<value_type>) {
     std::string temp;
     to_pb(val, temp);
+    detail::encode_string_field(field_no, WireType::LengthDelimeted, temp, out);
+  }
+  else if constexpr (is_sequence_container<value_type>::value) {
+    std::string temp;
+    using item_type = typename value_type::value_type;
+    for (auto& item : val) {
+      to_pb_impl<item_type>(item, 0, temp);
+    }
     detail::encode_string_field(field_no, WireType::LengthDelimeted, temp, out);
   }
   else if constexpr (std::is_integral_v<value_type>) {

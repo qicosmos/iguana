@@ -253,6 +253,27 @@ struct test_pb_st8 {
 };
 REFLECTION(test_pb_st8, x, y, z);
 
+struct test_pb_st9 {
+  int x;
+  std::vector<int> y;
+  std::string z;
+};
+REFLECTION(test_pb_st9, x, y, z);
+
+struct test_pb_st10 {
+  int x;
+  std::vector<message_t> y;
+  std::string z;
+};
+REFLECTION(test_pb_st10, x, y, z);
+
+struct test_pb_st11 {
+  int x;
+  std::vector<std::optional<message_t>> y;
+  std::vector<std::string> z;
+};
+REFLECTION(test_pb_st11, x, y, z);
+
 namespace client {
 struct person {
   std::string name;
@@ -385,9 +406,32 @@ TEST_CASE("test struct_pb") {
     CHECK(st1.z.t.y == st2.z.t.y);
   }
   {
-    // vector<int> vector<string> vector<object>
-    // vector<optional<T>>
-    // vector<variant<T>>
+    // repeated messages
+    test_pb_st9 st1{1, {2, 4, 6}, "test"};
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st9 st2;
+    iguana::from_pb(st2, str);
+    CHECK(st1.z == st2.z);
+  }
+  {
+    test_pb_st10 st1{1, {{5, {7, 8}}, {9, {11, 12}}}, "test"};
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st10 st2;
+    iguana::from_pb(st2, str);
+    CHECK(st1.z == st2.z);
+  }
+  {
+    test_pb_st11 st1{1, {{{5, {7, 8}}}, {{9, {11, 12}}}}, {"test"}};
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st11 st2;
+    iguana::from_pb(st2, str);
+    CHECK(st1.z == st2.z);
   }
 }
 
