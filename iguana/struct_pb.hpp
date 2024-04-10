@@ -202,6 +202,9 @@ inline void from_pb_impl(T& val, std::string_view& pb_str) {
   if constexpr (is_reflection_v<value_type>) {
     size_t pos;
     uint32_t size = detail::decode_varint(pb_str, pos);
+    if (pb_str.size() < size) {
+      throw std::invalid_argument("Invalid fixed int value: too few bytes.");
+    }
     pb_str = pb_str.substr(pos);
 
     from_pb(val, pb_str);
@@ -210,6 +213,9 @@ inline void from_pb_impl(T& val, std::string_view& pb_str) {
   else if constexpr (is_sequence_container<value_type>::value) {
     size_t pos;
     uint32_t size = detail::decode_varint(pb_str, pos);
+    if (pb_str.size() < size) {
+      throw std::invalid_argument("Invalid fixed int value: too few bytes.");
+    }
     pb_str = pb_str.substr(pos);
 
     using item_type = typename value_type::value_type;
