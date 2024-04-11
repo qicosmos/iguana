@@ -124,7 +124,8 @@ constexpr inline WireType get_wire_type() {
   }
   else if constexpr (std::is_same_v<T, std::string> ||
                      std::is_same_v<T, std::string_view> ||
-                     is_reflection_v<T> || is_sequence_container<T>::value) {
+                     is_reflection_v<T> || is_sequence_container<T>::value ||
+                     is_map_container<T>::value) {
     return WireType::LengthDelimeted;
   }
   else if constexpr (optional_v<T> || is_one_of_v<T>) {
@@ -197,7 +198,24 @@ inline void encode_string_field(uint32_t field_number, WireType type,
 }
 
 template <typename value_type, typename T>
-inline void from_pb_impl(T& val, std::string_view& pb_str) {
+inline void from_pb_impl(T& val, std::string_view& pb_str,
+                         uint32_t field_no = 0);
+
+template <typename T>
+inline void decode_pair_value(T& val, std::string_view& pb_str) {
+  size_t pos;
+  uint32_t key = detail::decode_varint(pb_str, pos);
+  pb_str = pb_str.substr(pos);
+  WireType wire_type = static_cast<WireType>(key & 0b0111);
+  if (wire_type != detail::get_wire_type<std::remove_reference_t<T>>()) {
+    return;
+  }
+
+  from_pb_impl<T>(val, pb_str);
+}
+
+template <typename value_type, typename T>
+inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
   size_t pos = 0;
   if constexpr (is_reflection_v<value_type>) {
     size_t pos;
@@ -228,6 +246,35 @@ inline void from_pb_impl(T& val, std::string_view& pb_str) {
       if (start - pb_str.size() == size) {
         break;
       }
+    }
+  }
+  else if constexpr (is_map_container<value_type>::value) {
+    using item_type = std::pair<typename value_type::key_type,
+                                typename value_type::mapped_type>;
+    while (!pb_str.empty()) {
+      size_t pos;
+      uint32_t size = detail::decode_varint(pb_str, pos);
+      if (pb_str.size() < size) {
+        throw std::invalid_argument("Invalid fixed int value: too few bytes.");
+      }
+      pb_str = pb_str.substr(pos);
+
+      item_type item = {};
+      decode_pair_value(item.first, pb_str);
+      decode_pair_value(item.second, pb_str);
+      val.emplace(std::move(item));
+
+      if (pb_str.empty()) {
+        break;
+      }
+
+      uint32_t key = detail::decode_varint(pb_str, pos);
+      uint32_t field_number = key >> 3;
+      if (field_number != field_no) {
+        break;
+      }
+
+      pb_str = pb_str.substr(pos);
     }
   }
   else if constexpr (std::is_integral_v<value_type>) {
@@ -296,6 +343,17 @@ inline void to_pb_impl(T& val, size_t field_no, std::string& out) {
     }
     detail::encode_string_field(field_no, WireType::LengthDelimeted, temp, out);
   }
+  else if constexpr (is_map_container<value_type>::value) {
+    using first_type = typename value_type::key_type;
+    using second_type = typename value_type::mapped_type;
+    for (auto& [k, v] : val) {
+      std::string temp;
+      to_pb_impl<first_type>(k, 1, temp);
+      to_pb_impl<second_type>(v, 2, temp);
+      detail::encode_string_field(field_no, WireType::LengthDelimeted, temp,
+                                  out);
+    }
+  }
   else if constexpr (std::is_integral_v<value_type>) {
     detail::encode_varint_field(field_no, WireType::Varint, val, out);
   }
@@ -338,8 +396,7 @@ inline void from_pb(T& t, std::string_view pb_str) {
   size_t pos = 0;
   while (!pb_str.empty()) {
     uint32_t key = detail::decode_varint(pb_str, pos);
-    WireType wire_type;
-    wire_type = static_cast<WireType>(key & 0b0111);
+    WireType wire_type = static_cast<WireType>(key & 0b0111);
     uint32_t field_number = key >> 3;
 
     pb_str = pb_str.substr(pos);
@@ -358,7 +415,8 @@ inline void from_pb(T& t, std::string_view pb_str) {
             detail::from_pb_impl<value_type>(val.value(t).val, pb_str);
           }
           else {
-            detail::from_pb_impl<value_type>(val.value(t), pb_str);
+            detail::from_pb_impl<value_type>(val.value(t), pb_str,
+                                             val.field_no);
           }
         },
         member);

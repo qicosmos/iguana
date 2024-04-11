@@ -274,6 +274,20 @@ struct test_pb_st11 {
 };
 REFLECTION(test_pb_st11, x, y, z);
 
+struct test_pb_st12 {
+  int x;
+  std::map<int, std::string> y;
+  std::map<std::string, int> z;
+};
+REFLECTION(test_pb_st12, x, y, z);
+
+struct test_pb_st13 {
+  int x;
+  std::map<int, message_t> y;
+  std::string z;
+};
+REFLECTION(test_pb_st13, x, y, z);
+
 namespace client {
 struct person {
   std::string name;
@@ -430,6 +444,30 @@ TEST_CASE("test struct_pb") {
     iguana::to_pb(st1, str);
 
     test_pb_st11 st2;
+    iguana::from_pb(st2, str);
+    CHECK(st1.z == st2.z);
+  }
+  {
+    // map messages
+    test_pb_st12 st1{1, {{1, "test"}, {2, "ok"}}, {{"test", 4}, {"ok", 6}}};
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st12 st2;
+    iguana::from_pb(st2, str);
+    CHECK(st1.z == st2.z);
+  }
+  {
+    // map messages
+    test_pb_st13 st1;
+    st1.x = 1;
+    st1.y.emplace(1, message_t{2, {3, 4}});
+    st1.y.emplace(2, message_t{4, {6, 8}});
+    st1.z = "test";
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st13 st2;
     iguana::from_pb(st2, str);
     CHECK(st1.z == st2.z);
   }
