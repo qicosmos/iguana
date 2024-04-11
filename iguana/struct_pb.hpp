@@ -403,8 +403,20 @@ inline void to_pb_impl(T& val, size_t field_no, std::string& out) {
 }  // namespace detail
 
 template <typename T>
+inline constexpr size_t get_member_count_impl() {
+  if constexpr (is_reflection<T>::value) {
+    return iguana::get_value<std::remove_reference_t<T>>();
+  }
+  else {
+    return iguana_member_count((T*)nullptr);
+  }
+}
+
+template <typename T>
 inline void from_pb(T& t, std::string_view pb_str) {
-  constexpr size_t Count = iguana::get_value<std::remove_reference_t<T>>();
+  using U = std::remove_const_t<std::remove_reference_t<T>>;
+  constexpr size_t Count = get_member_count_impl<U>();
+
   size_t pos = 0;
   while (!pb_str.empty()) {
     uint32_t key = detail::decode_varint(pb_str, pos);

@@ -725,6 +725,14 @@ struct field_type_t<std::tuple<Args...>> {
   using value_type = std::variant<field_t<Args>...>;
 };
 
+template <typename T>
+struct user_field_type_t;
+
+template <typename... Args>
+struct user_field_type_t<std::tuple<Args...>> {
+  using value_type = std::variant<Args...>;
+};
+
 struct field_helper {
   template <typename T, typename U, size_t... I>
   auto operator()(T &tp, U arr, std::index_sequence<I...>) {
@@ -741,11 +749,6 @@ inline auto get_members_impl(T &&) {
   const auto &arr = reflect_members::arr();
   return field_helper{}(tp, arr,
                         std::make_index_sequence<std::tuple_size_v<Tuple>>{});
-  // return [&]<size_t... I>(std::index_sequence<I...>) mutable {
-  //   return std::make_tuple(
-  //       field_t{std::get<I>(tp), I + 1, std::string(arr[I].data())}...);
-  // }
-  // (std::make_index_sequence<std::tuple_size_v<Tuple>>{});
 }
 
 template <typename T, size_t Size>
@@ -760,24 +763,29 @@ struct member_helper {
   }
 };
 
+template <typename T, typename = void>
+struct is_reflection : std::false_type {};
+
 template <typename T>
 inline decltype(auto) get_members(T &&t) {
-  using reflect_members = decltype(iguana_reflect_type(std::declval<T>()));
-  using value_type = typename field_type_t<
-      decltype(reflect_members::apply_impl())>::value_type;
-  constexpr size_t Size = reflect_members::value();
-  static std::array<value_type, Size> arr = member_helper<value_type, Size>{}(
-      get_members_impl(t), std::make_index_sequence<Size>{});
-  // static std::array<value_type, Size> arr = [&]<size_t... I>(
-  //     auto &&tp, std::index_sequence<I...>) mutable {
-  //   std::array<value_type, Size> arr;
-  //   ((arr[std::get<I>(tp).tag - 1] =
-  //         value_type{std::in_place_index<I>, std::move(std::get<I>(tp))}),
-  //    ...);
-  //   return arr;
-  // }
-  // (get_members_impl(t), std::make_index_sequence<Size>{});
-  return arr;
+  if constexpr (is_reflection<T>::value) {
+    using reflect_members = decltype(iguana_reflect_type(std::declval<T>()));
+    using value_type = typename field_type_t<
+        decltype(reflect_members::apply_impl())>::value_type;
+    constexpr size_t Size = reflect_members::value();
+    static std::array<value_type, Size> arr = member_helper<value_type, Size>{}(
+        get_members_impl(t), std::make_index_sequence<Size>{});
+    return arr;
+  }
+  else {
+    using U = std::remove_const_t<std::remove_reference_t<T>>;
+    constexpr size_t Size = iguana_member_count((U *)nullptr);
+    using value_type = typename user_field_type_t<decltype(get_members_impl(
+        (U *)nullptr))>::value_type;
+    static std::array<value_type, Size> arr = member_helper<value_type, Size>{}(
+        get_members_impl((U *)nullptr), std::make_index_sequence<Size>{});
+    return arr;
+  }
 }
 
 #define REFLECTION(STRUCT_NAME, ...)                                    \
@@ -887,9 +895,6 @@ struct is_private_reflection<
 
 template <typename T>
 constexpr bool is_private_reflection_v = is_private_reflection<T>::value;
-
-template <typename T, typename = void>
-struct is_reflection : std::false_type {};
 
 template <typename T>
 struct is_reflection<T, std::enable_if_t<is_private_reflection_v<T>>>

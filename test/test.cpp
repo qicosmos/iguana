@@ -170,15 +170,17 @@ struct inner_struct {
   int y;
   int z;
 };
-REFLECTION(inner_struct, x, y, z);
 
-template <typename T>
-inline auto get_fileds_impl(inner_struct &&) {
-  using namespace iguana;
-  return std::make_tuple(field_t{&inner_struct::x, 1, "x"},
-                         field_t{&inner_struct::x, 2, "y"},
-                         field_t{&inner_struct::x, 3, "z"});
+inline auto get_members_impl(inner_struct *) {
+  return std::make_tuple(iguana::field_t{&inner_struct::x, 1, "a"},
+                         iguana::field_t{&inner_struct::y, 2, "b"},
+                         iguana::field_t{&inner_struct::z, 3, "c"});
 }
+
+inline constexpr size_t iguana_member_count(inner_struct *) { return 3; }
+
+std::integral_constant<size_t, 3> member_count(inner_struct);
+
 }  // namespace my_space
 
 struct nest_t {
@@ -187,6 +189,12 @@ struct nest_t {
   std::variant<int, std::string> var;
 };
 REFLECTION(nest_t, name, value, var);
+
+struct my_variant_t {
+  std::string name;
+  std::variant<int, std::string> var;
+};
+REFLECTION(my_variant_t, name, var);
 
 struct test_pb_st1 {
   int x;
@@ -503,7 +511,7 @@ TEST_CASE("test members") {
   std::visit(
       [&inner](auto &member) mutable {
         CHECK(member.field_no == 2);
-        CHECK(member.field_name == "y");
+        CHECK(member.field_name == "b");
         CHECK(member.value(inner) == 42);
       },
       arr.at(1));
@@ -524,7 +532,7 @@ TEST_CASE("test members") {
 TEST_CASE("test variant") {
   std::variant<int, std::string> var;
   var = 1;
-  nest_t v{"Hi", {1, 2, 3}, var}, v2;
+  my_variant_t v{"Hi", var}, v2;
   std::string s;
   iguana::to_json(v, s);
   std::cout << s << std::endl;
