@@ -288,6 +288,17 @@ struct test_pb_st13 {
 };
 REFLECTION(test_pb_st13, x, y, z);
 
+enum class colors_t { red, black };
+
+enum level_t { debug, info };
+
+struct test_pb_st14 {
+  int x;
+  colors_t y;
+  level_t z;
+};
+REFLECTION(test_pb_st14, x, y, z);
+
 namespace client {
 struct person {
   std::string name;
@@ -468,6 +479,16 @@ TEST_CASE("test struct_pb") {
     iguana::to_pb(st1, str);
 
     test_pb_st13 st2;
+    iguana::from_pb(st2, str);
+    CHECK(st1.z == st2.z);
+  }
+  {
+    // enum
+    test_pb_st14 st1{1, colors_t::black, level_t::info};
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st14 st2;
     iguana::from_pb(st2, str);
     CHECK(st1.z == st2.z);
   }

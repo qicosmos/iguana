@@ -111,7 +111,8 @@ constexpr bool is_one_of_v = is_one_of_t<T>::value;
 
 template <typename T>
 constexpr inline WireType get_wire_type() {
-  if constexpr (std::is_integral_v<T> || is_signed_varint_v<T>) {
+  if constexpr (std::is_integral_v<T> || is_signed_varint_v<T> ||
+                std::is_enum_v<T>) {
     return WireType::Varint;
   }
   else if constexpr (std::is_same_v<T, fixed32_t> ||
@@ -317,6 +318,12 @@ inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
     }
     pb_str = pb_str.substr(size + pos);
   }
+  else if constexpr (std::is_enum_v<value_type>) {
+    using U = std::underlying_type_t<value_type>;
+    U value;
+    from_pb_impl<U>(value, pb_str);
+    val = static_cast<value_type>(value);
+  }
   else if constexpr (optional_v<value_type>) {
     from_pb_impl<typename value_type::value_type>(val.emplace(), pb_str);
   }
@@ -373,6 +380,11 @@ inline void to_pb_impl(T& val, size_t field_no, std::string& out) {
   else if constexpr (std::is_same_v<value_type, std::string> ||
                      std::is_same_v<value_type, std::string_view>) {
     detail::encode_string_field(field_no, WireType::LengthDelimeted, val, out);
+  }
+  else if constexpr (std::is_enum_v<value_type>) {
+    using U = std::underlying_type_t<T>;
+    detail::encode_varint_field(field_no, WireType::Varint, static_cast<U>(val),
+                                out);
   }
   else if constexpr (optional_v<value_type>) {
     if (!val.has_value()) {
