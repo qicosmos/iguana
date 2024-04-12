@@ -225,6 +225,9 @@ inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
       throw std::invalid_argument("Invalid fixed int value: too few bytes.");
     }
     pb_str = pb_str.substr(pos);
+    if (size == 0) {
+      return;
+    }
 
     from_pb(val, pb_str);
     pb_str = pb_str.substr(size);
@@ -336,6 +339,20 @@ inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
 }
 
 template <typename value_type, typename T>
+inline void to_pb_impl(T& val, size_t field_no, std::string& out);
+
+template <typename value_type, typename T>
+inline std::string encode_pair_value(T& val, uint32_t field_no) {
+  std::string temp;
+  to_pb_impl<value_type>(val, field_no, temp);
+  if (temp.empty()) {
+    encode_key(field_no, WireType::LengthDelimeted, temp);
+    serialize_varint(0, temp);
+  }
+  return temp;
+}
+
+template <typename value_type, typename T>
 inline void to_pb_impl(T& val, size_t field_no, std::string& out) {
   if constexpr (is_reflection_v<value_type>) {
     std::string temp;
@@ -354,11 +371,12 @@ inline void to_pb_impl(T& val, size_t field_no, std::string& out) {
     using first_type = typename value_type::key_type;
     using second_type = typename value_type::mapped_type;
     for (auto& [k, v] : val) {
-      std::string temp;
-      to_pb_impl<first_type>(k, 1, temp);
-      to_pb_impl<second_type>(v, 2, temp);
-      detail::encode_string_field(field_no, WireType::LengthDelimeted, temp,
-                                  out);
+      std::string temp = encode_pair_value<first_type>(k, 1);
+      std::string second_temp = encode_pair_value<second_type>(v, 2);
+      encode_key(field_no, WireType::LengthDelimeted, out);
+
+      serialize_varint(temp.size() + second_temp.size(), out);
+      out.append(temp).append(second_temp);
     }
   }
   else if constexpr (std::is_integral_v<value_type>) {
@@ -425,8 +443,12 @@ inline void from_pb(T& t, std::string_view pb_str) {
 
     pb_str = pb_str.substr(pos);
 
-    const auto& arr = get_members(t);
-    auto& member = arr.at(field_number - 1);
+    const auto& map = get_members(t);
+    uint32_t sub_val = 1;
+    if constexpr (!is_reflection_v<T>) {
+      sub_val = 0;
+    }
+    auto& member = map.at(field_number - sub_val);
     std::visit(
         [&t, &pb_str, wire_type](auto& val) {
           using value_type = typename std::decay_t<decltype(val)>::value_type;

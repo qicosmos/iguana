@@ -491,6 +491,20 @@ TEST_CASE("test struct_pb") {
     CHECK(st1.z == st2.z);
   }
   {
+    // map messages
+    test_pb_st13 st1;
+    st1.x = 1;
+    st1.y.emplace(2, message_t{});
+    st1.y.emplace(3, message_t{});
+    st1.z = "test";
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st13 st2;
+    iguana::from_pb(st2, str);
+    CHECK(st1.z == st2.z);
+  }
+  {
     // enum
     test_pb_st14 st1{1, colors_t::black, level_t::info};
     std::string str;
@@ -510,11 +524,11 @@ TEST_CASE("test members") {
   const auto &map = iguana::get_members(inner);
   std::visit(
       [&inner](auto &member) mutable {
-        CHECK(member.field_no == 2);
+        CHECK(member.field_no == 9);
         CHECK(member.field_name == "b");
         CHECK(member.value(inner) == 42);
       },
-      map.at(1));
+      map.at(9));
 
   point_t pt{2, 3};
   iguana::get_members(pt);

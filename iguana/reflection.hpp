@@ -754,9 +754,9 @@ inline auto get_members_impl(T &&) {
 template <typename T, size_t Size>
 struct member_helper {
   template <typename Tuple, size_t... I>
-  auto operator()(Tuple &&tp, std::index_sequence<I...>) {
+  auto operator()(Tuple &&tp, uint32_t sub_val, std::index_sequence<I...>) {
     std::unordered_map<uint32_t, T> map;
-    ((map[std::get<I>(tp).field_no - 1] =
+    ((map[std::get<I>(tp).field_no - sub_val] =
           T{std::in_place_index<I>, std::move(std::get<I>(tp))}),
      ...);
     return map;
@@ -774,7 +774,7 @@ inline decltype(auto) get_members(T &&t) {
         decltype(reflect_members::apply_impl())>::value_type;
     constexpr size_t Size = reflect_members::value();
     static auto map = member_helper<value_type, Size>{}(
-        get_members_impl(t), std::make_index_sequence<Size>{});
+        get_members_impl(t), 1, std::make_index_sequence<Size>{});
     return map;
   }
   else {
@@ -783,7 +783,7 @@ inline decltype(auto) get_members(T &&t) {
     using value_type = typename user_field_type_t<decltype(get_members_impl(
         (U *)nullptr))>::value_type;
     static auto map = member_helper<value_type, Size>{}(
-        get_members_impl((U *)nullptr), std::make_index_sequence<Size>{});
+        get_members_impl((U *)nullptr), 0, std::make_index_sequence<Size>{});
     return map;
   }
 }
