@@ -700,6 +700,31 @@ TEST_CASE("test smart_ptr") {
   validator(cont1);
 }
 
+TEST_CASE("test throw while parsing an illegal number") {
+  {
+    std::string str = R"(
+  <Contents_t>
+    <vec>42A</vec>
+    <vec_s>15</vec_s>
+    <b>test</b>
+  </Contents_t>
+    )";
+    Contents_t cont;
+    CHECK_THROWS(iguana::from_xml(cont, str));
+  }
+  {
+    std::string str = R"(
+<Contents_t>
+	<vec>42</vec>
+	<vec_s>15.7</vec_s>
+	<b>test</b>
+</Contents_t>
+  )";
+    Contents_t cont;
+    CHECK_THROWS(iguana::from_xml(cont, str));
+  }
+}
+
 struct next_obj_t {
   int x;
   int y;
