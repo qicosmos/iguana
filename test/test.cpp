@@ -458,6 +458,25 @@ TEST_CASE("test struct_pb") {
     CHECK(st1.z == st2.z);
   }
   {
+    message_t m{.id = 1, .t = {3, 4}};
+    test_pb_st11 st1{1, {m}, {}};
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st11 st2;
+    iguana::from_pb(st2, str);
+    CHECK(st1.z == st2.z);
+  }
+  {
+    message_t st1{};
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    message_t st2{};
+    iguana::from_pb(st2, str);
+    CHECK(st1.id == st2.id);
+  }
+  {
     test_pb_st11 st1{1, {{{5, {7, 8}}}, {{9, {11, 12}}}}, {"test"}};
     std::string str;
     iguana::to_pb(st1, str);
@@ -469,6 +488,16 @@ TEST_CASE("test struct_pb") {
   {
     // map messages
     test_pb_st12 st1{1, {{1, "test"}, {2, "ok"}}, {{"test", 4}, {"ok", 6}}};
+    std::string str;
+    iguana::to_pb(st1, str);
+
+    test_pb_st12 st2;
+    iguana::from_pb(st2, str);
+    CHECK(st1.z == st2.z);
+  }
+  {
+    // map messages
+    test_pb_st12 st1{1, {{1, ""}, {0, "ok"}}, {{"", 4}, {"ok", 0}}};
     std::string str;
     iguana::to_pb(st1, str);
 

@@ -346,7 +346,7 @@ inline std::string encode_pair_value(T& val, uint32_t field_no) {
   std::string temp;
   to_pb_impl<value_type>(val, field_no, temp);
   if (temp.empty()) {
-    encode_key(field_no, WireType::LengthDelimeted, temp);
+    encode_key(field_no, get_wire_type<value_type>(), temp);
     serialize_varint(0, temp);
   }
   return temp;
