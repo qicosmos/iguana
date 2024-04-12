@@ -186,9 +186,28 @@ std::integral_constant<size_t, 3> member_count(inner_struct);
 struct nest_t {
   std::string name;
   my_space::inner_struct value;
-  std::variant<int, std::string> var;
+  std::variant<int, std::string, double> var;
+  std::variant<int, std::string, my_space::inner_struct> var2;
 };
-REFLECTION(nest_t, name, value, var);
+REFLECTION(nest_t, name, value, var, var2);
+
+TEST_CASE("test throw while parsing an illegal number") {
+  {
+    std::string str{"[0,1.0]"};
+    std::vector<int> test{};
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
+  }
+  {
+    std::string str{"1A"};
+    int test{};
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
+  }
+  {
+    std::string str{"1.0"};
+    int test{};
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
+  }
+}
 
 struct my_variant_t {
   std::string name;
@@ -579,8 +598,10 @@ TEST_CASE("test variant") {
   std::string s;
   iguana::to_json(v, s);
   std::cout << s << std::endl;
+
+  nest_t v2;
   iguana::from_json(v2, s);
-  CHECK(v.name == v2.name);
+  CHECK(v.var == v2.var);
 }
 
 TEST_CASE("test from issues") {

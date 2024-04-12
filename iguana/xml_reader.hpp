@@ -5,7 +5,6 @@
 #include "detail/utf.hpp"
 #include "xml_util.hpp"
 
-
 namespace iguana {
 namespace detail {
 
@@ -34,10 +33,7 @@ IGUANA_INLINE void parse_value(U &&value, It &&begin, It &&end) {
   else if constexpr (num_v<T>) {
     auto size = std::distance(begin, end);
     const auto start = &*begin;
-    auto [p, ec] = detail::from_chars(start, start + size, value);
-    if (ec != std::errc{})
-      IGUANA_UNLIKELY
-    throw std::runtime_error("Failed to parse number");
+    detail::from_chars(start, start + size, value);
   }
   else if constexpr (char_v<T>) {
     if (static_cast<size_t>(std::distance(begin, end)) != 1)

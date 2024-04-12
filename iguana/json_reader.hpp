@@ -68,8 +68,8 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
     if (size == 0)
       IGUANA_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
     const auto start = &*it;
-    auto [p, ec] = detail::from_chars(start, start + size, value);
-    if (ec != std::errc{})
+    auto [p, ec] = detail::from_chars<false>(start, start + size, value);
+    if (ec != std::errc{} || !can_follow_number(*p))
       IGUANA_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
     it += (p - &*it);
   }
@@ -82,9 +82,7 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
       buffer[i] = *it++;
       ++i;
     }
-    auto [p, ec] = detail::from_chars(buffer, buffer + i, value);
-    if (ec != std::errc{})
-      IGUANA_UNLIKELY { throw std::runtime_error("Failed to parse number"); }
+    detail::from_chars(buffer, buffer + i, value);
   }
 }
 
@@ -499,13 +497,45 @@ IGUANA_INLINE void skip_object_value(It &&it, It &&end) {
   }
 }
 
+template <typename value_type, typename U, typename It>
+IGUANA_INLINE bool from_json_variant_impl(U &value, It it, It end, It &temp_it,
+                                          It &temp_end) {
+  try {
+    value_type val;
+    from_json_impl(val, it, end);
+    value = val;
+    temp_it = it;
+    temp_end = end;
+    return true;
+  } catch (std::exception &ex) {
+    return false;
+  }
+}
+
+template <size_t Idx, typename T>
+using variant_element_t = std::remove_reference_t<decltype(std::get<Idx>(
+    std::declval<std::remove_reference_t<T>>()))>;
+
+template <typename U, typename It, size_t... Idx>
+IGUANA_INLINE void from_json_variant(U &value, It &it, It &end,
+                                     std::index_sequence<Idx...>) {
+  bool r = false;
+  It temp_it = it;
+  It temp_end = end;
+  ((void)(!r && (r = from_json_variant_impl<
+                     variant_element_t<Idx, std::remove_reference_t<U>>>(
+                     value, it, end, temp_it, temp_end),
+                 true)),
+   ...);
+  it = temp_it;
+  end = temp_end;
+}
+
 template <typename U, typename It, std::enable_if_t<variant_v<U>, int> = 0>
 IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
-  std::visit(
-      [&](auto &val) {
-        from_json_impl(val, it, end);
-      },
-      value);
+  from_json_variant(value, it, end,
+                    std::make_index_sequence<
+                        std::variant_size_v<std::remove_reference_t<U>>>{});
 }
 }  // namespace detail
 
