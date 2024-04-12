@@ -172,9 +172,9 @@ struct inner_struct {
 };
 
 inline auto get_members_impl(inner_struct *) {
-  return std::make_tuple(iguana::field_t{&inner_struct::x, 1, "a"},
-                         iguana::field_t{&inner_struct::y, 2, "b"},
-                         iguana::field_t{&inner_struct::z, 3, "c"});
+  return std::make_tuple(iguana::field_t{&inner_struct::x, 7, "a"},
+                         iguana::field_t{&inner_struct::y, 9, "b"},
+                         iguana::field_t{&inner_struct::z, 12, "c"});
 }
 
 inline constexpr size_t iguana_member_count(inner_struct *) { return 3; }
@@ -507,14 +507,14 @@ TEST_CASE("test members") {
   using namespace iguana::detail;
 
   my_space::inner_struct inner{41, 42, 43};
-  const auto &arr = iguana::get_members(inner);
+  const auto &map = iguana::get_members(inner);
   std::visit(
       [&inner](auto &member) mutable {
         CHECK(member.field_no == 2);
         CHECK(member.field_name == "b");
         CHECK(member.value(inner) == 42);
       },
-      arr.at(1));
+      map.at(1));
 
   point_t pt{2, 3};
   iguana::get_members(pt);

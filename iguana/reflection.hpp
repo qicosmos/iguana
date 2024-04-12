@@ -755,11 +755,11 @@ template <typename T, size_t Size>
 struct member_helper {
   template <typename Tuple, size_t... I>
   auto operator()(Tuple &&tp, std::index_sequence<I...>) {
-    std::array<T, Size> arr;
-    ((arr[std::get<I>(tp).field_no - 1] =
+    std::unordered_map<uint32_t, T> map;
+    ((map[std::get<I>(tp).field_no - 1] =
           T{std::in_place_index<I>, std::move(std::get<I>(tp))}),
      ...);
-    return arr;
+    return map;
   }
 };
 
@@ -773,18 +773,18 @@ inline decltype(auto) get_members(T &&t) {
     using value_type = typename field_type_t<
         decltype(reflect_members::apply_impl())>::value_type;
     constexpr size_t Size = reflect_members::value();
-    static std::array<value_type, Size> arr = member_helper<value_type, Size>{}(
+    static auto map = member_helper<value_type, Size>{}(
         get_members_impl(t), std::make_index_sequence<Size>{});
-    return arr;
+    return map;
   }
   else {
     using U = std::remove_const_t<std::remove_reference_t<T>>;
     constexpr size_t Size = iguana_member_count((U *)nullptr);
     using value_type = typename user_field_type_t<decltype(get_members_impl(
         (U *)nullptr))>::value_type;
-    static std::array<value_type, Size> arr = member_helper<value_type, Size>{}(
+    static auto map = member_helper<value_type, Size>{}(
         get_members_impl((U *)nullptr), std::make_index_sequence<Size>{});
-    return arr;
+    return map;
   }
 }
 
