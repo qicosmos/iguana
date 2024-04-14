@@ -599,7 +599,6 @@ TEST_CASE("test variant") {
   iguana::to_json(v, s);
   std::cout << s << std::endl;
 
-  nest_t v2;
   iguana::from_json(v2, s);
   CHECK(v.var == v2.var);
 }
