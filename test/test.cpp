@@ -477,7 +477,7 @@ TEST_CASE("test struct_pb") {
     CHECK(st1.z == st2.z);
   }
   {
-    message_t m{.id = 1, .t = {3, 4}};
+    message_t m{1, {3, 4}};
     test_pb_st11 st1{1, {m}, {}};
     std::string str;
     iguana::to_pb(st1, str);
