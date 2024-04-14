@@ -29,8 +29,8 @@ namespace detail {
 
 template <class T>
 inline uint64_t decode_varint(T& data, size_t& pos) {
-  const int8_t* begin = reinterpret_cast<const int8_t*>(data.begin());
-  const int8_t* end = reinterpret_cast<const int8_t*>(data.end());
+  const int8_t* begin = reinterpret_cast<const int8_t*>(data.data());
+  const int8_t* end = begin + data.size();
   const int8_t* p = begin;
   uint64_t val = 0;
 
