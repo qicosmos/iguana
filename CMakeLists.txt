@@ -33,6 +33,8 @@ message(STATUS "C++ standard: ${CMAKE_CXX_STANDARD}")
 
 add_definitions(-DTHROW_UNKNOWN_KEY)
 
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/bigobj>")
+
 option(ENABLE_SEQUENTIAL_PARSE "parse json sequential more efficient if the json fields sequences are the same with struct fields" OFF)
 if (${ENABLE_SEQUENTIAL_PARSE})
     ADD_DEFINITIONS(-DSEQUENTIAL_PARSE)
