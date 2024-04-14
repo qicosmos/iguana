@@ -371,7 +371,9 @@ TEST_CASE("test struct_pb") {
 
     test_pb_st1 st2;
     iguana::from_pb(st2, str);
+    CHECK(st1.x == st2.x);
     CHECK(st1.y.val == st2.y.val);
+    CHECK(st1.z.val == st2.z.val);
   }
 
   {
