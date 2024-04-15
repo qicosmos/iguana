@@ -233,22 +233,45 @@ inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
     pb_str = pb_str.substr(size);
   }
   else if constexpr (is_sequence_container<value_type>::value) {
-    size_t pos;
-    uint32_t size = detail::decode_varint(pb_str, pos);
-    if (pb_str.size() < size) {
-      throw std::invalid_argument("Invalid fixed int value: too few bytes.");
-    }
-    pb_str = pb_str.substr(pos);
-
     using item_type = typename value_type::value_type;
-    size_t start = pb_str.size();
+    if constexpr (is_reflection_v<item_type>) {
+      // message no size
+      while (!pb_str.empty()) {
+        item_type item;
+        from_pb_impl<item_type>(item, pb_str);
+        val.push_back(std::move(item));
+        if (pb_str.empty()) {
+          break;
+        }
+        uint32_t key = detail::decode_varint(pb_str, pos);
+        uint32_t field_number = key >> 3;
+        if (field_number != field_no) {
+          break;
+        }
+        else {
+          pb_str = pb_str.substr(pos);
+        }
+      }
+    }
+    else {
+      // non-message has size
+      size_t pos;
+      uint32_t size = detail::decode_varint(pb_str, pos);
+      if (pb_str.size() < size) {
+        throw std::invalid_argument("Invalid fixed int value: too few bytes.");
+      }
+      pb_str = pb_str.substr(pos);
 
-    while (!pb_str.empty()) {
-      item_type item;
-      from_pb_impl<item_type>(item, pb_str);
-      val.push_back(std::move(item));
-      if (start - pb_str.size() == size) {
-        break;
+      using item_type = typename value_type::value_type;
+      size_t start = pb_str.size();
+
+      while (!pb_str.empty()) {
+        item_type item;
+        from_pb_impl<item_type>(item, pb_str);
+        val.push_back(std::move(item));
+        if (start - pb_str.size() == size) {
+          break;
+        }
       }
     }
   }
@@ -360,12 +383,20 @@ inline void to_pb_impl(T& val, size_t field_no, std::string& out) {
     detail::encode_string_field(field_no, WireType::LengthDelimeted, temp, out);
   }
   else if constexpr (is_sequence_container<value_type>::value) {
-    std::string temp;
     using item_type = typename value_type::value_type;
-    for (auto& item : val) {
-      to_pb_impl<item_type>(item, 0, temp);
+    if constexpr (is_reflection_v<item_type>) {
+      for (auto& item : val) {
+        to_pb_impl<item_type>(item, field_no, out);
+      }
     }
-    detail::encode_string_field(field_no, WireType::LengthDelimeted, temp, out);
+    else {
+      std::string temp;
+      for (auto& item : val) {
+        to_pb_impl<item_type>(item, 0, temp);
+      }
+      detail::encode_string_field(field_no, WireType::LengthDelimeted, temp,
+                                  out);
+    }
   }
   else if constexpr (is_map_container<value_type>::value) {
     using first_type = typename value_type::key_type;
@@ -443,7 +474,7 @@ inline void from_pb(T& t, std::string_view pb_str) {
 
     pb_str = pb_str.substr(pos);
 
-    const auto& map = get_members(t);
+    const static auto& map = get_members(t);
     uint32_t sub_val = 1;
     if constexpr (!is_reflection_v<T>) {
       sub_val = 0;
@@ -475,7 +506,7 @@ inline void from_pb(T& t, std::string_view pb_str) {
 
 template <typename T>
 inline void to_pb(T& t, std::string& out) {
-  const auto& map = get_members(t);
+  const static auto& map = get_members(t);
   for (auto& [field_no, member] : map) {
     std::visit(
         [&t, &out](auto& val) {
