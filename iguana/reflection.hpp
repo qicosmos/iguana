@@ -755,7 +755,7 @@ template <typename T, size_t Size>
 struct member_helper {
   template <typename Tuple, size_t... I>
   auto operator()(Tuple &&tp, uint32_t sub_val, std::index_sequence<I...>) {
-    std::unordered_map<uint32_t, T> map;
+    std::map<uint32_t, T> map;
     ((map[std::get<I>(tp).field_no - sub_val] =
           T{std::in_place_index<I>, std::move(std::get<I>(tp))}),
      ...);

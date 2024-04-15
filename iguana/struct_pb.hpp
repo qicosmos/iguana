@@ -475,8 +475,8 @@ inline void from_pb(T& t, std::string_view pb_str) {
 
 template <typename T>
 inline void to_pb(T& t, std::string& out) {
-  const auto& arr = get_members(t);
-  for (auto& [field_no, member] : arr) {
+  const auto& map = get_members(t);
+  for (auto& [field_no, member] : map) {
     std::visit(
         [&t, &out](auto& val) {
           using value_type = typename std::decay_t<decltype(val)>::value_type;
