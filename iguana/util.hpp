@@ -140,6 +140,20 @@ template <typename T>
 constexpr inline bool variant_v = is_variant<std::remove_cvref_t<T>>::value;
 
 template <typename T>
+struct has_same_variant_type : std::false_type {};
+
+template <typename T, typename... Us>
+struct has_same_variant_type<std::variant<T, Us...>>
+    : std::disjunction<std::is_same<T, Us>...> {};
+
+template <typename T>
+constexpr bool has_same_variant_type_v = has_same_variant_type<T>::value;
+
+template <size_t Idx, typename T>
+using variant_element_t = std::remove_reference_t<decltype(std::get<Idx>(
+    std::declval<std::remove_reference_t<T>>()))>;
+
+template <typename T>
 constexpr inline bool refletable_v = is_reflection_v<std::remove_cvref_t<T>>;
 
 template <class T>

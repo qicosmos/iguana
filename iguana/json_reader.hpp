@@ -512,13 +512,11 @@ IGUANA_INLINE bool from_json_variant_impl(U &value, It it, It end, It &temp_it,
   }
 }
 
-template <size_t Idx, typename T>
-using variant_element_t = std::remove_reference_t<decltype(std::get<Idx>(
-    std::declval<std::remove_reference_t<T>>()))>;
-
 template <typename U, typename It, size_t... Idx>
 IGUANA_INLINE void from_json_variant(U &value, It &it, It &end,
                                      std::index_sequence<Idx...>) {
+  static_assert(!has_same_variant_type_v<std::remove_reference_t<U>>,
+                "don't allow same type in std::variant");
   bool r = false;
   It temp_it = it;
   It temp_end = end;
