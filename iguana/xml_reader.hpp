@@ -235,7 +235,10 @@ IGUANA_INLINE auto skip_till_key(T &value, It &&it, It &&end) {
     else if (*it == '?')
       IGUANA_UNLIKELY {
         // <? ... ?>
-        skip_till<'>'>(it, end);
+        while (*(it - 1) != '?') {
+          ++it;
+          skip_till<'>'>(it, end);
+        }
         ++it;
         skip_sapces_and_newline(it, end);
         continue;
@@ -275,8 +278,17 @@ IGUANA_INLINE auto skip_till_key(T &value, It &&it, It &&end) {
             continue;
           }
         }
-        else {
+        else if (*it == '-') {
           // <!-- -->
+          while (*(it - 1) != '-' || *(it - 2) != '-') {
+            ++it;
+            skip_till<'>'>(it, end);
+          }
+          ++it;
+          skip_sapces_and_newline(it, end);
+          continue;
+        }
+        else {
           // <!D
           skip_till<'>'>(it, end);
           ++it;

@@ -373,6 +373,8 @@ TEST_CASE("test example cdata") {
       </description>
       <!DOCTYPE test node>
       <?myapp instruction?>
+      <!-- <price>3.25</price> -->
+      <!-- <price a="b"/> -->
       <![CDATA[<p>this is a  cdata node</p>]]>
     </node_t>
   )";
