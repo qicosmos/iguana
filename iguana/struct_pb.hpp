@@ -112,15 +112,17 @@ constexpr bool is_one_of_v = is_one_of_t<T>::value;
 template <typename T>
 constexpr inline WireType get_wire_type() {
   if constexpr (std::is_integral_v<T> || is_signed_varint_v<T> ||
-                std::is_enum_v<T>) {
+                std::is_enum_v<T> || std::is_same_v<T, bool>) {
     return WireType::Varint;
   }
   else if constexpr (std::is_same_v<T, fixed32_t> ||
-                     std::is_same_v<T, sfixed32_t>) {
+                     std::is_same_v<T, sfixed32_t> ||
+                     std::is_same_v<T, float>) {
     return WireType::Fixed32;
   }
   else if constexpr (std::is_same_v<T, fixed64_t> ||
-                     std::is_same_v<T, sfixed64_t>) {
+                     std::is_same_v<T, sfixed64_t> ||
+                     std::is_same_v<T, double>) {
     return WireType::Fixed64;
   }
   else if constexpr (std::is_same_v<T, std::string> ||
@@ -221,10 +223,10 @@ inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
   if constexpr (is_reflection_v<value_type>) {
     size_t pos;
     uint32_t size = detail::decode_varint(pb_str, pos);
+    pb_str = pb_str.substr(pos);
     if (pb_str.size() < size) {
       throw std::invalid_argument("Invalid fixed int value: too few bytes.");
     }
-    pb_str = pb_str.substr(pos);
     if (size == 0) {
       return;
     }
@@ -257,11 +259,10 @@ inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
       // non-message has size
       size_t pos;
       uint32_t size = detail::decode_varint(pb_str, pos);
+      pb_str = pb_str.substr(pos);
       if (pb_str.size() < size) {
         throw std::invalid_argument("Invalid fixed int value: too few bytes.");
       }
-      pb_str = pb_str.substr(pos);
-
       using item_type = typename value_type::value_type;
       size_t start = pb_str.size();
 
@@ -281,10 +282,10 @@ inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
     while (!pb_str.empty()) {
       size_t pos;
       uint32_t size = detail::decode_varint(pb_str, pos);
+      pb_str = pb_str.substr(pos);
       if (pb_str.size() < size) {
         throw std::invalid_argument("Invalid fixed int value: too few bytes.");
       }
-      pb_str = pb_str.substr(pos);
 
       item_type item = {};
       decode_pair_value(item.first, pb_str);
@@ -305,7 +306,7 @@ inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
     }
   }
   else if constexpr (std::is_integral_v<value_type>) {
-    val = detail::decode_varint(pb_str, pos);
+    val = static_cast<value_type>(detail::decode_varint(pb_str, pos));
     pb_str = pb_str.substr(pos);
   }
   else if constexpr (detail::is_signed_varint_v<value_type>) {
@@ -320,8 +321,11 @@ inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
     }
     pb_str = pb_str.substr(pos);
   }
-  else if constexpr (detail::is_fixed_v<value_type>) {
-    constexpr size_t size = sizeof(typename value_type::value_type);
+  else if constexpr (detail::is_fixed_v<value_type> ||
+                     std::is_same_v<value_type, double> ||
+                     std::is_same_v<value_type, float>) {
+    constexpr size_t size =
+        sizeof(typename detail::get_inner_type<value_type>::v_type);
     if (pb_str.size() < size) {
       throw std::invalid_argument("Invalid fixed int value: too few bytes.");
     }
@@ -405,7 +409,6 @@ inline void to_pb_impl(T& val, size_t field_no, std::string& out) {
       std::string temp = encode_pair_value<first_type>(k, 1);
       std::string second_temp = encode_pair_value<second_type>(v, 2);
       encode_key(field_no, WireType::LengthDelimeted, out);
-
       serialize_varint(temp.size() + second_temp.size(), out);
       out.append(temp).append(second_temp);
     }
@@ -416,14 +419,14 @@ inline void to_pb_impl(T& val, size_t field_no, std::string& out) {
   else if constexpr (detail::is_signed_varint_v<value_type>) {
     detail::encode_signed_varint_field(field_no, WireType::Varint, val, out);
   }
-  else if constexpr (detail::is_fixed_v<value_type>) {
+  else if constexpr (detail::is_fixed_v<value_type> ||
+                     std::is_same_v<value_type, double> ||
+                     std::is_same_v<value_type, float>) {
     if constexpr (sizeof(value_type) == 8) {
-      detail::encode_fixed_field(field_no, WireType::Fixed64, (uint64_t)(val),
-                                 out);
+      detail::encode_fixed_field(field_no, WireType::Fixed64, val, out);
     }
     else {
-      detail::encode_fixed_field(field_no, WireType::Fixed32, (uint32_t)(val),
-                                 out);
+      detail::encode_fixed_field(field_no, WireType::Fixed32, val, out);
     }
   }
   else if constexpr (std::is_same_v<value_type, std::string> ||
@@ -439,7 +442,6 @@ inline void to_pb_impl(T& val, size_t field_no, std::string& out) {
     if (!val.has_value()) {
       return;
     }
-
     to_pb_impl<typename value_type::value_type>(*val, field_no, out);
   }
   else if constexpr (is_one_of_v<value_type>) {
@@ -486,7 +488,6 @@ inline void from_pb(T& t, std::string_view pb_str) {
           if (wire_type != detail::get_wire_type<value_type>()) {
             return;
           }
-
           if constexpr (detail::is_signed_varint_v<value_type> ||
                         detail::is_fixed_v<value_type>) {
             detail::from_pb_impl<value_type>(val.value(t).val, pb_str);

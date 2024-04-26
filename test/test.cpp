@@ -350,6 +350,13 @@ struct nest1 {
 
 REFLECTION(nest1, name, value, var);
 
+struct numer_st {
+  bool a;
+  double b;
+  float c;
+};
+REFLECTION(numer_st, a, b, c);
+
 TEST_CASE("test struct_pb") {
   {
     my_space::inner_struct inner{41, 42, 43};
@@ -563,6 +570,17 @@ TEST_CASE("test struct_pb") {
     test_pb_st14 st2;
     iguana::from_pb(st2, str);
     CHECK(st1.z == st2.z);
+  }
+  {
+    // bool float double
+    numer_st n{true, 10.25, 4.578}, n1;
+    std::string str;
+    iguana::to_pb(n, str);
+
+    iguana::from_pb(n1, str);
+    CHECK(n1.a == n.a);
+    CHECK(n1.b == n.b);
+    CHECK(n1.c == n.c);
   }
 }
 
