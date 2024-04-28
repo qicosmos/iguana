@@ -910,6 +910,55 @@ constexpr const std::string_view get_name() {
   return M::name();
 }
 
+namespace detail {
+template <auto ptr, auto ele>
+constexpr bool get_index_imple() {
+  if constexpr (std::is_same_v<
+                    typename member_tratis<decltype(ptr)>::value_type,
+                    typename member_tratis<decltype(ele)>::value_type>) {
+    if constexpr (ele == ptr) {
+      return true;
+    }
+    else {
+      return false;
+    }
+  }
+  else {
+    return false;
+  }
+}
+
+#define member_index(ptr, tp, size)                               \
+  [&]<size_t... I>(std::index_sequence<I...>) {                   \
+    bool r = false;                                               \
+    size_t index = 0;                                             \
+    ((!r && (r = detail::get_index_imple<ptr, std::get<I>(tp)>(), \
+             !r ? index++ : index, true)),                        \
+     ...);                                                        \
+    return index;                                                 \
+  }                                                               \
+  (std::make_index_sequence<size>{});
+}  // namespace detail
+
+template <auto member>
+constexpr size_t index_of() {
+  using T = typename member_tratis<decltype(member)>::owner_type;
+  using M = Reflect_members<T>;
+  constexpr auto tp = M::apply_impl();
+  constexpr size_t Size = std::tuple_size_v<decltype(tp)>;
+  constexpr size_t index = member_index(member, tp, Size);
+  static_assert(index < Size, "out of range");
+  return index;
+}
+
+template <auto member>
+constexpr auto name_of() {
+  using T = typename member_tratis<decltype(member)>::owner_type;
+  using M = Reflect_members<T>;
+  constexpr auto s = M::arr()[index_of<member>()];
+  return std::string_view(s.data(), s.size());
+}
+
 template <typename T>
 constexpr const std::string_view get_fields() {
   using M = Reflect_members<T>;

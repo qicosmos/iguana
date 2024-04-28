@@ -821,6 +821,24 @@ TEST_CASE("parse some other char") {
   CHECK(p.name == "tom");
 }
 
+TEST_CASE("index_of name_of") {
+  constexpr size_t idx1 = iguana::index_of<&point_t::y>();
+  static_assert(idx1 == 1);
+  constexpr size_t idx2 = iguana::index_of<&person::name>();
+  static_assert(idx2 == 0);
+
+  CHECK(idx1 == 1);
+  CHECK(idx2 == 0);
+
+  constexpr auto s1 = iguana::name_of<&point_t::y>();
+  static_assert(s1 == "y");
+  constexpr auto s2 = iguana::name_of<&person::name>();
+  static_assert(s2 == "name");
+
+  CHECK(s1 == "y");
+  CHECK(s2 == "name");
+}
+
 TEST_CASE("check some types") {
   using value_type = std::variant<int point_t::*, double point_t::*>;
   constexpr auto map = iguana::get_iguana_struct_map<point_t>();
