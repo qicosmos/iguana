@@ -19,11 +19,11 @@ IGUANA_INLINE void render_string_with_escape_xml(const Ch *it, SizeType length,
         continue;
       }
 #endif
-    if (*it == '\'')
-      IGUANA_UNLIKELY { ss.append("&apos;"); }
-    else if (*it == '"')
-      IGUANA_UNLIKELY { ss.append("&quot;"); }
-    else if (*it == '&')
+    // if (*it == '\'')
+    //   IGUANA_UNLIKELY { ss.append("&apos;"); }
+    // else if (*it == '"')
+    //   IGUANA_UNLIKELY { ss.append("&quot;"); }
+    if (*it == '&')
       IGUANA_UNLIKELY { ss.append("&amp;"); }
     else if (*it == '>')
       IGUANA_UNLIKELY { ss.append("&gt;"); }

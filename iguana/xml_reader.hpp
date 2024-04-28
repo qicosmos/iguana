@@ -32,7 +32,14 @@ IGUANA_INLINE void parse_value(U &&value, It &&begin, It &&end) {
       value = T(&*begin, static_cast<size_t>(std::distance(begin, end)));
     }
     else {
-      parse_escape_xml(value, begin, end);
+      value.clear();
+      auto pre = begin;
+      while (advance_until_character<'&'>(begin, end)) {
+        value.append(T(&*pre, static_cast<size_t>(std::distance(pre, begin))));
+        parse_escape_xml(value, begin, end);
+        pre = begin;
+      }
+      value.append(T(&*pre, static_cast<size_t>(std::distance(pre, begin))));
     }
   }
   else if constexpr (num_v<T>) {
