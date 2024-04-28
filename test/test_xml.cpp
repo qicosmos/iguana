@@ -470,6 +470,7 @@ TEST_CASE("test province example") {
     CHECK(p.cities->city[1].area.value() == 20788);
   };
   std::string str = R"(
+<!-- this is a <province xml> -->
 <province name="Sichuan Province">
   <capital>Chengdu</capital>
   <![CDATA[ sichuan <> ]]>
@@ -485,6 +486,7 @@ TEST_CASE("test province example") {
       <![CDATA[ Suining <> ]]>
       <area unit="km^2">20788</area>
     </city>
+    <!-- <city a="b" /> -->
     <!-- More cities -->
   </cities>
 </province>

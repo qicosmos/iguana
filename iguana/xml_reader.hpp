@@ -118,17 +118,8 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
     match<'<'>(it, end);
     if (*it == '?' || *it == '!')
       IGUANA_UNLIKELY {
-        // skip <?
-        if (*(it + 1) == '[') {
-          --it;
-          return;
-        }
-        else {
-          skip_till<'>'>(it, end);
-          ++it;
-          skip_sapces_and_newline(it, end);
-          continue;
-        }
+        --it;
+        return;
       }
     auto start = it;
     skip_till_greater_or_space(it, end);
@@ -220,27 +211,48 @@ IGUANA_INLINE void skip_object_value(It &&it, It &&end, std::string_view name) {
   throw std::runtime_error("unclosed tag: " + std::string(name));
 }
 
+// skip <?...?>
+template <typename It>
+IGUANA_INLINE void skip_instructions(It &&it, It &&end) {
+  while (*(it - 1) != '?') {
+    ++it;
+    skip_till<'>'>(it, end);
+  }
+  ++it;
+}
+
+template <typename It>
+IGUANA_INLINE void skip_cdata(It &&it, It &&end) {
+  ++it;
+  skip_till<']'>(it, end);
+  ++it;
+  match<']', '>'>(it, end);
+}
+
+template <typename It>
+IGUANA_INLINE void skip_comment(It &&it, It &&end) {
+  while (*(it - 1) != '-' || *(it - 2) != '-') {
+    ++it;
+    skip_till<'>'>(it, end);
+  }
+  ++it;
+}
+
 // return true means reach the close tag
 template <size_t cdata_idx, typename T, typename It,
           std::enable_if_t<refletable_v<T>, int> = 0>
-IGUANA_INLINE auto skip_till_key(T &value, It &&it, It &&end) {
-  skip_sapces_and_newline(it, end);
+IGUANA_INLINE auto skip_till_close_tag(T &value, It &&it, It &&end) {
   while (true) {
+    skip_sapces_and_newline(it, end);
     match<'<'>(it, end);
     if (*it == '/')
       IGUANA_UNLIKELY {
-        // </tag>
-        return true;  // reach the close tag
+        // reach the close tag
+        return true;
       }
     else if (*it == '?')
       IGUANA_UNLIKELY {
-        // <? ... ?>
-        while (*(it - 1) != '?') {
-          ++it;
-          skip_till<'>'>(it, end);
-        }
-        ++it;
-        skip_sapces_and_newline(it, end);
+        skip_instructions(it, end);
         continue;
       }
     else if (*it == '!')
@@ -249,12 +261,7 @@ IGUANA_INLINE auto skip_till_key(T &value, It &&it, It &&end) {
         if (*it == '[') {
           // <![
           if constexpr (cdata_idx == iguana::get_value<std::decay_t<T>>()) {
-            ++it;
-            skip_till<']'>(it, end);
-            ++it;
-            match<']', '>'>(it, end);
-            skip_sapces_and_newline(it, end);
-            continue;
+            skip_cdata(it, end);
           }
           else {
             // if parse cdata
@@ -274,29 +281,50 @@ IGUANA_INLINE auto skip_till_key(T &value, It &&it, It &&end) {
                   &*vb, static_cast<size_t>(std::distance(vb, ve)));
             }
             match<']', '>'>(it, end);
-            skip_sapces_and_newline(it, end);
-            continue;
           }
         }
         else if (*it == '-') {
           // <!-- -->
-          while (*(it - 1) != '-' || *(it - 2) != '-') {
-            ++it;
-            skip_till<'>'>(it, end);
-          }
-          ++it;
-          skip_sapces_and_newline(it, end);
-          continue;
+          skip_comment(it, end);
         }
         else {
-          // <!D
+          // <!D... >
           skip_till<'>'>(it, end);
           ++it;
-          skip_sapces_and_newline(it, end);
-          continue;
         }
+        continue;
       }
     return false;
+  }
+}
+
+template <typename It>
+IGUANA_INLINE void skip_till_first_key(It &&it, It &&end) {
+  while (it != end) {
+    skip_sapces_and_newline(it, end);
+    match<'<'>(it, end);
+    if (*it == '?')
+      IGUANA_UNLIKELY {
+        skip_instructions(it, end);
+        continue;
+      }
+    else if (*it == '!')
+      IGUANA_UNLIKELY {
+        ++it;
+        if (*it == '-') {
+          // <!-- -->
+          skip_comment(it, end);
+        }
+        else {
+          // <!D... >
+          skip_till<'>'>(it, end);
+          ++it;
+        }
+        continue;
+      }
+    else {
+      break;
+    }
   }
 }
 
@@ -322,7 +350,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
   constexpr auto cdata_idx = get_type_index<is_cdata_t, U>();
   skip_till<'>'>(it, end);
   ++it;
-  if (skip_till_key<cdata_idx>(value, it, end)) {
+  if (skip_till_close_tag<cdata_idx>(value, it, end)) {
     match_close_tag(it, end, name);
     return;
   }
@@ -353,7 +381,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
         key_set.append(key).append(", ");
       }
     }
-    if (skip_till_key<cdata_idx>(value, it, end))
+    if (skip_till_close_tag<cdata_idx>(value, it, end))
       IGUANA_UNLIKELY {
         match_close_tag(it, end, name);
         parse_done = true;
@@ -398,7 +426,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
         skip_object_value(it, end, key);
 #endif
       }
-    if (skip_till_key<cdata_idx>(value, it, end)) {
+    if (skip_till_close_tag<cdata_idx>(value, it, end)) {
       match_close_tag(it, end, name);
       check_required<U>(key_set);
       return;
@@ -414,17 +442,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
 
 template <typename It, typename U, std::enable_if_t<attr_v<U>, int> = 0>
 IGUANA_INLINE void from_xml(U &value, It &&it, It &&end) {
-  while (it != end) {
-    skip_sapces_and_newline(it, end);
-    match<'<'>(it, end);
-    if (*it == '?') {
-      skip_till<'>'>(it, end);
-      ++it;
-    }
-    else {
-      break;
-    }
-  }
+  detail::skip_till_first_key(it, end);
   auto start = it;
   skip_till_greater_or_space(it, end);
   std::string_view key =
@@ -435,17 +453,7 @@ IGUANA_INLINE void from_xml(U &value, It &&it, It &&end) {
 
 template <typename It, typename U, std::enable_if_t<refletable_v<U>, int> = 0>
 IGUANA_INLINE void from_xml(U &value, It &&it, It &&end) {
-  while (it != end) {
-    skip_sapces_and_newline(it, end);
-    match<'<'>(it, end);
-    if (*it == '?') {
-      skip_till<'>'>(it, end);
-      ++it;  // skip >
-    }
-    else {
-      break;
-    }
-  }
+  detail::skip_till_first_key(it, end);
   auto start = it;
   skip_till_greater_or_space(it, end);
   std::string_view key =
