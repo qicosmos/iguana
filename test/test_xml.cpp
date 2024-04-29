@@ -18,36 +18,6 @@ struct Owner_t {
   }
 };
 REFLECTION(Owner_t, ID, DisplayName);
-TEST_CASE("test escape") {
-  {
-    std::string str = R"(
-    <Owner_t description="&lt;&#x5c0f;&#24378;&gt;">
-      <ID>&amp;&lt;&gt;</ID>
-      <DisplayName>&#x5c0f;&#24378;</DisplayName>
-    </Owner_t>
-    )";
-    using Owner_attr_t =
-        iguana::xml_attr_t<Owner_t, std::map<std::string_view, std::string>>;
-    auto validator = [](const Owner_attr_t &Owner) {
-      auto Ow = Owner.value();
-      auto attr = Owner.attr();
-      CHECK(attr["description"] == "<小强>");
-      CHECK(Ow.ID == R"(&<>)");
-      CHECK(Ow.DisplayName == "小强");
-    };
-    Owner_attr_t Owner;
-    iguana::from_xml(Owner, str);
-    validator(Owner);
-
-    // std::string ss;
-    // iguana::to_xml(Owner, ss);
-    // std::cout << ss << std::endl;
-    // Owner_attr_t Owner1;
-    // iguana::from_xml(Owner1, ss);
-    // validator(Owner1);
-  }
-}
-
 struct Contents {
   std::string Key;
   std::string LastModified;
@@ -784,6 +754,54 @@ TEST_CASE("test alias") {
   CHECK(m1.name == "tom");
   CHECK(m1.obj.x == 21);
   CHECK(m1.obj.y == 42);
+}
+
+struct text_t {
+  using escape_attr_t =
+      iguana::xml_attr_t<std::string, std::map<std::string_view, std::string>>;
+  escape_attr_t ID;
+  std::string DisplayName;
+};
+REFLECTION(text_t, ID, DisplayName);
+TEST_CASE("test escape") {
+  using text_attr_type =
+      iguana::xml_attr_t<text_t, std::map<std::string_view, std::string>>;
+  {
+    std::string str = R"(
+    <text_t description="&quot;&lt;'&#x5c0f;&#24378;'&gt;&quot;">
+      <ID ID'msg='{"msg&apos;reply": "it&apos;s ok"}'>&amp;&lt;&gt;</ID>
+      <DisplayName>&#x5c0f;&#24378;</DisplayName>
+    </text_t>
+    )";
+
+    auto validator = [](const text_attr_type &text) {
+      auto v = text.value();
+      auto attr = text.attr();
+      CHECK(attr["description"] == R"("<'小强'>")");
+      CHECK(v.ID.value() == R"(&<>)");
+      CHECK(v.ID.attr()["ID'msg"] == R"({"msg'reply": "it's ok"})");
+      CHECK(v.DisplayName == "小强");
+    };
+    text_attr_type text;
+    iguana::from_xml(text, str);
+    validator(text);
+    std::string ss;
+    iguana::to_xml<true>(text, ss);
+
+    text_attr_type text1;
+    iguana::from_xml(text1, ss);
+    validator(text1);
+  }
+  {
+    std::string str = R"(
+    <text_t description=ABC>
+      <ID ID'msg='{"msg&apos;reply": "it&apos;s ok"}'>&amp;&lt;&gt;</ID>
+      <DisplayName>&#x5c0f;&#24378;</DisplayName>
+    </text_t>
+    )";
+    text_attr_type text;
+    CHECK_THROWS(iguana::from_xml(text, str));
+  }
 }
 
 // doctest comments

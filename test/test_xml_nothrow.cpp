@@ -1,14 +1,17 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
 #undef THROW_UNKNOWN_KEY
-#include "iguana/xml_reader.hpp"
-#include "iguana/xml_writer.hpp"
+#define XML_ATTR_USE_APOS
+#define XML_ESCAPE_UNICODE
 #include <deque>
 #include <iostream>
 #include <iterator>
 #include <list>
 #include <optional>
 #include <vector>
+
+#include "iguana/xml_reader.hpp"
+#include "iguana/xml_writer.hpp"
 
 enum class enum_status {
   paid,
@@ -80,6 +83,44 @@ TEST_CASE("test exception") {
 )";
   order_t od;
   CHECK_THROWS(iguana::from_xml(od, str));
+}
+
+struct text_t {
+  using escape_attr_t =
+      iguana::xml_attr_t<std::string, std::map<std::string_view, std::string>>;
+  escape_attr_t ID;
+  std::string DisplayName;
+};
+REFLECTION(text_t, ID, DisplayName);
+TEST_CASE("test escape") {
+  {
+    std::string str = R"(
+    <text_t description="&quot;&lt;'&#x5c0f;&#24378;'&gt;&quot;">
+      <ID ID'msg='{"msg&apos;reply": "it&apos;s ok"}'>&amp;&lt;&gt;</ID>
+      <DisplayName>&#x5c0f;&#24378;</DisplayName>
+    </text_t>
+    )";
+    using text_attr_t =
+        iguana::xml_attr_t<text_t, std::map<std::string_view, std::string>>;
+    auto validator = [](const text_attr_t &text) {
+      auto v = text.value();
+      auto attr = text.attr();
+      CHECK(attr["description"] == R"("<'小强'>")");
+      CHECK(v.ID.value() == R"(&<>)");
+      CHECK(v.ID.attr()["ID'msg"] == R"({"msg'reply": "it's ok"})");
+      CHECK(v.DisplayName == "小强");
+    };
+    text_attr_t text;
+    iguana::from_xml(text, str);
+    validator(text);
+    std::string ss;
+    iguana::to_xml<true>(text, ss);
+    std::cout << ss << std::endl;
+
+    text_attr_t text1;
+    iguana::from_xml(text1, ss);
+    validator(text1);
+  }
 }
 
 // doctest comments

@@ -32,6 +32,8 @@ IGUANA_INLINE void parse_value(U &&value, It &&begin, It &&end) {
       value = T(&*begin, static_cast<size_t>(std::distance(begin, end)));
     }
     else {
+      // TODO: When not parsing the value in the attribute, it is not necessary
+      // to unescape'and "
       value.clear();
       auto pre = begin;
       while (advance_until_character<'&'>(begin, end)) {
@@ -99,9 +101,19 @@ IGUANA_INLINE void parse_attr(U &&value, It &&it, It &&end) {
     parse_value(key, key_begin, key_end);
 
     skip_sapces_and_newline(it, end);
-    match<'"'>(it, end);
-    auto value_begin = it;
-    auto value_end = skip_pass<'"'>(it, end);
+    auto value_begin = it + 1;
+    auto value_end = value_begin;
+    if (*it == '"')
+      IGUANA_LIKELY {
+        ++it;
+        value_end = skip_pass<'"'>(it, end);
+      }
+    else if (*it == '\'') {
+      ++it;
+      value_end = skip_pass<'\''>(it, end);
+    }
+    else
+      IGUANA_UNLIKELY { throw std::runtime_error("expected quote or apos"); }
     value_type v;
     parse_value(v, value_begin, value_end);
     value.emplace(std::move(key), std::move(v));

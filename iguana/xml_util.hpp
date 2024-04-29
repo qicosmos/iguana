@@ -84,6 +84,12 @@ inline constexpr auto has_equal = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
       0b0011110100111101001111010011110100111101001111010011110100111101);
 };
 
+inline constexpr auto has_apos = [](uint64_t chunk) IGUANA__INLINE_LAMBDA {
+  return has_zero(
+      chunk ^
+      0b0010011100100111001001110010011100100111001001110010011100100111);
+};
+
 template <typename It>
 IGUANA_INLINE void skip_sapces_and_newline(It &&it, It &&end) {
   while (it != end && (static_cast<uint8_t>(*it) < 33)) {
@@ -161,6 +167,8 @@ IGUANA_INLINE void skip_till(It &&it, It &&end) {
           test = has_square_bracket(chunk);
         else if constexpr (c == '=')
           test = has_equal(chunk);
+        else if constexpr (c == '\'')
+          test = has_apos(chunk);
         else
           static_assert(!c, "not support this character");
         if (test != 0) {
@@ -257,6 +265,7 @@ IGUANA_INLINE void parse_escape_xml(U &value, It &&it, It &&end) {
       if (is_match<'m', 'p', ';'>(it + 2, end)) {
         value.push_back('&');
         it += 5;
+        return;
       }
       if (is_match<'p', 'o', 's', ';'>(it + 2, end)) {
         value.push_back('\'');

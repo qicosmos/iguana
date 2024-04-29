@@ -6,7 +6,15 @@
 
 namespace iguana {
 
-template <typename Ch, typename SizeType, typename Stream>
+#ifdef XML_ATTR_USE_APOS
+#define XML_ATTR_DELIMITER '\''
+#else
+#define XML_ATTR_DELIMITER '\"'
+#endif
+
+// TODO: improve by precaculate size
+template <bool escape_quote_apos, typename Ch, typename SizeType,
+          typename Stream>
 IGUANA_INLINE void render_string_with_escape_xml(const Ch *it, SizeType length,
                                                  Stream &ss) {
   auto end = it;
@@ -19,10 +27,24 @@ IGUANA_INLINE void render_string_with_escape_xml(const Ch *it, SizeType length,
         continue;
       }
 #endif
-    // if (*it == '\'')
-    //   IGUANA_UNLIKELY { ss.append("&apos;"); }
-    // else if (*it == '"')
-    //   IGUANA_UNLIKELY { ss.append("&quot;"); }
+    if constexpr (escape_quote_apos) {
+      if constexpr (XML_ATTR_DELIMITER == '\"') {
+        if (*it == '"')
+          IGUANA_UNLIKELY {
+            ss.append("&quot;");
+            ++it;
+            continue;
+          }
+      }
+      else {
+        if (*it == '\'')
+          IGUANA_UNLIKELY {
+            ss.append("&apos;");
+            ++it;
+            continue;
+          }
+      }
+    }
     if (*it == '&')
       IGUANA_UNLIKELY { ss.append("&amp;"); }
     else if (*it == '>')
@@ -69,10 +91,12 @@ IGUANA_INLINE void render_head(Stream &ss, std::string_view str) {
   ss.push_back('>');
 }
 
-template <typename Stream, typename T, std::enable_if_t<plain_v<T>, int> = 0>
+template <bool escape_quote_apos = false, typename Stream, typename T,
+          std::enable_if_t<plain_v<T>, int> = 0>
 IGUANA_INLINE void render_value(Stream &ss, const T &value) {
   if constexpr (string_container_v<T>) {
-    render_string_with_escape_xml(value.data(), value.size(), ss);
+    render_string_with_escape_xml<escape_quote_apos>(value.data(), value.size(),
+                                                     ss);
   }
   else if constexpr (num_v<T>) {
     char temp[65];
@@ -121,9 +145,9 @@ inline void render_xml_attr(Stream &ss, const T &value, std::string_view name) {
     ss.push_back(' ');
     render_value(ss, k);
     ss.push_back('=');
-    ss.push_back('"');
-    render_value(ss, v);
-    ss.push_back('"');
+    ss.push_back(XML_ATTR_DELIMITER);
+    render_value<true>(ss, v);
+    ss.push_back(XML_ATTR_DELIMITER);
   }
   ss.push_back('>');
 }
