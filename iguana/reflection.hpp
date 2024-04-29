@@ -942,10 +942,7 @@ constexpr bool get_index_imple() {
 #else
 template <typename T, typename U>
 constexpr bool get_index_imple(T ptr, U ele) {
-  if constexpr (std::is_same_v<
-                    typename iguana::member_tratis<decltype(ptr)>::value_type,
-                    typename iguana::member_tratis<
-                        decltype(ele)>::value_type>) {
+  if constexpr (std::is_same_v<decltype(ptr), decltype(ele)>) {
     if (ele == ptr) {
       return true;
     }
@@ -997,6 +994,53 @@ constexpr auto name_of() {
   using M = Reflect_members<T>;
   constexpr auto s = M::arr()[index_of<member>()];
   return std::string_view(s.data(), s.size());
+}
+
+template <auto member>
+constexpr auto member_count_of() {
+  using T = typename member_tratis<decltype(member)>::owner_type;
+  using M = Reflect_members<T>;
+  return M::value();
+}
+
+template <typename T, auto member>
+constexpr size_t duplicate_count();
+
+template <auto ptr>
+constexpr void check_duplicate(auto member, size_t &index) {
+  using value_type = typename member_tratis<decltype(member)>::value_type;
+
+  if (detail::get_index_imple(ptr, member)) {
+    index++;
+  }
+
+  if constexpr (is_reflection_v<value_type>) {
+    index += iguana::duplicate_count<value_type, ptr>();
+  }
+}
+
+template <typename T, auto member>
+constexpr size_t duplicate_count() {
+  using M = Reflect_members<T>;
+  constexpr auto name = name_of<member>();
+  constexpr auto arr = M::arr();
+
+  constexpr auto tp = M::apply_impl();
+  size_t index = 0;
+  std::apply(
+      [&](auto... ele) {
+        (check_duplicate<member>(ele, index), ...);
+      },
+      tp);
+
+  for (auto &s : arr) {
+    if (s == name) {
+      index++;
+      break;
+    }
+  }
+
+  return index;
 }
 
 template <typename T>

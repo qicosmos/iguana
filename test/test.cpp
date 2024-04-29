@@ -821,6 +821,70 @@ TEST_CASE("parse some other char") {
   CHECK(p.name == "tom");
 }
 
+struct some_test_t {
+  int id1;
+  std::string name;
+};
+REFLECTION(some_test_t, id1, name);
+
+struct dummy_nest_t {
+  int id;
+  some_test_t t;
+};
+REFLECTION(dummy_nest_t, id, t);
+
+struct some_test_t1 {
+  int id;
+  std::string name;
+};
+REFLECTION(some_test_t1, id, name);
+
+struct dummy_nest_t1 {
+  int id;
+  some_test_t1 t;
+};
+REFLECTION(dummy_nest_t1, id, t);
+
+TEST_CASE("partial from json") {
+  constexpr size_t count1 =
+      iguana::duplicate_count<dummy_nest_t, &some_test_t::name>();
+  static_assert(count1 == 2);
+  constexpr size_t count2 =
+      iguana::duplicate_count<dummy_nest_t, &dummy_nest_t::t>();
+  static_assert(count2 == 2);
+  constexpr size_t count3 =
+      iguana::duplicate_count<dummy_nest_t, &dummy_nest_t::id>();
+  static_assert(count3 == 2);
+
+  constexpr size_t count5 =
+      iguana::duplicate_count<dummy_nest_t1, &dummy_nest_t1::id>();
+  static_assert(count5 == 3);
+  constexpr size_t count4 =
+      iguana::duplicate_count<dummy_nest_t, &person::name>();
+  static_assert(count4 == 1);
+
+  dummy_nest_t t{42, {43, "tom"}};
+  std::string str;
+  iguana::to_json(t, str);
+
+  {
+    dummy_nest_t t1;
+    iguana::from_json<&dummy_nest_t::id>(t1, str);
+    CHECK(t1.id == 42);
+  }
+  {
+    dummy_nest_t t1;
+    iguana::from_json<&dummy_nest_t::t>(t1, str);
+    CHECK(t1.t.name == "tom");
+  }
+
+  {
+    some_test_t t1;
+    iguana::from_json<&some_test_t::name, dummy_nest_t>(t1, str);
+    CHECK(t1.name == "tom");
+  }
+}
+
 TEST_CASE("index_of name_of") {
   constexpr size_t idx1 = iguana::index_of<&point_t::y>();
   static_assert(idx1 == 1);

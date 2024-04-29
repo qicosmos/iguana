@@ -644,6 +644,31 @@ IGUANA_INLINE void from_json(T &value, const View &view) {
   from_json(value, std::begin(view), std::end(view));
 }
 
+template <
+    auto member,
+    typename Parant = typename member_tratis<decltype(member)>::owner_type,
+    typename T>
+IGUANA_INLINE void from_json(T &value, std::string_view str) {
+  constexpr size_t duplicate_count =
+      iguana::duplicate_count<std::remove_reference_t<Parant>, member>();
+  static_assert(duplicate_count != 1, "the member is not belong to the object");
+  static_assert(duplicate_count == 2, "has duplicate field name");
+
+  constexpr auto name = name_of<member>();
+  constexpr size_t index = index_of<member>();
+  constexpr size_t member_count = member_count_of<member>();
+  str = str.substr(str.find(name) + name.size());
+  size_t pos = str.find(":") + 1;
+  if constexpr (index == member_count - 1) {  // last field
+    str = str.substr(pos, str.find("}") - pos);
+  }
+  else {
+    str = str.substr(pos, str.find(",") - pos);
+  }
+
+  detail::from_json_impl(value.*member, std::begin(str), std::end(str));
+}
+
 template <typename T, typename View,
           std::enable_if_t<json_view_v<View>, int> = 0>
 IGUANA_INLINE void from_json(T &value, const View &view,
