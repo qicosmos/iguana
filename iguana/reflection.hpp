@@ -940,7 +940,8 @@ constexpr bool get_index_imple() {
   }                                                                     \
   (std::make_index_sequence<std::tuple_size_v<decltype(tp)>>{});
 #else
-constexpr bool get_index_imple(auto ptr, auto ele) {
+template <typename T, typename U>
+constexpr bool get_index_imple(T ptr, U ele) {
   if constexpr (std::is_same_v<
                     typename iguana::member_tratis<decltype(ptr)>::value_type,
                     typename iguana::member_tratis<
@@ -957,8 +958,8 @@ constexpr bool get_index_imple(auto ptr, auto ele) {
   }
 }
 
-template <size_t... I>
-constexpr size_t member_index_impl(auto ptr, auto &tp,
+template <typename T, typename Tuple, size_t... I>
+constexpr size_t member_index_impl(T ptr, Tuple &tp,
                                    std::index_sequence<I...>) {
   bool r = false;
   size_t index = 0;
@@ -968,7 +969,8 @@ constexpr size_t member_index_impl(auto ptr, auto &tp,
   return index;
 }
 
-constexpr size_t member_index(auto ptr, auto &tp) {
+template <typename T, typename Tuple>
+constexpr size_t member_index(T ptr, Tuple &tp) {
   return member_index_impl(
       ptr, tp,
       std::make_index_sequence<
