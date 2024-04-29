@@ -911,6 +911,7 @@ constexpr const std::string_view get_name() {
 }
 
 namespace detail {
+#if __cplusplus < 201703L
 template <auto ptr, auto ele>
 constexpr bool get_index_imple() {
   if constexpr (std::is_same_v<
@@ -928,25 +929,62 @@ constexpr bool get_index_imple() {
   }
 }
 
-#define member_index(ptr, tp, size)                               \
-  [&]<size_t... I>(std::index_sequence<I...>) {                   \
-    bool r = false;                                               \
-    size_t index = 0;                                             \
-    ((!r && (r = detail::get_index_imple<ptr, std::get<I>(tp)>(), \
-             !r ? index++ : index, true)),                        \
-     ...);                                                        \
-    return index;                                                 \
-  }                                                               \
-  (std::make_index_sequence<size>{});
+#define member_index(ptr, tp)                                           \
+  [&]<size_t... I>(std::index_sequence<I...>) {                         \
+    bool r = false;                                                     \
+    size_t index = 0;                                                   \
+    ((void)(!r && (r = detail::get_index_imple<ptr, std::get<I>(tp)>(), \
+                   !r ? index++ : index, true)),                        \
+     ...);                                                              \
+    return index;                                                       \
+  }                                                                     \
+  (std::make_index_sequence<std::tuple_size_v<decltype(tp)>>{});
+#else
+constexpr bool get_index_imple(auto ptr, auto ele) {
+  if constexpr (std::is_same_v<
+                    typename iguana::member_tratis<decltype(ptr)>::value_type,
+                    typename iguana::member_tratis<
+                        decltype(ele)>::value_type>) {
+    if (ele == ptr) {
+      return true;
+    }
+    else {
+      return false;
+    }
+  }
+  else {
+    return false;
+  }
+}
+
+template <size_t... I>
+constexpr size_t member_index_impl(auto ptr, auto &tp,
+                                   std::index_sequence<I...>) {
+  bool r = false;
+  size_t index = 0;
+  ((void)(!r && (r = get_index_imple(ptr, std::get<I>(tp)),
+                 !r ? index++ : index, true)),
+   ...);
+  return index;
+}
+
+constexpr size_t member_index(auto ptr, auto &tp) {
+  return member_index_impl(
+      ptr, tp,
+      std::make_index_sequence<
+          std::tuple_size_v<std::decay_t<decltype(tp)>>>{});
+}
+#endif
 }  // namespace detail
 
 template <auto member>
 constexpr size_t index_of() {
+  using namespace detail;
   using T = typename member_tratis<decltype(member)>::owner_type;
   using M = Reflect_members<T>;
   constexpr auto tp = M::apply_impl();
   constexpr size_t Size = std::tuple_size_v<decltype(tp)>;
-  constexpr size_t index = member_index(member, tp, Size);
+  constexpr size_t index = member_index(member, tp);
   static_assert(index < Size, "out of range");
   return index;
 }
