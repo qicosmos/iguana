@@ -660,7 +660,7 @@ IGUANA_INLINE void from_json(T &value, std::string_view str) {
   str = str.substr(str.find(name) + name.size());
   size_t pos = str.find(":") + 1;
   if constexpr (index == member_count - 1) {  // last field
-    str = str.substr(pos, str.find("}") - pos);
+    str = str.substr(pos, str.find("}") - pos + 1);
   }
   else {
     str = str.substr(pos, str.find(",") - pos);
