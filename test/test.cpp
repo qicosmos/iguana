@@ -847,7 +847,8 @@ REFLECTION(dummy_nest_t1, id, t);
 
 TEST_CASE("partial from json") {
   constexpr size_t count1 =
-      iguana::duplicate_count<dummy_nest_t, &some_test_t::name>();
+      iguana::duplicate_count<dummy_nest_t,
+                              &some_test_t::name>();  // field + name == 2
   static_assert(count1 == 2);
   constexpr size_t count2 =
       iguana::duplicate_count<dummy_nest_t, &dummy_nest_t::t>();
@@ -856,11 +857,14 @@ TEST_CASE("partial from json") {
       iguana::duplicate_count<dummy_nest_t, &dummy_nest_t::id>();
   static_assert(count3 == 2);
 
-  constexpr size_t count5 =
-      iguana::duplicate_count<dummy_nest_t1, &dummy_nest_t1::id>();
+  constexpr size_t count5 = iguana::duplicate_count<
+      dummy_nest_t1, &dummy_nest_t1::id>();  // has duplicate field "id": 1 id
+                                             // field + more than one name "id"
   static_assert(count5 == 3);
   constexpr size_t count4 =
-      iguana::duplicate_count<dummy_nest_t, &person::name>();
+      iguana::duplicate_count<dummy_nest_t,
+                              &person::name>();  // &person::name is not belong
+                                                 // to dummy_nest_t
   static_assert(count4 == 1);
 
   dummy_nest_t t{42, {43, "tom"}};

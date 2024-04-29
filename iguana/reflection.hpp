@@ -1006,8 +1006,8 @@ constexpr auto member_count_of() {
 template <typename T, auto member>
 constexpr size_t duplicate_count();
 
-template <auto ptr>
-constexpr void check_duplicate(auto member, size_t &index) {
+template <auto ptr, typename Member>
+constexpr void check_duplicate(Member member, size_t &index) {
   using value_type = typename member_tratis<decltype(member)>::value_type;
 
   if (detail::get_index_imple(ptr, member)) {
