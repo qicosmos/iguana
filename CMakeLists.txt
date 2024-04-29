@@ -5,6 +5,8 @@ if(MSVC)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++20")
 add_compile_options(/utf-8)
 ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/bigobj>")
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/Zc:__cplusplus>")
 else()
 
 if(NOT LINKLIBC++)
