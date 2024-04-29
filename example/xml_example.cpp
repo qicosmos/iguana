@@ -280,6 +280,40 @@ void province_example() {
   std::cout << ss1;
 }
 
+struct text_t {
+  using escape_attr_t =
+      iguana::xml_attr_t<std::string, std::map<std::string_view, std::string>>;
+  escape_attr_t ID;
+  std::string DisplayName;
+};
+REFLECTION(text_t, ID, DisplayName);
+void escape_example() {
+  {
+    std::string str = R"(
+    <text_t description="&quot;&lt;'&#x5c0f;&#24378;'&gt;&quot;">
+      <ID ID'msg='{"msg&apos;reply": "it&apos;s ok"}'>&amp;&lt;&gt;</ID>
+      <DisplayName>&#x5c0f;&#24378;</DisplayName>
+    </text_t>
+    )";
+    using text_attr_t =
+        iguana::xml_attr_t<text_t, std::map<std::string_view, std::string>>;
+    auto validator = [](const text_attr_t& text) {
+      auto v = text.value();
+      auto attr = text.attr();
+      assert(attr["description"] == R"("<'小强'>")");
+      assert(v.ID.value() == R"(&<>)");
+      assert(v.ID.attr()["ID'msg"] == R"({"msg'reply": "it's ok"})");
+      assert(v.DisplayName == "小强");
+    };
+    text_attr_t text;
+    iguana::from_xml(text, str);
+    validator(text);
+    std::string ss;
+    iguana::to_xml<true>(text, ss);
+    std::cout << ss << std::endl;
+  }
+}
+
 int main(void) {
   some_type_example();
   lib_example();
@@ -287,5 +321,6 @@ int main(void) {
   derived_object();
   cdata_example();
   province_example();
+  escape_example();
   return 0;
 }

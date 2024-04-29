@@ -28,7 +28,21 @@ template <typename U, typename It, std::enable_if_t<plain_v<U>, int> = 0>
 IGUANA_INLINE void parse_value(U &&value, It &&begin, It &&end) {
   using T = std::decay_t<U>;
   if constexpr (string_container_v<T>) {
-    value = T(&*begin, static_cast<size_t>(std::distance(begin, end)));
+    if constexpr (string_view_v<T>) {
+      value = T(&*begin, static_cast<size_t>(std::distance(begin, end)));
+    }
+    else {
+      // TODO: When not parsing the value in the attribute, it is not necessary
+      // to unescape'and "
+      value.clear();
+      auto pre = begin;
+      while (advance_until_character<'&'>(begin, end)) {
+        value.append(T(&*pre, static_cast<size_t>(std::distance(pre, begin))));
+        parse_escape_xml(value, begin, end);
+        pre = begin;
+      }
+      value.append(T(&*pre, static_cast<size_t>(std::distance(pre, begin))));
+    }
   }
   else if constexpr (num_v<T>) {
     auto size = std::distance(begin, end);
@@ -87,9 +101,19 @@ IGUANA_INLINE void parse_attr(U &&value, It &&it, It &&end) {
     parse_value(key, key_begin, key_end);
 
     skip_sapces_and_newline(it, end);
-    match<'"'>(it, end);
-    auto value_begin = it;
-    auto value_end = skip_pass<'"'>(it, end);
+    auto value_begin = it + 1;
+    auto value_end = value_begin;
+    if (*it == '"')
+      IGUANA_LIKELY {
+        ++it;
+        value_end = skip_pass<'"'>(it, end);
+      }
+    else if (*it == '\'') {
+      ++it;
+      value_end = skip_pass<'\''>(it, end);
+    }
+    else
+      IGUANA_UNLIKELY { throw std::runtime_error("expected quote or apos"); }
     value_type v;
     parse_value(v, value_begin, value_end);
     value.emplace(std::move(key), std::move(v));
