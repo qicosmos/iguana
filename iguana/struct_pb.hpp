@@ -350,7 +350,7 @@ inline void from_pb(T& t, std::string_view pb_str) {
 
     pb_str = pb_str.substr(pos);
 
-    const static auto& map = get_members(t);
+    const static auto& map = get_members<T>();
     uint32_t sub_val = 1;
     if constexpr (!is_reflection_v<T>) {
       sub_val = 0;
@@ -381,7 +381,7 @@ inline void from_pb(T& t, std::string_view pb_str) {
 
 template <typename T>
 inline void to_pb(T& t, std::string& out) {
-  const static auto& map = get_members(t);
+  const static auto& map = get_members<T>();
   for (auto& [field_no, member] : map) {
     std::visit(
         [&t, &out](auto& val) {

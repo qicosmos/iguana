@@ -271,6 +271,16 @@ inline size_t variant_uint32_size(uint32_t value) {
   return static_cast<size_t>((log2value * 9 + 73) / 64);
 }
 
+// value == 0 ? 1 : floor(log2(value)) / 7 + 1
+constexpr size_t variant_uint32_size_constexpr(uint32_t value) {
+  if (value == 0) {
+    return 1;
+  }
+  int log = 0;
+  while (value >>= 1) ++log;
+  return log / 7 + 1;
+}
+
 inline uint32_t log2_floor_uint64(uint64_t n) {
 #if defined(__GNUC__)
   return 63 ^ static_cast<uint32_t>(__builtin_clzll(n));
@@ -310,42 +320,47 @@ constexpr inline size_t variant_intergal_size(U value) {
   }
 }
 
+template <typename T, typename F>
+constexpr void for_each_tp(T&& t, F&& f) {
+  constexpr auto tp = get_members<T, false>();
+  using Tuple = decltype(tp);
+  for_each(tp, std::forward<F>(f),
+           std::make_index_sequence<std::tuple_size_v<Tuple>>{});
+}
+
 // TODO: support user-defined struct
-template <typename T>
-inline size_t pb_item_size(T&& t, size_t key_size = 0) {
+template <size_t key_size = 0, typename T>
+inline size_t pb_item_size(T&& t) {
   using value_type = std::remove_reference_t<T>;
   if constexpr (is_reflection_v<value_type>) {
     size_t len = 0;
-    const static auto& map = get_members(t);
-    for (auto& [field_no, member] : map) {
-      std::visit(
-          [&t, &len](auto& val) {
-            using U = typename std::decay_t<decltype(val)>::value_type;
-            // TODO: get the key during compile time
-            uint32_t key =
-                (val.field_no << 3) | static_cast<uint32_t>(get_wire_type<U>());
-            len += pb_item_size(val.value(t), variant_uint32_size(key));
-          },
-          member);
-    }
-    // TODO: compile time job
-    if (key_size == 0) {
+    for_each_tp(t, [&len, &t](const auto& val, auto i) {
+      constexpr auto tp = get_members_impl<T>();
+      constexpr auto value = std::get<decltype(i)::value>(tp);
+      using U = typename std::decay_t<decltype(value)>::value_type;
+      constexpr uint32_t key =
+          (value.field_no << 3) | static_cast<uint32_t>(get_wire_type<U>());
+      len += pb_item_size<variant_uint32_size_constexpr(key)>(value.value(t));
+    });
+    if constexpr (key_size == 0) {
       return len;
     }
-    return key_size + variant_uint32_size(static_cast<uint32_t>(len)) + len;
+    else {
+      return key_size + variant_uint32_size(static_cast<uint32_t>(len)) + len;
+    }
   }
   else if constexpr (is_sequence_container<value_type>::value) {
     using item_type = typename value_type::value_type;
     size_t len = 0;
     if constexpr (is_reflection_v<item_type>) {
       for (auto& item : t) {
-        len += pb_item_size(item, key_size);
+        len += pb_item_size<key_size>(item);
       }
       return len;
     }
     else {
       for (auto& item : t) {
-        len += pb_item_size(item, 0);
+        len += pb_item_size<0>(item);
       }
       return key_size + variant_uint32_size(static_cast<uint32_t>(len)) + len;
     }
@@ -354,7 +369,7 @@ inline size_t pb_item_size(T&& t, size_t key_size = 0) {
     size_t len = 0;
     for (auto& [k, v] : t) {
       // key_size == 1;
-      size_t kv_len = pb_item_size(k, 1) + pb_item_size(v, 1);
+      size_t kv_len = pb_item_size<1>(k) + pb_item_size<1>(v);
       len += key_size + variant_uint32_size(static_cast<uint32_t>(kv_len)) +
              kv_len;
     }
@@ -389,10 +404,10 @@ inline size_t pb_item_size(T&& t, size_t key_size = 0) {
     if (!t.has_value()) {
       return 0;
     }
-    return pb_item_size(*t, key_size);
+    return pb_item_size<key_size>(*t);
   }
   else if constexpr (is_one_of_v<value_type>) {
-    return pb_item_size(t.value, key_size);
+    return pb_item_size<key_size>(t.value);
   }
   else {
     static_assert(!sizeof(value_type), "err");

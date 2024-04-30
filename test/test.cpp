@@ -598,7 +598,7 @@ TEST_CASE("test members") {
   using namespace iguana::detail;
 
   my_space::inner_struct inner{41, 42, 43};
-  const auto &map = iguana::get_members(inner);
+  const auto &map = iguana::get_members<my_space::inner_struct>();
   std::visit(
       [&inner](auto &member) mutable {
         CHECK(member.field_no == 9);
@@ -608,8 +608,7 @@ TEST_CASE("test members") {
       map.at(9));
 
   point_t pt{2, 3};
-  iguana::get_members(pt);
-  const auto &arr1 = iguana::get_members(pt);
+  const auto &arr1 = iguana::get_members<point_t>();
   auto &val = arr1.at(0);
   std::visit(
       [&pt](auto &member) mutable {

@@ -706,12 +706,12 @@ struct field_t {
   using member_type = T;
   using owner_type = typename member_tratis<T>::owner_type;
   using value_type = typename member_tratis<T>::value_type;
-  field_t() = default;
-  field_t(T member, uint32_t number, const std::string &name = "")
+  constexpr field_t() = default;
+  constexpr field_t(T member, uint32_t number, frozen::string name)
       : member_ptr(member), field_name(name), field_no(number) {}
 
   T member_ptr;
-  std::string field_name;
+  frozen::string field_name;
   uint32_t field_no;
 
   auto &value(owner_type &value) const { return value.*member_ptr; }
@@ -735,56 +735,61 @@ struct user_field_type_t<std::tuple<Args...>> {
 
 struct field_helper {
   template <typename T, typename U, size_t... I>
-  auto operator()(T &tp, U arr, std::index_sequence<I...>) {
+  constexpr auto operator()(T &&tp, U &&arr, std::index_sequence<I...>) {
     return std::make_tuple(
-        field_t{std::get<I>(tp), I + 1, std::string(arr[I].data())}...);
+        field_t{std::get<I>(tp), I + 1, frozen::string(arr[I].data())}...);
   }
 };
 
 template <typename T>
-inline auto get_members_impl(T &&) {
+constexpr inline auto get_members_impl() {
   using reflect_members = decltype(iguana_reflect_type(std::declval<T>()));
   using Tuple = decltype(reflect_members::apply_impl());
-  const auto &tp = reflect_members::apply_impl();
-  const auto &arr = reflect_members::arr();
-  return field_helper{}(tp, arr,
+  return field_helper{}(reflect_members::apply_impl(), reflect_members::arr(),
                         std::make_index_sequence<std::tuple_size_v<Tuple>>{});
 }
 
 template <typename T, size_t Size>
 struct member_helper {
   template <typename Tuple, size_t... I>
-  auto operator()(Tuple &&tp, uint32_t sub_val, std::index_sequence<I...>) {
-    std::map<uint32_t, T> map;
-    ((map[std::get<I>(tp).field_no - sub_val] =
-          T{std::in_place_index<I>, std::move(std::get<I>(tp))}),
-     ...);
-    return map;
+  constexpr auto operator()(Tuple &&tp, uint32_t sub_val,
+                            std::index_sequence<I...>) {
+    return frozen::unordered_map<uint32_t, T, sizeof...(I)>{
+        {std::get<I>(tp).field_no - sub_val,
+         T{std::in_place_index<I>, std::move(std::get<I>(tp))}}...};
   }
 };
 
 template <typename T, typename = void>
 struct is_reflection : std::false_type {};
 
-template <typename T>
-inline decltype(auto) get_members(T &&t) {
+template <typename T, bool is_return_map = true>
+constexpr inline auto get_members() {
   if constexpr (is_reflection<T>::value) {
     using reflect_members = decltype(iguana_reflect_type(std::declval<T>()));
     using value_type = typename field_type_t<
         decltype(reflect_members::apply_impl())>::value_type;
     constexpr size_t Size = reflect_members::value();
-    static auto map = member_helper<value_type, Size>{}(
-        get_members_impl(t), 1, std::make_index_sequence<Size>{});
-    return map;
+    if constexpr (is_return_map) {
+      return member_helper<value_type, Size>{}(
+          get_members_impl<T>(), 1, std::make_index_sequence<Size>{});
+    }
+    else {
+      return get_members_impl<T>();
+    }
   }
   else {
     using U = std::remove_const_t<std::remove_reference_t<T>>;
     constexpr size_t Size = iguana_member_count((U *)nullptr);
     using value_type = typename user_field_type_t<decltype(get_members_impl(
         (U *)nullptr))>::value_type;
-    static auto map = member_helper<value_type, Size>{}(
-        get_members_impl((U *)nullptr), 0, std::make_index_sequence<Size>{});
-    return map;
+    if constexpr (is_return_map) {
+      return member_helper<value_type, Size>{}(
+          get_members_impl((U *)nullptr), 0, std::make_index_sequence<Size>{});
+    }
+    else {
+      return get_members_impl((U *)nullptr);
+    }
   }
 }
 
