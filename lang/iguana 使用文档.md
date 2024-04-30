@@ -349,3 +349,56 @@ void test() {
 }
 ```
 通过特化iguana 命名空间里的模版类enum_value，将枚举的值填充到其内部的array 中即可实现按字符串处理enum 了。
+
+# 如何自定义浮点数的序列化
+
+在 `iguana` 中，浮点数默认通过 `jkj::dragonbox::to_chars` 进行序列化。如有特定需求，可以自定义浮点数序列化方法，需遵守以下要求：
+
++ 在 `iguana` 命名空间内定义并实现名为 `to_chars_float` 的模板函数。
+
++ 为确保该自定义模板被iguana找到，需在引入 `iguana` 相关头文件之前定义该模板。
+
+  ```c++
+  namespace iguana {
+  template <typename T>  // T是float或者double
+  inline char* to_chars_float(T value, char* buffer) {
+  // 该函数将浮点数 value 序列化到 buffer 中，假设 buffer 长度为 65 字符，足以存储序列化后的结果。
+  // 返回值是指向最后一个被写入字符后一位置的指针。
+  }
+  } // namespace iguana
+  
+  #include <iguana/json_reader.hpp>
+  #include <iguana/json_writer.hpp>
+  ```
+
+如下是使用`snprintf`自定义序列化的例子 ：
+
+```c++
+#include <charconv>  // for to_chars
+#include <iostream>  // for std::cout
+namespace iguana {
+template <typename T>
+inline char* to_chars_float(T value, char* buffer) {
+  std::cout << "call custom to_chars_float with snprintf\n";
+  return buffer + snprintf(buffer, 65, "%g", value);
+}
+}  // namespace iguana
+
+#include <iguana/json_reader.hpp>
+#include <iguana/json_writer.hpp>
+struct test_float_t {
+  double a;
+  float b;
+};
+REFLECTION(test_float_t, a, b);
+void user_defined_tochars_example() {
+  test_float_t t{2.011111, 2.54};
+  std::string ss;
+  iguana::to_json(t, ss);
+  std::cout << ss << std::endl;
+}
+int main(void) {
+  user_defined_tochars_example();
+  return 0;
+}
+```

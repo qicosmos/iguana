@@ -55,7 +55,7 @@ char *to_chars(char *buffer, T value) noexcept {
   using U = std::decay_t<T>;
   if constexpr (std::is_floating_point_v<U>) {
     if constexpr (has_to_chars_float::value) {
-      return to_chars_float(value, buffer);
+      return static_cast<char *>(to_chars_float(value, buffer));
     }
     else {
       return jkj::dragonbox::to_chars(value, buffer);
