@@ -911,35 +911,6 @@ constexpr const std::string_view get_name() {
 }
 
 namespace detail {
-#if __cplusplus > 201703L
-template <auto ptr, auto ele>
-constexpr bool get_index_imple() {
-  if constexpr (std::is_same_v<
-                    typename member_tratis<decltype(ptr)>::value_type,
-                    typename member_tratis<decltype(ele)>::value_type>) {
-    if constexpr (ele == ptr) {
-      return true;
-    }
-    else {
-      return false;
-    }
-  }
-  else {
-    return false;
-  }
-}
-
-#define member_index(ptr, tp)                                           \
-  [&]<size_t... I>(std::index_sequence<I...>) {                         \
-    bool r = false;                                                     \
-    size_t index = 0;                                                   \
-    ((void)(!r && (r = detail::get_index_imple<ptr, std::get<I>(tp)>(), \
-                   !r ? index++ : index, true)),                        \
-     ...);                                                              \
-    return index;                                                       \
-  }                                                                     \
-  (std::make_index_sequence<std::tuple_size_v<decltype(tp)>>{});
-#else
 template <typename T, typename U>
 constexpr bool get_index_imple(T ptr, U ele) {
   if constexpr (std::is_same_v<decltype(ptr), decltype(ele)>) {
@@ -973,7 +944,6 @@ constexpr size_t member_index(T ptr, Tuple &tp) {
       std::make_index_sequence<
           std::tuple_size_v<std::decay_t<decltype(tp)>>>{});
 }
-#endif
 }  // namespace detail
 
 template <auto member>
