@@ -158,6 +158,14 @@ to_xml 模式输出的xml 字符串在一行，如果希望pretty 输出则传tr
 
 ## xml 属性解析
 
+在 XML 属性解析中，提供了两种类型：`xml_attr_t` 和 `xml_attr_view_t`。其中`xml_attr_view_t`使用`std::map<std::string_view, std::string_view>`保存属性值，使用该类型不会复制字符串，但需要注意 `string_view` 的生命周期不能超过原始字符串。而`xml_attr_t` 使用 `std::unordered_map<std::string, std::string>` 保存属性值，这解除了对生命周期的顾虑，但复制字符串可能会降低性能。
+
+除了将属性值解析为字符串，也支持自定义属性KV的类型（一般为数字）。例如，若需解析属性值为整型，可以定义如下：
+```c++
+template <typename T>
+using xml_attr_int_t = iguana::xml_attr_t<T, std::map<std::string, int>>;
+```
+以下是使用 `xml_attr_t`的例子：
 ```c++
 struct book_t {
   std::string title;

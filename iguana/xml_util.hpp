@@ -2,8 +2,8 @@
 #include "util.hpp"
 
 namespace iguana {
-template <typename T, typename map_type = std::unordered_map<std::string_view,
-                                                             std::string_view>>
+template <typename T,
+          typename map_type = std::unordered_map<std::string, std::string>>
 class xml_attr_t {
  public:
   T &value() { return val_; }
@@ -16,6 +16,10 @@ class xml_attr_t {
   T val_;
   map_type attr_;
 };
+
+template <typename T>
+using xml_attr_view_t =
+    xml_attr_t<T, std::map<std::string_view, std::string_view>>;
 
 template <typename T = std::string_view,
           std::enable_if_t<string_container_v<T>, int> = 0>
