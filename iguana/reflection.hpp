@@ -911,7 +911,7 @@ constexpr const std::string_view get_name() {
 }
 
 namespace detail {
-#if __cplusplus < 201703L
+#if __cplusplus > 201703L
 template <auto ptr, auto ele>
 constexpr bool get_index_imple() {
   if constexpr (std::is_same_v<
