@@ -1,3 +1,16 @@
+#include <charconv>  // for to_chars
+#include <iostream>  // for std::cout
+
+namespace iguana {
+
+template <typename T>
+inline char* to_chars_float(T value, char* buffer) {
+  std::cout << "call custom to_chars_float with snprintf\n";
+  return buffer + snprintf(buffer, 65, "%g", value);
+}
+
+}  // namespace iguana
+
 #include <iguana/json_reader.hpp>
 #include <iguana/json_writer.hpp>
 
@@ -142,6 +155,19 @@ void user_defined_struct_example() {
   }
 }
 
+struct test_float_t {
+  double a;
+  float b;
+};
+REFLECTION(test_float_t, a, b);
+
+void user_defined_tochars_example() {
+  test_float_t t{2.011111, 2.54};
+  std::string ss;
+  iguana::to_json(t, ss);
+  std::cout << ss << std::endl;
+}
+
 int main(void) {
   test_disorder();
   test_v();
@@ -159,6 +185,6 @@ int main(void) {
   test_str_view();
 
   user_defined_struct_example();
-
+  user_defined_tochars_example();
   return 0;
 }
