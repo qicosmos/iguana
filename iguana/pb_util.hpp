@@ -1,9 +1,19 @@
 #pragma once
 #include <cassert>
+#include <cstddef>
 #include <cstring>
 #include <map>
 #include <string>
+#include <string_view>
+#include <tuple>
+#include <type_traits>
+#include <unordered_map>
+#include <utility>
+#include <variant>
 #include <vector>
+
+#include "reflection.hpp"
+#include "util.hpp"
 
 namespace iguana {
 enum class WireType : uint32_t {
@@ -335,7 +345,7 @@ inline size_t pb_item_size(T&& t) {
   if constexpr (is_reflection_v<value_type>) {
     size_t len = 0;
     for_each_tp(t, [&len, &t](const auto& val, auto i) {
-      constexpr auto tp = get_members_impl<T>();
+      constexpr static auto tp = get_members_impl<T>();
       constexpr auto value = std::get<decltype(i)::value>(tp);
       using U = typename std::decay_t<decltype(value)>::value_type;
       constexpr uint32_t key =
