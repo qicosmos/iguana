@@ -3,170 +3,160 @@
 
 namespace iguana {
 namespace detail {
-template <typename T>
-inline void encode_key(uint32_t field_number, WireType type, T& out) {
-  if (field_number == 0) {
+
+template <uint32_t key, typename V, typename Stream>
+inline void encode_varint_field(V val, Stream& out) {
+  static_assert(std::is_integral_v<V>, "must be integral");
+  if (val == 0) {
     return;
   }
-
-  uint32_t key = (field_number << 3) | static_cast<uint32_t>(type);
-  serialize_varint(key, out);
+  if constexpr (key != 0) {
+    serialize_varint(key, out);
+  }
+  serialize_varint(val, out);
 }
 
-template <typename Value, typename T>
-inline void encode_varint_field(uint32_t field_number, WireType type,
-                                Value value, T& out) {
-  static_assert(std::is_integral_v<Value>, "must be integral");
-  if (value == 0) {
+template <uint32_t key, typename V, typename Stream>
+inline void encode_fixed_field(V val, Stream& out) {
+  if (val == 0) {
     return;
   }
-
-  encode_key(field_number, type, out);
-  serialize_varint(value, out);
-}
-
-template <typename Value, typename T>
-inline void encode_signed_varint_field(uint32_t field_number, WireType type,
-                                       Value value, T& out) {
-  if (value == 0) {
-    return;
+  if constexpr (key != 0) {
+    serialize_varint(key, out);
   }
-
-  encode_key(field_number, type, out);
-  serialize_varint(encode_zigzag(value.val), out);
-}
-
-template <typename Value, typename T>
-inline void encode_fixed_field(uint32_t field_number, WireType type,
-                               Value value, T& out) {
-  if (value == 0) {
-    return;
-  }
-
-  encode_key(field_number, type, out);
-
-  constexpr size_t size = sizeof(Value);
+  constexpr size_t size = sizeof(V);
+  // TODO: improve
   char buf[size]{};
-  memcpy(buf, &value, size);
+  memcpy(buf, &val, size);
   out.append(buf, size);
 }
 
-template <typename T>
-inline void encode_string_field(uint32_t field_number, WireType type,
-                                std::string_view str, T& out) {
-  if (str.empty()) {
-    return;
-  }
+template <uint32_t key, typename Type, typename Stream>
+inline void to_pb_impl(Type& t, Stream& out);
 
-  encode_key(field_number, type, out);
-
-  serialize_varint(str.size(), out);
-  out.append(str);
-}
-
-template <typename value_type, typename T>
-inline void to_pb_impl(T& val, size_t field_no, std::string& out);
-
-template <typename value_type, typename T>
-inline std::string encode_pair_value(T& val, uint32_t field_no) {
-  std::string temp;
-  to_pb_impl<value_type>(val, field_no, temp);
-  if (temp.empty()) {
-    encode_key(field_no, get_wire_type<value_type>(), temp);
-    serialize_varint(0, temp);
-  }
-  return temp;
-}
-
-template <typename value_type, typename T>
-inline void to_pb_impl(T& val, size_t field_no, std::string& out) {
-  if constexpr (is_reflection_v<value_type>) {
-    std::string temp;
-    to_pb(val, temp);
-    detail::encode_string_field(field_no, WireType::LengthDelimeted, temp, out);
-  }
-  else if constexpr (is_sequence_container<value_type>::value) {
-    using item_type = typename value_type::value_type;
-    if constexpr (is_reflection_v<item_type>) {
-      for (auto& item : val) {
-        to_pb_impl<item_type>(item, field_no, out);
-      }
-    }
-    else {
-      std::string temp;
-      for (auto& item : val) {
-        to_pb_impl<item_type>(item, 0, temp);
-      }
-      detail::encode_string_field(field_no, WireType::LengthDelimeted, temp,
-                                  out);
-    }
-  }
-  else if constexpr (is_map_container<value_type>::value) {
-    using first_type = typename value_type::key_type;
-    using second_type = typename value_type::mapped_type;
-    for (auto& [k, v] : val) {
-      std::string temp = encode_pair_value<first_type>(k, 1);
-      std::string second_temp = encode_pair_value<second_type>(v, 2);
-      encode_key(field_no, WireType::LengthDelimeted, out);
-      serialize_varint(temp.size() + second_temp.size(), out);
-      out.append(temp).append(second_temp);
-    }
-  }
-  else if constexpr (std::is_integral_v<value_type>) {
-    detail::encode_varint_field(field_no, WireType::Varint, val, out);
-  }
-  else if constexpr (detail::is_signed_varint_v<value_type>) {
-    detail::encode_signed_varint_field(field_no, WireType::Varint, val, out);
-  }
-  else if constexpr (detail::is_fixed_v<value_type> ||
-                     std::is_same_v<value_type, double> ||
-                     std::is_same_v<value_type, float>) {
-    if constexpr (sizeof(value_type) == 8) {
-      detail::encode_fixed_field(field_no, WireType::Fixed64, val, out);
-    }
-    else {
-      detail::encode_fixed_field(field_no, WireType::Fixed32, val, out);
-    }
-  }
-  else if constexpr (std::is_same_v<value_type, std::string> ||
-                     std::is_same_v<value_type, std::string_view>) {
-    detail::encode_string_field(field_no, WireType::LengthDelimeted, val, out);
-  }
-  else if constexpr (std::is_enum_v<value_type>) {
-    using U = std::underlying_type_t<T>;
-    detail::encode_varint_field(field_no, WireType::Varint, static_cast<U>(val),
-                                out);
-  }
-  else if constexpr (optional_v<value_type>) {
-    if (!val.has_value()) {
-      return;
-    }
-    to_pb_impl<typename value_type::value_type>(*val, field_no, out);
-  }
-  else if constexpr (is_one_of_v<value_type>) {
-    to_pb_impl<typename value_type::value_type>(val.value, field_no, out);
+// TOOD: pb_item_size improve
+template <uint32_t key, typename V, typename Stream>
+inline void encode_pair_value(V& val, Stream& out, size_t size) {
+  if (size == 0) {
+    serialize_varint(key, out);
+    serialize_varint(0, out);
   }
   else {
-    static_assert(!sizeof(value_type), "err");
+    to_pb_impl<key>(val, out);
+  }
+}
+
+template <uint32_t key, typename Type, typename Stream>
+inline void to_pb_impl(Type& t, Stream& out) {
+  using T = std::remove_const_t<std::remove_reference_t<Type>>;
+  if constexpr (is_reflection_v<T>) {
+    // TODO: improve the key serialize
+    auto len = pb_load_size(t);
+    if (len == 0) {
+      return;
+    }
+    if constexpr (key != 0) {
+      serialize_varint(key, out);
+      serialize_varint(len, out);
+    }
+    for_each_tp(t, [&t, &out](const auto& val, auto i) {
+      constexpr static auto tp = get_members_impl<T>();
+      constexpr auto value = std::get<decltype(i)::value>(tp);
+      using U = typename std::decay_t<decltype(value)>::value_type;
+      constexpr uint32_t sub_key =
+          (value.field_no << 3) | static_cast<uint32_t>(get_wire_type<U>());
+      to_pb_impl<sub_key>(value.value(t), out);
+    });
+  }
+  else if constexpr (is_sequence_container<T>::value) {
+    using item_type = typename T::value_type;
+    if constexpr (get_wire_type<item_type>() == WireType::LengthDelimeted) {
+      for (auto& item : t) {
+        to_pb_impl<key>(item, out);
+      }
+    }
+    else {
+      serialize_varint(key, out);
+      serialize_varint(pb_load_size(t), out);
+      for (auto& item : t) {
+        to_pb_impl<0>(item, out);
+      }
+    }
+  }
+  else if constexpr (is_map_container<T>::value) {
+    using first_type = typename T::key_type;
+    using second_type = typename T::mapped_type;
+
+    constexpr uint32_t key1 =
+        (1 << 3) | static_cast<uint32_t>(get_wire_type<first_type>());
+    constexpr auto key1_size = variant_uint32_size_constexpr(key1);
+    constexpr uint32_t key2 =
+        (2 << 3) | static_cast<uint32_t>(get_wire_type<second_type>());
+    constexpr auto key2_size = variant_uint32_size_constexpr(key2);
+    for (auto& [k, v] : t) {
+      serialize_varint(key, out);
+      auto k_len = pb_load_size(k);
+      auto v_len = pb_load_size(v);
+      auto pair_len = key1_size + key2_size;
+      if constexpr (get_wire_type<first_type>() == WireType::LengthDelimeted) {
+        pair_len += variant_uint32_size(k_len) + k_len;
+      }
+      else {
+        pair_len += k_len;
+      }
+      if constexpr (get_wire_type<second_type>() == WireType::LengthDelimeted) {
+        pair_len += variant_uint32_size(v_len) + v_len;
+      }
+      else {
+        pair_len += v_len;
+      }
+      serialize_varint(pair_len, out);
+      encode_pair_value<key1>(k, out, k_len);
+      encode_pair_value<key2>(v, out, v_len);
+    }
+  }
+  else if constexpr (std::is_integral_v<T>) {
+    detail::encode_varint_field<key>(t, out);
+  }
+  else if constexpr (detail::is_signed_varint_v<T>) {
+    detail::encode_varint_field<key>(encode_zigzag(t.val), out);
+  }
+  else if constexpr (detail::is_fixed_v<T>) {
+    detail::encode_fixed_field<key>(t.val, out);
+  }
+  else if constexpr (std::is_same_v<T, double> || std::is_same_v<T, float>) {
+    detail::encode_fixed_field<key>(t, out);
+  }
+  else if constexpr (std::is_same_v<T, std::string> ||
+                     std::is_same_v<T, std::string_view>) {
+    // k will never be 0
+    serialize_varint(key, out);
+    serialize_varint(t.size(), out);
+    out.append(t);
+  }
+  else if constexpr (std::is_enum_v<T>) {
+    using U = std::underlying_type_t<T>;
+    detail::encode_varint_field<key>(static_cast<U>(t), out);
+  }
+  else if constexpr (optional_v<T>) {
+    if (!t.has_value()) {
+      return;
+    }
+    to_pb_impl<key>(*t, out);
+  }
+  else if constexpr (is_one_of_v<T>) {
+    to_pb_impl<key>(t.value, out);
+  }
+  else {
+    static_assert(!sizeof(T), "err");
   }
 }
 }  // namespace detail
 
-template <typename T>
-inline void to_pb(T& t, std::string& out) {
-  const static auto& map = get_members<T>();
-  for (auto& [field_no, member] : map) {
-    std::visit(
-        [&t, &out](auto& val) {
-          using value_type = typename std::decay_t<decltype(val)>::value_type;
-          if constexpr (detail::is_fixed_v<value_type>) {
-            detail::to_pb_impl<value_type>(val.value(t).val, val.field_no, out);
-          }
-          else {
-            detail::to_pb_impl<value_type>(val.value(t), val.field_no, out);
-          }
-        },
-        member);
-  }
+template <typename T, typename Stream>
+inline void to_pb(T& t, Stream& out) {
+  auto byte_len = detail::pb_item_size(t);
+  out.reserve(out.size() + byte_len);
+  detail::to_pb_impl<0>(t, out);
 }
 }  // namespace iguana

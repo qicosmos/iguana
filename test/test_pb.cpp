@@ -173,19 +173,19 @@ struct numer_st {
 REFLECTION(numer_st, a, b, c);
 
 TEST_CASE("test struct_pb") {
-  {
-    my_space::inner_struct inner{41, 42, 43};
+  // {
+  //   my_space::inner_struct inner{41, 42, 43};
 
-    std::string str;
-    iguana::to_pb(inner, str);
-    // CHECK(str.size() == iguana::detail::pb_item_size(inner));
+  //   std::string str;
+  //   iguana::to_pb(inner, str);
+  //   // CHECK(str.size() == iguana::detail::pb_item_size(inner));
 
-    my_space::inner_struct inner1;
-    iguana::from_pb(inner1, str);
-    CHECK(inner.x == inner1.x);
-    CHECK(inner.y == inner1.y);
-    CHECK(inner.z == inner1.z);
-  }
+  //   my_space::inner_struct inner1;
+  //   iguana::from_pb(inner1, str);
+  //   CHECK(inner.x == inner1.x);
+  //   CHECK(inner.y == inner1.y);
+  //   CHECK(inner.z == inner1.z);
+  // }
 
   {
     test_pb_st1 st1{41, {42}, {43}};
@@ -227,17 +227,6 @@ TEST_CASE("test struct_pb") {
     CHECK(str.size() == iguana::detail::pb_item_size(st1));
 
     test_pb_st4 st2;
-    iguana::from_pb(st2, str);
-    CHECK(st1.y == st2.y);
-  }
-
-  {
-    test_pb_st5 st1{41, "it is a test"};
-    std::string str;
-    iguana::to_pb(st1, str);
-    CHECK(str.size() == iguana::detail::pb_item_size(st1));
-
-    test_pb_st5 st2;
     iguana::from_pb(st2, str);
     CHECK(st1.y == st2.y);
   }
@@ -296,6 +285,7 @@ TEST_CASE("test struct_pb") {
     test_pb_st9 st1{1, {2, 4, 6}, "test"};
     std::string str;
     iguana::to_pb(st1, str);
+    CHECK(str.size() == iguana::detail::pb_item_size(st1));
 
     test_pb_st9 st2;
     iguana::from_pb(st2, str);

@@ -733,6 +733,12 @@ struct user_field_type_t<std::tuple<Args...>> {
   using value_type = std::variant<Args...>;
 };
 
+template <typename T, typename = void>
+struct is_custom_reflection : std::false_type {};
+
+template <typename T>
+struct is_custom_reflection<T, std::void_t<decltype(get_members_impl(std::declval<T*>()))>> : std::true_type {};
+
 struct field_helper {
   template <typename T, typename U, size_t... I>
   constexpr auto operator()(T &&tp, U &&arr, std::index_sequence<I...>) {
@@ -778,7 +784,7 @@ constexpr inline auto get_members() {
       return get_members_impl<T>();
     }
   }
-  else {
+  else if constexpr (is_custom_reflection<T>::value) {
     using U = std::remove_const_t<std::remove_reference_t<T>>;
     constexpr size_t Size = iguana_member_count((U *)nullptr);
     using value_type = typename user_field_type_t<decltype(get_members_impl(
@@ -790,6 +796,9 @@ constexpr inline auto get_members() {
     else {
       return get_members_impl((U *)nullptr);
     }
+  }
+  else {
+    static_assert(!sizeof(T), "expected reflection or custom reflection");
   }
 }
 
@@ -921,6 +930,9 @@ inline auto iguana_reflect_type(const T &t) {
 
 template <typename T>
 inline constexpr bool is_reflection_v = is_reflection<T>::value;
+
+template <typename T>
+inline constexpr bool is_custom_reflection_v = is_custom_reflection<T>::value;
 
 template <std::size_t index, template <typename...> typename Condition,
           typename Tuple, typename Owner>

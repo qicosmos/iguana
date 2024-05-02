@@ -87,12 +87,6 @@ struct one_of_t {
   value_type value;
 };
 
-template <typename T>
-inline void to_pb(T& t, std::string& out);
-
-template <typename T>
-inline void from_pb(T& t, std::string_view pb_str);
-
 namespace detail {
 template <typename T>
 constexpr bool is_fixed_v =
@@ -338,31 +332,43 @@ constexpr void for_each_tp(T&& t, F&& f) {
            std::make_index_sequence<std::tuple_size_v<Tuple>>{});
 }
 
+template <typename T>
+auto& get_set_size_cache(T& t) {
+  static std::map<size_t, size_t> cache;
+  return cache[reinterpret_cast<size_t>(&t)];
+}
+
 // TODO: support user-defined struct
+//
 template <size_t key_size = 0, typename T>
 inline size_t pb_item_size(T&& t) {
-  using value_type = std::remove_reference_t<T>;
+  using value_type = std::remove_const_t<std::remove_reference_t<T>>;
   if constexpr (is_reflection_v<value_type>) {
     size_t len = 0;
     for_each_tp(t, [&len, &t](const auto& val, auto i) {
       constexpr static auto tp = get_members_impl<T>();
       constexpr auto value = std::get<decltype(i)::value>(tp);
       using U = typename std::decay_t<decltype(value)>::value_type;
-      constexpr uint32_t key =
+      constexpr uint32_t sub_key =
           (value.field_no << 3) | static_cast<uint32_t>(get_wire_type<U>());
-      len += pb_item_size<variant_uint32_size_constexpr(key)>(value.value(t));
+      constexpr auto sub_keysize = variant_uint32_size_constexpr(sub_key);
+      len += pb_item_size<sub_keysize>(value.value(t));
     });
+    get_set_size_cache(t) = len;
     if constexpr (key_size == 0) {
       return len;
     }
     else {
-      return key_size + variant_uint32_size(static_cast<uint32_t>(len)) + len;
+      return len == 0
+                 ? 0
+                 : key_size + variant_uint32_size(static_cast<uint32_t>(len)) +
+                       len;
     }
   }
   else if constexpr (is_sequence_container<value_type>::value) {
     using item_type = typename value_type::value_type;
     size_t len = 0;
-    if constexpr (is_reflection_v<item_type>) {
+    if constexpr (get_wire_type<item_type>() == WireType::LengthDelimeted) {
       for (auto& item : t) {
         len += pb_item_size<key_size>(item);
       }
@@ -372,7 +378,10 @@ inline size_t pb_item_size(T&& t) {
       for (auto& item : t) {
         len += pb_item_size<0>(item);
       }
-      return key_size + variant_uint32_size(static_cast<uint32_t>(len)) + len;
+      return len == 0
+                 ? 0
+                 : key_size + variant_uint32_size(static_cast<uint32_t>(len)) +
+                       len;
     }
   }
   else if constexpr (is_map_container<value_type>::value) {
@@ -387,10 +396,21 @@ inline size_t pb_item_size(T&& t) {
   }
   else if constexpr (std::is_same_v<value_type, std::string> ||
                      std::is_same_v<value_type, std::string_view>) {
-    return key_size + variant_uint32_size(static_cast<uint32_t>(t.size())) +
-           t.size();
+    if (t.size() == 0) {
+      return 0;
+    }
+    if constexpr (key_size == 0) {
+      return t.size();
+    }
+    else {
+      return key_size + variant_uint32_size(static_cast<uint32_t>(t.size())) +
+             t.size();
+    }
   }
   else if constexpr (std::is_integral_v<value_type>) {
+    if (static_cast<uint64_t>(t) == 0) {
+      return 0;
+    }
     if constexpr (std::is_same_v<bool, value_type>) {
       return 1 + key_size;
     }
@@ -399,15 +419,29 @@ inline size_t pb_item_size(T&& t) {
     }
   }
   else if constexpr (detail::is_signed_varint_v<value_type>) {
+    if (static_cast<int64_t>(t.val) == 0) {
+      return 0;
+    }
     return key_size + variant_intergal_size(encode_zigzag(t.val));
   }
-  else if constexpr (detail::is_fixed_v<value_type> ||
-                     std::is_same_v<value_type, double> ||
+  else if constexpr (detail::is_fixed_v<value_type>) {
+    if (t.val == 0) {
+      return 0;
+    }
+    return key_size + sizeof(typename value_type::value_type);
+  }
+  else if constexpr (std::is_same_v<value_type, double> ||
                      std::is_same_v<value_type, float>) {
+    if (t == 0) {
+      return 0;
+    }
     return key_size + sizeof(value_type);
   }
   else if constexpr (std::is_enum_v<value_type>) {
     using U = std::underlying_type_t<value_type>;
+    if (static_cast<U>(t) == 0) {
+      return 0;
+    }
     return key_size + variant_intergal_size(static_cast<U>(t));
   }
   else if constexpr (optional_v<value_type>) {
@@ -421,6 +455,42 @@ inline size_t pb_item_size(T&& t) {
   }
   else {
     static_assert(!sizeof(value_type), "err");
+  }
+}
+
+template <typename T>
+inline size_t pb_load_size(T&& t) {
+  using value_type = std::remove_const_t<std::remove_reference_t<T>>;
+  if constexpr (is_reflection_v<value_type>) {
+    return get_set_size_cache(t);
+  }
+  else if constexpr (is_sequence_container<value_type>::value) {
+    using item_type = typename value_type::value_type;
+    size_t len = 0;
+    if constexpr (get_wire_type<item_type>() != WireType::LengthDelimeted) {
+      for (auto& item : t) {
+        len += pb_load_size(item);
+      }
+      return len;
+    }
+    else {
+      static_assert(!sizeof(item_type), "unsupported!");
+    }
+  }
+  else if constexpr (is_map_container<value_type>::value) {
+    static_assert(!sizeof(value_type), "unsupported!");
+  }
+  else if constexpr (optional_v<value_type>) {
+    if (!t.has_value()) {
+      return 0;
+    }
+    return pb_load_size(*t);
+  }
+  else if constexpr (is_one_of_v<value_type>) {
+    return pb_load_size(t.value);
+  }
+  else {
+    return pb_item_size<0>(t);
   }
 }
 

@@ -2,6 +2,10 @@
 #include "pb_util.hpp"
 
 namespace iguana {
+
+template <typename T>
+inline void from_pb(T& t, std::string_view pb_str);
+
 namespace detail {
 
 template <typename value_type, typename T>
@@ -40,7 +44,7 @@ inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
   }
   else if constexpr (is_sequence_container<value_type>::value) {
     using item_type = typename value_type::value_type;
-    if constexpr (is_reflection_v<item_type>) {
+    if constexpr (get_wire_type<item_type>() == WireType::LengthDelimeted) {
       // message no size
       while (!pb_str.empty()) {
         item_type item;
