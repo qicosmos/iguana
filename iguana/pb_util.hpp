@@ -137,6 +137,10 @@ constexpr inline WireType get_wire_type() {
   }
 }
 
+template <typename T>
+constexpr bool is_lenprefix_v = (get_wire_type<T>() ==
+                                 WireType::LengthDelimeted);
+
 template <typename T, typename = void>
 struct get_inner_type {
   using v_type = T;
@@ -332,6 +336,7 @@ constexpr void for_each_tp(T&& t, F&& f) {
            std::make_index_sequence<std::tuple_size_v<Tuple>>{});
 }
 
+// cache the size of reflection type
 template <typename T>
 auto& get_set_size_cache(T& t) {
   static std::map<size_t, size_t> cache;
@@ -339,7 +344,8 @@ auto& get_set_size_cache(T& t) {
 }
 
 // TODO: support user-defined struct
-//
+// returns size = key_size + optional(len_size) + len
+// when key_size == 0, return len
 template <size_t key_size = 0, typename T>
 inline size_t pb_item_size(T&& t) {
   using value_type = std::remove_const_t<std::remove_reference_t<T>>;
@@ -368,7 +374,7 @@ inline size_t pb_item_size(T&& t) {
   else if constexpr (is_sequence_container<value_type>::value) {
     using item_type = typename value_type::value_type;
     size_t len = 0;
-    if constexpr (get_wire_type<item_type>() == WireType::LengthDelimeted) {
+    if constexpr (is_lenprefix_v<item_type>) {
       for (auto& item : t) {
         len += pb_item_size<key_size>(item);
       }
@@ -376,6 +382,7 @@ inline size_t pb_item_size(T&& t) {
     }
     else {
       for (auto& item : t) {
+        // here 0 to get pakced size
         len += pb_item_size<0>(item);
       }
       return len == 0
@@ -387,7 +394,7 @@ inline size_t pb_item_size(T&& t) {
   else if constexpr (is_map_container<value_type>::value) {
     size_t len = 0;
     for (auto& [k, v] : t) {
-      // key_size == 1;
+      // the key_size of  k and v  is constant 1
       size_t kv_len = pb_item_size<1>(k) + pb_item_size<1>(v);
       len += key_size + variant_uint32_size(static_cast<uint32_t>(kv_len)) +
              kv_len;
@@ -458,6 +465,7 @@ inline size_t pb_item_size(T&& t) {
   }
 }
 
+// return the payload size
 template <typename T>
 inline size_t pb_load_size(T&& t) {
   using value_type = std::remove_const_t<std::remove_reference_t<T>>;
@@ -467,18 +475,18 @@ inline size_t pb_load_size(T&& t) {
   else if constexpr (is_sequence_container<value_type>::value) {
     using item_type = typename value_type::value_type;
     size_t len = 0;
-    if constexpr (get_wire_type<item_type>() != WireType::LengthDelimeted) {
+    if constexpr (!is_lenprefix_v<item_type>) {
       for (auto& item : t) {
         len += pb_load_size(item);
       }
       return len;
     }
     else {
-      static_assert(!sizeof(item_type), "unsupported!");
+      static_assert(!sizeof(item_type), "the size of this type is meaningless");
     }
   }
   else if constexpr (is_map_container<value_type>::value) {
-    static_assert(!sizeof(value_type), "unsupported!");
+    static_assert(!sizeof(value_type), "the size of this type is meaningless");
   }
   else if constexpr (optional_v<value_type>) {
     if (!t.has_value()) {

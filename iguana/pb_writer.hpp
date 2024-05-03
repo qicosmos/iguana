@@ -25,10 +25,10 @@ inline void encode_fixed_field(V val, Stream& out) {
     serialize_varint(key, out);
   }
   constexpr size_t size = sizeof(V);
-  // TODO: improve
-  char buf[size]{};
-  memcpy(buf, &val, size);
-  out.append(buf, size);
+  // TODO: check Stream continuous
+  auto end = out.size();
+  out.resize(out.size() + size);
+  memcpy(&out[end], &val, size);
 }
 
 template <uint32_t key, typename Type, typename Stream>
@@ -36,7 +36,7 @@ inline void to_pb_impl(Type& t, Stream& out);
 
 // TOOD: pb_item_size improve
 template <uint32_t key, typename V, typename Stream>
-inline void encode_pair_value(V& val, Stream& out, size_t size) {
+inline void encode_pair_value(V&& val, Stream& out, size_t size) {
   if (size == 0) {
     serialize_varint(key, out);
     serialize_varint(0, out);
@@ -46,6 +46,7 @@ inline void encode_pair_value(V& val, Stream& out, size_t size) {
   }
 }
 
+// key==0 occurs exclusively in packed value and top level reflection
 template <uint32_t key, typename Type, typename Stream>
 inline void to_pb_impl(Type& t, Stream& out) {
   using T = std::remove_const_t<std::remove_reference_t<Type>>;
@@ -69,8 +70,10 @@ inline void to_pb_impl(Type& t, Stream& out) {
     });
   }
   else if constexpr (is_sequence_container<T>::value) {
+    // TODO support std::array
     using item_type = typename T::value_type;
-    if constexpr (get_wire_type<item_type>() == WireType::LengthDelimeted) {
+    if constexpr (is_lenprefix_v<item_type>) {
+      // non-packed
       for (auto& item : t) {
         to_pb_impl<key>(item, out);
       }
@@ -86,29 +89,23 @@ inline void to_pb_impl(Type& t, Stream& out) {
   else if constexpr (is_map_container<T>::value) {
     using first_type = typename T::key_type;
     using second_type = typename T::mapped_type;
-
     constexpr uint32_t key1 =
         (1 << 3) | static_cast<uint32_t>(get_wire_type<first_type>());
     constexpr auto key1_size = variant_uint32_size_constexpr(key1);
     constexpr uint32_t key2 =
         (2 << 3) | static_cast<uint32_t>(get_wire_type<second_type>());
     constexpr auto key2_size = variant_uint32_size_constexpr(key2);
+
     for (auto& [k, v] : t) {
       serialize_varint(key, out);
       auto k_len = pb_load_size(k);
       auto v_len = pb_load_size(v);
-      auto pair_len = key1_size + key2_size;
-      if constexpr (get_wire_type<first_type>() == WireType::LengthDelimeted) {
-        pair_len += variant_uint32_size(k_len) + k_len;
+      auto pair_len = key1_size + key2_size + k_len + v_len;
+      if constexpr (is_lenprefix_v<first_type>) {
+        pair_len += variant_uint32_size(k_len);
       }
-      else {
-        pair_len += k_len;
-      }
-      if constexpr (get_wire_type<second_type>() == WireType::LengthDelimeted) {
-        pair_len += variant_uint32_size(v_len) + v_len;
-      }
-      else {
-        pair_len += v_len;
+      if constexpr (is_lenprefix_v<second_type>) {
+        pair_len += variant_uint32_size(v_len);
       }
       serialize_varint(pair_len, out);
       encode_pair_value<key1>(k, out, k_len);
@@ -129,7 +126,6 @@ inline void to_pb_impl(Type& t, Stream& out) {
   }
   else if constexpr (std::is_same_v<T, std::string> ||
                      std::is_same_v<T, std::string_view>) {
-    // k will never be 0
     serialize_varint(key, out);
     serialize_varint(t.size(), out);
     out.append(t);

@@ -44,8 +44,8 @@ inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
   }
   else if constexpr (is_sequence_container<value_type>::value) {
     using item_type = typename value_type::value_type;
-    if constexpr (get_wire_type<item_type>() == WireType::LengthDelimeted) {
-      // message no size
+    if constexpr (is_lenprefix_v<item_type>) {
+      // item_type non-packed
       while (!pb_str.empty()) {
         item_type item;
         from_pb_impl<item_type>(item, pb_str);
@@ -64,7 +64,7 @@ inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
       }
     }
     else {
-      // non-message has size
+      // item_type packed
       size_t pos;
       uint32_t size = detail::decode_varint(pb_str, pos);
       pb_str = pb_str.substr(pos);
