@@ -737,7 +737,18 @@ template <typename T, typename = void>
 struct is_custom_reflection : std::false_type {};
 
 template <typename T>
-struct is_custom_reflection<T, std::void_t<decltype(get_members_impl(std::declval<T*>()))>> : std::true_type {};
+struct is_custom_reflection<
+    T, std::void_t<decltype(get_members_impl(std::declval<T *>()))>>
+    : std::true_type {};
+
+template <typename T, typename = void>
+struct is_reflection : std::false_type {};
+
+template <typename T>
+inline constexpr bool is_reflection_v = is_reflection<T>::value;
+
+template <typename T>
+inline constexpr bool is_custom_reflection_v = is_custom_reflection<T>::value;
 
 struct field_helper {
   template <typename T, typename U, size_t... I>
@@ -749,10 +760,16 @@ struct field_helper {
 
 template <typename T>
 constexpr inline auto get_members_impl() {
-  using reflect_members = decltype(iguana_reflect_type(std::declval<T>()));
-  using Tuple = decltype(reflect_members::apply_impl());
-  return field_helper{}(reflect_members::apply_impl(), reflect_members::arr(),
-                        std::make_index_sequence<std::tuple_size_v<Tuple>>{});
+  if constexpr (is_reflection_v<T>) {
+    using reflect_members = decltype(iguana_reflect_type(std::declval<T>()));
+    using Tuple = decltype(reflect_members::apply_impl());
+    return field_helper{}(reflect_members::apply_impl(), reflect_members::arr(),
+                          std::make_index_sequence<std::tuple_size_v<Tuple>>{});
+  }
+  else if constexpr (is_custom_reflection_v<T>) {
+    using U = std::remove_const_t<std::remove_reference_t<T>>;
+    return get_members_impl((U *)nullptr);
+  }
 }
 
 template <typename T, size_t Size>
@@ -765,9 +782,6 @@ struct member_helper {
          T{std::in_place_index<I>, std::move(std::get<I>(tp))}}...};
   }
 };
-
-template <typename T, typename = void>
-struct is_reflection : std::false_type {};
 
 template <typename T, bool is_return_map = true>
 constexpr inline auto get_members() {
@@ -784,7 +798,7 @@ constexpr inline auto get_members() {
       return get_members_impl<T>();
     }
   }
-  else if constexpr (is_custom_reflection<T>::value) {
+  else if constexpr (is_custom_reflection_v<T>) {
     using U = std::remove_const_t<std::remove_reference_t<T>>;
     constexpr size_t Size = iguana_member_count((U *)nullptr);
     using value_type = typename user_field_type_t<decltype(get_members_impl(
@@ -927,12 +941,6 @@ inline auto iguana_reflect_type(const T &t) {
     return t.iguana_reflect_members(t);
   }
 }
-
-template <typename T>
-inline constexpr bool is_reflection_v = is_reflection<T>::value;
-
-template <typename T>
-inline constexpr bool is_custom_reflection_v = is_custom_reflection<T>::value;
 
 template <std::size_t index, template <typename...> typename Condition,
           typename Tuple, typename Owner>

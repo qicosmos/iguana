@@ -328,12 +328,9 @@ constexpr inline size_t variant_intergal_size(U value) {
   }
 }
 
-template <typename T, typename F>
-constexpr void for_each_tp(T&& t, F&& f) {
-  constexpr auto tp = get_members<T, false>();
-  using Tuple = decltype(tp);
-  for_each(tp, std::forward<F>(f),
-           std::make_index_sequence<std::tuple_size_v<Tuple>>{});
+template <typename F, size_t... I>
+constexpr void for_each_n(F&& f, std::index_sequence<I...>) {
+  (std::forward<F>(f)(std::integral_constant<size_t, I>{}), ...);
 }
 
 // cache the size of reflection type
@@ -343,23 +340,27 @@ auto& get_set_size_cache(T& t) {
   return cache[reinterpret_cast<size_t>(&t)];
 }
 
-// TODO: support user-defined struct
 // returns size = key_size + optional(len_size) + len
 // when key_size == 0, return len
 template <size_t key_size = 0, typename T>
 inline size_t pb_item_size(T&& t) {
   using value_type = std::remove_const_t<std::remove_reference_t<T>>;
-  if constexpr (is_reflection_v<value_type>) {
+  if constexpr (is_reflection_v<value_type> ||
+                is_custom_reflection_v<value_type>) {
     size_t len = 0;
-    for_each_tp(t, [&len, &t](const auto& val, auto i) {
-      constexpr static auto tp = get_members_impl<T>();
-      constexpr auto value = std::get<decltype(i)::value>(tp);
-      using U = typename std::decay_t<decltype(value)>::value_type;
-      constexpr uint32_t sub_key =
-          (value.field_no << 3) | static_cast<uint32_t>(get_wire_type<U>());
-      constexpr auto sub_keysize = variant_uint32_size_constexpr(sub_key);
-      len += pb_item_size<sub_keysize>(value.value(t));
-    });
+    constexpr auto tuple = get_members_impl<value_type>();
+    constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
+    for_each_n(
+        [&len, &t](auto i) {
+          constexpr static auto tp = get_members_impl<value_type>();
+          constexpr auto value = std::get<decltype(i)::value>(tp);
+          using U = typename std::decay_t<decltype(value)>::value_type;
+          constexpr uint32_t sub_key =
+              (value.field_no << 3) | static_cast<uint32_t>(get_wire_type<U>());
+          constexpr auto sub_keysize = variant_uint32_size_constexpr(sub_key);
+          len += pb_item_size<sub_keysize>(value.value(t));
+        },
+        std::make_index_sequence<SIZE>{});
     get_set_size_cache(t) = len;
     if constexpr (key_size == 0) {
       return len;

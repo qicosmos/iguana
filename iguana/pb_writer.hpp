@@ -50,7 +50,7 @@ inline void encode_pair_value(V&& val, Stream& out, size_t size) {
 template <uint32_t key, typename Type, typename Stream>
 inline void to_pb_impl(Type& t, Stream& out) {
   using T = std::remove_const_t<std::remove_reference_t<Type>>;
-  if constexpr (is_reflection_v<T>) {
+  if constexpr (is_reflection_v<T> || is_custom_reflection_v<T>) {
     // TODO: improve the key serialize
     auto len = pb_load_size(t);
     if (len == 0) {
@@ -60,14 +60,19 @@ inline void to_pb_impl(Type& t, Stream& out) {
       serialize_varint(key, out);
       serialize_varint(len, out);
     }
-    for_each_tp(t, [&t, &out](const auto& val, auto i) {
-      constexpr static auto tp = get_members_impl<T>();
-      constexpr auto value = std::get<decltype(i)::value>(tp);
-      using U = typename std::decay_t<decltype(value)>::value_type;
-      constexpr uint32_t sub_key =
-          (value.field_no << 3) | static_cast<uint32_t>(get_wire_type<U>());
-      to_pb_impl<sub_key>(value.value(t), out);
-    });
+    // TODO: constexpr static auto tp
+    constexpr auto tuple = get_members_impl<T>();
+    constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
+    for_each_n(
+        [&t, &out](auto i) {
+          constexpr static auto tp = get_members_impl<T>();
+          constexpr auto value = std::get<decltype(i)::value>(tp);
+          using U = typename std::decay_t<decltype(value)>::value_type;
+          constexpr uint32_t sub_key =
+              (value.field_no << 3) | static_cast<uint32_t>(get_wire_type<U>());
+          to_pb_impl<sub_key>(value.value(t), out);
+        },
+        std::make_index_sequence<SIZE>{});
   }
   else if constexpr (is_sequence_container<T>::value) {
     // TODO support std::array

@@ -2,9 +2,9 @@ name: Ubuntu (gcc)
 
 on:
   push:
-    branches: [ master]
+    branches: [ master, struct_pb ]
   pull_request:
-    branches: [ master]
+    branches: [ master, struct_pb ]
     
 jobs:
   ubuntu_gcc:

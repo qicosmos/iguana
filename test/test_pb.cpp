@@ -18,7 +18,7 @@ struct inner_struct {
   int z;
 };
 
-inline auto get_members_impl(inner_struct *) {
+constexpr inline auto get_members_impl(inner_struct *) {
   return std::make_tuple(iguana::field_t{&inner_struct::x, 7, "a"},
                          iguana::field_t{&inner_struct::y, 9, "b"},
                          iguana::field_t{&inner_struct::z, 12, "c"});
@@ -173,19 +173,19 @@ struct numer_st {
 REFLECTION(numer_st, a, b, c);
 
 TEST_CASE("test struct_pb") {
-  // {
-  //   my_space::inner_struct inner{41, 42, 43};
+  {
+    my_space::inner_struct inner{41, 42, 43};
 
-  //   std::string str;
-  //   iguana::to_pb(inner, str);
-  //   // CHECK(str.size() == iguana::detail::pb_item_size(inner));
+    std::string str;
+    iguana::to_pb(inner, str);
+    CHECK(str.size() == iguana::detail::pb_item_size(inner));
 
-  //   my_space::inner_struct inner1;
-  //   iguana::from_pb(inner1, str);
-  //   CHECK(inner.x == inner1.x);
-  //   CHECK(inner.y == inner1.y);
-  //   CHECK(inner.z == inner1.z);
-  // }
+    my_space::inner_struct inner1;
+    iguana::from_pb(inner1, str);
+    CHECK(inner.x == inner1.x);
+    CHECK(inner.y == inner1.y);
+    CHECK(inner.z == inner1.z);
+  }
 
   {
     test_pb_st1 st1{41, {42}, {43}};
