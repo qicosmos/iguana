@@ -60,7 +60,7 @@ inline void to_pb_impl(Type& t, Stream& out) {
       serialize_varint(key, out);
       serialize_varint(len, out);
     }
-    // TODO: constexpr static auto tp
+    // TODO: reduce get_members_impl call times
     constexpr auto tuple = get_members_impl<T>();
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
     for_each_n(

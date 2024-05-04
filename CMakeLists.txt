@@ -83,6 +83,7 @@ set(TEST_NOTHROW test/test_yaml_nothrow.cpp)
 set(TEST_UTIL test/test_util.cpp)
 set(TEST_XMLNOTHROW test/test_xml_nothrow.cpp)
 set(TEST_PB test/test_pb.cpp)
+set(TEST_PROTO test/test_proto3.cpp)
 
 add_executable(json_example 	${JSON_EXAMPLE})
 add_executable(json_benchmark 	${JSONBENCHMARK})
@@ -99,6 +100,28 @@ add_executable(yaml_benchmark ${YAMLBENCH})
 add_executable(test_nothrow ${TEST_NOTHROW})
 add_executable(test_util ${TEST_UTIL})
 add_executable(test_pb ${TEST_PB})
+
+option(HAS_PROTOBUF "import protobuf" OFF)
+if(HAS_PROTOBUF)
+    find_package(Protobuf REQUIRED)
+    if(Protobuf_FOUND)
+        message(STATUS "Found Protobuf: ${Protobuf_VERSION}")
+    else()
+        message(STATUS "Protobuf not found")
+    endif()
+
+    include_directories(${Protobuf_INCLUDE_DIRS})
+    include_directories(${CMAKE_CURRENT_BINARY_DIR})
+    set(PROTO_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test/proto)
+    file(GLOB PROTO_FILES ${PROTO_SRC_DIR}/*.proto)
+
+    protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
+    message(STATUS "Proto source files: ${PROTO_SRCS}")
+    message(STATUS "Proto header files: ${PROTO_HDRS}")
+
+    add_executable(test_proto ${PROTO_SRCS} ${TEST_PROTO})
+    target_link_libraries(test_proto ${Protobuf_LIBRARIES})
+endif()
 
 # unit test
 option(BUILD_UNIT_TESTS "Build unit tests" ON)
