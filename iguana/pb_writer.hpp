@@ -7,9 +7,6 @@ namespace detail {
 template <uint32_t key, typename V, typename Stream>
 inline void encode_varint_field(V val, Stream& out) {
   static_assert(std::is_integral_v<V>, "must be integral");
-  if (val == 0) {
-    return;
-  }
   if constexpr (key != 0) {
     serialize_varint(key, out);
   }
@@ -18,9 +15,6 @@ inline void encode_varint_field(V val, Stream& out) {
 
 template <uint32_t key, typename V, typename Stream>
 inline void encode_fixed_field(V val, Stream& out) {
-  if (val == 0) {
-    return;
-  }
   if constexpr (key != 0) {
     serialize_varint(key, out);
   }
@@ -34,7 +28,6 @@ inline void encode_fixed_field(V val, Stream& out) {
 template <uint32_t key, typename Type, typename Stream>
 inline void to_pb_impl(Type& t, Stream& out);
 
-// TOOD: pb_item_size improve
 template <uint32_t key, typename V, typename Stream>
 inline void encode_pair_value(V&& val, Stream& out, size_t size) {
   if (size == 0) {
@@ -43,6 +36,42 @@ inline void encode_pair_value(V&& val, Stream& out, size_t size) {
   }
   else {
     to_pb_impl<key>(val, out);
+  }
+}
+
+template <bool omit_default, uint32_t key, typename Type, typename Stream>
+inline void encode_numeric_field(Type& t, Stream& out) {
+  using T = std::remove_const_t<std::remove_reference_t<Type>>;
+  if constexpr (omit_default) {
+    if constexpr (is_fixed_v<T> || is_signed_varint_v<T>) {
+      if (t.val == 0) {
+        return;
+      }
+    }
+    else {
+      if (t == static_cast<T>(0)) {
+        return;
+      }
+    }
+  }
+  if constexpr (std::is_integral_v<T>) {
+    detail::encode_varint_field<key>(t, out);
+  }
+  else if constexpr (detail::is_signed_varint_v<T>) {
+    detail::encode_varint_field<key>(encode_zigzag(t.val), out);
+  }
+  else if constexpr (detail::is_fixed_v<T>) {
+    detail::encode_fixed_field<key>(t.val, out);
+  }
+  else if constexpr (std::is_same_v<T, double> || std::is_same_v<T, float>) {
+    detail::encode_fixed_field<key>(t, out);
+  }
+  else if constexpr (std::is_enum_v<T>) {
+    using U = std::underlying_type_t<T>;
+    detail::encode_varint_field<key>(static_cast<U>(t), out);
+  }
+  else {
+    static_assert(!sizeof(T), "err");
   }
 }
 
@@ -87,7 +116,8 @@ inline void to_pb_impl(Type& t, Stream& out) {
       serialize_varint(key, out);
       serialize_varint(pb_load_size(t), out);
       for (auto& item : t) {
-        to_pb_impl<0>(item, out);
+        // to_pb_impl<0>(item, out);
+        encode_numeric_field<false, 0>(item, out);
       }
     }
   }
@@ -117,28 +147,6 @@ inline void to_pb_impl(Type& t, Stream& out) {
       encode_pair_value<key2>(v, out, v_len);
     }
   }
-  else if constexpr (std::is_integral_v<T>) {
-    detail::encode_varint_field<key>(t, out);
-  }
-  else if constexpr (detail::is_signed_varint_v<T>) {
-    detail::encode_varint_field<key>(encode_zigzag(t.val), out);
-  }
-  else if constexpr (detail::is_fixed_v<T>) {
-    detail::encode_fixed_field<key>(t.val, out);
-  }
-  else if constexpr (std::is_same_v<T, double> || std::is_same_v<T, float>) {
-    detail::encode_fixed_field<key>(t, out);
-  }
-  else if constexpr (std::is_same_v<T, std::string> ||
-                     std::is_same_v<T, std::string_view>) {
-    serialize_varint(key, out);
-    serialize_varint(t.size(), out);
-    out.append(t);
-  }
-  else if constexpr (std::is_enum_v<T>) {
-    using U = std::underlying_type_t<T>;
-    detail::encode_varint_field<key>(static_cast<U>(t), out);
-  }
   else if constexpr (optional_v<T>) {
     if (!t.has_value()) {
       return;
@@ -148,8 +156,14 @@ inline void to_pb_impl(Type& t, Stream& out) {
   else if constexpr (is_one_of_v<T>) {
     to_pb_impl<key>(t.value, out);
   }
+  else if constexpr (std::is_same_v<T, std::string> ||
+                     std::is_same_v<T, std::string_view>) {
+    serialize_varint(key, out);
+    serialize_varint(t.size(), out);
+    out.append(t);
+  }
   else {
-    static_assert(!sizeof(T), "err");
+    encode_numeric_field<true, key>(t, out);
   }
 }
 }  // namespace detail

@@ -37,26 +37,40 @@ REFLECTION(BaseTypeMsg, optional_int32, optional_int64, optional_uint32,
            optional_uint64, optional_float, optional_double, optional_bool,
            optional_string, optional_enum);
 
-// struct RepeatBaseTypeMsg {
-//   std::vector<uint32_t> repeated_uint32;
-//   std::vector<uint64_t> repeated_uint64;
-//   std::vector<int32_t> repeated_int32;
-//   std::vector<int64_t> repeated_int64;
-//   std::vector<float> repeated_float;
-//   std::vector<double> repeated_double;
-//   std::vector<std::string> repeated_string;
-//   std::vector<Enum> repeated_enum;
-// };
+struct IguanaTypeMsg {
+  iguana::sint32_t optional_sint32;
+  iguana::sint64_t optional_sint64;
+  iguana::fixed32_t optional_fixed32;
+  iguana::fixed64_t optional_fixed64;
+  iguana::sfixed32_t optional_sfixed32;
+  iguana::sfixed64_t optional_sfixed64;
 
-// struct IguanaTypeMSg {
-//   iguana::sint32_t optional_sint32;
-//   iguana::sint64_t optional_sint64;
-//   iguana::fixed32_t optional_fixed32;
-//   iguana::fixed64_t optional_fixed64;
-//   iguana::sfixed32_t optional_sfixed32;
-//   iguana::sfixed64_t optional_sfixed64;
-//   iguana::one_of_t<uint32_t, std::string> base_oneof;
-// };
+  bool operator==(const IguanaTypeMsg& other) const {
+    return optional_sint32 == other.optional_sint32 &&
+           optional_sint64 == other.optional_sint64 &&
+           optional_fixed32 == other.optional_fixed32 &&
+           optional_fixed64 == other.optional_fixed64 &&
+           optional_sfixed32 == other.optional_sfixed32 &&
+           optional_sfixed64 == other.optional_sfixed64;
+  }
+};
+REFLECTION(IguanaTypeMsg, optional_sint32, optional_sint64, optional_fixed32,
+           optional_fixed64, optional_sfixed32, optional_sfixed64);
+
+struct RepeatBaseTypeMsg {
+  std::vector<uint32_t> repeated_uint32;
+  std::vector<uint64_t> repeated_uint64;
+  std::vector<int32_t> repeated_int32;
+  std::vector<int64_t> repeated_int64;
+  std::vector<float> repeated_float;
+  std::vector<double> repeated_double;
+  std::vector<std::string> repeated_string;
+  std::vector<Enum> repeated_enum;
+};
+
+REFLECTION(RepeatBaseTypeMsg, repeated_uint32, repeated_uint64, repeated_int32,
+           repeated_int64, repeated_float, repeated_double, repeated_string,
+           repeated_enum);
 
 // struct RepeatIguanaTypeMSg {
 //   std::vector<iguana::sfixed32_t> repeated_sint32;
@@ -71,7 +85,7 @@ REFLECTION(BaseTypeMsg, optional_int32, optional_int64, optional_uint32,
 //   BaseTypeMsg base_msg;
 //   std::vector<BaseTypeMsg> repeat_base_msg;
 //   std::vector<RepeatBaseTypeMsg> repeat_repeat_base_msg;
-//   std::vector<IguanaTypeMSg> repeat_iguna_msg;
+//   std::vector<IguanaTypeMsg> repeat_iguna_msg;
 //   std::vector<RepeatIguanaTypeMSg> repeat_repeat_iguana_msg;
 //   iguana::one_of_t<BaseTypeMsg, std::vector<std::string>> nest_oneof;
 // };

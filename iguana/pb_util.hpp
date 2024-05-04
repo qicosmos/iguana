@@ -28,11 +28,13 @@ enum class WireType : uint32_t {
 struct sint32_t {
   using value_type = int32_t;
   int32_t val;
+  bool operator==(const sint32_t& other) const { return val == other.val; }
 };
 
 struct sint64_t {
   using value_type = int64_t;
   int64_t val;
+  bool operator==(const sint64_t& other) const { return val == other.val; }
 };
 
 inline bool operator==(sint32_t value1, int32_t value2) {
@@ -46,11 +48,13 @@ inline bool operator==(sint64_t value1, int64_t value2) {
 struct fixed32_t {
   using value_type = uint32_t;
   uint32_t val;
+  bool operator==(const fixed32_t& other) const { return val == other.val; }
 };
 
 struct fixed64_t {
   using value_type = uint64_t;
   uint64_t val;
+  bool operator==(const fixed64_t& other) const { return val == other.val; }
 };
 
 inline bool operator==(fixed32_t value1, uint32_t value2) {
@@ -64,18 +68,20 @@ inline bool operator==(fixed64_t value1, uint64_t value2) {
 struct sfixed32_t {
   using value_type = int32_t;
   int32_t val;
+  bool operator==(const sfixed32_t& other) const { return val == other.val; }
 };
 
 struct sfixed64_t {
   using value_type = int64_t;
   int64_t val;
+  bool operator==(const sfixed64_t& other) const { return val == other.val; }
 };
 
 inline bool operator==(sfixed32_t value1, int32_t value2) {
   return value1.val == value2;
 }
 
-inline bool operator==(sfixed32_t value1, int64_t value2) {
+inline bool operator==(sfixed64_t value1, int64_t value2) {
   return value1.val == value2;
 }
 
@@ -340,6 +346,48 @@ auto& get_set_size_cache(T& t) {
   return cache[reinterpret_cast<size_t>(&t)];
 }
 
+template <bool omit_default, size_t key_size, typename T>
+inline size_t numeric_size(T&& t) {
+  using value_type = std::remove_const_t<std::remove_reference_t<T>>;
+  if constexpr (omit_default) {
+    if constexpr (is_fixed_v<value_type> || is_signed_varint_v<value_type>) {
+      if (t.val == 0) {
+        return 0;
+      }
+    }
+    else {
+      if (t == static_cast<value_type>(0)) {
+        return 0;
+      }
+    }
+  }
+  if constexpr (std::is_integral_v<value_type>) {
+    if constexpr (std::is_same_v<bool, value_type>) {
+      return 1 + key_size;
+    }
+    else {
+      return key_size + variant_intergal_size(t);
+    }
+  }
+  else if constexpr (detail::is_signed_varint_v<value_type>) {
+    return key_size + variant_intergal_size(encode_zigzag(t.val));
+  }
+  else if constexpr (detail::is_fixed_v<value_type>) {
+    return key_size + sizeof(typename value_type::value_type);
+  }
+  else if constexpr (std::is_same_v<value_type, double> ||
+                     std::is_same_v<value_type, float>) {
+    return key_size + sizeof(value_type);
+  }
+  else if constexpr (std::is_enum_v<value_type>) {
+    using U = std::underlying_type_t<value_type>;
+    return key_size + variant_intergal_size(static_cast<U>(t));
+  }
+  else {
+    static_assert(!sizeof(value_type), "err");
+  }
+}
+
 // returns size = key_size + optional(len_size) + len
 // when key_size == 0, return len
 template <size_t key_size = 0, typename T>
@@ -384,7 +432,7 @@ inline size_t pb_item_size(T&& t) {
     else {
       for (auto& item : t) {
         // here 0 to get pakced size
-        len += pb_item_size<0>(item);
+        len += numeric_size<false, 0>(item);
       }
       return len == 0
                  ? 0
@@ -402,6 +450,15 @@ inline size_t pb_item_size(T&& t) {
     }
     return len;
   }
+  else if constexpr (optional_v<value_type>) {
+    if (!t.has_value()) {
+      return 0;
+    }
+    return pb_item_size<key_size>(*t);
+  }
+  else if constexpr (is_one_of_v<value_type>) {
+    return pb_item_size<key_size>(t.value);
+  }
   else if constexpr (std::is_same_v<value_type, std::string> ||
                      std::is_same_v<value_type, std::string_view>) {
     if (t.size() == 0) {
@@ -415,54 +472,8 @@ inline size_t pb_item_size(T&& t) {
              t.size();
     }
   }
-  else if constexpr (std::is_integral_v<value_type>) {
-    if (static_cast<uint64_t>(t) == 0) {
-      return 0;
-    }
-    if constexpr (std::is_same_v<bool, value_type>) {
-      return 1 + key_size;
-    }
-    else {
-      return key_size + variant_intergal_size(t);
-    }
-  }
-  else if constexpr (detail::is_signed_varint_v<value_type>) {
-    if (static_cast<int64_t>(t.val) == 0) {
-      return 0;
-    }
-    return key_size + variant_intergal_size(encode_zigzag(t.val));
-  }
-  else if constexpr (detail::is_fixed_v<value_type>) {
-    if (t.val == 0) {
-      return 0;
-    }
-    return key_size + sizeof(typename value_type::value_type);
-  }
-  else if constexpr (std::is_same_v<value_type, double> ||
-                     std::is_same_v<value_type, float>) {
-    if (t == 0) {
-      return 0;
-    }
-    return key_size + sizeof(value_type);
-  }
-  else if constexpr (std::is_enum_v<value_type>) {
-    using U = std::underlying_type_t<value_type>;
-    if (static_cast<U>(t) == 0) {
-      return 0;
-    }
-    return key_size + variant_intergal_size(static_cast<U>(t));
-  }
-  else if constexpr (optional_v<value_type>) {
-    if (!t.has_value()) {
-      return 0;
-    }
-    return pb_item_size<key_size>(*t);
-  }
-  else if constexpr (is_one_of_v<value_type>) {
-    return pb_item_size<key_size>(t.value);
-  }
   else {
-    static_assert(!sizeof(value_type), "err");
+    return numeric_size<true, key_size>(t);
   }
 }
 
@@ -478,7 +489,7 @@ inline size_t pb_load_size(T&& t) {
     size_t len = 0;
     if constexpr (!is_lenprefix_v<item_type>) {
       for (auto& item : t) {
-        len += pb_load_size(item);
+        len += numeric_size<false, 0>(item);
       }
       return len;
     }

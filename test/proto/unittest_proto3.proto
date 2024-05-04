@@ -42,10 +42,6 @@ message IguanaTypeMsg {
   fixed64 optional_fixed64 = 4;
   sfixed32 optional_sfixed32 = 5;
   sfixed64 optional_sfixed64 = 6;
-  oneof base_oneof {
-    uint32 base_oneof_uint32 = 7;
-    string base_oneof_string = 8;
-  }
 }
 
 message RepeatIguanaTypeMsg {
