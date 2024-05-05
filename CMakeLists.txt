@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.15)
 project(iguana)
 
+message(STATUS "C++ Compiler Version: ${CMAKE_CXX_COMPILER_VERSION}")
+
 if(MSVC)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++20")
 add_compile_options(/utf-8)
