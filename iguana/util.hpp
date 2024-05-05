@@ -313,6 +313,7 @@ IGUANA_INLINE constexpr bool has_duplicate(std::array<T, N>& arr) {
   return false;
 }
 
+#if (__GNUC__ > 8)
 template <typename... Types>
 IGUANA_INLINE constexpr bool has_duplicate_type() {
   std::array<std::string_view, sizeof...(Types)> arr{
@@ -328,7 +329,6 @@ struct has_duplicate_type_in_variant<std::variant<Us...>> {
   inline constexpr static bool value = has_duplicate_type<Us...>();
 };
 
-#if (__GNUC__ > 8)
 template <typename T>
 constexpr inline bool has_duplicate_type_v =
     has_duplicate_type_in_variant<T>::value;
