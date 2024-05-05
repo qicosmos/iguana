@@ -181,7 +181,8 @@ struct nest_t {
 REFLECTION(nest_t, name, value, var, var2);
 
 TEST_CASE("test throw while parsing an illegal number") {
-#if (__GNUC__ > 8)
+#if defined(__clang__) || defined(_MSC_VER) || \
+    (defined(__GNUC__) && __GNUC__ > 8)
   constexpr bool r = iguana::has_duplicate_type_v<std::variant<int, bool>>;
   constexpr bool r1 =
       iguana::has_duplicate_type_v<std::variant<int, bool, bool>>;
