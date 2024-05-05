@@ -302,7 +302,7 @@ IGUANA_INLINE void write_string_with_escape(const Ch* it, SizeType length,
 }
 
 template <typename T, size_t N>
-IGUANA_INLINE constexpr bool has_duplicate(std::array<T, N>& arr) {
+IGUANA_INLINE constexpr bool has_duplicate(const std::array<T, N>& arr) {
   for (int i = 0; i < arr.size(); i++) {
     for (int j = i + 1; j < arr.size(); j++) {
       if (arr[i] == arr[j]) {
@@ -313,7 +313,8 @@ IGUANA_INLINE constexpr bool has_duplicate(std::array<T, N>& arr) {
   return false;
 }
 
-#if (__GNUC__ > 8)
+#if defined(__clang__) || defined(_MSC_VER) || \
+    (defined(__GNUC__) && __GNUC__ > 8)
 template <typename... Types>
 IGUANA_INLINE constexpr bool has_duplicate_type() {
   std::array<std::string_view, sizeof...(Types)> arr{
