@@ -139,16 +139,6 @@ struct is_variant<std::variant<T...>> : std::true_type {};
 template <typename T>
 constexpr inline bool variant_v = is_variant<std::remove_cvref_t<T>>::value;
 
-template <typename T>
-struct has_same_variant_type : std::false_type {};
-
-template <typename T, typename... Us>
-struct has_same_variant_type<std::variant<T, Us...>>
-    : std::disjunction<std::is_same<T, Us>...> {};
-
-template <typename T>
-constexpr bool has_same_variant_type_v = has_same_variant_type<T>::value;
-
 template <size_t Idx, typename T>
 using variant_element_t = std::remove_reference_t<decltype(std::get<Idx>(
     std::declval<std::remove_reference_t<T>>()))>;
@@ -310,5 +300,41 @@ IGUANA_INLINE void write_string_with_escape(const Ch* it, SizeType length,
     }
   }
 }
+
+template <typename T, size_t N>
+IGUANA_INLINE constexpr bool has_duplicate(std::array<T, N>& arr) {
+  for (int i = 0; i < arr.size(); i++) {
+    for (int j = i + 1; j < arr.size(); j++) {
+      if (arr[i] == arr[j]) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+#if (__GNUC__ > 8)
+template <typename... Types>
+IGUANA_INLINE constexpr bool has_duplicate_type() {
+  std::array<std::string_view, sizeof...(Types)> arr{
+      iguana::type_string<Types>()...};
+  return has_duplicate(arr);
+}
+
+template <typename T>
+struct has_duplicate_type_in_variant : std::false_type {};
+
+template <typename... Us>
+struct has_duplicate_type_in_variant<std::variant<Us...>> {
+  inline constexpr static bool value = has_duplicate_type<Us...>();
+};
+
+template <typename T>
+constexpr inline bool has_duplicate_type_v =
+    has_duplicate_type_in_variant<T>::value;
+#else
+template <typename T>
+constexpr inline bool has_duplicate_type_v = false;
+#endif
 
 }  // namespace iguana
