@@ -328,8 +328,13 @@ struct has_duplicate_type_in_variant<std::variant<Us...>> {
   inline constexpr static bool value = has_duplicate_type<Us...>();
 };
 
+#if (__GNUC__ > 8)
 template <typename T>
 constexpr inline bool has_duplicate_type_v =
     has_duplicate_type_in_variant<T>::value;
+#else
+template <typename T>
+constexpr inline bool has_duplicate_type_v = false;
+#endif
 
 }  // namespace iguana
