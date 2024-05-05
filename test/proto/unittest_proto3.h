@@ -95,12 +95,12 @@ struct NestedMsg {
 REFLECTION(NestedMsg, base_msg, repeat_base_msg, iguana_type_msg,
            repeat_iguna_msg, repeat_repeat_base_msg);
 
-// struct MapMsg {
-//   std::unordered_map<iguana::sfixed64_t, std::string> sfix64_str_map;
-//   std::unordered_map<std::string, iguana::fixed32_t> str_fix32_map;
-//   std::map<iguana::fixed64_t, BaseTypeMsg> fix64_btmsg;
-//   std::map<std::string,  iguana::one_of_t<int, double, std::string>>
-//   str_oneof_map;
-// };
+struct MapMsg {
+  std::unordered_map<iguana::sfixed64_t, std::string> sfix64_str_map{};
+  std::unordered_map<std::string, IguanaTypeMsg> str_iguana_type_msg_map{};
+  std::map<int, RepeatBaseTypeMsg> int_repeat_base_msg_map{};
+};
+REFLECTION(MapMsg, sfix64_str_map, str_iguana_type_msg_map,
+           int_repeat_base_msg_map);
 
 }  // namespace stpb

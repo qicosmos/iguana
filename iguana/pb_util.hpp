@@ -516,3 +516,12 @@ inline size_t pb_load_size(T&& t) {
 
 }  // namespace detail
 }  // namespace iguana
+
+namespace std {
+template <>
+struct hash<iguana::sfixed64_t> {
+  size_t operator()(const iguana::sfixed64_t& x) const noexcept {
+    return std::hash<int64_t>()(x.val);
+  }
+};
+}  // namespace std

@@ -6,6 +6,15 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
 
+void print_hex_str(const std::string& str) {
+  std::ostringstream oss;
+  oss << std::hex << std::setfill('0');
+  for (unsigned char c : str) {
+    oss << std::setw(2) << static_cast<int>(c);
+  }
+  std::cout << oss.str() << std::endl;
+}
+
 void SetBaseTypeMsg(const stpb::BaseTypeMsg& st, pb::BaseTypeMsg& msg) {
   msg.set_optional_int32(st.optional_int32);
   msg.set_optional_int64(st.optional_int64);
@@ -395,6 +404,95 @@ TEST_CASE("test NestedMsg") {
   dese_msg.ParseFromString(pb_ss);
 
   CheckNestedMsg(dese_st, dese_msg);
+}
+
+void SetMapMsg(const stpb::MapMsg& st, pb::MapMsg& msg) {
+  msg.Clear();
+  for (const auto& pair : st.sfix64_str_map) {
+    (*msg.mutable_sfix64_str_map())[pair.first.val] = pair.second;
+  }
+  for (const auto& pair : st.str_iguana_type_msg_map) {
+    pb::IguanaTypeMsg* it_msg =
+        &((*msg.mutable_str_iguana_type_msg_map())[pair.first]);
+    SetIguanaTypeMsg(pair.second, *it_msg);
+  }
+  for (const auto& pair : st.int_repeat_base_msg_map) {
+    pb::RepeatBaseTypeMsg* rb_msg =
+        &((*msg.mutable_int_repeat_base_msg_map())[pair.first]);
+    SetRepeatBaseTypeMsg(pair.second, *rb_msg);
+  }
+}
+
+void CheckMapMsg(const stpb::MapMsg& st, const pb::MapMsg& msg) {
+  CHECK(msg.sfix64_str_map_size() == st.sfix64_str_map.size());
+  for (const auto& pair : st.sfix64_str_map) {
+    auto it = msg.sfix64_str_map().find(pair.first.val);
+    CHECK(it != msg.sfix64_str_map().end());
+    CHECK(it->second == pair.second);
+  }
+  CHECK(msg.str_iguana_type_msg_map_size() ==
+        st.str_iguana_type_msg_map.size());
+  for (const auto& pair : st.str_iguana_type_msg_map) {
+    auto it = msg.str_iguana_type_msg_map().find(pair.first);
+    CHECK(it != msg.str_iguana_type_msg_map().end());
+    CheckIguanaTypeMsg(pair.second, it->second);
+  }
+
+  CHECK(msg.int_repeat_base_msg_map_size() ==
+        st.int_repeat_base_msg_map.size());
+  for (const auto& pair : st.int_repeat_base_msg_map) {
+    auto it = msg.int_repeat_base_msg_map().find(pair.first);
+    CHECK(it != msg.int_repeat_base_msg_map().end());
+    CheckRepeatBaseTypeMsg(pair.second, it->second);
+  }
+}
+
+TEST_CASE("test MapMsg") {
+  stpb::MapMsg se_st{};
+
+  se_st.sfix64_str_map.emplace(iguana::sfixed64_t{10}, "ten");
+  se_st.sfix64_str_map.emplace(iguana::sfixed64_t{20}, "twenty");
+
+  se_st.str_iguana_type_msg_map.emplace(
+      "first", stpb::IguanaTypeMsg{{10}, {20}, {30}, {40}, {50}, {60}});
+  se_st.str_iguana_type_msg_map.emplace(
+      "second", stpb::IguanaTypeMsg{{11}, {21}, {31}, {41}, {51}, {61}});
+
+  se_st.int_repeat_base_msg_map.emplace(
+      1, stpb::RepeatBaseTypeMsg{{1, 2},
+                                 {3, 4},
+                                 {5, 6},
+                                 {7, 8},
+                                 {9.0f, 10.0f},
+                                 {11.0, 12.0},
+                                 {"one", "two"},
+                                 {stpb::Enum::FOO, stpb::Enum::BAR}});
+  se_st.int_repeat_base_msg_map.emplace(
+      2, stpb::RepeatBaseTypeMsg{{2, 3},
+                                 {4, 5},
+                                 {6, 7},
+                                 {8, 9},
+                                 {10.0f, 11.0f},
+                                 {12.0, 13.0},
+                                 {"three", "four"},
+                                 {stpb::Enum::BAZ, stpb::Enum::NEG}});
+
+  std::string st_ss;
+  iguana::to_pb(se_st, st_ss);
+
+  pb::MapMsg se_msg{};
+  SetMapMsg(se_st, se_msg);
+  std::string pb_ss;
+  se_msg.SerializeToString(&pb_ss);
+  CHECK(st_ss == pb_ss);
+  CHECK(st_ss.size() == pb_ss.size());
+  print_hex_str(st_ss);
+  print_hex_str(pb_ss);
+  stpb::MapMsg dese_st;
+  iguana::from_pb(dese_st, pb_ss);
+  pb::MapMsg dese_msg;
+  dese_msg.ParseFromString(st_ss);
+  CheckMapMsg(dese_st, dese_msg);
 }
 
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)

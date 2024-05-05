@@ -63,9 +63,9 @@ message NestedMsg {
 
 message MapMsg {
   map<sfixed64, string> sfix64_str_map = 1;
-  map<string, fixed32> str_fix32_map = 2;
-  map<fixed64, BaseTypeMsg> fix64_btmsg = 3;
-//  map<string, oneof {int32, double, string}> str_oneof_map = 4;
+  map<string, IguanaTypeMsg> str_iguana_type_msg_map = 2;
+  map<int32, RepeatBaseTypeMsg> int_repeat_base_msg_map = 3;
+  // Key in map fields cannot be float/double, bytes or message types.
 }
 
 
