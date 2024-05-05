@@ -38,8 +38,7 @@ inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
     if (size == 0) {
       return;
     }
-
-    from_pb(val, pb_str);
+    from_pb(val, pb_str.substr(0, size));
     pb_str = pb_str.substr(size);
   }
   else if constexpr (is_sequence_container<value_type>::value) {
@@ -47,7 +46,7 @@ inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
     if constexpr (is_lenprefix_v<item_type>) {
       // item_type non-packed
       while (!pb_str.empty()) {
-        item_type item;
+        item_type item{};  // init the default value
         from_pb_impl<item_type>(item, pb_str);
         val.push_back(std::move(item));
         if (pb_str.empty()) {
@@ -187,9 +186,6 @@ inline constexpr size_t get_member_count_impl() {
 
 template <typename T>
 inline void from_pb(T& t, std::string_view pb_str) {
-  using U = std::remove_const_t<std::remove_reference_t<T>>;
-  constexpr size_t Count = get_member_count_impl<U>();
-
   size_t pos = 0;
   while (!pb_str.empty()) {
     uint32_t key = detail::decode_varint(pb_str, pos);
@@ -208,7 +204,7 @@ inline void from_pb(T& t, std::string_view pb_str) {
         [&t, &pb_str, wire_type](auto& val) {
           using value_type = typename std::decay_t<decltype(val)>::value_type;
           if (wire_type != detail::get_wire_type<value_type>()) {
-            return;
+            throw std::runtime_error("unmatched wire_type");
           }
           if constexpr (detail::is_signed_varint_v<value_type> ||
                         detail::is_fixed_v<value_type>) {
@@ -220,10 +216,6 @@ inline void from_pb(T& t, std::string_view pb_str) {
           }
         },
         member);
-
-    if (field_number == Count) {
-      break;
-    }
   }
 }
 }  // namespace iguana

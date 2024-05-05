@@ -152,8 +152,8 @@ REFLECTION(person, name, age);
 
 struct my_struct {
   int x;
-  int y;
-  int z;
+  bool y;
+  iguana::fixed64_t z;
 };
 REFLECTION(my_struct, x, y, z);
 
@@ -265,11 +265,13 @@ TEST_CASE("test struct_pb") {
   }
   {
     // sub nested objects
-    nest1 v{"Hi", {1, 2, 3}, 5}, v2;
+    nest1 v{"Hi", {1, false, {3}}, 5}, v2{};
     std::string s;
     iguana::to_pb(v, s);
     iguana::from_pb(v2, s);
     CHECK(v.var == v2.var);
+    CHECK(v.value.y == v2.value.y);
+    CHECK(v.value.z == v2.value.z);
 
     test_pb_st8 st1{1, {3, 4}, {5, {7, 8}}};
     std::string str;

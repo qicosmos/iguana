@@ -56,13 +56,9 @@ message RepeatIguanaTypeMsg {
 message NestedMsg {
   BaseTypeMsg base_msg = 1;
   repeated BaseTypeMsg repeat_base_msg = 2;
-  repeated RepeatBaseTypeMsg repeat_repeat_base_msg = 3;
+  IguanaTypeMsg iguana_type_msg = 3;
   repeated IguanaTypeMsg repeat_iguna_msg = 4;
-  repeated RepeatIguanaTypeMsg repeat_repeat_iguana_msg = 5;
-  oneof nest_oneof {
-    BaseTypeMsg nest_oneof_base_msg = 6;
-    string nest_oneof_string = 7;
-  }
+  repeated RepeatBaseTypeMsg repeat_repeat_base_msg = 5;
 }
 
 message MapMsg {

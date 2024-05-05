@@ -72,23 +72,28 @@ REFLECTION(RepeatBaseTypeMsg, repeated_uint32, repeated_uint64, repeated_int32,
            repeated_int64, repeated_float, repeated_double, repeated_string,
            repeated_enum);
 
-// struct RepeatIguanaTypeMSg {
-//   std::vector<iguana::sfixed32_t> repeated_sint32;
-//   std::vector<iguana::sfixed64_t> repeated_sint64;
-//   std::vector<iguana::fixed32_t> repeated_fixed32;
-//   std::vector<iguana::fixed64_t> repeated_fixed64;
-//   std::vector<iguana::sfixed32_t> repeated_sfixed32;
-//   std::vector<iguana::sfixed64_t> repeated_sfixed64;
-// };
+struct RepeatIguanaTypeMsg {
+  std::vector<iguana::sfixed32_t> repeated_sint32;
+  std::vector<iguana::sfixed64_t> repeated_sint64;
+  std::vector<iguana::fixed32_t> repeated_fixed32;
+  std::vector<iguana::fixed64_t> repeated_fixed64;
+  std::vector<iguana::sfixed32_t> repeated_sfixed32;
+  std::vector<iguana::sfixed64_t> repeated_sfixed64;
+};
 
-// struct NestedMsg {
-//   BaseTypeMsg base_msg;
-//   std::vector<BaseTypeMsg> repeat_base_msg;
-//   std::vector<RepeatBaseTypeMsg> repeat_repeat_base_msg;
-//   std::vector<IguanaTypeMsg> repeat_iguna_msg;
-//   std::vector<RepeatIguanaTypeMSg> repeat_repeat_iguana_msg;
-//   iguana::one_of_t<BaseTypeMsg, std::vector<std::string>> nest_oneof;
-// };
+REFLECTION(RepeatIguanaTypeMsg, repeated_sint32, repeated_sint64,
+           repeated_fixed32, repeated_fixed64, repeated_sfixed32,
+           repeated_sfixed64);
+
+struct NestedMsg {
+  BaseTypeMsg base_msg;
+  std::vector<BaseTypeMsg> repeat_base_msg;
+  IguanaTypeMsg iguana_type_msg;
+  std::vector<IguanaTypeMsg> repeat_iguna_msg;
+  std::vector<RepeatBaseTypeMsg> repeat_repeat_base_msg;
+};
+REFLECTION(NestedMsg, base_msg, repeat_base_msg, iguana_type_msg,
+           repeat_iguna_msg, repeat_repeat_base_msg);
 
 // struct MapMsg {
 //   std::unordered_map<iguana::sfixed64_t, std::string> sfix64_str_map;

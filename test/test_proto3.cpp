@@ -216,6 +216,187 @@ TEST_CASE("test RepeatBaseTypeMsg") {
   }
 }
 
+void SetRepeatIguanaTypeMsg(const stpb::RepeatIguanaTypeMsg& st,
+                            pb::RepeatIguanaTypeMsg& msg) {
+  for (auto v : st.repeated_sint32) {
+    msg.add_repeated_sint32(v.val);
+  }
+  for (auto v : st.repeated_sint64) {
+    msg.add_repeated_sint64(v.val);
+  }
+  for (auto v : st.repeated_fixed32) {
+    msg.add_repeated_fixed32(v.val);
+  }
+  for (auto v : st.repeated_fixed64) {
+    msg.add_repeated_fixed64(v.val);
+  }
+  for (auto v : st.repeated_sfixed32) {
+    msg.add_repeated_sfixed32(v.val);
+  }
+  for (auto v : st.repeated_sfixed64) {
+    msg.add_repeated_sfixed64(v.val);
+  }
+}
+
+void CheckRepeatIguanaTypeMsg(const stpb::RepeatIguanaTypeMsg& st,
+                              const pb::RepeatIguanaTypeMsg& msg) {
+  for (int i = 0; i < st.repeated_sint32.size(); ++i) {
+    CHECK(st.repeated_sint32[i].val == msg.repeated_sint32(i));
+  }
+  for (int i = 0; i < st.repeated_sint64.size(); ++i) {
+    CHECK(st.repeated_sint64[i].val == msg.repeated_sint64(i));
+  }
+  for (int i = 0; i < st.repeated_fixed32.size(); ++i) {
+    CHECK(st.repeated_fixed32[i].val == msg.repeated_fixed32(i));
+  }
+  for (int i = 0; i < st.repeated_fixed64.size(); ++i) {
+    CHECK(st.repeated_fixed64[i].val == msg.repeated_fixed64(i));
+  }
+  for (int i = 0; i < st.repeated_sfixed32.size(); ++i) {
+    CHECK(st.repeated_sfixed32[i].val == msg.repeated_sfixed32(i));
+  }
+  for (int i = 0; i < st.repeated_sfixed64.size(); ++i) {
+    CHECK(st.repeated_sfixed64[i].val == msg.repeated_sfixed64(i));
+  }
+}
+
+TEST_CASE("test RepeatIguanaTypeMsg") {
+  {
+    stpb::RepeatIguanaTypeMsg se_st{
+        {{1}, {2}, {3}},    {{4}, {5}, {6}},    {{7}, {8}, {9}},
+        {{10}, {11}, {12}}, {{13}, {14}, {15}}, {{16}, {17}, {18}},
+    };
+    std::string st_ss;
+    iguana::to_pb(se_st, st_ss);
+
+    pb::RepeatIguanaTypeMsg se_msg;
+    SetRepeatIguanaTypeMsg(se_st, se_msg);
+    std::string pb_ss;
+    se_msg.SerializeToString(&pb_ss);
+    CHECK(st_ss == pb_ss);
+
+    stpb::RepeatIguanaTypeMsg dese_st;
+    iguana::from_pb(dese_st, st_ss);
+    pb::RepeatIguanaTypeMsg dese_msg;
+    dese_msg.ParseFromString(pb_ss);
+    CheckRepeatIguanaTypeMsg(dese_st, dese_msg);
+  }
+}
+
+void SetNestedMsg(const stpb::NestedMsg& st, pb::NestedMsg& msg) {
+  SetBaseTypeMsg(st.base_msg, *msg.mutable_base_msg());
+
+  for (const auto& base_msg : st.repeat_base_msg) {
+    auto* base_msg_ptr = msg.add_repeat_base_msg();
+    SetBaseTypeMsg(base_msg, *base_msg_ptr);
+  }
+
+  SetIguanaTypeMsg(st.iguana_type_msg, *msg.mutable_iguana_type_msg());
+
+  for (const auto& iguana_type_msg : st.repeat_iguna_msg) {
+    auto* iguana_type_msg_ptr = msg.add_repeat_iguna_msg();
+    SetIguanaTypeMsg(iguana_type_msg, *iguana_type_msg_ptr);
+  }
+
+  for (const auto& repeat_base_msg : st.repeat_repeat_base_msg) {
+    auto* repeat_base_msg_ptr = msg.add_repeat_repeat_base_msg();
+    SetRepeatBaseTypeMsg(repeat_base_msg, *repeat_base_msg_ptr);
+  }
+}
+
+void CheckNestedMsg(const stpb::NestedMsg& st, const pb::NestedMsg& msg) {
+  CheckBaseTypeMsg(st.base_msg, msg.base_msg());
+
+  CHECK(st.repeat_base_msg.size() == msg.repeat_base_msg_size());
+  for (int i = 0; i < st.repeat_base_msg.size(); ++i) {
+    CheckBaseTypeMsg(st.repeat_base_msg[i], msg.repeat_base_msg(i));
+  }
+
+  CheckIguanaTypeMsg(st.iguana_type_msg, msg.iguana_type_msg());
+
+  CHECK(st.repeat_iguna_msg.size() == msg.repeat_iguna_msg_size());
+  for (int i = 0; i < st.repeat_iguna_msg.size(); ++i) {
+    CheckIguanaTypeMsg(st.repeat_iguna_msg[i], msg.repeat_iguna_msg(i));
+  }
+
+  CHECK(st.repeat_repeat_base_msg.size() == msg.repeat_repeat_base_msg_size());
+  for (int i = 0; i < st.repeat_repeat_base_msg.size(); ++i) {
+    CheckRepeatBaseTypeMsg(st.repeat_repeat_base_msg[i],
+                           msg.repeat_repeat_base_msg(i));
+  }
+}
+
+TEST_CASE("test RepeatIguanaTypeMsg") {
+  {
+    stpb::RepeatIguanaTypeMsg se_st{
+        {{1}, {2}, {3}},    {{4}, {5}, {6}},    {{7}, {8}, {9}},
+        {{10}, {11}, {12}}, {{13}, {14}, {15}}, {{16}, {17}, {18}},
+    };
+    std::string st_ss;
+    iguana::to_pb(se_st, st_ss);
+
+    pb::RepeatIguanaTypeMsg se_msg;
+    SetRepeatIguanaTypeMsg(se_st, se_msg);
+    std::string pb_ss;
+    se_msg.SerializeToString(&pb_ss);
+    CHECK(st_ss == pb_ss);
+
+    stpb::RepeatIguanaTypeMsg dese_st;
+    iguana::from_pb(dese_st, st_ss);
+    pb::RepeatIguanaTypeMsg dese_msg;
+    dese_msg.ParseFromString(pb_ss);
+    CheckRepeatIguanaTypeMsg(dese_st, dese_msg);
+  }
+}
+
+TEST_CASE("test NestedMsg") {
+  stpb::NestedMsg se_st{
+      /* base_msg */ {100, 200, 300, 400, 31.4f, 62.8, false, "World",
+                      stpb::Enum::BAZ},
+      /* repeat_base_msg */
+      {{1, 2, 3, 4, 5.5f, 6.6, true, "Hello", stpb::Enum::FOO},
+       {7, 8, 9, 10, 11.11f, 12.12, false, "Hi", stpb::Enum::BAR}},
+      /* iguana_type_msg */ {{100}, {200}, {300}, {400}, {31}, {32}},
+      /* repeat_iguna_msg */
+      {{{1}, {2}, {3}}, {{4}, {5}, {6}}, {{7}, {8}, {9}}},
+      /* repeat_repeat_base_msg */
+      {{{1, 2, 3},
+        {4, 5, 6},
+        {7, 8, 9},
+        {10, 11, 12},
+        {13.1, 14.2, 15.3},
+        {16.4, 17.5, 18.6},
+        {"a", "b", "c"},
+        {stpb::Enum::FOO, stpb::Enum::BAR, stpb::Enum::BAZ}},
+       {{19, 20, 21},
+        {22, 23, 24},
+        {25, 26, 27},
+        {28, 29, 30},
+        {31.1, 32.2, 33.3},
+        {34.4, 35.5, 36.6},
+        {"x", "y", "z"},
+        {stpb::Enum::ZERO, stpb::Enum::NEG, stpb::Enum::FOO}}}};
+
+  std::string st_ss;
+  iguana::to_pb(se_st, st_ss);
+
+  pb::NestedMsg se_msg;
+  SetNestedMsg(se_st, se_msg);
+
+  std::string pb_ss;
+  se_msg.SerializeToString(&pb_ss);
+
+  CHECK(st_ss == pb_ss);
+
+  stpb::NestedMsg dese_st;
+  iguana::from_pb(dese_st, st_ss);
+
+  pb::NestedMsg dese_msg;
+  dese_msg.ParseFromString(pb_ss);
+
+  CheckNestedMsg(dese_st, dese_msg);
+}
+
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
 int main(int argc, char** argv) { return doctest::Context(argc, argv).run(); }
 DOCTEST_MSVC_SUPPRESS_WARNING_POP
