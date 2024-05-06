@@ -958,12 +958,23 @@ constexpr size_t index_of() {
   return index;
 }
 
+template <auto... members>
+constexpr std::array<size_t, sizeof...(members)> indexs_of() {
+  return std::array<size_t, sizeof...(members)>{index_of<members>()...};
+}
+
 template <auto member>
 constexpr auto name_of() {
   using T = typename member_tratis<decltype(member)>::owner_type;
   using M = Reflect_members<T>;
   constexpr auto s = M::arr()[index_of<member>()];
   return std::string_view(s.data(), s.size());
+}
+
+template <auto... members>
+constexpr std::array<std::string_view, sizeof...(members)> names_of() {
+  return std::array<std::string_view, sizeof...(members)>{
+      name_of<members>()...};
 }
 
 template <auto member>

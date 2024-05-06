@@ -913,6 +913,12 @@ TEST_CASE("index_of name_of") {
   CHECK(idx1 == 1);
   CHECK(idx2 == 0);
 
+  constexpr auto index_arr = iguana::indexs_of<&point_t::x, &point_t::y>();
+  constexpr auto name_arr = iguana::names_of<&point_t::x, &point_t::y>();
+
+  CHECK(index_arr == std::array<size_t, 2>{0, 1});
+  CHECK(name_arr == std::array<std::string_view, 2>{"x", "y"});
+
   constexpr auto s1 = iguana::name_of<&point_t::y>();
   static_assert(s1 == "y");
   constexpr auto s2 = iguana::name_of<&person::name>();
