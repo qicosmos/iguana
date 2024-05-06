@@ -90,15 +90,6 @@ template <typename T>
 constexpr bool is_lenprefix_v = (get_wire_type<T>() ==
                                  WireType::LengthDelimeted);
 
-template <typename T, typename = void>
-struct get_inner_type {
-  using v_type = T;
-};
-
-template <typename T>
-struct get_inner_type<T, std::void_t<typename T::value_type>> {
-  using v_type = typename T::value_type;
-};
 [[nodiscard]] inline uint32_t encode_zigzag(int32_t v) {
   return (static_cast<uint32_t>(v) << 1U) ^
          static_cast<uint32_t>(
