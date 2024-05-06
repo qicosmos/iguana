@@ -2,6 +2,7 @@
 #include "iguana/pb_reader.hpp"
 #include "iguana/pb_writer.hpp"
 
+// define the struct as msg in proto
 namespace stpb {
 enum class Enum {
   ZERO = 0,

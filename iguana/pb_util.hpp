@@ -12,10 +12,12 @@
 #include <variant>
 #include <vector>
 
+#include "detail/pb_type.hpp"
 #include "reflection.hpp"
 #include "util.hpp"
 
 namespace iguana {
+
 enum class WireType : uint32_t {
   Varint = 0,
   Fixed64 = 1,
@@ -25,65 +27,6 @@ enum class WireType : uint32_t {
   Fixed32 = 5,
   Unknown
 };
-struct sint32_t {
-  using value_type = int32_t;
-  int32_t val;
-  bool operator==(const sint32_t& other) const { return val == other.val; }
-};
-
-struct sint64_t {
-  using value_type = int64_t;
-  int64_t val;
-  bool operator==(const sint64_t& other) const { return val == other.val; }
-};
-
-inline bool operator==(sint32_t value1, int32_t value2) {
-  return value1.val == value2;
-}
-
-inline bool operator==(sint64_t value1, int64_t value2) {
-  return value1.val == value2;
-}
-
-struct fixed32_t {
-  using value_type = uint32_t;
-  uint32_t val;
-  bool operator==(const fixed32_t& other) const { return val == other.val; }
-};
-
-struct fixed64_t {
-  using value_type = uint64_t;
-  uint64_t val;
-  bool operator==(const fixed64_t& other) const { return val == other.val; }
-};
-
-inline bool operator==(fixed32_t value1, uint32_t value2) {
-  return value1.val == value2;
-}
-
-inline bool operator==(fixed64_t value1, uint64_t value2) {
-  return value1.val == value2;
-}
-
-struct sfixed32_t {
-  using value_type = int32_t;
-  int32_t val;
-  bool operator==(const sfixed32_t& other) const { return val == other.val; }
-};
-
-struct sfixed64_t {
-  using value_type = int64_t;
-  int64_t val;
-  bool operator==(const sfixed64_t& other) const { return val == other.val; }
-};
-
-inline bool operator==(sfixed32_t value1, int32_t value2) {
-  return value1.val == value2;
-}
-
-inline bool operator==(sfixed64_t value1, int64_t value2) {
-  return value1.val == value2;
-}
 
 template <size_t Idx, typename V>
 struct one_of_t {
@@ -346,10 +289,10 @@ auto& get_set_size_cache(T& t) {
   return cache[reinterpret_cast<size_t>(&t)];
 }
 
-template <bool omit_default, size_t key_size, typename T>
+template <bool omit_default_val, size_t key_size, typename T>
 inline size_t numeric_size(T&& t) {
   using value_type = std::remove_const_t<std::remove_reference_t<T>>;
-  if constexpr (omit_default) {
+  if constexpr (omit_default_val) {
     if constexpr (is_fixed_v<value_type> || is_signed_varint_v<value_type>) {
       if (t.val == 0) {
         return 0;
@@ -390,8 +333,8 @@ inline size_t numeric_size(T&& t) {
 
 // returns size = key_size + optional(len_size) + len
 // when key_size == 0, return len
-template <size_t key_size = 0, typename T>
-inline size_t pb_item_size(T&& t) {
+template <size_t key_size, typename T>
+inline size_t pb_key_value_size(T&& t) {
   using value_type = std::remove_const_t<std::remove_reference_t<T>>;
   if constexpr (is_reflection_v<value_type> ||
                 is_custom_reflection_v<value_type>) {
@@ -406,18 +349,21 @@ inline size_t pb_item_size(T&& t) {
           constexpr uint32_t sub_key =
               (value.field_no << 3) | static_cast<uint32_t>(get_wire_type<U>());
           constexpr auto sub_keysize = variant_uint32_size_constexpr(sub_key);
-          len += pb_item_size<sub_keysize>(value.value(t));
+          len += pb_key_value_size<sub_keysize>(value.value(t));
         },
         std::make_index_sequence<SIZE>{});
     get_set_size_cache(t) = len;
     if constexpr (key_size == 0) {
+      // for top level
       return len;
     }
     else {
-      return len == 0
-                 ? 0
-                 : key_size + variant_uint32_size(static_cast<uint32_t>(len)) +
-                       len;
+      if (len == 0) {
+        return 0;
+      }
+      else {
+        return key_size + variant_uint32_size(static_cast<uint32_t>(len)) + len;
+      }
     }
   }
   else if constexpr (is_sequence_container<value_type>::value) {
@@ -425,7 +371,7 @@ inline size_t pb_item_size(T&& t) {
     size_t len = 0;
     if constexpr (is_lenprefix_v<item_type>) {
       for (auto& item : t) {
-        len += pb_item_size<key_size>(item);
+        len += pb_key_value_size<key_size>(item);
       }
       return len;
     }
@@ -434,17 +380,19 @@ inline size_t pb_item_size(T&& t) {
         // here 0 to get pakced size
         len += numeric_size<false, 0>(item);
       }
-      return len == 0
-                 ? 0
-                 : key_size + variant_uint32_size(static_cast<uint32_t>(len)) +
-                       len;
+      if (len == 0) {
+        return 0;
+      }
+      else {
+        return key_size + variant_uint32_size(static_cast<uint32_t>(len)) + len;
+      }
     }
   }
   else if constexpr (is_map_container<value_type>::value) {
     size_t len = 0;
     for (auto& [k, v] : t) {
       // the key_size of  k and v  is constant 1
-      size_t kv_len = pb_item_size<1>(k) + pb_item_size<1>(v);
+      size_t kv_len = pb_key_value_size<1>(k) + pb_key_value_size<1>(v);
       len += key_size + variant_uint32_size(static_cast<uint32_t>(kv_len)) +
              kv_len;
     }
@@ -454,10 +402,10 @@ inline size_t pb_item_size(T&& t) {
     if (!t.has_value()) {
       return 0;
     }
-    return pb_item_size<key_size>(*t);
+    return pb_key_value_size<key_size>(*t);
   }
   else if constexpr (is_one_of_v<value_type>) {
-    return pb_item_size<key_size>(t.value);
+    return pb_key_value_size<key_size>(t.value);
   }
   else if constexpr (std::is_same_v<value_type, std::string> ||
                      std::is_same_v<value_type, std::string_view>) {
@@ -479,7 +427,7 @@ inline size_t pb_item_size(T&& t) {
 
 // return the payload size
 template <typename T>
-inline size_t pb_load_size(T&& t) {
+inline size_t pb_value_size(T&& t) {
   using value_type = std::remove_const_t<std::remove_reference_t<T>>;
   if constexpr (is_reflection_v<value_type>) {
     return get_set_size_cache(t);
@@ -504,24 +452,15 @@ inline size_t pb_load_size(T&& t) {
     if (!t.has_value()) {
       return 0;
     }
-    return pb_load_size(*t);
+    return pb_value_size(*t);
   }
   else if constexpr (is_one_of_v<value_type>) {
-    return pb_load_size(t.value);
+    return pb_value_size(t.value);
   }
   else {
-    return pb_item_size<0>(t);
+    return pb_key_value_size<0>(t);
   }
 }
 
 }  // namespace detail
 }  // namespace iguana
-
-namespace std {
-template <>
-struct hash<iguana::sfixed64_t> {
-  size_t operator()(const iguana::sfixed64_t& x) const noexcept {
-    return std::hash<int64_t>()(x.val);
-  }
-};
-}  // namespace std
