@@ -5,6 +5,15 @@
 #include "iguana/pb_reader.hpp"
 #include "iguana/pb_writer.hpp"
 
+void print_hex_str(const std::string &str) {
+  std::ostringstream oss;
+  oss << std::hex << std::setfill('0');
+  for (unsigned char c : str) {
+    oss << std::setw(2) << static_cast<int>(c);
+  }
+  std::cout << oss.str() << std::endl;
+}
+
 struct point_t {
   int x;
   double y;
@@ -417,7 +426,7 @@ TEST_CASE("test members") {
 
   point_t pt{2, 3};
   const auto &arr1 = iguana::get_members<point_t>();
-  auto &val = arr1.at(0);
+  auto &val = arr1.at(1);
   std::visit(
       [&pt](auto &member) mutable {
         CHECK(member.field_no == 1);
@@ -425,6 +434,54 @@ TEST_CASE("test members") {
         CHECK(member.value(pt) == 2);
       },
       val);
+}
+
+struct test_variant {
+  int x;
+  std::variant<double, std::string> y;
+  double z;
+};
+REFLECTION(test_variant, x, y, z);
+
+TEST_CASE("test variant") {
+  {
+    constexpr auto tp = iguana::get_field_tuple<test_variant>();
+    static_assert(std::get<0>(tp).field_no == 1);
+    static_assert(std::get<1>(tp).field_no == 2);
+    static_assert(std::get<2>(tp).field_no == 4);
+  }
+  {
+    constexpr static auto map = iguana::get_members<test_variant>();
+    static_assert(map.find(1) != map.end());
+    static_assert(map.find(2) != map.end());
+    static_assert(map.find(3) != map.end());
+    static_assert(map.find(4) != map.end());
+    auto val1 = map.find(2);
+    auto val2 = map.find(3);
+    std::visit(
+        [](auto &member) mutable {
+          CHECK(member.field_no == 2);
+          CHECK(member.field_name == "y");
+          CHECK(member.offset == 0);
+        },
+        val1->second);
+    std::visit(
+        [](auto &member) mutable {
+          CHECK(member.field_no == 3);
+          CHECK(member.field_name == "y");
+          CHECK(member.offset == 1);
+        },
+        val2->second);
+  }
+  {
+    test_variant st1 = {5, "Hello, variant!", 3.14};
+    std::string str;
+    iguana::to_pb(st1, str);
+    print_hex_str(str);
+    test_variant st2;
+    iguana::from_pb(st2, str);
+    CHECK(st1.z == st2.z);
+  }
 }
 
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)

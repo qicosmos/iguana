@@ -82,7 +82,7 @@ constexpr inline WireType get_wire_type() {
     return get_wire_type<typename T::value_type>();
   }
   else {
-    return WireType::Unknown;
+    throw std::runtime_error("unknown type");
   }
 }
 
@@ -322,6 +322,25 @@ inline size_t numeric_size(T&& t) {
   }
 }
 
+template <size_t key_size, typename T>
+inline size_t pb_key_value_size(T&& t);
+
+template <size_t field_no, typename T>
+inline size_t pb_oneof_size(T&& t) {
+  int len = 0;
+  std::visit(
+      [&len](auto&& value) {
+        using value_type =
+            std::remove_const_t<std::remove_reference_t<decltype(value)>>;
+        constexpr uint32_t key =
+            (field_no << 3) |
+            static_cast<uint32_t>(get_wire_type<value_type>());
+        len = pb_key_value_size<key>(std::forward<value_type>(value));
+      },
+      std::forward<T>(t));
+  return len;
+}
+
 // returns size = key_size + optional(len_size) + len
 // when key_size == 0, return len
 template <size_t key_size, typename T>
@@ -330,17 +349,23 @@ inline size_t pb_key_value_size(T&& t) {
   if constexpr (is_reflection_v<value_type> ||
                 is_custom_reflection_v<value_type>) {
     size_t len = 0;
-    constexpr auto tuple = get_members_impl<value_type>();
+    constexpr auto tuple = get_field_tuple<value_type>();
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
     for_each_n(
         [&len, &t](auto i) {
-          constexpr static auto tp = get_members_impl<value_type>();
+          constexpr static auto tp = get_field_tuple<value_type>();
           constexpr auto value = std::get<decltype(i)::value>(tp);
-          using U = typename std::decay_t<decltype(value)>::value_type;
-          constexpr uint32_t sub_key =
-              (value.field_no << 3) | static_cast<uint32_t>(get_wire_type<U>());
-          constexpr auto sub_keysize = variant_uint32_size_constexpr(sub_key);
-          len += pb_key_value_size<sub_keysize>(value.value(t));
+          using U = typename std::decay_t<decltype(value.value(t))>;
+          if constexpr (variant_v<U>) {
+            len += pb_oneof_size<value.field_no>(value.value(t));
+          }
+          else {
+            constexpr uint32_t sub_key =
+                (value.field_no << 3) |
+                static_cast<uint32_t>(get_wire_type<U>());
+            constexpr auto sub_keysize = variant_uint32_size_constexpr(sub_key);
+            len += pb_key_value_size<sub_keysize>(value.value(t));
+          }
         },
         std::make_index_sequence<SIZE>{});
     get_set_size_cache(t) = len;

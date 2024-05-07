@@ -76,6 +76,39 @@ inline void encode_numeric_field(T t, Stream& out) {
   }
 }
 
+template <typename Variant, typename T, size_t I>
+constexpr size_t get_variant_index() {
+  if constexpr (I == 0) {
+    static_assert(std::is_same_v<std::variant_alternative_t<0, Variant>, T>,
+                  "Type T is not found in Variant");
+    return 0;
+  }
+  else if constexpr (std::is_same_v<std::variant_alternative_t<I, Variant>,
+                                    T>) {
+    return I;
+  }
+  else {
+    return get_variant_index<Variant, T, I - 1>();
+  }
+}
+
+template <uint32_t field_no, typename Type, typename Stream>
+inline void render_variant(Type&& t, Stream& out) {
+  std::visit(
+      [&out](auto&& value) {
+        using value_type =
+            std::remove_const_t<std::remove_reference_t<decltype(value)>>;
+        constexpr size_t offset =
+            get_variant_index<std::decay_t<Type>, value_type,
+                              std::variant_size_v<std::decay_t<Type>> - 1>();
+        constexpr uint32_t key =
+            ((field_no + offset) << 3) |
+            static_cast<uint32_t>(get_wire_type<value_type>());
+        to_pb_impl<key, true>(std::forward<value_type>(value), out);
+      },
+      std::forward<Type>(t));
+}
+
 // omit_default_val = true indicates to omit the default value in searlization
 template <uint32_t key, bool omit_default_val, typename Type, typename Stream>
 inline void to_pb_impl(Type&& t, Stream& out) {
@@ -91,16 +124,22 @@ inline void to_pb_impl(Type&& t, Stream& out) {
         return;
       }
     }
-    constexpr auto tuple = get_members_impl<T>();
+    constexpr auto tuple = get_field_tuple<T>();
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
     for_each_n(
         [&t, &out](auto i) {
-          constexpr static auto tp = get_members_impl<T>();
+          constexpr static auto tp = get_field_tuple<T>();
           constexpr auto value = std::get<decltype(i)::value>(tp);
-          using U = typename std::decay_t<decltype(value)>::value_type;
-          constexpr uint32_t sub_key =
-              (value.field_no << 3) | static_cast<uint32_t>(get_wire_type<U>());
-          to_pb_impl<sub_key>(value.value(t), out);
+          using U = typename std::decay_t<decltype(value.value(t))>;
+          if constexpr (variant_v<U>) {
+            render_variant<value.field_no>(value.value(t), out);
+          }
+          else {
+            constexpr uint32_t sub_key =
+                (value.field_no << 3) |
+                static_cast<uint32_t>(get_wire_type<U>());
+            to_pb_impl<sub_key>(value.value(t), out);
+          }
         },
         std::make_index_sequence<SIZE>{});
   }

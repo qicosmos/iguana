@@ -68,6 +68,16 @@ message MapMsg {
   // Key in map fields cannot be float/double, bytes or message types.
 }
 
+message BaseOneofMsg {
+  int32 x = 1;
+  oneof y {
+    double double_value = 2;
+    string string_value = 3;
+  }
+  float z = 4;
+}
+
+
 
 
 

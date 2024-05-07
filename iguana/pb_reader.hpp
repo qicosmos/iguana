@@ -175,6 +175,14 @@ inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
   }
 }
 
+template <typename T, typename Field>
+inline void parse_oneof(T& t, Field& f, std::string_view& pb_str) {
+  using item_type = typename std::decay_t<Field>::value_type;
+  item_type item{};
+  from_pb_impl(item, pb_str, f.field_no);
+  t = std::move(item);
+}
+
 }  // namespace detail
 
 template <typename T>
@@ -189,18 +197,20 @@ inline void from_pb(T& t, std::string_view pb_str) {
     pb_str = pb_str.substr(pos);
 
     const static auto& map = get_members<T>();
-    uint32_t sub_val = 1;
-    if constexpr (!is_reflection_v<T>) {
-      sub_val = 0;
-    }
-    auto& member = map.at(field_number - sub_val);
+    auto& member = map.at(field_number);
     std::visit(
         [&t, &pb_str, wire_type](auto& val) {
           using value_type = typename std::decay_t<decltype(val)>::value_type;
           if (wire_type != detail::get_wire_type<value_type>()) {
             throw std::runtime_error("unmatched wire_type");
           }
-          detail::from_pb_impl<value_type>(val.value(t), pb_str, val.field_no);
+          using v_type = typename std::decay_t<decltype(val.value(t))>;
+          if constexpr (variant_v<v_type>) {
+            detail::parse_oneof(val.value(t), val, pb_str);
+          }
+          else {
+            detail::from_pb_impl(val.value(t), pb_str, val.field_no);
+          }
         },
         member);
   }

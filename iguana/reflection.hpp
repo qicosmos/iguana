@@ -692,27 +692,22 @@ inline constexpr auto get_iguana_struct_map() {
   }
 }
 
-template <class T>
-struct member_tratis {};
-
-template <class T, class Owner>
-struct member_tratis<T Owner::*> {
-  using owner_type = Owner;
-  using value_type = T;
-};
-
-template <typename T>
+template <typename T, typename v_type = T>
 struct field_t {
   using member_type = T;
-  using owner_type = typename member_tratis<T>::owner_type;
-  using value_type = typename member_tratis<T>::value_type;
+  using owner_type = typename member_traits<T>::owner_type;
+  using value_type =
+      std::conditional_t<std::is_same_v<v_type, T>,
+                         typename member_traits<T>::value_type, v_type>;
   constexpr field_t() = default;
-  constexpr field_t(T member, uint32_t number, frozen::string name)
-      : member_ptr(member), field_name(name), field_no(number) {}
+  constexpr field_t(T member, uint32_t number, frozen::string name,
+                    uint32_t oft = 0)
+      : member_ptr(member), field_name(name), field_no(number), offset(oft) {}
 
   T member_ptr;
   frozen::string field_name;
   uint32_t field_no;
+  uint32_t offset;
 
   auto &value(owner_type &value) const { return value.*member_ptr; }
 };
@@ -722,14 +717,6 @@ struct field_type_t;
 
 template <typename... Args>
 struct field_type_t<std::tuple<Args...>> {
-  using value_type = std::variant<field_t<Args>...>;
-};
-
-template <typename T>
-struct user_field_type_t;
-
-template <typename... Args>
-struct user_field_type_t<std::tuple<Args...>> {
   using value_type = std::variant<Args...>;
 };
 
@@ -750,21 +737,64 @@ inline constexpr bool is_reflection_v = is_reflection<T>::value;
 template <typename T>
 inline constexpr bool is_custom_reflection_v = is_custom_reflection<T>::value;
 
-struct field_helper {
-  template <typename T, typename U, size_t... I>
-  constexpr auto operator()(T &&tp, U &&arr, std::index_sequence<I...>) {
-    return std::make_tuple(
-        field_t{std::get<I>(tp), I + 1, frozen::string(arr[I].data())}...);
-  }
+template <typename T>
+struct count_variant_types {
+  constexpr auto operator()() { return 1; }
 };
 
+template <typename... Args>
+struct count_variant_types<std::variant<Args...>> {
+  constexpr auto operator()() { return sizeof...(Args); }
+};
+
+template <typename T, size_t... I>
+constexpr size_t tuple_type_count_impl(std::index_sequence<I...>) {
+  return (
+      (count_variant_types<
+          typename member_traits<std::tuple_element_t<I, T>>::value_type>{}()) +
+      ...);
+}
+
 template <typename T>
-constexpr inline auto get_members_impl() {
+constexpr size_t tuple_type_count() {
+  return tuple_type_count_impl<T>(
+      std::make_index_sequence<std::tuple_size_v<T>>{});
+}
+
+template <typename T, size_t... I>
+constexpr auto get_type_options_arr(std::index_sequence<I...> &&) {
+  return std::array<size_t, sizeof...(I)>{
+      (count_variant_types<typename member_traits<
+           std::tuple_element_t<I, T>>::value_type>{}())...};
+}
+
+template <size_t I, typename Arr>
+constexpr inline auto arr_jump_n(const Arr &type_options_arr) {
+  return I ? type_options_arr[I - 1] - 1 : 0;
+}
+
+template <typename T, typename U, size_t... I, typename Arr>
+constexpr inline auto get_field_tuple_impl(T &&tp, U &&arr,
+                                           std::index_sequence<I...> &&,
+                                           const Arr &type_options_arr) {
+  return std::make_tuple(
+      field_t{std::get<I>(tp),
+              static_cast<uint32_t>(I + 1 + arr_jump_n<I>(type_options_arr)),
+              frozen::string(arr[I].data()),
+              static_cast<uint32_t>(type_options_arr[I] - 1)}...);
+}
+
+template <typename T>
+constexpr inline auto get_field_tuple() {
   if constexpr (is_reflection_v<T>) {
     using reflect_members = decltype(iguana_reflect_type(std::declval<T>()));
     using Tuple = decltype(reflect_members::apply_impl());
-    return field_helper{}(reflect_members::apply_impl(), reflect_members::arr(),
-                          std::make_index_sequence<std::tuple_size_v<Tuple>>{});
+    constexpr auto Size = std::tuple_size_v<Tuple>;
+    constexpr auto type_options_arr =
+        get_type_options_arr<Tuple>(std::make_index_sequence<Size>{});
+    return get_field_tuple_impl(
+        reflect_members::apply_impl(), reflect_members::arr(),
+        std::make_index_sequence<Size>{}, type_options_arr);
   }
   else if constexpr (is_custom_reflection_v<T>) {
     using U = std::remove_const_t<std::remove_reference_t<T>>;
@@ -772,44 +802,82 @@ constexpr inline auto get_members_impl() {
   }
 }
 
-template <typename T, size_t Size>
-struct member_helper {
-  template <typename Tuple, size_t... I>
-  constexpr auto operator()(Tuple &&tp, uint32_t sub_val,
-                            std::index_sequence<I...>) {
-    return frozen::unordered_map<uint32_t, T, sizeof...(I)>{
-        {std::get<I>(tp).field_no - sub_val,
-         T{std::in_place_index<I>, std::move(std::get<I>(tp))}}...};
+template <size_t TypeSize, typename T>
+constexpr inline auto get_offset_arr() {
+  using Tuple = std::remove_const_t<std::remove_reference_t<T>>;
+  constexpr std::size_t TupleSize = std::tuple_size_v<Tuple>;
+  constexpr auto type_options_arr =
+      get_type_options_arr<Tuple>(std::make_index_sequence<TupleSize>{});
+  std::array<size_t, TypeSize> res{};
+  int index = 0;
+  for (int i = 0; i < TupleSize; ++i) {
+    for (int j = 0; j < type_options_arr[i]; ++j) {
+      res[index++] = j;
+    }
   }
-};
+  return res;
+}
 
-template <typename T, bool is_return_map = true>
-constexpr inline auto get_members() {
+template <std::size_t N, typename T>
+constexpr inline auto prefix_sum(const std::array<T, N> arr) {
+  std::array<T, N> presums{};
+  presums[0] = 0;
+  for (int i = 1; i < N; ++i) {
+    presums[i] = presums[i - 1] + arr[i];
+  }
+  return presums;
+}
+
+template <typename T, typename U, size_t... I>
+constexpr inline auto get_members_tuple_impl(T &&tp, U &&arr,
+                                             std::index_sequence<I...> &&) {
+  constexpr auto offset_arr = get_offset_arr<sizeof...(I), T>();
+  constexpr auto presums = prefix_sum(offset_arr);
+  return std::make_tuple(
+      field_t<std::tuple_element_t<I - presums[I], T>,
+              variant_type_at_t<std::tuple_element_t<I - presums[I], T>,
+                                offset_arr[I]>>{
+          std::get<I - presums[I]>(tp), I + 1,
+          frozen::string(arr[I - presums[I]].data()),
+          static_cast<uint32_t>(offset_arr[I])}...);
+}
+
+template <typename T>
+constexpr inline auto get_members_tuple() {
   if constexpr (is_reflection<T>::value) {
     using reflect_members = decltype(iguana_reflect_type(std::declval<T>()));
-    using value_type = typename field_type_t<
-        decltype(reflect_members::apply_impl())>::value_type;
-    constexpr size_t Size = reflect_members::value();
-    if constexpr (is_return_map) {
-      return member_helper<value_type, Size>{}(
-          get_members_impl<T>(), 1, std::make_index_sequence<Size>{});
-    }
-    else {
-      return get_members_impl<T>();
-    }
+    using Tuple = decltype(reflect_members::apply_impl());
+    constexpr size_t TypeSize = tuple_type_count<Tuple>();
+    return get_members_tuple_impl(reflect_members::apply_impl(),
+                                  reflect_members::arr(),
+                                  std::make_index_sequence<TypeSize>{});
   }
   else if constexpr (is_custom_reflection_v<T>) {
     using U = std::remove_const_t<std::remove_reference_t<T>>;
-    constexpr size_t Size = iguana_member_count((U *)nullptr);
-    using value_type = typename user_field_type_t<decltype(get_members_impl(
-        (U *)nullptr))>::value_type;
-    if constexpr (is_return_map) {
-      return member_helper<value_type, Size>{}(
-          get_members_impl((U *)nullptr), 0, std::make_index_sequence<Size>{});
-    }
-    else {
-      return get_members_impl((U *)nullptr);
-    }
+    return get_members_impl((U *)nullptr);
+  }
+  else {
+    static_assert(!sizeof(T), "expected reflection or custom reflection");
+  }
+}
+
+template <typename T, size_t Size, typename Tuple, size_t... I>
+constexpr auto inline get_members_custom(Tuple &&tp,
+                                         std::index_sequence<I...>) {
+  return frozen::unordered_map<uint32_t, T, sizeof...(I)>{
+      {std::get<I>(tp).field_no,
+       T{std::in_place_index<I>, std::move(std::get<I>(tp))}}...};
+}
+
+template <typename T>
+constexpr inline auto get_members() {
+  if constexpr (is_reflection<T>::value || is_custom_reflection_v<T>) {
+    constexpr auto tp = get_members_tuple<T>();
+    using value_type =
+        typename field_type_t<std::decay_t<decltype(tp)>>::value_type;
+    constexpr auto Size = std::tuple_size_v<decltype(tp)>;
+    return get_members_custom<value_type, Size>(
+        tp, std::make_index_sequence<Size>{});
   }
   else {
     static_assert(!sizeof(T), "expected reflection or custom reflection");

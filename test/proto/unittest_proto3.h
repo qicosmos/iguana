@@ -104,4 +104,11 @@ struct MapMsg {
 REFLECTION(MapMsg, sfix64_str_map, str_iguana_type_msg_map,
            int_repeat_base_msg_map);
 
+struct BaseOneofMsg {
+  int x;
+  std::variant<double, std::string> y;
+  double z;
+};
+REFLECTION(BaseOneofMsg, x, y, z);
+
 }  // namespace stpb
