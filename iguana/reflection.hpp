@@ -773,8 +773,8 @@ constexpr inline auto arr_jump_n(const Arr &type_options_arr) {
   return I ? type_options_arr[I - 1] - 1 : 0;
 }
 
-template <typename T, typename U, size_t... I, typename Arr>
-constexpr inline auto get_field_tuple_impl(T &&tp, U &&arr,
+template <typename Tuple, typename U, size_t... I, typename Arr>
+constexpr inline auto get_field_tuple_impl(Tuple &&tp, U &&arr,
                                            std::index_sequence<I...> &&,
                                            const Arr &type_options_arr) {
   return std::make_tuple(
@@ -819,26 +819,30 @@ constexpr inline auto get_offset_arr() {
 }
 
 template <std::size_t N, typename T>
-constexpr inline auto prefix_sum(const std::array<T, N> arr) {
-  std::array<T, N> presums{};
-  presums[0] = 0;
+constexpr inline auto get_remap_arr(const std::array<T, N> arr) {
+  std::array<T, N> remap_arr{};
+  remap_arr[0] = 0;
+  size_t offset = 0;
   for (size_t i = 1; i < N; ++i) {
-    presums[i] = presums[i - 1] + arr[i];
+    if (arr[i] < arr[i - 1]) {
+      offset += arr[i - 1];
+    }
+    remap_arr[i] = offset + arr[i];
   }
-  return presums;
+  return remap_arr;
 }
 
 template <typename T, typename U, size_t... I>
 constexpr inline auto get_members_tuple_impl(T &&tp, U &&arr,
                                              std::index_sequence<I...> &&) {
   constexpr auto offset_arr = get_offset_arr<sizeof...(I), T>();
-  constexpr auto presums = prefix_sum(offset_arr);
+  constexpr auto remap_arr = get_remap_arr(offset_arr);
   return std::make_tuple(
-      field_t<std::tuple_element_t<I - presums[I], T>,
-              variant_type_at_t<std::tuple_element_t<I - presums[I], T>,
+      field_t<std::tuple_element_t<I - remap_arr[I], T>,
+              variant_type_at_t<std::tuple_element_t<I - remap_arr[I], T>,
                                 offset_arr[I]>>{
-          std::get<I - presums[I]>(tp), I + 1,
-          frozen::string(arr[I - presums[I]].data()),
+          std::get<I - remap_arr[I]>(tp), I + 1,
+          frozen::string(arr[I - remap_arr[I]].data()),
           static_cast<uint32_t>(offset_arr[I])}...);
 }
 
@@ -862,8 +866,7 @@ constexpr inline auto get_members_tuple() {
 }
 
 template <typename T, size_t Size, typename Tuple, size_t... I>
-constexpr auto inline get_members_custom(Tuple &&tp,
-                                         std::index_sequence<I...>) {
+constexpr auto inline get_members_impl(Tuple &&tp, std::index_sequence<I...>) {
   return frozen::unordered_map<uint32_t, T, sizeof...(I)>{
       {std::get<I>(tp).field_no,
        T{std::in_place_index<I>, std::move(std::get<I>(tp))}}...};
@@ -871,13 +874,13 @@ constexpr auto inline get_members_custom(Tuple &&tp,
 
 template <typename T>
 constexpr inline auto get_members() {
-  if constexpr (is_reflection<T>::value || is_custom_reflection_v<T>) {
+  if constexpr (is_reflection_v<T> || is_custom_reflection_v<T>) {
     constexpr auto tp = get_members_tuple<T>();
-    using value_type =
-        typename field_type_t<std::decay_t<decltype(tp)>>::value_type;
-    constexpr auto Size = std::tuple_size_v<decltype(tp)>;
-    return get_members_custom<value_type, Size>(
-        tp, std::make_index_sequence<Size>{});
+    using Tuple = std::decay_t<decltype(tp)>;
+    using value_type = typename field_type_t<Tuple>::value_type;
+    constexpr auto Size = std::tuple_size_v<Tuple>;
+    return get_members_impl<value_type, Size>(tp,
+                                              std::make_index_sequence<Size>{});
   }
   else {
     static_assert(!sizeof(T), "expected reflection or custom reflection");

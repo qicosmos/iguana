@@ -32,11 +32,6 @@ constexpr inline auto get_members_impl(inner_struct *) {
                          iguana::field_t{&inner_struct::y, 9, "b"},
                          iguana::field_t{&inner_struct::z, 12, "c"});
 }
-
-inline constexpr size_t iguana_member_count(inner_struct *) { return 3; }
-
-std::integral_constant<size_t, 3> member_count(inner_struct);
-
 }  // namespace my_space
 
 struct test_pb_st1 {
@@ -438,7 +433,7 @@ TEST_CASE("test members") {
 
 struct test_variant {
   int x;
-  std::variant<double, std::string> y;
+  std::variant<double, std::string, int> y;
   double z;
 };
 REFLECTION(test_variant, x, y, z);
@@ -448,7 +443,7 @@ TEST_CASE("test variant") {
     constexpr auto tp = iguana::get_field_tuple<test_variant>();
     static_assert(std::get<0>(tp).field_no == 1);
     static_assert(std::get<1>(tp).field_no == 2);
-    static_assert(std::get<2>(tp).field_no == 4);
+    static_assert(std::get<2>(tp).field_no == 5);
   }
   {
     constexpr static auto map = iguana::get_members<test_variant>();
@@ -477,10 +472,19 @@ TEST_CASE("test variant") {
     test_variant st1 = {5, "Hello, variant!", 3.14};
     std::string str;
     iguana::to_pb(st1, str);
-    print_hex_str(str);
     test_variant st2;
     iguana::from_pb(st2, str);
     CHECK(st1.z == st2.z);
+    CHECK(std::get<std::string>(st2.y) == "Hello, variant!");
+  }
+  {
+    test_variant st1 = {5, 3.88, 3.14};
+    std::string str;
+    iguana::to_pb(st1, str);
+    test_variant st2;
+    iguana::from_pb(st2, str);
+    CHECK(st1.z == st2.z);
+    CHECK(std::get<double>(st2.y) == 3.88);
   }
 }
 

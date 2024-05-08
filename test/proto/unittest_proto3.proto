@@ -69,15 +69,19 @@ message MapMsg {
 }
 
 message BaseOneofMsg {
-  int32 x = 1;
-  oneof y {
-    double double_value = 2;
-    string string_value = 3;
-  }
-  float z = 4;
+    int32 optional_int32 = 1;
+    oneof one_of {
+        double one_of_double = 2;
+        string one_of_string = 3;
+        BaseTypeMsg one_of_base_type_msg = 4;
+    }
+    double optional_double = 5;
 }
 
-
-
-
+message NestOneofMsg {
+    oneof nest_one_of_msg {
+        string base_one_of_string = 1;
+        BaseOneofMsg base_one_of_msg = 2;
+    }
+}
 

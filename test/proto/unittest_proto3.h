@@ -105,10 +105,14 @@ REFLECTION(MapMsg, sfix64_str_map, str_iguana_type_msg_map,
            int_repeat_base_msg_map);
 
 struct BaseOneofMsg {
-  int x;
-  std::variant<double, std::string> y;
-  double z;
+  int32_t optional_int32;
+  std::variant<double, std::string, BaseTypeMsg> one_of;
+  double optional_double;
 };
-REFLECTION(BaseOneofMsg, x, y, z);
+REFLECTION(BaseOneofMsg, optional_int32, one_of, optional_double);
 
+struct NestOneofMsg {
+  std::variant<std::string, BaseOneofMsg> nest_one_of_msg;
+};
+REFLECTION(NestOneofMsg, nest_one_of_msg);
 }  // namespace stpb

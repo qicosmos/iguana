@@ -93,7 +93,7 @@ constexpr size_t get_variant_index() {
 }
 
 template <uint32_t field_no, typename Type, typename Stream>
-inline void render_variant(Type&& t, Stream& out) {
+inline void to_pb_oneof(Type&& t, Stream& out) {
   std::visit(
       [&out](auto&& value) {
         using value_type =
@@ -104,7 +104,7 @@ inline void render_variant(Type&& t, Stream& out) {
         constexpr uint32_t key =
             ((field_no + offset) << 3) |
             static_cast<uint32_t>(get_wire_type<value_type>());
-        to_pb_impl<key, true>(std::forward<value_type>(value), out);
+        to_pb_impl<key, false>(std::forward<value_type>(value), out);
       },
       std::forward<Type>(t));
 }
@@ -132,7 +132,7 @@ inline void to_pb_impl(Type&& t, Stream& out) {
           constexpr auto value = std::get<decltype(i)::value>(tp);
           using U = typename std::decay_t<decltype(value.value(t))>;
           if constexpr (variant_v<U>) {
-            render_variant<value.field_no>(value.value(t), out);
+            to_pb_oneof<value.field_no>(value.value(t), out);
           }
           else {
             constexpr uint32_t sub_key =

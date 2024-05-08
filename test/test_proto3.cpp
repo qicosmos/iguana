@@ -624,6 +624,180 @@ TEST_CASE("test MapMsg") {
   }
 }
 
+void SetBaseOneofMsg(const stpb::BaseOneofMsg& st, pb::BaseOneofMsg& msg) {
+  msg.set_optional_int32(st.optional_int32);
+  msg.set_optional_double(st.optional_double);
+
+  std::visit(
+      [&](auto& value) {
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (std::is_same_v<T, double>) {
+          msg.set_one_of_double(value);
+        }
+        else if constexpr (std::is_same_v<T, std::string>) {
+          msg.set_one_of_string(value);
+        }
+        else if constexpr (std::is_same_v<T, stpb::BaseTypeMsg>) {
+          auto* submsg = msg.mutable_one_of_base_type_msg();
+          SetBaseTypeMsg(value, *submsg);
+        }
+      },
+      st.one_of);
+}
+
+void CheckBaseOneofMsg(const stpb::BaseOneofMsg& st,
+                       const pb::BaseOneofMsg& msg) {
+  CHECK(st.optional_int32 == msg.optional_int32());
+  CHECK(st.optional_double == msg.optional_double());
+
+  std::visit(
+      [&](auto& value) {
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (std::is_same_v<T, double>) {
+          CHECK(value == msg.one_of_double());
+        }
+        else if constexpr (std::is_same_v<T, std::string>) {
+          CHECK(value == msg.one_of_string());
+        }
+        else if constexpr (std::is_same_v<T, stpb::BaseTypeMsg>) {
+          CheckBaseTypeMsg(value, msg.one_of_base_type_msg());
+        }
+      },
+      st.one_of);
+}
+TEST_CASE("test BaseOneofMsg") {
+  {  // test double
+    stpb::BaseOneofMsg se_st{123, 3.14159, 456.78};
+    std::string st_ss;
+    iguana::to_pb(se_st, st_ss);
+
+    pb::BaseOneofMsg se_msg;
+    SetBaseOneofMsg(se_st, se_msg);
+    std::string pb_ss;
+    se_msg.SerializeToString(&pb_ss);
+    CHECK(st_ss == pb_ss);
+    // print_hex_str(st_ss);
+    // print_hex_str(pb_ss);
+    stpb::BaseOneofMsg dese_st{};
+    iguana::from_pb(dese_st, st_ss);
+
+    pb::BaseOneofMsg dese_msg;
+    dese_msg.ParseFromString(pb_ss);
+    CheckBaseOneofMsg(dese_st, dese_msg);
+  }
+  {  // test string
+    stpb::BaseOneofMsg se_st{123, std::string("Hello"), 456.78};
+    std::string st_ss;
+    iguana::to_pb(se_st, st_ss);
+
+    pb::BaseOneofMsg se_msg;
+    SetBaseOneofMsg(se_st, se_msg);
+    std::string pb_ss;
+    se_msg.SerializeToString(&pb_ss);
+    CHECK(st_ss == pb_ss);
+
+    stpb::BaseOneofMsg dese_st{};
+    iguana::from_pb(dese_st, st_ss);
+
+    pb::BaseOneofMsg dese_msg;
+    dese_msg.ParseFromString(pb_ss);
+    CheckBaseOneofMsg(dese_st, dese_msg);
+  }
+  {  // test BaseTypeMsg
+    stpb::BaseTypeMsg baseTypeMsg{
+        100, 200, 300, 400, 31.4f, 62.8, false, "World", stpb::Enum::BAZ};
+    stpb::BaseOneofMsg se_st{123, baseTypeMsg, 456.78};
+
+    std::string st_ss;
+    iguana::to_pb(se_st, st_ss);
+
+    pb::BaseOneofMsg se_msg;
+    SetBaseOneofMsg(se_st, se_msg);
+    std::string pb_ss;
+    se_msg.SerializeToString(&pb_ss);
+    CHECK(st_ss == pb_ss);
+
+    stpb::BaseOneofMsg dese_st{};
+    iguana::from_pb(dese_st, st_ss);
+
+    pb::BaseOneofMsg dese_msg;
+    dese_msg.ParseFromString(pb_ss);
+    CheckBaseOneofMsg(dese_st, dese_msg);
+  }
+  {  // test empty variant
+    stpb::BaseOneofMsg se_st{123, {}, 456.78};
+
+    std::string st_ss;
+    iguana::to_pb(se_st, st_ss);
+
+    pb::BaseOneofMsg se_msg;
+    SetBaseOneofMsg(se_st, se_msg);
+    std::string pb_ss;
+    se_msg.SerializeToString(&pb_ss);
+    CHECK(st_ss == pb_ss);
+    print_hex_str(st_ss);
+    print_hex_str(pb_ss);
+    stpb::BaseOneofMsg dese_st{};
+    iguana::from_pb(dese_st, st_ss);
+
+    pb::BaseOneofMsg dese_msg;
+    dese_msg.ParseFromString(pb_ss);
+    CheckBaseOneofMsg(dese_st, dese_msg);
+  }
+}
+
+void SetNestOneofMsg(const stpb::NestOneofMsg& st, pb::NestOneofMsg& msg) {
+  std::visit(
+      [&](auto& value) {
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (std::is_same_v<T, std::string>) {
+          msg.set_base_one_of_string(value);
+        }
+        else if constexpr (std::is_same_v<T, stpb::BaseOneofMsg>) {
+          auto* submsg = msg.mutable_base_one_of_msg();
+          SetBaseOneofMsg(value, *submsg);
+        }
+      },
+      st.nest_one_of_msg);
+}
+
+void CheckNestOneofMsg(const stpb::NestOneofMsg& st,
+                       const pb::NestOneofMsg& msg) {
+  std::visit(
+      [&](auto& value) {
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (std::is_same_v<T, std::string>) {
+          CHECK(value == msg.base_one_of_string());
+        }
+        else if constexpr (std::is_same_v<T, stpb::BaseOneofMsg>) {
+          CheckBaseOneofMsg(value, msg.base_one_of_msg());
+        }
+      },
+      st.nest_one_of_msg);
+}
+
+TEST_CASE("test NestOneofMsg ") {
+  {  // Test BaseOneofMsg
+    stpb::BaseOneofMsg baseOneof{123, std::string("Hello"), 456.78};
+    stpb::NestOneofMsg se_st{{baseOneof}};
+
+    std::string st_ss;
+    iguana::to_pb(se_st, st_ss);
+
+    pb::NestOneofMsg se_msg;
+    SetNestOneofMsg(se_st, se_msg);
+    std::string pb_ss;
+    se_msg.SerializeToString(&pb_ss);
+    CHECK(st_ss == pb_ss);
+    stpb::NestOneofMsg dese_st{};
+    iguana::from_pb(dese_st, st_ss);
+
+    pb::NestOneofMsg dese_msg;
+    dese_msg.ParseFromString(pb_ss);
+    CheckNestOneofMsg(dese_st, dese_msg);
+  }
+}
+
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
 int main(int argc, char** argv) { return doctest::Context(argc, argv).run(); }
 DOCTEST_MSVC_SUPPRESS_WARNING_POP

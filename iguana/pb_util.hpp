@@ -335,7 +335,8 @@ inline size_t pb_oneof_size(T&& t) {
         constexpr uint32_t key =
             (field_no << 3) |
             static_cast<uint32_t>(get_wire_type<value_type>());
-        len = pb_key_value_size<key>(std::forward<value_type>(value));
+        len = pb_key_value_size<variant_uint32_size_constexpr(key)>(
+            std::forward<value_type>(value));
       },
       std::forward<T>(t));
   return len;

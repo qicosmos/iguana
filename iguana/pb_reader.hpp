@@ -21,7 +21,6 @@ inline void decode_pair_value(T& val, std::string_view& pb_str) {
   if (wire_type != detail::get_wire_type<std::remove_reference_t<T>>()) {
     return;
   }
-
   from_pb_impl(val, pb_str);
 }
 
@@ -176,13 +175,12 @@ inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
 }
 
 template <typename T, typename Field>
-inline void parse_oneof(T& t, Field& f, std::string_view& pb_str) {
+inline void parse_oneof(T& t, const Field& f, std::string_view& pb_str) {
   using item_type = typename std::decay_t<Field>::value_type;
   item_type item{};
   from_pb_impl(item, pb_str, f.field_no);
   t = std::move(item);
 }
-
 }  // namespace detail
 
 template <typename T>
@@ -195,8 +193,7 @@ inline void from_pb(T& t, std::string_view pb_str) {
     uint32_t field_number = key >> 3;
 
     pb_str = pb_str.substr(pos);
-
-    const static auto& map = get_members<T>();
+    constexpr static auto map = get_members<T>();
     auto& member = map.at(field_number);
     std::visit(
         [&t, &pb_str, wire_type](auto& val) {
@@ -204,7 +201,7 @@ inline void from_pb(T& t, std::string_view pb_str) {
           if (wire_type != detail::get_wire_type<value_type>()) {
             throw std::runtime_error("unmatched wire_type");
           }
-          using v_type = typename std::decay_t<decltype(val.value(t))>;
+          using v_type = std::decay_t<decltype(val.value(t))>;
           if constexpr (variant_v<v_type>) {
             detail::parse_oneof(val.value(t), val, pb_str);
           }
