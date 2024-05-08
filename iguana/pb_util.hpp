@@ -28,14 +28,6 @@ enum class WireType : uint32_t {
   Unknown
 };
 
-template <size_t Idx, typename V>
-struct one_of_t {
-  static constexpr bool is_one_of_v = true;
-  using value_type = std::optional<
-      std::remove_reference_t<decltype(std::get<Idx>(std::declval<V>()))>>;
-  value_type value;
-};
-
 namespace detail {
 template <typename T>
 constexpr bool is_fixed_v =
@@ -45,16 +37,6 @@ constexpr bool is_fixed_v =
 template <typename T>
 constexpr bool is_signed_varint_v =
     std::is_same_v<T, sint32_t> || std::is_same_v<T, sint64_t>;
-
-template <typename Type, typename = void>
-struct is_one_of_t : std::false_type {};
-
-template <typename T>
-struct is_one_of_t<T, std::void_t<decltype(T::is_one_of_v)>> : std::true_type {
-};
-
-template <typename T>
-constexpr bool is_one_of_v = is_one_of_t<T>::value;
 
 template <typename T>
 constexpr inline WireType get_wire_type() {
@@ -78,7 +60,7 @@ constexpr inline WireType get_wire_type() {
                      is_map_container<T>::value) {
     return WireType::LengthDelimeted;
   }
-  else if constexpr (optional_v<T> || is_one_of_v<T>) {
+  else if constexpr (optional_v<T>) {
     return get_wire_type<typename T::value_type>();
   }
   else {
@@ -421,9 +403,6 @@ inline size_t pb_key_value_size(T&& t) {
     }
     return pb_key_value_size<key_size>(*t);
   }
-  else if constexpr (is_one_of_v<value_type>) {
-    return pb_key_value_size<key_size>(t.value);
-  }
   else if constexpr (std::is_same_v<value_type, std::string> ||
                      std::is_same_v<value_type, std::string_view>) {
     if (t.size() == 0) {
@@ -470,9 +449,6 @@ inline size_t pb_value_size(T&& t) {
       return 0;
     }
     return pb_value_size(*t);
-  }
-  else if constexpr (is_one_of_v<value_type>) {
-    return pb_value_size(t.value);
   }
   else {
     return pb_key_value_size<0>(t);

@@ -166,9 +166,6 @@ inline void from_pb_impl(T& val, std::string_view& pb_str, uint32_t field_no) {
   else if constexpr (optional_v<T>) {
     from_pb_impl(val.emplace(), pb_str);
   }
-  else if constexpr (is_one_of_v<T>) {
-    from_pb_impl(val.value, pb_str);
-  }
   else {
     static_assert(!sizeof(T), "err");
   }

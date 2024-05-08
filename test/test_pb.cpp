@@ -73,13 +73,6 @@ struct test_pb_st6 {
 };
 REFLECTION(test_pb_st6, x, y);
 
-using Variant1 = std::variant<std::string, int>;
-struct test_pb_st7 {
-  iguana::one_of_t<0, Variant1> x;
-  iguana::one_of_t<1, Variant1> y;
-};
-REFLECTION(test_pb_st7, x, y);
-
 struct pair_t {
   int x;
   int y;
@@ -255,17 +248,6 @@ TEST_CASE("test struct_pb") {
     test_pb_st6 st2;
     iguana::from_pb(st2, str);
     CHECK(st1.y == st2.y);
-  }
-  {
-    // variant
-    test_pb_st7 st1{{"test"}};
-    std::string str;
-    iguana::to_pb(st1, str);
-    CHECK(str.size() == iguana::detail::pb_key_value_size<0>(st1));
-
-    test_pb_st7 st2;
-    iguana::from_pb(st2, str);
-    CHECK(st1.x.value == st2.x.value);
   }
   {
     // sub nested objects

@@ -197,9 +197,6 @@ inline void to_pb_impl(Type&& t, Stream& out) {
     }
     to_pb_impl<key, omit_default_val>(*t, out);
   }
-  else if constexpr (is_one_of_v<T>) {
-    to_pb_impl<key, omit_default_val>(t.value, out);
-  }
   else if constexpr (std::is_same_v<T, std::string> ||
                      std::is_same_v<T, std::string_view>) {
     if constexpr (omit_default_val) {
