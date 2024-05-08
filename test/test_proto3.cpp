@@ -53,7 +53,7 @@ TEST_CASE("test BaseTypeMsg") {
     se_msg.SerializeToString(&pb_ss);
     CHECK(st_ss == pb_ss);
 
-    stpb::BaseTypeMsg dese_st;
+    stpb::BaseTypeMsg dese_st{};
     iguana::from_pb(dese_st, st_ss);
     pb::BaseTypeMsg dese_msg;
     dese_msg.ParseFromString(pb_ss);
@@ -79,7 +79,7 @@ TEST_CASE("test BaseTypeMsg") {
     se_msg.SerializeToString(&pb_ss);
     CHECK(st_ss == pb_ss);
 
-    stpb::BaseTypeMsg dese_st;
+    stpb::BaseTypeMsg dese_st{};
     iguana::from_pb(dese_st, st_ss);
     pb::BaseTypeMsg dese_msg;
     dese_msg.ParseFromString(pb_ss);
@@ -104,7 +104,7 @@ TEST_CASE("test BaseTypeMsg") {
     se_msg.SerializeToString(&pb_ss);
     CHECK(st_ss == pb_ss);
 
-    stpb::BaseTypeMsg dese_st;
+    stpb::BaseTypeMsg dese_st{};
     iguana::from_pb(dese_st, st_ss);
     pb::BaseTypeMsg dese_msg;
     dese_msg.ParseFromString(pb_ss);
@@ -242,28 +242,28 @@ void SetRepeatBaseTypeMsg(const stpb::RepeatBaseTypeMsg& st,
 
 void CheckRepeatBaseTypeMsg(const stpb::RepeatBaseTypeMsg& st,
                             const pb::RepeatBaseTypeMsg& msg) {
-  for (int i = 0; i < st.repeated_uint32.size(); ++i) {
+  for (size_t i = 0; i < st.repeated_uint32.size(); ++i) {
     CHECK(st.repeated_uint32[i] == msg.repeated_uint32(i));
   }
-  for (int i = 0; i < st.repeated_uint64.size(); ++i) {
+  for (size_t i = 0; i < st.repeated_uint64.size(); ++i) {
     CHECK(st.repeated_uint64[i] == msg.repeated_uint64(i));
   }
-  for (int i = 0; i < st.repeated_int32.size(); ++i) {
+  for (size_t i = 0; i < st.repeated_int32.size(); ++i) {
     CHECK(st.repeated_int32[i] == msg.repeated_int32(i));
   }
-  for (int i = 0; i < st.repeated_int64.size(); ++i) {
+  for (size_t i = 0; i < st.repeated_int64.size(); ++i) {
     CHECK(st.repeated_int64[i] == msg.repeated_int64(i));
   }
-  for (int i = 0; i < st.repeated_float.size(); ++i) {
+  for (size_t i = 0; i < st.repeated_float.size(); ++i) {
     CHECK(st.repeated_float[i] == msg.repeated_float(i));
   }
-  for (int i = 0; i < st.repeated_double.size(); ++i) {
+  for (size_t i = 0; i < st.repeated_double.size(); ++i) {
     CHECK(st.repeated_double[i] == msg.repeated_double(i));
   }
-  for (int i = 0; i < st.repeated_string.size(); ++i) {
+  for (size_t i = 0; i < st.repeated_string.size(); ++i) {
     CHECK(st.repeated_string[i] == msg.repeated_string(i));
   }
-  for (int i = 0; i < st.repeated_enum.size(); ++i) {
+  for (size_t i = 0; i < st.repeated_enum.size(); ++i) {
     CHECK(static_cast<int>(st.repeated_enum[i]) ==
           static_cast<int>(msg.repeated_enum(i)));
   }
@@ -289,7 +289,7 @@ TEST_CASE("test RepeatBaseTypeMsg") {
     se_msg.SerializeToString(&pb_ss);
     CHECK(st_ss == pb_ss);
 
-    stpb::RepeatBaseTypeMsg dese_st;
+    stpb::RepeatBaseTypeMsg dese_st{};
     iguana::from_pb(dese_st, st_ss);
     pb::RepeatBaseTypeMsg dese_msg;
     dese_msg.ParseFromString(pb_ss);
@@ -317,7 +317,7 @@ TEST_CASE("test RepeatBaseTypeMsg") {
     std::string pb_ss;
     se_msg.SerializeToString(&pb_ss);
     CHECK(st_ss == pb_ss);
-    stpb::RepeatBaseTypeMsg dese_st;
+    stpb::RepeatBaseTypeMsg dese_st{};
     iguana::from_pb(dese_st, st_ss);
     pb::RepeatBaseTypeMsg dese_msg;
     dese_msg.ParseFromString(pb_ss);
@@ -349,22 +349,22 @@ void SetRepeatIguanaTypeMsg(const stpb::RepeatIguanaTypeMsg& st,
 
 void CheckRepeatIguanaTypeMsg(const stpb::RepeatIguanaTypeMsg& st,
                               const pb::RepeatIguanaTypeMsg& msg) {
-  for (int i = 0; i < st.repeated_sint32.size(); ++i) {
+  for (size_t i = 0; i < st.repeated_sint32.size(); ++i) {
     CHECK(st.repeated_sint32[i].val == msg.repeated_sint32(i));
   }
-  for (int i = 0; i < st.repeated_sint64.size(); ++i) {
+  for (size_t i = 0; i < st.repeated_sint64.size(); ++i) {
     CHECK(st.repeated_sint64[i].val == msg.repeated_sint64(i));
   }
-  for (int i = 0; i < st.repeated_fixed32.size(); ++i) {
+  for (size_t i = 0; i < st.repeated_fixed32.size(); ++i) {
     CHECK(st.repeated_fixed32[i].val == msg.repeated_fixed32(i));
   }
-  for (int i = 0; i < st.repeated_fixed64.size(); ++i) {
+  for (size_t i = 0; i < st.repeated_fixed64.size(); ++i) {
     CHECK(st.repeated_fixed64[i].val == msg.repeated_fixed64(i));
   }
-  for (int i = 0; i < st.repeated_sfixed32.size(); ++i) {
+  for (size_t i = 0; i < st.repeated_sfixed32.size(); ++i) {
     CHECK(st.repeated_sfixed32[i].val == msg.repeated_sfixed32(i));
   }
-  for (int i = 0; i < st.repeated_sfixed64.size(); ++i) {
+  for (size_t i = 0; i < st.repeated_sfixed64.size(); ++i) {
     CHECK(st.repeated_sfixed64[i].val == msg.repeated_sfixed64(i));
   }
 }
@@ -384,7 +384,7 @@ TEST_CASE("test RepeatIguanaTypeMsg") {
     se_msg.SerializeToString(&pb_ss);
     CHECK(st_ss == pb_ss);
 
-    stpb::RepeatIguanaTypeMsg dese_st;
+    stpb::RepeatIguanaTypeMsg dese_st{};
     iguana::from_pb(dese_st, st_ss);
     pb::RepeatIguanaTypeMsg dese_msg;
     dese_msg.ParseFromString(pb_ss);
@@ -417,19 +417,19 @@ void CheckNestedMsg(const stpb::NestedMsg& st, const pb::NestedMsg& msg) {
   CheckBaseTypeMsg(st.base_msg, msg.base_msg());
 
   CHECK(st.repeat_base_msg.size() == msg.repeat_base_msg_size());
-  for (int i = 0; i < st.repeat_base_msg.size(); ++i) {
+  for (size_t i = 0; i < st.repeat_base_msg.size(); ++i) {
     CheckBaseTypeMsg(st.repeat_base_msg[i], msg.repeat_base_msg(i));
   }
 
   CheckIguanaTypeMsg(st.iguana_type_msg, msg.iguana_type_msg());
 
   CHECK(st.repeat_iguna_msg.size() == msg.repeat_iguna_msg_size());
-  for (int i = 0; i < st.repeat_iguna_msg.size(); ++i) {
+  for (size_t i = 0; i < st.repeat_iguna_msg.size(); ++i) {
     CheckIguanaTypeMsg(st.repeat_iguna_msg[i], msg.repeat_iguna_msg(i));
   }
 
   CHECK(st.repeat_repeat_base_msg.size() == msg.repeat_repeat_base_msg_size());
-  for (int i = 0; i < st.repeat_repeat_base_msg.size(); ++i) {
+  for (size_t i = 0; i < st.repeat_repeat_base_msg.size(); ++i) {
     CheckRepeatBaseTypeMsg(st.repeat_repeat_base_msg[i],
                            msg.repeat_repeat_base_msg(i));
   }
@@ -475,7 +475,7 @@ TEST_CASE("test NestedMsg") {
 
     CHECK(st_ss == pb_ss);
 
-    stpb::NestedMsg dese_st;
+    stpb::NestedMsg dese_st{};
     iguana::from_pb(dese_st, st_ss);
 
     pb::NestedMsg dese_msg;
@@ -593,7 +593,7 @@ TEST_CASE("test MapMsg") {
     // It's okay not to satisfy this.
     // CHECK(st_ss == pb_ss);
     CHECK(st_ss.size() == pb_ss.size());
-    stpb::MapMsg dese_st;
+    stpb::MapMsg dese_st{};
     iguana::from_pb(dese_st, pb_ss);
     pb::MapMsg dese_msg;
     dese_msg.ParseFromString(st_ss);
@@ -616,7 +616,7 @@ TEST_CASE("test MapMsg") {
     se_msg.SerializeToString(&pb_ss);
     CHECK(st_ss == pb_ss);
 
-    stpb::MapMsg dese_st;
+    stpb::MapMsg dese_st{};
     iguana::from_pb(dese_st, pb_ss);
     pb::MapMsg dese_msg;
     dese_msg.ParseFromString(st_ss);

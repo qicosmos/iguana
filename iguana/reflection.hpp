@@ -809,9 +809,9 @@ constexpr inline auto get_offset_arr() {
   constexpr auto type_options_arr =
       get_type_options_arr<Tuple>(std::make_index_sequence<TupleSize>{});
   std::array<size_t, TypeSize> res{};
-  int index = 0;
-  for (int i = 0; i < TupleSize; ++i) {
-    for (int j = 0; j < type_options_arr[i]; ++j) {
+  size_t index = 0;
+  for (size_t i = 0; i < TupleSize; ++i) {
+    for (size_t j = 0; j < type_options_arr[i]; ++j) {
       res[index++] = j;
     }
   }
@@ -822,7 +822,7 @@ template <std::size_t N, typename T>
 constexpr inline auto prefix_sum(const std::array<T, N> arr) {
   std::array<T, N> presums{};
   presums[0] = 0;
-  for (int i = 1; i < N; ++i) {
+  for (size_t i = 1; i < N; ++i) {
     presums[i] = presums[i - 1] + arr[i];
   }
   return presums;
