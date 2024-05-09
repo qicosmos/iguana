@@ -86,6 +86,7 @@ set(TEST_UTIL test/test_util.cpp)
 set(TEST_XMLNOTHROW test/test_xml_nothrow.cpp)
 set(TEST_PB test/test_pb.cpp)
 set(TEST_PROTO test/test_proto3.cpp)
+set(PB_BENCHMARK benchmark/pb_benchmark.cpp)
 
 add_executable(json_example 	${JSON_EXAMPLE})
 add_executable(json_benchmark 	${JSONBENCHMARK})
@@ -120,7 +121,9 @@ if(HAS_PROTOBUF)
     protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
     message(STATUS "Proto source files: ${PROTO_SRCS}")
     message(STATUS "Proto header files: ${PROTO_HDRS}")
-
+    
+    add_executable(pb_benchmark ${PB_BENCHMARK} ${PROTO_SRCS})
+    target_link_libraries(pb_benchmark ${Protobuf_LIBRARIES})
     add_executable(test_proto ${PROTO_SRCS} ${TEST_PROTO})
     target_link_libraries(test_proto ${Protobuf_LIBRARIES})
 endif()
