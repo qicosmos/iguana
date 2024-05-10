@@ -72,28 +72,28 @@ template <typename T>
 constexpr bool is_lenprefix_v = (get_wire_type<T>() ==
                                  WireType::LengthDelimeted);
 
-[[nodiscard]] inline uint32_t encode_zigzag(int32_t v) {
+[[nodiscard]] IGUANA_INLINE uint32_t encode_zigzag(int32_t v) {
   return (static_cast<uint32_t>(v) << 1U) ^
          static_cast<uint32_t>(
              -static_cast<int32_t>(static_cast<uint32_t>(v) >> 31U));
 }
-[[nodiscard]] inline uint64_t encode_zigzag(int64_t v) {
+[[nodiscard]] IGUANA_INLINE uint64_t encode_zigzag(int64_t v) {
   return (static_cast<uint64_t>(v) << 1U) ^
          static_cast<uint64_t>(
              -static_cast<int64_t>(static_cast<uint64_t>(v) >> 63U));
 }
 
-[[nodiscard]] inline int64_t decode_zigzag(uint64_t u) {
+[[nodiscard]] IGUANA_INLINE int64_t decode_zigzag(uint64_t u) {
   return static_cast<int64_t>((u >> 1U)) ^
          static_cast<uint64_t>(-static_cast<int64_t>(u & 1U));
 }
-[[nodiscard]] inline int64_t decode_zigzag(uint32_t u) {
+[[nodiscard]] IGUANA_INLINE int64_t decode_zigzag(uint32_t u) {
   return static_cast<int64_t>((u >> 1U)) ^
          static_cast<uint64_t>(-static_cast<int64_t>(u & 1U));
 }
 
 template <class T>
-inline uint64_t decode_varint(T& data, size_t& pos) {
+IGUANA_INLINE uint64_t decode_varint(T& data, size_t& pos) {
   const int8_t* begin = reinterpret_cast<const int8_t*>(data.data());
   const int8_t* end = begin + data.size();
   const int8_t* p = begin;
@@ -162,43 +162,15 @@ inline uint64_t decode_varint(T& data, size_t& pos) {
       val |= static_cast<uint64_t>(*p++ & 0x7f) << shift;
       shift += 7;
     }
-    if (p == end) {
-      throw std::invalid_argument("Invalid varint value: too few bytes.");
-    }
+    if (p == end)
+      IGUANA_UNLIKELY {
+        throw std::invalid_argument("Invalid varint value: too few bytes.");
+      }
     val |= static_cast<uint64_t>(*p++) << shift;
   }
 
   pos = (p - begin);
   return val;
-}
-
-template <typename Stream>
-inline void serialize_varint(uint64_t v, Stream& out) {
-  while (v >= 0x80) {
-    out.push_back(static_cast<uint8_t>(v | 0x80));
-    v >>= 7;
-  }
-  out.push_back(static_cast<uint8_t>(v));
-}
-
-inline uint32_t log2_floor_uint32(uint32_t n) {
-#if defined(__GNUC__)
-  return 31 ^ static_cast<uint32_t>(__builtin_clz(n));
-#else
-  unsigned long where;
-  _BitScanReverse(&where, n);
-  return where;
-#endif
-}
-
-inline size_t variant_uint32_size(uint32_t value) {
-  // This computes value == 0 ? 1 : floor(log2(value)) / 7 + 1
-  // Use an explicit multiplication to implement the divide of
-  // a number in the 1..31 range.
-  // Explicit OR 0x1 to avoid calling Bits::Log2FloorNonZero(0), which is
-  // undefined.
-  uint32_t log2value = log2_floor_uint32(value | 0x1);
-  return static_cast<size_t>((log2value * 9 + 73) / 64);
 }
 
 // value == 0 ? 1 : floor(log2(value)) / 7 + 1
@@ -211,7 +183,59 @@ constexpr size_t variant_uint32_size_constexpr(uint32_t value) {
   return log / 7 + 1;
 }
 
-inline uint32_t log2_floor_uint64(uint64_t n) {
+template <uint64_t v, typename Stream, size_t... I>
+IGUANA_INLINE void append_varint_u32_constexpr(Stream& out,
+                                               std::index_sequence<I...>) {
+  return (out.push_back(static_cast<uint8_t>((v >> (7 * I)) | 0x80)), ...);
+}
+
+template <uint32_t v, typename Stream>
+IGUANA_INLINE void serialize_varint_u32_constexpr(Stream& out) {
+  constexpr auto size = variant_uint32_size_constexpr(v);
+  append_varint_u32_constexpr<v>(out, std::make_index_sequence<size - 1>{});
+  out.push_back(static_cast<uint8_t>(v >> (7 * (size - 1))));
+}
+
+template <typename Stream>
+IGUANA_INLINE void serialize_varint(uint64_t v, Stream& out) {
+  if (v < 0x80) {
+    out.push_back(static_cast<uint8_t>(v));
+    return;
+  }
+  out.push_back(static_cast<uint8_t>(v | 0x80));
+  v >>= 7;
+  if (v < 0x80) {
+    out.push_back(static_cast<uint8_t>(v));
+    return;
+  }
+  do {
+    out.push_back(static_cast<uint8_t>(v | 0x80));
+    v >>= 7;
+  } while (v >= 0x80);
+  out.push_back(static_cast<uint8_t>(v));
+}
+
+IGUANA_INLINE uint32_t log2_floor_uint32(uint32_t n) {
+#if defined(__GNUC__)
+  return 31 ^ static_cast<uint32_t>(__builtin_clz(n));
+#else
+  unsigned long where;
+  _BitScanReverse(&where, n);
+  return where;
+#endif
+}
+
+IGUANA_INLINE size_t variant_uint32_size(uint32_t value) {
+  // This computes value == 0 ? 1 : floor(log2(value)) / 7 + 1
+  // Use an explicit multiplication to implement the divide of
+  // a number in the 1..31 range.
+  // Explicit OR 0x1 to avoid calling Bits::Log2FloorNonZero(0), which is
+  // undefined.
+  uint32_t log2value = log2_floor_uint32(value | 0x1);
+  return static_cast<size_t>((log2value * 9 + 73) / 64);
+}
+
+IGUANA_INLINE uint32_t log2_floor_uint64(uint64_t n) {
 #if defined(__GNUC__)
   return 63 ^ static_cast<uint32_t>(__builtin_clzll(n));
 #else
@@ -221,7 +245,7 @@ inline uint32_t log2_floor_uint64(uint64_t n) {
 #endif
 }
 
-inline size_t variant_uint64_size(uint64_t value) {
+IGUANA_INLINE size_t variant_uint64_size(uint64_t value) {
   // This computes value == 0 ? 1 : floor(log2(value)) / 7 + 1
   // Use an explicit multiplication to implement the divide of
   // a number in the 1..63 range.
@@ -232,7 +256,7 @@ inline size_t variant_uint64_size(uint64_t value) {
 }
 
 template <typename U>
-constexpr inline size_t variant_intergal_size(U value) {
+constexpr IGUANA_INLINE size_t variant_intergal_size(U value) {
   using T = std::remove_reference_t<U>;
   if constexpr (sizeof(T) == 8) {
     return variant_uint64_size(static_cast<uint64_t>(value));
@@ -263,18 +287,16 @@ auto& get_set_size_cache(T& t) {
 }
 
 template <bool omit_default_val, size_t key_size, typename T>
-inline size_t numeric_size(T&& t) {
+IGUANA_INLINE size_t numeric_size(T&& t) {
   using value_type = std::remove_const_t<std::remove_reference_t<T>>;
   if constexpr (omit_default_val) {
     if constexpr (is_fixed_v<value_type> || is_signed_varint_v<value_type>) {
-      if (t.val == 0) {
-        return 0;
-      }
+      if (t.val == 0)
+        IGUANA_UNLIKELY { return 0; }
     }
     else {
-      if (t == static_cast<value_type>(0)) {
-        return 0;
-      }
+      if (t == static_cast<value_type>(0))
+        IGUANA_UNLIKELY { return 0; }
     }
   }
   if constexpr (std::is_integral_v<value_type>) {
@@ -305,13 +327,13 @@ inline size_t numeric_size(T&& t) {
 }
 
 template <size_t key_size, typename T>
-inline size_t pb_key_value_size(T&& t);
+IGUANA_INLINE size_t pb_key_value_size(T&& t);
 
 template <size_t field_no, typename T>
-inline size_t pb_oneof_size(T&& t) {
+IGUANA_INLINE size_t pb_oneof_size(T&& t) {
   int len = 0;
   std::visit(
-      [&len](auto&& value) {
+      [&len](auto&& value) IGUANA__INLINE_LAMBDA {
         using value_type =
             std::remove_const_t<std::remove_reference_t<decltype(value)>>;
         constexpr uint32_t key =
@@ -327,7 +349,7 @@ inline size_t pb_oneof_size(T&& t) {
 // returns size = key_size + optional(len_size) + len
 // when key_size == 0, return len
 template <size_t key_size, typename T>
-inline size_t pb_key_value_size(T&& t) {
+IGUANA_INLINE size_t pb_key_value_size(T&& t) {
   using value_type = std::remove_const_t<std::remove_reference_t<T>>;
   if constexpr (is_reflection_v<value_type> ||
                 is_custom_reflection_v<value_type>) {
@@ -335,8 +357,8 @@ inline size_t pb_key_value_size(T&& t) {
     constexpr auto tuple = get_field_tuple<value_type>();
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
     for_each_n(
-        [&len, &t](auto i) {
-          constexpr static auto tp = get_field_tuple<value_type>();
+        [&len, &t](auto i) IGUANA__INLINE_LAMBDA {
+          constexpr auto tp = get_field_tuple<value_type>();
           constexpr auto value = std::get<decltype(i)::value>(tp);
           using U = typename std::decay_t<decltype(value.value(t))>;
           if constexpr (variant_v<U>) {
@@ -423,7 +445,7 @@ inline size_t pb_key_value_size(T&& t) {
 
 // return the payload size
 template <typename T>
-inline size_t pb_value_size(T&& t) {
+IGUANA_INLINE size_t pb_value_size(T&& t) {
   using value_type = std::remove_const_t<std::remove_reference_t<T>>;
   if constexpr (is_reflection_v<value_type>) {
     return get_set_size_cache(t);

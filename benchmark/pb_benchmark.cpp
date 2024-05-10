@@ -27,20 +27,40 @@ class ScopedTimer {
 };
 
 void bench(int Count) {
-  stpb::BaseTypeMsg base_type_st{
-      100, 200, 300, 400, 31.4f, 62.8, false, "World", stpb::Enum::ZERO};
+  stpb::BaseTypeMsg base_type_st{std::numeric_limits<int32_t>::max(),
+                                 std::numeric_limits<int64_t>::max(),
+                                 std::numeric_limits<uint32_t>::max(),
+                                 std::numeric_limits<uint64_t>::max(),
+                                 std::numeric_limits<float>::max(),
+                                 std::numeric_limits<double>::max(),
+                                 true,
+                                 std::string(1, 'x'),
+                                 stpb::Enum::BAZ};
   pb::BaseTypeMsg base_type_msg;
   SetBaseTypeMsg(base_type_st, base_type_msg);
 
-  stpb::IguanaTypeMsg iguana_type_st{{100}, {200}, {300}, {400}, {31}, {32}};
+  stpb::IguanaTypeMsg iguana_type_st{{std::numeric_limits<int32_t>::max()},
+                                     {std::numeric_limits<int64_t>::max()},
+                                     {std::numeric_limits<uint32_t>::max()},
+                                     {std::numeric_limits<uint64_t>::max()},
+                                     {std::numeric_limits<int32_t>::max()},
+                                     {std::numeric_limits<int64_t>::max()}};
   pb::IguanaTypeMsg iguana_type_msg{};
   SetIguanaTypeMsg(iguana_type_st, iguana_type_msg);
 
   stpb::RepeatBaseTypeMsg re_base_type_st{
-      {1, 2, 3},          {4, 5, 6},
-      {7, 8, 9},          {10, 11, 12},
-      {13.1, 14.2, 15.3}, {16.4, 17.5, 18.6},
-      {"a", "b", "c"},    {stpb::Enum::BAZ, stpb::Enum::ZERO, stpb::Enum::NEG}};
+      {std::numeric_limits<uint32_t>::max(),
+       std::numeric_limits<uint32_t>::min()},
+      {std::numeric_limits<uint64_t>::max(),
+       std::numeric_limits<uint64_t>::min()},
+      {std::numeric_limits<int32_t>::max(),
+       std::numeric_limits<int32_t>::min()},
+      {std::numeric_limits<int64_t>::max(),
+       std::numeric_limits<int64_t>::min()},
+      {},
+      {std::numeric_limits<double>::max(), std::numeric_limits<double>::min()},
+      {std::string(1, 'x'), std::string(1, 'x'), std::string(1, 'x')},
+      {stpb::Enum::NEG, stpb::Enum::FOO}};
   pb::RepeatBaseTypeMsg re_base_type_msg;
   SetRepeatBaseTypeMsg(re_base_type_st, re_base_type_msg);
 
@@ -120,15 +140,19 @@ void bench(int Count) {
     ScopedTimer timer("protobuf serialize");
     for (int i = 0; i < Count; ++i) {
       std::string str_base_msg_ss;
+      str_base_msg_ss.reserve(base_type_msg.ByteSizeLong());
       base_type_msg.SerializeToString(&str_base_msg_ss);
 
       std::string str_iguana_msg_ss;
+      str_iguana_msg_ss.reserve(iguana_type_msg.ByteSizeLong());
       iguana_type_msg.SerializeToString(&str_iguana_msg_ss);
 
       std::string re_base_type_msg_ss;
+      re_base_type_msg_ss.reserve(re_base_type_msg.ByteSizeLong());
       re_base_type_msg.SerializeToString(&re_base_type_msg_ss);
 
       std::string re_iguana_type_msg_ss;
+      re_iguana_type_msg_ss.reserve(re_iguana_type_msg.ByteSizeLong());
       re_iguana_type_msg.SerializeToString(&re_iguana_type_msg_ss);
 
       std::string nest_msg_ss;
