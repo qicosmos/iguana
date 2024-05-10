@@ -428,3 +428,12 @@ void CheckNestOneofMsg(const stpb::NestOneofMsg& st,
       },
       st.nest_one_of_msg);
 }
+
+inline void print_hex_str(const std::string& str) {
+  std::ostringstream oss;
+  oss << std::hex << std::setfill('0');
+  for (unsigned char c : str) {
+    oss << std::setw(2) << static_cast<int>(c);
+  }
+  std::cout << oss.str() << std::endl;
+}

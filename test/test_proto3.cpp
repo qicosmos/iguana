@@ -2,15 +2,6 @@
 #include "doctest.h"
 #include "proto/unittest_proto3.h"  // msg reflection
 
-void print_hex_str(const std::string& str) {
-  std::ostringstream oss;
-  oss << std::hex << std::setfill('0');
-  for (unsigned char c : str) {
-    oss << std::setw(2) << static_cast<int>(c);
-  }
-  std::cout << oss.str() << std::endl;
-}
-
 TEST_CASE("test BaseTypeMsg") {
   {  // normal test
     stpb::BaseTypeMsg se_st{
