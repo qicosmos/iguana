@@ -27,7 +27,8 @@ class ScopedTimer {
 };
 
 void bench(int Count) {
-  stpb::BaseTypeMsg base_type_st{std::numeric_limits<int32_t>::max(),
+  stpb::BaseTypeMsg base_type_st{{},
+                                 std::numeric_limits<int32_t>::max(),
                                  std::numeric_limits<int64_t>::max(),
                                  std::numeric_limits<uint32_t>::max(),
                                  std::numeric_limits<uint64_t>::max(),
@@ -39,7 +40,8 @@ void bench(int Count) {
   pb::BaseTypeMsg base_type_msg;
   SetBaseTypeMsg(base_type_st, base_type_msg);
 
-  stpb::IguanaTypeMsg iguana_type_st{{std::numeric_limits<int32_t>::max()},
+  stpb::IguanaTypeMsg iguana_type_st{{},
+                                     {std::numeric_limits<int32_t>::max()},
                                      {std::numeric_limits<int64_t>::max()},
                                      {std::numeric_limits<uint32_t>::max()},
                                      {std::numeric_limits<uint64_t>::max()},
@@ -49,6 +51,7 @@ void bench(int Count) {
   SetIguanaTypeMsg(iguana_type_st, iguana_type_msg);
 
   stpb::RepeatBaseTypeMsg re_base_type_st{
+      {},
       {std::numeric_limits<uint32_t>::max(),
        std::numeric_limits<uint32_t>::min()},
       {std::numeric_limits<uint64_t>::max(),
@@ -65,23 +68,30 @@ void bench(int Count) {
   SetRepeatBaseTypeMsg(re_base_type_st, re_base_type_msg);
 
   stpb::RepeatIguanaTypeMsg re_iguana_type_st{
-      {{0}, {1}, {3}},    {{4}, {5}, {6}},    {{7}, {8}, {9}},
-      {{10}, {11}, {12}}, {{13}, {14}, {15}}, {},
+      {},
+      {{0}, {1}, {3}},
+      {{4}, {5}, {6}},
+      {{7}, {8}, {9}},
+      {{10}, {11}, {12}},
+      {{13}, {14}, {15}},
+      {},
   };
   pb::RepeatIguanaTypeMsg re_iguana_type_msg;
   SetRepeatIguanaTypeMsg(re_iguana_type_st, re_iguana_type_msg);
 
   stpb::NestedMsg nest_st{
-      /* base_msg */ {100, 200, 300, 400, 31.4f, 62.8, false, "World",
-                      stpb::Enum::BAZ},
+      {},
+      /* base_msg */
+      {{}, 100, 200, 300, 400, 31.4f, 62.8, false, "World", stpb::Enum::BAZ},
       /* repeat_base_msg */
-      {{1, 2, 3, 4, 5.5f, 6.6, true, "Hello", stpb::Enum::FOO},
-       {7, 8, 9, 10, 11.11f, 12.12, false, "Hi", stpb::Enum::BAR}},
-      /* iguana_type_msg */ {{100}, {200}, {300}, {400}, {31}, {32}},
+      {{{}, 1, 2, 3, 4, 5.5f, 6.6, true, "Hello", stpb::Enum::FOO},
+       {{}, 7, 8, 9, 10, 11.11f, 12.12, false, "Hi", stpb::Enum::BAR}},
+      /* iguana_type_msg */ {{}, {100}, {200}, {300}, {400}, {31}, {32}},
       /* repeat_iguna_msg */
-      {{{1}, {2}, {3}}, {{4}, {5}, {6}}, {{7}, {8}, {9}}},
+      {{}, {{1}, {2}, {3}}, {{4}, {5}, {6}}, {{7}, {8}, {9}}},
       /* repeat_repeat_base_msg */
-      {{{1, 2, 3},
+      {{{},
+        {1, 2, 3},
         {4, 5, 6},
         {7, 8, 9},
         {10, 11, 12},
@@ -89,7 +99,8 @@ void bench(int Count) {
         {16.4, 17.5, 18.6},
         {"a", "b", "c"},
         {stpb::Enum::FOO, stpb::Enum::BAR, stpb::Enum::BAZ}},
-       {{19, 20, 21},
+       {{},
+        {19, 20, 21},
         {22, 23, 24},
         {25, 26, 27},
         {28, 29, 30},
@@ -105,12 +116,13 @@ void bench(int Count) {
   map_st.sfix64_str_map.emplace(iguana::sfixed64_t{20}, "twenty");
 
   map_st.str_iguana_type_msg_map.emplace(
-      "first", stpb::IguanaTypeMsg{{10}, {20}, {30}, {40}, {50}, {60}});
+      "first", stpb::IguanaTypeMsg{{}, {10}, {20}, {30}, {40}, {50}, {60}});
   map_st.str_iguana_type_msg_map.emplace(
-      "second", stpb::IguanaTypeMsg{{11}, {21}, {31}, {41}, {51}, {61}});
+      "second", stpb::IguanaTypeMsg{{}, {11}, {21}, {31}, {41}, {51}, {61}});
 
   map_st.int_repeat_base_msg_map.emplace(
-      1, stpb::RepeatBaseTypeMsg{{1, 2},
+      1, stpb::RepeatBaseTypeMsg{{},
+                                 {1, 2},
                                  {3, 4},
                                  {5, 6},
                                  {7, 8},
@@ -119,7 +131,8 @@ void bench(int Count) {
                                  {"one", "two"},
                                  {stpb::Enum::FOO, stpb::Enum::BAR}});
   map_st.int_repeat_base_msg_map.emplace(
-      2, stpb::RepeatBaseTypeMsg{{2, 3},
+      2, stpb::RepeatBaseTypeMsg{{},
+                                 {2, 3},
                                  {4, 5},
                                  {6, 7},
                                  {8, 9},
@@ -130,11 +143,36 @@ void bench(int Count) {
   pb::MapMsg map_msg{};
   SetMapMsg(map_st, map_msg);
 
-  stpb::BaseTypeMsg baseTypeMsg{
-      100, 200, 300, 400, 31.4f, 62.8, false, "World", stpb::Enum::BAZ};
-  stpb::BaseOneofMsg base_one_of_st{123, baseTypeMsg, 456.78};
+  stpb::BaseTypeMsg baseTypeMsg{{},    100,  200,   300,     400,
+                                31.4f, 62.8, false, "World", stpb::Enum::BAZ};
+  stpb::BaseOneofMsg base_one_of_st{{}, 123, baseTypeMsg, 456.78};
   pb::BaseOneofMsg base_one_of_msg;
   SetBaseOneofMsg(base_one_of_st, base_one_of_msg);
+  {
+    ScopedTimer timer("struct_pb serialize");
+    for (int i = 0; i < Count; ++i) {
+      std::string str_base_st_ss;
+      iguana::to_pb(base_type_st, str_base_st_ss);
+
+      std::string str_iguana_st_ss;
+      iguana::to_pb(iguana_type_st, str_iguana_st_ss);
+
+      std::string re_base_type_st_ss;
+      iguana::to_pb(re_base_type_st, re_base_type_st_ss);
+
+      std::string re_iguana_type_st_ss;
+      iguana::to_pb(re_iguana_type_st, re_iguana_type_st_ss);
+
+      std::string nest_st_ss;
+      iguana::to_pb(nest_st, nest_st_ss);
+
+      std::string map_st_ss;
+      iguana::to_pb(map_st, map_st_ss);
+
+      std::string base_one_of_st_ss;
+      iguana::to_pb(base_one_of_st, base_one_of_st_ss);
+    }
+  }
 
   {
     ScopedTimer timer("protobuf serialize");
@@ -163,32 +201,6 @@ void bench(int Count) {
 
       std::string base_one_of_msg_ss;
       base_one_of_msg.SerializeToString(&base_one_of_msg_ss);
-    }
-  }
-
-  {
-    ScopedTimer timer("struct_pb serialize");
-    for (int i = 0; i < Count; ++i) {
-      std::string str_base_st_ss;
-      iguana::to_pb(base_type_st, str_base_st_ss);
-
-      std::string str_iguana_st_ss;
-      iguana::to_pb(iguana_type_st, str_iguana_st_ss);
-
-      std::string re_base_type_st_ss;
-      iguana::to_pb(re_base_type_st, re_base_type_st_ss);
-
-      std::string re_iguana_type_st_ss;
-      iguana::to_pb(re_iguana_type_st, re_iguana_type_st_ss);
-
-      std::string nest_st_ss;
-      iguana::to_pb(nest_st, nest_st_ss);
-
-      std::string map_st_ss;
-      iguana::to_pb(map_st, map_st_ss);
-
-      std::string base_one_of_st_ss;
-      iguana::to_pb(base_one_of_st, base_one_of_st_ss);
     }
   }
 

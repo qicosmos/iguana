@@ -28,6 +28,13 @@ enum class WireType : uint32_t {
   Unknown
 };
 
+struct pb_base {
+  size_t cache_size;
+};
+
+template <typename T>
+constexpr bool inherits_from_pb_base_v = std::is_base_of_v<pb_base, T>;
+
 namespace detail {
 template <typename T>
 constexpr bool is_fixed_v =
@@ -373,7 +380,13 @@ IGUANA_INLINE size_t pb_key_value_size(T&& t) {
           }
         },
         std::make_index_sequence<SIZE>{});
-    get_set_size_cache(t) = len;
+    if constexpr (inherits_from_pb_base_v<value_type>) {
+      t.cache_size = len;
+    }
+    else {
+      get_set_size_cache(t) = len;
+    }
+
     if constexpr (key_size == 0) {
       // for top level
       return len;
@@ -448,7 +461,12 @@ template <typename T>
 IGUANA_INLINE size_t pb_value_size(T&& t) {
   using value_type = std::remove_const_t<std::remove_reference_t<T>>;
   if constexpr (is_reflection_v<value_type>) {
-    return get_set_size_cache(t);
+    if constexpr (inherits_from_pb_base_v<value_type>) {
+      return t.cache_size;
+    }
+    else {
+      return get_set_size_cache(t);
+    }
   }
   else if constexpr (is_sequence_container<value_type>::value) {
     using item_type = typename value_type::value_type;

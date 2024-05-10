@@ -5,9 +5,11 @@
 
 #ifdef CHECK
 #define PB_CHECK CHECK
+#define PUBLIC
 #else
 #include <cassert>
 #define PB_CHECK assert
+#define PUBLIC : iguana::pb_base
 #endif
 
 // define the struct as msg in proto
@@ -20,7 +22,7 @@ enum class Enum {
   NEG = -1,  // Intentionally negative.
 };
 
-struct BaseTypeMsg {
+struct BaseTypeMsg PUBLIC {
   int32_t optional_int32;
   int64_t optional_int64;
   uint32_t optional_uint32;
@@ -46,7 +48,7 @@ REFLECTION(BaseTypeMsg, optional_int32, optional_int64, optional_uint32,
            optional_uint64, optional_float, optional_double, optional_bool,
            optional_string, optional_enum);
 
-struct IguanaTypeMsg {
+struct IguanaTypeMsg PUBLIC {
   iguana::sint32_t optional_sint32;
   iguana::sint64_t optional_sint64;
   iguana::fixed32_t optional_fixed32;
@@ -66,7 +68,7 @@ struct IguanaTypeMsg {
 REFLECTION(IguanaTypeMsg, optional_sint32, optional_sint64, optional_fixed32,
            optional_fixed64, optional_sfixed32, optional_sfixed64);
 
-struct RepeatBaseTypeMsg {
+struct RepeatBaseTypeMsg PUBLIC {
   std::vector<uint32_t> repeated_uint32;
   std::vector<uint64_t> repeated_uint64;
   std::vector<int32_t> repeated_int32;
@@ -81,7 +83,7 @@ REFLECTION(RepeatBaseTypeMsg, repeated_uint32, repeated_uint64, repeated_int32,
            repeated_int64, repeated_float, repeated_double, repeated_string,
            repeated_enum);
 
-struct RepeatIguanaTypeMsg {
+struct RepeatIguanaTypeMsg PUBLIC {
   std::vector<iguana::sfixed32_t> repeated_sint32;
   std::vector<iguana::sfixed64_t> repeated_sint64;
   std::vector<iguana::fixed32_t> repeated_fixed32;
@@ -94,7 +96,7 @@ REFLECTION(RepeatIguanaTypeMsg, repeated_sint32, repeated_sint64,
            repeated_fixed32, repeated_fixed64, repeated_sfixed32,
            repeated_sfixed64);
 
-struct NestedMsg {
+struct NestedMsg PUBLIC {
   BaseTypeMsg base_msg;
   std::vector<BaseTypeMsg> repeat_base_msg;
   IguanaTypeMsg iguana_type_msg;
@@ -104,7 +106,7 @@ struct NestedMsg {
 REFLECTION(NestedMsg, base_msg, repeat_base_msg, iguana_type_msg,
            repeat_iguna_msg, repeat_repeat_base_msg);
 
-struct MapMsg {
+struct MapMsg PUBLIC {
   std::unordered_map<iguana::sfixed64_t, std::string> sfix64_str_map{};
   std::unordered_map<std::string, IguanaTypeMsg> str_iguana_type_msg_map{};
   std::map<int, RepeatBaseTypeMsg> int_repeat_base_msg_map{};
@@ -112,14 +114,14 @@ struct MapMsg {
 REFLECTION(MapMsg, sfix64_str_map, str_iguana_type_msg_map,
            int_repeat_base_msg_map);
 
-struct BaseOneofMsg {
+struct BaseOneofMsg PUBLIC {
   int32_t optional_int32;
   std::variant<double, std::string, BaseTypeMsg> one_of;
   double optional_double;
 };
 REFLECTION(BaseOneofMsg, optional_int32, one_of, optional_double);
 
-struct NestOneofMsg {
+struct NestOneofMsg PUBLIC {
   std::variant<std::string, BaseOneofMsg> nest_one_of_msg;
 };
 REFLECTION(NestOneofMsg, nest_one_of_msg);
