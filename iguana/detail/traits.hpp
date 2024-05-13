@@ -88,6 +88,9 @@ struct member_traits<T Owner::*> {
   using value_type = T;
 };
 
+template <class T>
+using member_value_type_t = typename member_traits<T>::value_type;
+
 template <typename T, std::size_t I, typename = void>
 struct variant_type_at {
   using type = T;

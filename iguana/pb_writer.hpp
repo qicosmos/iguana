@@ -98,11 +98,8 @@ IGUANA_INLINE void to_pb_oneof(Type&& t, Stream& out) {
       [&out](auto&& value) IGUANA__INLINE_LAMBDA {
         using value_type =
             std::remove_const_t<std::remove_reference_t<decltype(value)>>;
-        constexpr size_t offset =
-            get_variant_index<std::decay_t<Type>, value_type,
-                              std::variant_size_v<std::decay_t<Type>> - 1>();
         constexpr uint32_t key =
-            ((field_no + offset) << 3) |
+            (field_no << 3) |
             static_cast<uint32_t>(get_wire_type<value_type>());
         to_pb_impl<key, false>(std::forward<value_type>(value), out);
       },
@@ -123,21 +120,29 @@ IGUANA_INLINE void to_pb_impl(Type&& t, Stream& out) {
       if (len == 0)
         IGUANA_UNLIKELY { return; }
     }
-    constexpr auto tuple = get_field_tuple<T>();
+    constexpr auto tuple = get_members_tuple<T>();
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
     for_each_n(
-        [&t, &out](auto i) IGUANA__INLINE_LAMBDA {
-          constexpr auto tp = get_field_tuple<T>();
-          constexpr auto value = std::get<decltype(i)::value>(tp);
-          using U = typename std::decay_t<decltype(value.value(t))>;
+        [&t, &out, &tuple](auto i) IGUANA__INLINE_LAMBDA {
+          using field_type =
+              std::tuple_element_t<decltype(i)::value,
+                                   std::decay_t<decltype(tuple)>>;
+          constexpr auto value = std::get<decltype(i)::value>(tuple);
+          auto& val = value.value(t);
+
+          using U = typename field_type::value_type;
           if constexpr (variant_v<U>) {
-            to_pb_oneof<value.field_no>(value.value(t), out);
+            if (!std::holds_alternative<typename field_type::sub_type>(val)) {
+              return;
+            }
+
+            to_pb_oneof<value.field_no>(val, out);
           }
           else {
             constexpr uint32_t sub_key =
                 (value.field_no << 3) |
                 static_cast<uint32_t>(get_wire_type<U>());
-            to_pb_impl<sub_key>(value.value(t), out);
+            to_pb_impl<sub_key>(val, out);
           }
         },
         std::make_index_sequence<SIZE>{});

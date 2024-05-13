@@ -361,12 +361,11 @@ IGUANA_INLINE size_t pb_key_value_size(T&& t) {
   if constexpr (is_reflection_v<value_type> ||
                 is_custom_reflection_v<value_type>) {
     size_t len = 0;
-    constexpr auto tuple = get_field_tuple<value_type>();
+    constexpr auto tuple = get_members_tuple<value_type>();
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
     for_each_n(
-        [&len, &t](auto i) IGUANA__INLINE_LAMBDA {
-          constexpr auto tp = get_field_tuple<value_type>();
-          constexpr auto value = std::get<decltype(i)::value>(tp);
+        [&len, &t, &tuple](auto i) IGUANA__INLINE_LAMBDA {
+          constexpr auto value = std::get<decltype(i)::value>(tuple);
           using U = typename std::decay_t<decltype(value.value(t))>;
           if constexpr (variant_v<U>) {
             len += pb_oneof_size<value.field_no>(value.value(t));

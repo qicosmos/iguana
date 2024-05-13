@@ -422,10 +422,12 @@ REFLECTION(test_variant, x, y, z);
 
 TEST_CASE("test variant") {
   {
-    constexpr auto tp = iguana::get_field_tuple<test_variant>();
+    constexpr auto tp = iguana::get_members_tuple<test_variant>();
     static_assert(std::get<0>(tp).field_no == 1);
     static_assert(std::get<1>(tp).field_no == 2);
-    static_assert(std::get<2>(tp).field_no == 5);
+    static_assert(std::get<2>(tp).field_no == 3);
+    static_assert(std::get<3>(tp).field_no == 4);
+    static_assert(std::get<4>(tp).field_no == 5);
   }
   {
     constexpr static auto map = iguana::get_members<test_variant>();
@@ -439,14 +441,12 @@ TEST_CASE("test variant") {
         [](auto &member) mutable {
           CHECK(member.field_no == 2);
           CHECK(member.field_name == "y");
-          CHECK(member.offset == 0);
         },
         val1->second);
     std::visit(
         [](auto &member) mutable {
           CHECK(member.field_no == 3);
           CHECK(member.field_name == "y");
-          CHECK(member.offset == 1);
         },
         val2->second);
   }

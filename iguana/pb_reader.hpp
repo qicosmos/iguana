@@ -178,7 +178,7 @@ IGUANA_INLINE void from_pb_impl(T& val, std::string_view& pb_str,
 
 template <typename T, typename Field>
 IGUANA_INLINE void parse_oneof(T& t, const Field& f, std::string_view& pb_str) {
-  using item_type = typename std::decay_t<Field>::value_type;
+  using item_type = typename std::decay_t<Field>::sub_type;
   from_pb_impl(t.template emplace<item_type>(), pb_str, f.field_no);
 }
 }  // namespace detail
@@ -192,13 +192,17 @@ IGUANA_INLINE void from_pb(T& t, std::string_view pb_str) {
     uint32_t field_number = key >> 3;
 
     pb_str = pb_str.substr(pos);
-    constexpr static auto map = get_members<T>();
+    constexpr auto map = get_members<T>();
     auto& member = map.at(field_number);
     std::visit(
         [&t, &pb_str, wire_type](auto& val) IGUANA__INLINE_LAMBDA {
           using value_type = typename std::decay_t<decltype(val)>::value_type;
-          if (wire_type != detail::get_wire_type<value_type>())
-            IGUANA_UNLIKELY { throw std::runtime_error("unmatched wire_type"); }
+          if constexpr (!is_variant<value_type>::value) {
+            if (wire_type != detail::get_wire_type<value_type>())
+              IGUANA_UNLIKELY {
+                throw std::runtime_error("unmatched wire_type");
+              }
+          }
           using v_type = std::decay_t<decltype(val.value(t))>;
           if constexpr (variant_v<v_type>) {
             detail::parse_oneof(val.value(t), val, pb_str);
