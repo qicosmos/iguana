@@ -196,15 +196,13 @@ IGUANA_INLINE void from_pb(T& t, std::string_view pb_str) {
     auto& member = map.at(field_number);
     std::visit(
         [&t, &pb_str, wire_type](auto& val) IGUANA__INLINE_LAMBDA {
+          using sub_type = typename std::decay_t<decltype(val)>::sub_type;
           using value_type = typename std::decay_t<decltype(val)>::value_type;
-          if constexpr (!is_variant<value_type>::value) {
-            if (wire_type != detail::get_wire_type<value_type>())
-              IGUANA_UNLIKELY {
-                throw std::runtime_error("unmatched wire_type");
-              }
-          }
-          using v_type = std::decay_t<decltype(val.value(t))>;
-          if constexpr (variant_v<v_type>) {
+          // sub_type is the element type when value_type is the variant type;
+          // otherwise, they are the same.
+          if (wire_type != detail::get_wire_type<sub_type>())
+            IGUANA_UNLIKELY { throw std::runtime_error("unmatched wire_type"); }
+          if constexpr (variant_v<value_type>) {
             detail::parse_oneof(val.value(t), val, pb_str);
           }
           else {

@@ -365,17 +365,24 @@ IGUANA_INLINE size_t pb_key_value_size(T&& t) {
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
     for_each_n(
         [&len, &t, &tuple](auto i) IGUANA__INLINE_LAMBDA {
+          using field_type =
+              std::tuple_element_t<decltype(i)::value,
+                                   std::decay_t<decltype(tuple)>>;
           constexpr auto value = std::get<decltype(i)::value>(tuple);
-          using U = typename std::decay_t<decltype(value.value(t))>;
+          using U = typename field_type::value_type;
+          auto& val = value.value(t);
           if constexpr (variant_v<U>) {
-            len += pb_oneof_size<value.field_no>(value.value(t));
+            if (!std::holds_alternative<typename field_type::sub_type>(val)) {
+              return;
+            }
+            len += pb_oneof_size<value.field_no>(val);
           }
           else {
             constexpr uint32_t sub_key =
                 (value.field_no << 3) |
                 static_cast<uint32_t>(get_wire_type<U>());
             constexpr auto sub_keysize = variant_uint32_size_constexpr(sub_key);
-            len += pb_key_value_size<sub_keysize>(value.value(t));
+            len += pb_key_value_size<sub_keysize>(val);
           }
         },
         std::make_index_sequence<SIZE>{});

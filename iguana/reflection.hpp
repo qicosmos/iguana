@@ -692,7 +692,8 @@ inline constexpr auto get_iguana_struct_map() {
   }
 }
 
-template <typename T, typename ElementType = T>
+template <typename T,
+          typename ElementType = typename member_traits<T>::value_type>
 struct field_t {
   using member_type = T;
   using owner_type = typename member_traits<T>::owner_type;
