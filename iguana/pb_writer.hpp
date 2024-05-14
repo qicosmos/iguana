@@ -1,5 +1,6 @@
 #pragma once
 #include "pb_util.hpp"
+#include "detail/string_resize.hpp"
 
 namespace iguana {
 namespace detail {
