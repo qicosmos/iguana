@@ -76,30 +76,17 @@ IGUANA_INLINE void encode_numeric_field(T t, Stream& out) {
   }
 }
 
-template <typename Variant, typename T, size_t I>
-constexpr size_t get_variant_index() {
-  if constexpr (I == 0) {
-    static_assert(std::is_same_v<std::variant_alternative_t<0, Variant>, T>,
-                  "Type T is not found in Variant");
-    return 0;
-  }
-  else if constexpr (std::is_same_v<std::variant_alternative_t<I, Variant>,
-                                    T>) {
-    return I;
-  }
-  else {
-    return get_variant_index<Variant, T, I - 1>();
-  }
-}
-
 template <uint32_t field_no, typename Type, typename Stream>
 IGUANA_INLINE void to_pb_oneof(Type&& t, Stream& out) {
+  using T = std::decay_t<Type>;
   std::visit(
       [&out](auto&& value) IGUANA__INLINE_LAMBDA {
         using value_type =
             std::remove_const_t<std::remove_reference_t<decltype(value)>>;
+        constexpr auto offset =
+            get_variant_index<T, value_type, std::variant_size_v<T> - 1>();
         constexpr uint32_t key =
-            (field_no << 3) |
+            ((field_no + offset) << 3) |
             static_cast<uint32_t>(get_wire_type<value_type>());
         to_pb_impl<key, false>(std::forward<value_type>(value), out);
       },
@@ -123,7 +110,8 @@ IGUANA_INLINE void to_pb_impl(Type&& t, Stream& out) {
     constexpr auto tuple = get_members_tuple<T>();
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
     for_each_n(
-        [&t, &out, &tuple](auto i) IGUANA__INLINE_LAMBDA {
+        [&t, &out](auto i) IGUANA__INLINE_LAMBDA {
+          constexpr auto tuple = get_members_tuple<T>();
           using field_type =
               std::tuple_element_t<decltype(i)::value,
                                    std::decay_t<decltype(tuple)>>;
@@ -132,11 +120,12 @@ IGUANA_INLINE void to_pb_impl(Type&& t, Stream& out) {
 
           using U = typename field_type::value_type;
           if constexpr (variant_v<U>) {
-            if (!std::holds_alternative<typename field_type::sub_type>(val)) {
-              return;
+            constexpr auto offset =
+                get_variant_index<U, typename field_type::sub_type,
+                                  std::variant_size_v<U> - 1>();
+            if constexpr (offset == 0) {
+              to_pb_oneof<value.field_no>(val, out);
             }
-
-            to_pb_oneof<value.field_no>(val, out);
           }
           else {
             constexpr uint32_t sub_key =

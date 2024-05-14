@@ -192,7 +192,7 @@ IGUANA_INLINE void from_pb(T& t, std::string_view pb_str) {
     uint32_t field_number = key >> 3;
 
     pb_str = pb_str.substr(pos);
-    constexpr auto map = get_members<T>();
+    constexpr static auto map = get_members<T>();
     auto& member = map.at(field_number);
     std::visit(
         [&t, &pb_str, wire_type](auto& val) IGUANA__INLINE_LAMBDA {

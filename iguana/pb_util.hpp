@@ -336,20 +336,39 @@ IGUANA_INLINE size_t numeric_size(T&& t) {
 template <size_t key_size, typename T>
 IGUANA_INLINE size_t pb_key_value_size(T&& t);
 
-template <size_t field_no, typename T>
-IGUANA_INLINE size_t pb_oneof_size(T&& t) {
+template <typename Variant, typename T, size_t I>
+constexpr inline size_t get_variant_index() {
+  if constexpr (I == 0) {
+    static_assert(std::is_same_v<std::variant_alternative_t<0, Variant>, T>,
+                  "Type T is not found in Variant");
+    return 0;
+  }
+  else if constexpr (std::is_same_v<std::variant_alternative_t<I, Variant>,
+                                    T>) {
+    return I;
+  }
+  else {
+    return get_variant_index<Variant, T, I - 1>();
+  }
+}
+
+template <size_t field_no, typename Type>
+IGUANA_INLINE size_t pb_oneof_size(Type&& t) {
+  using T = std::decay_t<Type>;
   int len = 0;
   std::visit(
       [&len](auto&& value) IGUANA__INLINE_LAMBDA {
         using value_type =
             std::remove_const_t<std::remove_reference_t<decltype(value)>>;
+        constexpr auto offset =
+            get_variant_index<T, value_type, std::variant_size_v<T> - 1>();
         constexpr uint32_t key =
-            (field_no << 3) |
+            ((field_no + offset) << 3) |
             static_cast<uint32_t>(get_wire_type<value_type>());
         len = pb_key_value_size<variant_uint32_size_constexpr(key)>(
             std::forward<value_type>(value));
       },
-      std::forward<T>(t));
+      std::forward<Type>(t));
   return len;
 }
 
@@ -364,7 +383,8 @@ IGUANA_INLINE size_t pb_key_value_size(T&& t) {
     constexpr auto tuple = get_members_tuple<value_type>();
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
     for_each_n(
-        [&len, &t, &tuple](auto i) IGUANA__INLINE_LAMBDA {
+        [&len, &t](auto i) IGUANA__INLINE_LAMBDA {
+          constexpr auto tuple = get_members_tuple<value_type>();
           using field_type =
               std::tuple_element_t<decltype(i)::value,
                                    std::decay_t<decltype(tuple)>>;
@@ -372,10 +392,12 @@ IGUANA_INLINE size_t pb_key_value_size(T&& t) {
           using U = typename field_type::value_type;
           auto& val = value.value(t);
           if constexpr (variant_v<U>) {
-            if (!std::holds_alternative<typename field_type::sub_type>(val)) {
-              return;
+            constexpr auto offset =
+                get_variant_index<U, typename field_type::sub_type,
+                                  std::variant_size_v<U> - 1>();
+            if constexpr (offset == 0) {
+              len += pb_oneof_size<value.field_no>(val);
             }
-            len += pb_oneof_size<value.field_no>(val);
           }
           else {
             constexpr uint32_t sub_key =
