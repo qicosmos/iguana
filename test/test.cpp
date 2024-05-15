@@ -169,7 +169,17 @@ struct inner_struct {
   int y;
   int z;
 };
-REFLECTION(inner_struct, x, y, z);
+
+inline auto get_members_impl(inner_struct *) {
+  return std::make_tuple(iguana::field_t{&inner_struct::x, 7, "a"},
+                         iguana::field_t{&inner_struct::y, 9, "b"},
+                         iguana::field_t{&inner_struct::z, 12, "c"});
+}
+
+inline constexpr size_t iguana_member_count(inner_struct *) { return 3; }
+
+std::integral_constant<size_t, 3> member_count(inner_struct);
+
 }  // namespace my_space
 
 struct nest_t {
@@ -213,15 +223,20 @@ TEST_CASE("test throw while parsing an illegal number") {
   }
 }
 
+struct my_variant_t {
+  std::string name;
+  std::variant<int, std::string> var;
+};
+REFLECTION(my_variant_t, name, var);
+
 TEST_CASE("test variant") {
-  std::variant<int, std::string, double> var;
-  var = "test";
-  nest_t v{"Hi", {1, 2, 3}, var, my_space::inner_struct{2, 4, 6}};
+  std::variant<int, std::string> var;
+  var = 1;
+  my_variant_t v{"Hi", var}, v2;
   std::string s;
   iguana::to_json(v, s);
   std::cout << s << std::endl;
 
-  nest_t v2;
   iguana::from_json(v2, s);
   CHECK(v.var == v2.var);
 }

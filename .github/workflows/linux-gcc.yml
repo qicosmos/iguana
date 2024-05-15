@@ -2,9 +2,9 @@ name: Ubuntu (gcc)
 
 on:
   push:
-    branches: [ master]
+    branches: [ master, struct_pb ]
   pull_request:
-    branches: [ master]
+    branches: [ master, struct_pb ]
     
 jobs:
   ubuntu_gcc:
@@ -21,8 +21,11 @@ jobs:
     - name: checkout gcc version
       run: gcc --version
 
+    - name: Install Protobuf and Dev Package
+      run: sudo apt-get update && sudo apt-get install -y protobuf-compiler libprotobuf-dev
+
     - name: configure cmake
-      run: CXX=g++ CC=gcc cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -DCMAKE_CXX_STANDARD=${{ matrix.cpp_version }}
+      run: CXX=g++ CC=gcc cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -DHAS_PROTOBUF=ON -DCMAKE_CXX_STANDARD=${{ matrix.cpp_version }}
       
     - name: build project
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.mode }}

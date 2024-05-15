@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.15)
 project(iguana)
 
+message(STATUS "C++ Compiler Version: ${CMAKE_CXX_COMPILER_VERSION}")
+
 if(MSVC)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
 add_compile_options(/utf-8)
@@ -34,6 +36,8 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C++ standard: ${CMAKE_CXX_STANDARD}")
 
 add_definitions(-DTHROW_UNKNOWN_KEY)
+
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/bigobj>")
 
 option(ENABLE_SEQUENTIAL_PARSE "parse json sequential more efficient if the json fields sequences are the same with struct fields" OFF)
 if (${ENABLE_SEQUENTIAL_PARSE})
@@ -82,6 +86,9 @@ set(YAMLBENCH  benchmark/yaml_benchmark.cpp)
 set(TEST_NOTHROW test/test_yaml_nothrow.cpp)
 set(TEST_UTIL test/test_util.cpp)
 set(TEST_XMLNOTHROW test/test_xml_nothrow.cpp)
+set(TEST_PB test/test_pb.cpp)
+set(TEST_PROTO test/test_proto3.cpp)
+set(PB_BENCHMARK benchmark/pb_benchmark.cpp)
 
 add_executable(json_example 	${JSON_EXAMPLE})
 add_executable(json_benchmark 	${JSONBENCHMARK})
@@ -97,6 +104,31 @@ add_executable(test_yaml ${TEST_YAML})
 add_executable(yaml_benchmark ${YAMLBENCH})
 add_executable(test_nothrow ${TEST_NOTHROW})
 add_executable(test_util ${TEST_UTIL})
+add_executable(test_pb ${TEST_PB})
+
+option(HAS_PROTOBUF "import protobuf" OFF)
+if(HAS_PROTOBUF)
+    find_package(Protobuf REQUIRED)
+    if(Protobuf_FOUND)
+        message(STATUS "Found Protobuf: ${Protobuf_VERSION}")
+    else()
+        message(STATUS "Protobuf not found")
+    endif()
+
+    include_directories(${Protobuf_INCLUDE_DIRS})
+    include_directories(${CMAKE_CURRENT_BINARY_DIR})
+    set(PROTO_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test/proto)
+    file(GLOB PROTO_FILES ${PROTO_SRC_DIR}/*.proto)
+
+    protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
+    message(STATUS "Proto source files: ${PROTO_SRCS}")
+    message(STATUS "Proto header files: ${PROTO_HDRS}")
+    
+    add_executable(pb_benchmark ${PB_BENCHMARK} ${PROTO_SRCS})
+    target_link_libraries(pb_benchmark ${Protobuf_LIBRARIES})
+    add_executable(test_proto ${PROTO_SRCS} ${TEST_PROTO})
+    target_link_libraries(test_proto ${Protobuf_LIBRARIES})
+endif()
 
 # unit test
 option(BUILD_UNIT_TESTS "Build unit tests" ON)
@@ -122,3 +154,4 @@ add_test(NAME test_yaml COMMAND test_yaml)
 add_test(NAME test_nothrow COMMAND test_nothrow)
 add_test(NAME test_util COMMAND test_util)
 add_test(NAME test_xml_nothrow COMMAND test_xml_nothrow)
+add_test(NAME test_pb COMMAND test_pb)
