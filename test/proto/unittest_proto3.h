@@ -125,6 +125,24 @@ struct NestOneofMsg PUBLIC {
   std::variant<std::string, BaseOneofMsg> nest_one_of_msg;
 };
 REFLECTION(NestOneofMsg, nest_one_of_msg);
+
+struct simple_t {
+  int32_t a;
+  int32_t b;
+  int64_t c;
+  int64_t d;
+  std::string_view str;
+};
+REFLECTION(simple_t, a, b, c, d, str);
+
+struct simple_t1 {
+  int32_t a;
+  int32_t b;
+  int64_t c;
+  int64_t d;
+  std::string_view str;
+};
+REFLECTION(simple_t1, a, b, c, d, str);
 }  // namespace stpb
 
 void SetBaseTypeMsg(const stpb::BaseTypeMsg& st, pb::BaseTypeMsg& msg) {

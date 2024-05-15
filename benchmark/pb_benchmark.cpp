@@ -151,105 +151,46 @@ void bench(int Count) {
   SetBaseOneofMsg(base_one_of_st, base_one_of_msg);
 
   // iguana serialization benchmark
+  std::string base_type_st_ss;
+  std::string iguana_type_st_ss;
+  std::string re_base_type_st_ss;
+  std::string re_iguana_type_st_ss;
+  std::string nest_st_ss;
+  std::string map_st_ss;
+  std::string base_one_of_st_ss;
   {
     ScopedTimer timer("struct_pb serialize");
     for (int i = 0; i < Count; ++i) {
-      std::string base_type_st_ss;
       iguana::to_pb(base_type_st, base_type_st_ss);
-
-      std::string iguana_type_st_ss;
       iguana::to_pb(iguana_type_st, iguana_type_st_ss);
-
-      std::string re_base_type_st_ss;
       iguana::to_pb(re_base_type_st, re_base_type_st_ss);
-
-      std::string re_iguana_type_st_ss;
       iguana::to_pb(re_iguana_type_st, re_iguana_type_st_ss);
-
-      std::string nest_st_ss;
       iguana::to_pb(nest_st, nest_st_ss);
-
-      std::string map_st_ss;
       iguana::to_pb(map_st, map_st_ss);
-
-      std::string base_one_of_st_ss;
       iguana::to_pb(base_one_of_st, base_one_of_st_ss);
     }
   }
 
+  std::string base_type_msg_ss;
+  std::string iguana_type_msg_ss;
+  std::string re_base_type_msg_ss;
+  std::string re_iguana_type_msg_ss;
+  std::string nest_msg_ss;
+  std::string map_msg_ss;
+  std::string base_one_of_msg_ss;
   // protobuf serialization benchmark
   {
     ScopedTimer timer("protobuf serialize");
     for (int i = 0; i < Count; ++i) {
-      std::string base_type_msg_ss;
-      base_type_msg_ss.reserve(base_type_msg.ByteSizeLong());
       base_type_msg.SerializeToString(&base_type_msg_ss);
-
-      std::string iguana_type_msg_ss;
-      iguana_type_msg_ss.reserve(iguana_type_msg.ByteSizeLong());
       iguana_type_msg.SerializeToString(&iguana_type_msg_ss);
-
-      std::string re_base_type_msg_ss;
-      re_base_type_msg_ss.reserve(re_base_type_msg.ByteSizeLong());
       re_base_type_msg.SerializeToString(&re_base_type_msg_ss);
-
-      std::string re_iguana_type_msg_ss;
-      re_iguana_type_msg_ss.reserve(re_iguana_type_msg.ByteSizeLong());
       re_iguana_type_msg.SerializeToString(&re_iguana_type_msg_ss);
-
-      std::string nest_msg_ss;
       nest_msg.SerializeToString(&nest_msg_ss);
-
-      std::string map_msg_ss;
       map_msg.SerializeToString(&map_msg_ss);
-
-      std::string base_one_of_msg_ss;
       base_one_of_msg.SerializeToString(&base_one_of_msg_ss);
     }
   }
-
-  // prepare the string for deserialization benchmark
-  std::string base_type_st_ss;
-  iguana::to_pb(base_type_st, base_type_st_ss);
-
-  std::string iguana_type_st_ss;
-  iguana::to_pb(iguana_type_st, iguana_type_st_ss);
-
-  std::string re_base_type_st_ss;
-  iguana::to_pb(re_base_type_st, re_base_type_st_ss);
-
-  std::string re_iguana_type_st_ss;
-  iguana::to_pb(re_iguana_type_st, re_iguana_type_st_ss);
-
-  std::string nest_st_ss;
-  iguana::to_pb(nest_st, nest_st_ss);
-
-  std::string map_st_ss;
-  iguana::to_pb(map_st, map_st_ss);
-
-  std::string base_one_of_st_ss;
-  iguana::to_pb(base_one_of_st, base_one_of_st_ss);
-
-  std::string base_type_msg_ss;
-  base_type_msg.SerializeToString(&base_type_msg_ss);
-
-  std::string iguana_type_msg_ss;
-  iguana_type_msg.SerializeToString(&iguana_type_msg_ss);
-
-  std::string re_base_type_msg_ss;
-  re_base_type_msg.SerializeToString(&re_base_type_msg_ss);
-
-  std::string re_iguana_type_msg_ss;
-  re_iguana_type_msg.SerializeToString(&re_iguana_type_msg_ss);
-
-  std::string nest_msg_ss;
-  nest_msg.SerializeToString(&nest_msg_ss);
-
-  std::string map_msg_ss;
-  map_msg.SerializeToString(&map_msg_ss);
-
-  std::string base_one_of_msg_ss;
-  base_one_of_msg.SerializeToString(&base_one_of_msg_ss);
 
   // ensure serialize correction
   assert(base_type_st_ss == base_type_msg_ss);
@@ -257,6 +198,7 @@ void bench(int Count) {
   assert(re_base_type_st_ss == re_base_type_msg_ss);
   assert(re_iguana_type_st_ss == re_iguana_type_msg_ss);
   assert(nest_st_ss == nest_msg_ss);
+  assert(map_st_ss == map_st_ss);
   assert(base_one_of_st_ss == base_one_of_msg_ss);
   // iguana deserialization benchmark
   {
@@ -364,4 +306,64 @@ void bench(int Count) {
   CheckBaseOneofMsg(base_one_of_st_de, base_one_of_msg_de);
 }
 
-int main() { bench(100000); }
+void bench2(int Count) {
+  pb::Simple pb_simple;
+  pb_simple.set_a(std::numeric_limits<int32_t>::max());
+  pb_simple.set_b(std::numeric_limits<int32_t>::max());
+  pb_simple.set_c(std::numeric_limits<int64_t>::max());
+  pb_simple.set_d(std::numeric_limits<int64_t>::max());
+
+  std::string temp(256, 'a');
+  pb_simple.set_str(temp);
+
+  std::string pb_str;
+  pb_simple.SerializeToString(&pb_str);
+
+  stpb::simple_t simple{std::numeric_limits<int32_t>::max(),
+                        std::numeric_limits<int32_t>::max(),
+                        std::numeric_limits<int64_t>::max(),
+                        std::numeric_limits<int64_t>::max(), temp};
+  std::string sp_str;
+  iguana::to_pb(simple, sp_str);
+
+  // serialize
+  {
+    ScopedTimer timer("struct_pb serialize");
+    for (int j = 0; j < Count; j++) iguana::to_pb(simple, sp_str);
+  }
+
+  {
+    ScopedTimer timer("protobuf serialize ");
+    for (int j = 0; j < Count; j++) pb_simple.SerializeToString(&pb_str);
+  }
+
+  // deserialize
+  {
+    ScopedTimer timer("struct_pb deserialize     ");
+    for (int j = 0; j < Count; j++) {
+      stpb::simple_t s;
+      iguana::from_pb(s, sp_str);
+    }
+  }
+
+  {
+    ScopedTimer timer("protobuf deserialize      ");
+    for (int j = 0; j < Count; j++) {
+      pb::Simple pb;
+      pb.ParseFromString(pb_str);
+    }
+  }
+
+  {
+    ScopedTimer timer("struct_pb deserialize view");
+    for (int j = 0; j < Count; j++) {
+      stpb::simple_t1 s;
+      iguana::from_pb(s, sp_str);
+    }
+  }
+}
+
+int main() {
+  bench(100000);
+  bench2(100000);
+}
