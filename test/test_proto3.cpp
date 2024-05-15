@@ -74,6 +74,42 @@ TEST_CASE("test BaseTypeMsg") {
   }
 }
 
+TEST_CASE("test person and monster") {
+  auto pb_monster = protobuf_sample::create_monster();
+  auto sp_monster = create_sp_monster();
+
+  std::string pb_str;
+  std::string sp_str;
+
+  pb_monster.SerializeToString(&pb_str);
+  iguana::to_pb(sp_monster, sp_str);
+
+  CHECK(pb_str == sp_str);
+
+  mygame::Monster m;
+  m.ParseFromString(pb_str);
+  CHECK(m.name() == pb_monster.name());
+
+  stpb::Monster spm;
+  iguana::from_pb(spm, sp_str);
+  CHECK(spm.name == sp_monster.name);
+
+  auto pb_person = protobuf_sample::create_person();
+  auto sp_person = create_person();
+  pb_person.SerializePartialToString(&pb_str);
+  iguana::to_pb(sp_person, sp_str);
+
+  CHECK(pb_str == sp_str);
+
+  mygame::person pp;
+  pp.ParseFromString(pb_str);
+  CHECK(pp.name() == pb_person.name());
+
+  stpb::person p;
+  iguana::from_pb(p, sp_str);
+  CHECK(p.name == sp_person.name);
+}
+
 TEST_CASE("test IguanaTypeMsg") {
   {  // test normal value
     stpb::IguanaTypeMsg se_st{{100}, {200}, {300}, {400}, {31}, {32}};
@@ -486,5 +522,5 @@ TEST_CASE("test NestOneofMsg ") {
 }
 
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
-int main(int argc, char** argv) { return doctest::Context(argc, argv).run(); }
+int main(int argc, char **argv) { return doctest::Context(argc, argv).run(); }
 DOCTEST_MSVC_SUPPRESS_WARNING_POP

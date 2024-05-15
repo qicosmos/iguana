@@ -339,7 +339,7 @@ void bench2(int Count) {
 
   // deserialize
   {
-    ScopedTimer timer("struct_pb deserialize     ");
+    ScopedTimer timer("struct_pb simple deserialize");
     for (int j = 0; j < Count; j++) {
       stpb::simple_t s;
       iguana::from_pb(s, sp_str);
@@ -347,7 +347,7 @@ void bench2(int Count) {
   }
 
   {
-    ScopedTimer timer("protobuf deserialize      ");
+    ScopedTimer timer("protobuf simple deserialize");
     for (int j = 0; j < Count; j++) {
       pb::Simple pb;
       pb.ParseFromString(pb_str);
@@ -355,7 +355,7 @@ void bench2(int Count) {
   }
 
   {
-    ScopedTimer timer("struct_pb deserialize view");
+    ScopedTimer timer("struct_pb simple deserialize view");
     for (int j = 0; j < Count; j++) {
       stpb::simple_t1 s;
       iguana::from_pb(s, sp_str);
@@ -363,7 +363,47 @@ void bench2(int Count) {
   }
 }
 
+void bench3(int Count) {
+  auto pb_monster = protobuf_sample::create_monster();
+  auto sp_monster = create_sp_monster();
+
+  std::string pb_str;
+  std::string sp_str;
+
+  pb_monster.SerializeToString(&pb_str);
+  iguana::to_pb(sp_monster, sp_str);
+
+  // serialize
+  {
+    ScopedTimer timer("struct_pb monster serialize");
+    for (int j = 0; j < Count; j++) iguana::to_pb(sp_monster, sp_str);
+  }
+
+  {
+    ScopedTimer timer("protobuf monster serialize ");
+    for (int j = 0; j < Count; j++) pb_monster.SerializeToString(&pb_str);
+  }
+
+  // deserialize
+  {
+    ScopedTimer timer("struct_pb monster deserialize");
+    for (int j = 0; j < Count; j++) {
+      stpb::Monster s;
+      iguana::from_pb(s, sp_str);
+    }
+  }
+
+  {
+    ScopedTimer timer("protobuf monster deserialize");
+    for (int j = 0; j < Count; j++) {
+      mygame::Monster pb;
+      pb.ParseFromString(pb_str);
+    }
+  }
+}
+
 int main() {
   bench(100000);
   bench2(100000);
+  bench3(100000);
 }

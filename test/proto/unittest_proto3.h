@@ -1,4 +1,5 @@
 #pragma once
+#include "data_def.pb.h"
 #include "iguana/pb_reader.hpp"
 #include "iguana/pb_writer.hpp"
 #include "unittest_proto3.pb.h"  // protoc gen
@@ -143,7 +144,119 @@ struct simple_t1 {
   std::string_view str;
 };
 REFLECTION(simple_t1, a, b, c, d, str);
+
+struct person {
+  int32_t id;
+  std::string name;
+  int age;
+  double salary;
+};
+REFLECTION(person, id, name, age, salary);
+
+struct rect {
+  int32_t x = 1;
+  int32_t y = 0;
+  int32_t width = 11;
+  int32_t height = 1;
+};
+REFLECTION(rect, x, y, width, height);
+
+enum Color : uint8_t { Red, Green, Blue };
+
+struct Vec3 {
+  float x;
+  float y;
+  float z;
+
+  REFLECTION(Vec3, x, y, z);
+};
+
+struct Weapon {
+  std::string name;
+  int32_t damage;
+};
+REFLECTION(Weapon, name, damage);
+
+struct Monster {
+  Vec3 pos;
+  int32_t mana;
+  int32_t hp;
+  std::string name;
+  std::string inventory;
+  int32_t color;
+  std::vector<Weapon> weapons;
+  Weapon equipped;
+  std::vector<Vec3> path;
+};
+REFLECTION(Monster, pos, mana, hp, name, inventory, color, weapons, equipped,
+           path);
 }  // namespace stpb
+
+namespace protobuf_sample {
+inline mygame::person create_person() {
+  mygame::person p;
+  p.set_id(432798);
+  p.set_name(std::string(1024, 'A'));
+  p.set_age(24);
+  p.set_salary(65536.42);
+  return p;
+}
+
+inline mygame::Monster create_monster() {
+  mygame::Monster m;
+
+  auto vec = new mygame::Vec3;
+  vec->set_x(1);
+  vec->set_y(2);
+  vec->set_z(3);
+  m.set_allocated_pos(vec);
+  m.set_mana(16);
+  m.set_hp(24);
+  m.set_name("it is a test");
+  m.set_inventory("\1\2\3\4");
+  m.set_color(::mygame::Monster_Color::Monster_Color_Red);
+  auto w1 = m.add_weapons();
+  w1->set_name("gun");
+  w1->set_damage(42);
+  auto w2 = m.add_weapons();
+  w2->set_name("shotgun");
+  w2->set_damage(56);
+  auto w3 = new mygame::Weapon;
+  w3->set_name("air craft");
+  w3->set_damage(67);
+  m.set_allocated_equipped(w3);
+  auto p1 = m.add_path();
+  p1->set_x(7);
+  p1->set_y(8);
+  p1->set_z(9);
+  auto p2 = m.add_path();
+  p2->set_x(71);
+  p2->set_y(81);
+  p2->set_z(91);
+
+  return m;
+}
+}  // namespace protobuf_sample
+
+inline auto create_person() {
+  stpb::person p{432798, std::string(1024, 'A'), 24, 65536.42};
+  return p;
+}
+
+inline stpb::Monster create_sp_monster() {
+  stpb::Monster m = {
+      {1, 2, 3},
+      16,
+      24,
+      "it is a test",
+      "\1\2\3\4",
+      stpb::Color::Red,
+      {{"gun", 42}, {"shotgun", 56}},
+      {"air craft", 67},
+      {{7, 8, 9}, {71, 81, 91}},
+  };
+  return m;
+}
 
 void SetBaseTypeMsg(const stpb::BaseTypeMsg& st, pb::BaseTypeMsg& msg) {
   msg.set_optional_int32(st.optional_int32);
