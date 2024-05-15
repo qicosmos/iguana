@@ -1,4 +1,5 @@
 #pragma once
+#include "detail/string_resize.hpp"
 #include "pb_util.hpp"
 
 namespace iguana {
@@ -157,7 +158,7 @@ IGUANA_INLINE void from_pb_impl(T& val, std::string_view& pb_str,
       val = std::string_view(pb_str.data() + pos, size);
     }
     else {
-      val.resize(size);
+      detail::resize(val, size);
       memcpy(val.data(), pb_str.data() + pos, size);
     }
     pb_str = pb_str.substr(size + pos);
