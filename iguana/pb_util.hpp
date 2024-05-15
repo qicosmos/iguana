@@ -190,36 +190,41 @@ constexpr size_t variant_uint32_size_constexpr(uint32_t value) {
   return log / 7 + 1;
 }
 
-template <uint64_t v, typename Stream, size_t... I>
-IGUANA_INLINE void append_varint_u32_constexpr(Stream& out,
+template <uint64_t v, size_t I, typename It>
+IGUANA_INLINE void append_varint_u32_constexpr_help(It&& it) {
+  *(it++) = static_cast<uint8_t>((v >> (7 * I)) | 0x80);
+}
+
+template <uint64_t v, typename It, size_t... I>
+IGUANA_INLINE void append_varint_u32_constexpr(It&& it,
                                                std::index_sequence<I...>) {
-  return (out.push_back(static_cast<uint8_t>((v >> (7 * I)) | 0x80)), ...);
+  (append_varint_u32_constexpr_help<v, I>(it), ...);
 }
 
-template <uint32_t v, typename Stream>
-IGUANA_INLINE void serialize_varint_u32_constexpr(Stream& out) {
+template <uint32_t v, typename It>
+IGUANA_INLINE void serialize_varint_u32_constexpr(It&& it) {
   constexpr auto size = variant_uint32_size_constexpr(v);
-  append_varint_u32_constexpr<v>(out, std::make_index_sequence<size - 1>{});
-  out.push_back(static_cast<uint8_t>(v >> (7 * (size - 1))));
+  append_varint_u32_constexpr<v>(it, std::make_index_sequence<size - 1>{});
+  *(it++) = static_cast<uint8_t>(v >> (7 * (size - 1)));
 }
 
-template <typename Stream>
-IGUANA_INLINE void serialize_varint(uint64_t v, Stream& out) {
+template <typename It>
+IGUANA_INLINE void serialize_varint(uint64_t v, It&& it) {
   if (v < 0x80) {
-    out.push_back(static_cast<uint8_t>(v));
+    *(it++) = static_cast<uint8_t>(v);
     return;
   }
-  out.push_back(static_cast<uint8_t>(v | 0x80));
+  *(it++) = static_cast<uint8_t>(v | 0x80);
   v >>= 7;
   if (v < 0x80) {
-    out.push_back(static_cast<uint8_t>(v));
+    *(it++) = static_cast<uint8_t>(v);
     return;
   }
   do {
-    out.push_back(static_cast<uint8_t>(v | 0x80));
+    *(it++) = static_cast<uint8_t>(v | 0x80);
     v >>= 7;
   } while (v >= 0x80);
-  out.push_back(static_cast<uint8_t>(v));
+  *(it++) = static_cast<uint8_t>(v);
 }
 
 IGUANA_INLINE uint32_t log2_floor_uint32(uint32_t n) {
@@ -293,7 +298,7 @@ auto& get_set_size_cache(T& t) {
   return cache[reinterpret_cast<size_t>(&t)];
 }
 
-template <bool omit_default_val, size_t key_size, typename T>
+template <size_t key_size, bool omit_default_val, typename T>
 IGUANA_INLINE size_t numeric_size(T&& t) {
   using value_type = std::remove_const_t<std::remove_reference_t<T>>;
   if constexpr (omit_default_val) {
@@ -333,7 +338,7 @@ IGUANA_INLINE size_t numeric_size(T&& t) {
   }
 }
 
-template <size_t key_size, typename T>
+template <size_t key_size, bool omit_default_val = true, typename T>
 IGUANA_INLINE size_t pb_key_value_size(T&& t);
 
 template <typename Variant, typename T, size_t I>
@@ -365,7 +370,7 @@ IGUANA_INLINE size_t pb_oneof_size(Type&& t) {
         constexpr uint32_t key =
             ((field_no + offset) << 3) |
             static_cast<uint32_t>(get_wire_type<value_type>());
-        len = pb_key_value_size<variant_uint32_size_constexpr(key)>(
+        len = pb_key_value_size<variant_uint32_size_constexpr(key), false>(
             std::forward<value_type>(value));
       },
       std::forward<Type>(t));
@@ -374,17 +379,16 @@ IGUANA_INLINE size_t pb_oneof_size(Type&& t) {
 
 // returns size = key_size + optional(len_size) + len
 // when key_size == 0, return len
-template <size_t key_size, typename T>
-IGUANA_INLINE size_t pb_key_value_size(T&& t) {
-  using value_type = std::remove_const_t<std::remove_reference_t<T>>;
-  if constexpr (is_reflection_v<value_type> ||
-                is_custom_reflection_v<value_type>) {
+template <size_t key_size, bool omit_default_val, typename Type>
+IGUANA_INLINE size_t pb_key_value_size(Type&& t) {
+  using T = std::remove_const_t<std::remove_reference_t<Type>>;
+  if constexpr (is_reflection_v<T> || is_custom_reflection_v<T>) {
     size_t len = 0;
-    constexpr auto tuple = get_members_tuple<value_type>();
+    constexpr auto tuple = get_members_tuple<T>();
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
     for_each_n(
         [&len, &t](auto i) IGUANA__INLINE_LAMBDA {
-          constexpr auto tuple = get_members_tuple<value_type>();
+          constexpr auto tuple = get_members_tuple<T>();
           using field_type =
               std::tuple_element_t<decltype(i)::value,
                                    std::decay_t<decltype(tuple)>>;
@@ -408,39 +412,39 @@ IGUANA_INLINE size_t pb_key_value_size(T&& t) {
           }
         },
         std::make_index_sequence<SIZE>{});
-    if constexpr (inherits_from_pb_base_v<value_type>) {
+    if constexpr (inherits_from_pb_base_v<T>) {
       t.cache_size = len;
     }
     else {
       get_set_size_cache(t) = len;
     }
-
     if constexpr (key_size == 0) {
       // for top level
       return len;
     }
     else {
       if (len == 0) {
-        return 0;
+        // equals key_size  + variant_uint32_size(len)
+        return key_size + 1;
       }
       else {
         return key_size + variant_uint32_size(static_cast<uint32_t>(len)) + len;
       }
     }
   }
-  else if constexpr (is_sequence_container<value_type>::value) {
-    using item_type = typename value_type::value_type;
+  else if constexpr (is_sequence_container<T>::value) {
+    using item_type = typename T::value_type;
     size_t len = 0;
     if constexpr (is_lenprefix_v<item_type>) {
       for (auto& item : t) {
-        len += pb_key_value_size<key_size>(item);
+        len += pb_key_value_size<key_size, false>(item);
       }
       return len;
     }
     else {
       for (auto& item : t) {
         // here 0 to get pakced size
-        len += numeric_size<false, 0>(item);
+        len += numeric_size<0, false>(item);
       }
       if (len == 0) {
         return 0;
@@ -450,26 +454,28 @@ IGUANA_INLINE size_t pb_key_value_size(T&& t) {
       }
     }
   }
-  else if constexpr (is_map_container<value_type>::value) {
+  else if constexpr (is_map_container<T>::value) {
     size_t len = 0;
     for (auto& [k, v] : t) {
       // the key_size of  k and v  is constant 1
-      size_t kv_len = pb_key_value_size<1>(k) + pb_key_value_size<1>(v);
+      size_t kv_len =
+          pb_key_value_size<1, false>(k) + pb_key_value_size<1, false>(v);
       len += key_size + variant_uint32_size(static_cast<uint32_t>(kv_len)) +
              kv_len;
     }
     return len;
   }
-  else if constexpr (optional_v<value_type>) {
+  else if constexpr (optional_v<T>) {
     if (!t.has_value()) {
       return 0;
     }
-    return pb_key_value_size<key_size>(*t);
+    return pb_key_value_size<key_size, omit_default_val>(*t);
   }
-  else if constexpr (std::is_same_v<value_type, std::string> ||
-                     std::is_same_v<value_type, std::string_view>) {
-    if (t.size() == 0) {
-      return 0;
+  else if constexpr (std::is_same_v<T, std::string> ||
+                     std::is_same_v<T, std::string_view>) {
+    if constexpr (omit_default_val) {
+      if (t.size() == 0)
+        IGUANA_UNLIKELY { return 0; }
     }
     if constexpr (key_size == 0) {
       return t.size();
@@ -480,7 +486,7 @@ IGUANA_INLINE size_t pb_key_value_size(T&& t) {
     }
   }
   else {
-    return numeric_size<true, key_size>(t);
+    return numeric_size<key_size, omit_default_val>(t);
   }
 }
 
@@ -501,7 +507,7 @@ IGUANA_INLINE size_t pb_value_size(T&& t) {
     size_t len = 0;
     if constexpr (!is_lenprefix_v<item_type>) {
       for (auto& item : t) {
-        len += numeric_size<false, 0>(item);
+        len += numeric_size<0, false>(item);
       }
       return len;
     }

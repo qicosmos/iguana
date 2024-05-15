@@ -330,8 +330,8 @@ TEST_CASE("test struct_pb") {
     // map messages
     test_pb_st12 st1{1, {{1, ""}, {0, "ok"}}, {{"", 4}, {"ok", 0}}};
     std::string str;
-    iguana::to_pb(st1, str);
-
+    iguana::to_pb(st1, str);  // error
+    print_hex_str(str);
     test_pb_st12 st2;
     iguana::from_pb(st2, str);
     CHECK(st1.z == st2.z);
