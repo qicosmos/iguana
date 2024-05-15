@@ -159,7 +159,7 @@ void bench(int Count) {
   std::string map_st_ss;
   std::string base_one_of_st_ss;
   {
-    ScopedTimer timer("struct_pb serialize");
+    ScopedTimer timer("struct_pb many serialize");
     for (int i = 0; i < Count; ++i) {
       iguana::to_pb(base_type_st, base_type_st_ss);
       iguana::to_pb(iguana_type_st, iguana_type_st_ss);
@@ -180,7 +180,7 @@ void bench(int Count) {
   std::string base_one_of_msg_ss;
   // protobuf serialization benchmark
   {
-    ScopedTimer timer("protobuf serialize");
+    ScopedTimer timer("protobuf many serialize");
     for (int i = 0; i < Count; ++i) {
       base_type_msg.SerializeToString(&base_type_msg_ss);
       iguana_type_msg.SerializeToString(&iguana_type_msg_ss);
@@ -202,7 +202,7 @@ void bench(int Count) {
   assert(base_one_of_st_ss == base_one_of_msg_ss);
   // iguana deserialization benchmark
   {
-    ScopedTimer timer("struct_pb deserialize");
+    ScopedTimer timer("struct_pb many deserialize");
     for (int i = 0; i < Count; ++i) {
       stpb::BaseTypeMsg base_type_st_de;
       iguana::from_pb(base_type_st_de, base_type_st_ss);
@@ -229,7 +229,7 @@ void bench(int Count) {
 
   // protobuf deserialization benchmark
   {
-    ScopedTimer timer("protobuf deserialize");
+    ScopedTimer timer("protobuf many deserialize");
     for (int i = 0; i < Count; ++i) {
       pb::BaseTypeMsg base_type_msg_de;
       base_type_msg_de.ParseFromString(base_type_msg_ss);
@@ -328,12 +328,12 @@ void bench2(int Count) {
 
   // serialize
   {
-    ScopedTimer timer("struct_pb serialize");
+    ScopedTimer timer("struct_pb simple serialize");
     for (int j = 0; j < Count; j++) iguana::to_pb(simple, sp_str);
   }
 
   {
-    ScopedTimer timer("protobuf serialize ");
+    ScopedTimer timer("protobuf simple serialize ");
     for (int j = 0; j < Count; j++) pb_simple.SerializeToString(&pb_str);
   }
 
@@ -404,6 +404,8 @@ void bench3(int Count) {
 
 int main() {
   bench(100000);
+  std::cout << "----------------------------------------\n";
   bench2(100000);
+  std::cout << "----------------------------------------\n";
   bench3(100000);
 }
