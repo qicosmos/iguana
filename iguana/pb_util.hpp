@@ -287,13 +287,13 @@ constexpr IGUANA_INLINE size_t variant_intergal_size(U value) {
 }
 
 template <typename F, size_t... I>
-constexpr void for_each_n(F&& f, std::index_sequence<I...>) {
+IGUANA_INLINE constexpr void for_each_n(F&& f, std::index_sequence<I...>) {
   (std::forward<F>(f)(std::integral_constant<size_t, I>{}), ...);
 }
 
 // cache the size of reflection type
 template <typename T>
-auto& get_set_size_cache(T& t) {
+IGUANA_INLINE auto& get_set_size_cache(T& t) {
   static std::map<size_t, size_t> cache;
   return cache[reinterpret_cast<size_t>(&t)];
 }

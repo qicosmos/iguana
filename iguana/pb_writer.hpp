@@ -108,11 +108,10 @@ IGUANA_INLINE void to_pb_impl(Type&& t, It&& it) {
       if (len == 0)
         IGUANA_UNLIKELY { return; }
     }
-    constexpr auto tuple = get_members_tuple<T>();
+    static constexpr auto tuple = get_members_tuple<T>();
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
     for_each_n(
         [&t, &it](auto i) IGUANA__INLINE_LAMBDA {
-          constexpr auto tuple = get_members_tuple<T>();
           using field_type =
               std::tuple_element_t<decltype(i)::value,
                                    std::decay_t<decltype(tuple)>>;
@@ -212,6 +211,5 @@ IGUANA_INLINE void to_pb(T& t, Stream& out) {
   auto byte_len = detail::pb_key_value_size<0>(t);
   detail::resize(out, byte_len);
   detail::to_pb_impl<0>(t, &out[0]);
-  // TODO: end with '\0' ?
 }
 }  // namespace iguana
