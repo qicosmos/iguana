@@ -92,3 +92,17 @@ message Simple {
   int64 d = 4;
   string str = 5;
 }
+
+enum Color {
+  Red = 0;
+  Green = 1;
+  Blue = 2;
+}
+
+message Simple2 {
+  int32 a = 1;
+  int32 b = 2;
+  Color c = 3;
+  int64 d = 4;
+  string str = 5;
+}

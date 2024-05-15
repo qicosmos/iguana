@@ -145,6 +145,17 @@ struct simple_t1 {
 };
 REFLECTION(simple_t1, a, b, c, d, str);
 
+enum Color : uint8_t { Red, Green, Blue };
+
+struct simple_t2 {
+  int16_t a;
+  uint8_t b;
+  Color c;
+  int64_t d;
+  std::string_view str;
+};
+REFLECTION(simple_t2, a, b, c, d, str);
+
 struct person {
   int32_t id;
   std::string name;
@@ -160,8 +171,6 @@ struct rect {
   int32_t height = 1;
 };
 REFLECTION(rect, x, y, width, height);
-
-enum Color : uint8_t { Red, Green, Blue };
 
 struct Vec3 {
   float x;

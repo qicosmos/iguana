@@ -75,6 +75,27 @@ TEST_CASE("test BaseTypeMsg") {
 }
 
 TEST_CASE("test person and monster") {
+  stpb::simple_t2 t{-100, 2, stpb::Color::Blue, 4};
+  std::string str;
+  iguana::to_pb(t, str);
+
+  stpb::simple_t2 t2;
+  iguana::from_pb(t2, str);
+  CHECK(t.c == t2.c);
+
+  pb::Simple2 s;
+  s.set_a(-100);
+  s.set_b(2);
+  s.set_c(pb::Color::Blue);
+  s.set_d(4);
+
+  std::string pb_str;
+  s.SerializeToString(&pb_str);
+
+  CHECK(str == pb_str);
+}
+
+TEST_CASE("test person and monster") {
   auto pb_monster = protobuf_sample::create_monster();
   auto sp_monster = create_sp_monster();
 

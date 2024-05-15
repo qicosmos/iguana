@@ -273,8 +273,8 @@ constexpr IGUANA_INLINE size_t variant_intergal_size(U value) {
   if constexpr (sizeof(T) == 8) {
     return variant_uint64_size(static_cast<uint64_t>(value));
   }
-  else if constexpr (sizeof(T) == 4) {
-    if constexpr (std::is_same_v<int32_t, T>) {
+  else if constexpr (sizeof(T) <= 4) {
+    if constexpr (std::is_signed_v<T>) {
       if (value < 0) {
         return 10;
       }
