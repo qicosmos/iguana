@@ -700,7 +700,7 @@ struct field_t {
   using value_type = typename member_traits<T>::value_type;
   using sub_type = ElementType;
   constexpr field_t() = default;
-  constexpr field_t(T member, uint32_t number, frozen::string name)
+  constexpr field_t(T member, uint32_t number, frozen::string name = "")
       : member_ptr(member), field_name(name), field_no(number) {}
 
   T member_ptr;
