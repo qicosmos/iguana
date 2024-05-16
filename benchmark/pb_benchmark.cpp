@@ -1,5 +1,5 @@
 #include <google/protobuf/arena.h>
-
+#define SEQUENTIAL_PARSE
 #include "../test/proto/unittest_proto3.h"
 
 class ScopedTimer {
@@ -402,10 +402,44 @@ void bench3(int Count) {
   }
 }
 
+void bench4(int Count) {
+  stpb::bench_int32 st_num{10, 20, 31, 42};
+  mygame::bench_int32 pb_num;
+  pb_num.set_a(10);
+  pb_num.set_b(20);
+  pb_num.set_c(31);
+  pb_num.set_d(42);
+
+  std::string pb_str;
+  std::string st_str;
+
+  pb_num.SerializeToString(&pb_str);
+  iguana::to_pb(st_num, st_str);
+
+  // deserialize
+  {
+    ScopedTimer timer("struct_pb int32 deserialize");
+    for (int j = 0; j < Count; j++) {
+      stpb::bench_int32 s;
+      iguana::from_pb(s, st_str);
+    }
+  }
+
+  {
+    ScopedTimer timer("protobuf int32 deserialize");
+    for (int j = 0; j < Count; j++) {
+      mygame::bench_int32 pb;
+      pb.ParseFromString(pb_str);
+    }
+  }
+}
+
 int main() {
   bench(100000);
   std::cout << "----------------------------------------\n";
   bench2(100000);
   std::cout << "----------------------------------------\n";
   bench3(100000);
+  std::cout << "----------------------------------------\n";
+  bench4(100000);
 }

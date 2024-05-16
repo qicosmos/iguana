@@ -199,6 +199,15 @@ struct Monster {
 };
 REFLECTION(Monster, pos, mana, hp, name, inventory, color, weapons, equipped,
            path);
+
+struct bench_int32 {
+  int32_t a;
+  int32_t b;
+  int32_t c;
+  int32_t d;
+};
+REFLECTION(bench_int32, a, b, c, d);
+
 }  // namespace stpb
 
 namespace protobuf_sample {
