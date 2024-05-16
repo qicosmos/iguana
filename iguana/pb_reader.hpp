@@ -193,12 +193,11 @@ IGUANA_INLINE void from_pb(T& t, std::string_view pb_str) {
   WireType wire_type = static_cast<WireType>(key & 0b0111);
   uint32_t field_number = key >> 3;
 #ifdef SEQUENTIAL_PARSE
-  constexpr static auto tuple = get_members_tuple<T>();
-  constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
+  constexpr static auto tp = get_members_tuple<T>();
+  constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tp)>>;
   bool parse_done = false;
   detail::for_each_n(
       [&](auto i) IGUANA__INLINE_LAMBDA {
-        constexpr auto tp = get_members_tuple<T>();
         constexpr auto val = std::get<decltype(i)::value>(tp);
         using sub_type = typename std::decay_t<decltype(val)>::sub_type;
         using value_type = typename std::decay_t<decltype(val)>::value_type;

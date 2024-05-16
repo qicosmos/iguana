@@ -13,7 +13,7 @@ inline bool operator==(sint32_t value1, int32_t value2) {
 }
 
 // for key in std::map
-bool operator<(const sint32_t& lhs, const sint32_t& rhs) {
+inline bool operator<(const sint32_t& lhs, const sint32_t& rhs) {
   return lhs.val < rhs.val;
 }
 
@@ -27,7 +27,7 @@ inline bool operator==(sint64_t value1, int64_t value2) {
   return value1.val == value2;
 }
 
-bool operator<(const sint64_t& lhs, const sint64_t& rhs) {
+inline bool operator<(const sint64_t& lhs, const sint64_t& rhs) {
   return lhs.val < rhs.val;
 }
 
@@ -41,7 +41,7 @@ inline bool operator==(fixed32_t value1, uint32_t value2) {
   return value1.val == value2;
 }
 
-bool operator<(const fixed32_t& lhs, const fixed32_t& rhs) {
+inline bool operator<(const fixed32_t& lhs, const fixed32_t& rhs) {
   return lhs.val < rhs.val;
 }
 
@@ -55,7 +55,7 @@ inline bool operator==(fixed64_t value1, uint64_t value2) {
   return value1.val == value2;
 }
 
-bool operator<(const fixed64_t& lhs, const fixed64_t& rhs) {
+inline bool operator<(const fixed64_t& lhs, const fixed64_t& rhs) {
   return lhs.val < rhs.val;
 }
 
@@ -69,7 +69,7 @@ inline bool operator==(sfixed32_t value1, int32_t value2) {
   return value1.val == value2;
 }
 
-bool operator<(const sfixed32_t& lhs, const sfixed32_t& rhs) {
+inline bool operator<(const sfixed32_t& lhs, const sfixed32_t& rhs) {
   return lhs.val < rhs.val;
 }
 
@@ -83,7 +83,7 @@ inline bool operator==(sfixed64_t value1, int64_t value2) {
   return value1.val == value2;
 }
 
-bool operator<(const sfixed64_t& lhs, const sfixed64_t& rhs) {
+inline bool operator<(const sfixed64_t& lhs, const sfixed64_t& rhs) {
   return lhs.val < rhs.val;
 }
 
