@@ -106,63 +106,69 @@ IGUANA_INLINE uint64_t decode_varint(T& data, size_t& pos) {
   const int8_t* p = begin;
   uint64_t val = 0;
 
-  // end is always greater than or equal to begin, so this subtraction is safe
-  if (size_t(end - begin) >= 10) {  // fast path
-    int64_t b;
-    do {
-      b = *p++;
-      val = (b & 0x7f);
-      if (b >= 0) {
-        break;
-      }
-      b = *p++;
-      val |= (b & 0x7f) << 7;
-      if (b >= 0) {
-        break;
-      }
-      b = *p++;
-      val |= (b & 0x7f) << 14;
-      if (b >= 0) {
-        break;
-      }
-      b = *p++;
-      val |= (b & 0x7f) << 21;
-      if (b >= 0) {
-        break;
-      }
-      b = *p++;
-      val |= (b & 0x7f) << 28;
-      if (b >= 0) {
-        break;
-      }
-      b = *p++;
-      val |= (b & 0x7f) << 35;
-      if (b >= 0) {
-        break;
-      }
-      b = *p++;
-      val |= (b & 0x7f) << 42;
-      if (b >= 0) {
-        break;
-      }
-      b = *p++;
-      val |= (b & 0x7f) << 49;
-      if (b >= 0) {
-        break;
-      }
-      b = *p++;
-      val |= (b & 0x7f) << 56;
-      if (b >= 0) {
-        break;
-      }
-      b = *p++;
-      val |= (b & 0x01) << 63;
-      if (b >= 0) {
-        break;
-      }
-      throw std::invalid_argument("Invalid varint value: too many bytes.");
-    } while (false);
+  if ((static_cast<uint64_t>(*p) & 0x80) == 0) {
+    pos = 1;
+    return static_cast<uint64_t>(*p);
   }
+
+  // end is always greater than or equal to begin, so this subtraction is safe
+  if (size_t(end - begin) >= 10)
+    IGUANA_LIKELY {  // fast path
+      int64_t b;
+      do {
+        b = *p++;
+        val = (b & 0x7f);
+        if (b >= 0) {
+          break;
+        }
+        b = *p++;
+        val |= (b & 0x7f) << 7;
+        if (b >= 0) {
+          break;
+        }
+        b = *p++;
+        val |= (b & 0x7f) << 14;
+        if (b >= 0) {
+          break;
+        }
+        b = *p++;
+        val |= (b & 0x7f) << 21;
+        if (b >= 0) {
+          break;
+        }
+        b = *p++;
+        val |= (b & 0x7f) << 28;
+        if (b >= 0) {
+          break;
+        }
+        b = *p++;
+        val |= (b & 0x7f) << 35;
+        if (b >= 0) {
+          break;
+        }
+        b = *p++;
+        val |= (b & 0x7f) << 42;
+        if (b >= 0) {
+          break;
+        }
+        b = *p++;
+        val |= (b & 0x7f) << 49;
+        if (b >= 0) {
+          break;
+        }
+        b = *p++;
+        val |= (b & 0x7f) << 56;
+        if (b >= 0) {
+          break;
+        }
+        b = *p++;
+        val |= (b & 0x01) << 63;
+        if (b >= 0) {
+          break;
+        }
+        throw std::invalid_argument("Invalid varint value: too many bytes.");
+      } while (false);
+    }
   else {
     int shift = 0;
     while (p != end && *p < 0) {
