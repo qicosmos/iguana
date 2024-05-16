@@ -47,3 +47,10 @@ message person {
 message persons {
     repeated person person_list = 1;
 }
+
+message bench_int32 {
+    int32 a = 1;
+    int32 b = 2;
+    int32 c = 3;
+    int32 d = 4;
+}
