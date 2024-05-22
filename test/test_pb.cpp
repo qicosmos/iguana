@@ -14,14 +14,16 @@ void print_hex_str(const std::string &str) {
   std::cout << oss.str() << std::endl;
 }
 
-struct point_t {
+#define BASE : iguana::pb_base
+
+struct point_t BASE {
   int x;
   double y;
 };
 REFLECTION(point_t, x, y);
 
 namespace my_space {
-struct inner_struct {
+struct inner_struct BASE {
   int x;
   int y;
   int z;
@@ -34,93 +36,93 @@ constexpr inline auto get_members_impl(inner_struct *) {
 }
 }  // namespace my_space
 
-struct test_pb_st1 {
+struct test_pb_st1 BASE {
   int x;
   iguana::sint32_t y;
   iguana::sint64_t z;
 };
 REFLECTION(test_pb_st1, x, y, z);
 
-struct test_pb_st2 {
+struct test_pb_st2 BASE {
   int x;
   iguana::fixed32_t y;
   iguana::fixed64_t z;
 };
 REFLECTION(test_pb_st2, x, y, z);
 
-struct test_pb_st3 {
+struct test_pb_st3 BASE {
   int x;
   iguana::sfixed32_t y;
   iguana::sfixed64_t z;
 };
 REFLECTION(test_pb_st3, x, y, z);
 
-struct test_pb_st4 {
+struct test_pb_st4 BASE {
   int x;
   std::string y;
 };
 REFLECTION(test_pb_st4, x, y);
 
-struct test_pb_st5 {
+struct test_pb_st5 BASE {
   int x;
   std::string_view y;
 };
 REFLECTION(test_pb_st5, x, y);
 
-struct test_pb_st6 {
+struct test_pb_st6 BASE {
   std::optional<int> x;
   std::optional<std::string> y;
 };
 REFLECTION(test_pb_st6, x, y);
 
-struct pair_t {
+struct pair_t BASE {
   int x;
   int y;
 };
 REFLECTION(pair_t, x, y);
 
-struct message_t {
+struct message_t BASE {
   int id;
   pair_t t;
 };
 REFLECTION(message_t, id, t);
 
-struct test_pb_st8 {
+struct test_pb_st8 BASE {
   int x;
   pair_t y;
   message_t z;
 };
 REFLECTION(test_pb_st8, x, y, z);
 
-struct test_pb_st9 {
+struct test_pb_st9 BASE {
   int x;
   std::vector<int> y;
   std::string z;
 };
 REFLECTION(test_pb_st9, x, y, z);
 
-struct test_pb_st10 {
+struct test_pb_st10 BASE {
   int x;
   std::vector<message_t> y;
   std::string z;
 };
 REFLECTION(test_pb_st10, x, y, z);
 
-struct test_pb_st11 {
+struct test_pb_st11 BASE {
   int x;
   std::vector<std::optional<message_t>> y;
   std::vector<std::string> z;
 };
 REFLECTION(test_pb_st11, x, y, z);
 
-struct test_pb_st12 {
+struct test_pb_st12 BASE {
   int x;
   std::map<int, std::string> y;
   std::map<std::string, int> z;
 };
 REFLECTION(test_pb_st12, x, y, z);
 
-struct test_pb_st13 {
+struct test_pb_st13 BASE {
   int x;
   std::map<int, message_t> y;
   std::string z;
@@ -131,7 +133,7 @@ enum class colors_t { red, black };
 
 enum level_t { debug, info };
 
-struct test_pb_st14 {
+struct test_pb_st14 BASE {
   int x;
   colors_t y;
   level_t z;
@@ -139,7 +141,7 @@ struct test_pb_st14 {
 REFLECTION(test_pb_st14, x, y, z);
 
 namespace client {
-struct person {
+struct person BASE {
   std::string name;
   int64_t age;
 };
@@ -147,14 +149,14 @@ struct person {
 REFLECTION(person, name, age);
 }  // namespace client
 
-struct my_struct {
+struct my_struct BASE {
   int x;
   bool y;
   iguana::fixed64_t z;
 };
 REFLECTION(my_struct, x, y, z);
 
-struct nest1 {
+struct nest1 BASE {
   std::string name;
   my_struct value;
   int var;
@@ -162,7 +164,7 @@ struct nest1 {
 
 REFLECTION(nest1, name, value, var);
 
-struct numer_st {
+struct numer_st BASE {
   bool a;
   double b;
   float c;
@@ -171,7 +173,7 @@ REFLECTION(numer_st, a, b, c);
 
 TEST_CASE("test struct_pb") {
   {
-    my_space::inner_struct inner{41, 42, 43};
+    my_space::inner_struct inner{0, 41, 42, 43};
 
     std::string str;
     iguana::to_pb(inner, str);
@@ -185,7 +187,7 @@ TEST_CASE("test struct_pb") {
   }
 
   {
-    test_pb_st1 st1{41, {42}, {43}};
+    test_pb_st1 st1{0, 41, {42}, {43}};
     std::string str;
     iguana::to_pb(st1, str);
     CHECK(str.size() == iguana::detail::pb_key_value_size<0>(st1));
@@ -198,7 +200,7 @@ TEST_CASE("test struct_pb") {
   }
 
   {
-    test_pb_st2 st1{41, {42}, {43}};
+    test_pb_st2 st1{0, 41, {42}, {43}};
     std::string str;
     iguana::to_pb(st1, str);
     CHECK(str.size() == iguana::detail::pb_key_value_size<0>(st1));
@@ -208,7 +210,7 @@ TEST_CASE("test struct_pb") {
     CHECK(st1.y.val == st2.y.val);
   }
   {
-    test_pb_st3 st1{41, {42}, {43}};
+    test_pb_st3 st1{0, 41, {42}, {43}};
     std::string str;
     iguana::to_pb(st1, str);
     CHECK(str.size() == iguana::detail::pb_key_value_size<0>(st1));
@@ -218,7 +220,7 @@ TEST_CASE("test struct_pb") {
     CHECK(st1.y.val == st2.y.val);
   }
   {
-    test_pb_st4 st1{41, "it is a test"};
+    test_pb_st4 st1{0, 41, "it is a test"};
     std::string str;
     iguana::to_pb(st1, str);
     CHECK(str.size() == iguana::detail::pb_key_value_size<0>(st1));
@@ -229,7 +231,7 @@ TEST_CASE("test struct_pb") {
   }
 
   {
-    test_pb_st5 st1{41, "it is a test"};
+    test_pb_st5 st1{0, 41, "it is a test"};
     std::string str;
     iguana::to_pb(st1, str);
     CHECK(str.size() == iguana::detail::pb_key_value_size<0>(st1));
@@ -240,7 +242,7 @@ TEST_CASE("test struct_pb") {
   }
   {
     // optional
-    test_pb_st6 st1{41, "it is a test"};
+    test_pb_st6 st1{0, 41, "it is a test"};
     std::string str;
     iguana::to_pb(st1, str);
     CHECK(str.size() == iguana::detail::pb_key_value_size<0>(st1));
@@ -251,7 +253,7 @@ TEST_CASE("test struct_pb") {
   }
   {
     // sub nested objects
-    nest1 v{"Hi", {1, false, {3}}, 5}, v2{};
+    nest1 v{0, "Hi", {0, 1, false, {3}}, 5}, v2{};
     std::string s;
     iguana::to_pb(v, s);
     iguana::from_pb(v2, s);
@@ -259,7 +261,7 @@ TEST_CASE("test struct_pb") {
     CHECK(v.value.y == v2.value.y);
     CHECK(v.value.z == v2.value.z);
 
-    test_pb_st8 st1{1, {3, 4}, {5, {7, 8}}};
+    test_pb_st8 st1{0, 1, {0, 3, 4}, {0, 5, {0, 7, 8}}};
     std::string str;
     iguana::to_pb(st1, str);
 
@@ -270,7 +272,7 @@ TEST_CASE("test struct_pb") {
 
   {
     // repeated messages
-    test_pb_st9 st1{1, {2, 4, 6}, "test"};
+    test_pb_st9 st1{0, 1, {2, 4, 6}, "test"};
     std::string str;
     iguana::to_pb(st1, str);
     CHECK(str.size() == iguana::detail::pb_key_value_size<0>(st1));
@@ -280,7 +282,7 @@ TEST_CASE("test struct_pb") {
     CHECK(st1.z == st2.z);
   }
   {
-    test_pb_st10 st1{1, {{5, {7, 8}}, {9, {11, 12}}}, "test"};
+    test_pb_st10 st1{0, 1, {{0, 5, {7, 8}}, {0, 9, {11, 12}}}, "test"};
     std::string str;
     iguana::to_pb(st1, str);
 
@@ -289,8 +291,8 @@ TEST_CASE("test struct_pb") {
     CHECK(st1.z == st2.z);
   }
   {
-    message_t m{1, {3, 4}};
-    test_pb_st11 st1{1, {m}, {}};
+    message_t m{0, 1, {0, 3, 4}};
+    test_pb_st11 st1{0, 1, {m}, {}};
     std::string str;
     iguana::to_pb(st1, str);
 
@@ -308,7 +310,7 @@ TEST_CASE("test struct_pb") {
     CHECK(st1.id == st2.id);
   }
   {
-    test_pb_st11 st1{1, {{{5, {7, 8}}}, {{9, {11, 12}}}}, {"test"}};
+    test_pb_st11 st1{0, 1, {{{0, 5, {7, 8}}}, {{0, 9, {11, 12}}}}, {"test"}};
     std::string str;
     iguana::to_pb(st1, str);
 
@@ -318,7 +320,7 @@ TEST_CASE("test struct_pb") {
   }
   {
     // map messages
-    test_pb_st12 st1{1, {{1, "test"}, {2, "ok"}}, {{"test", 4}, {"ok", 6}}};
+    test_pb_st12 st1{0, 1, {{1, "test"}, {2, "ok"}}, {{"test", 4}, {"ok", 6}}};
     std::string str;
     iguana::to_pb(st1, str);
 
@@ -328,7 +330,7 @@ TEST_CASE("test struct_pb") {
   }
   {
     // map messages
-    test_pb_st12 st1{1, {{1, ""}, {0, "ok"}}, {{"", 4}, {"ok", 0}}};
+    test_pb_st12 st1{0, 1, {{1, ""}, {0, "ok"}}, {{"", 4}, {"ok", 0}}};
     std::string str;
     iguana::to_pb(st1, str);  // error
     print_hex_str(str);
@@ -340,8 +342,8 @@ TEST_CASE("test struct_pb") {
     // map messages
     test_pb_st13 st1;
     st1.x = 1;
-    st1.y.emplace(1, message_t{2, {3, 4}});
-    st1.y.emplace(2, message_t{4, {6, 8}});
+    st1.y.emplace(1, message_t{0, 2, {0, 3, 4}});
+    st1.y.emplace(2, message_t{0, 4, {0, 6, 8}});
     st1.z = "test";
     std::string str;
     iguana::to_pb(st1, str);
@@ -366,7 +368,7 @@ TEST_CASE("test struct_pb") {
   }
   {
     // enum
-    test_pb_st14 st1{1, colors_t::black, level_t::info};
+    test_pb_st14 st1{0, 1, colors_t::black, level_t::info};
     std::string str;
     iguana::to_pb(st1, str);
 
@@ -376,7 +378,7 @@ TEST_CASE("test struct_pb") {
   }
   {
     // bool float double
-    numer_st n{true, 10.25, 4.578}, n1;
+    numer_st n{0, true, 10.25, 4.578}, n1;
     std::string str;
     iguana::to_pb(n, str);
 
@@ -391,7 +393,7 @@ TEST_CASE("test members") {
   using namespace iguana;
   using namespace iguana::detail;
 
-  my_space::inner_struct inner{41, 42, 43};
+  my_space::inner_struct inner{0, 41, 42, 43};
   const auto &map = iguana::get_members<my_space::inner_struct>();
   std::visit(
       [&inner](auto &member) mutable {
@@ -401,7 +403,7 @@ TEST_CASE("test members") {
       },
       map.at(9));
 
-  point_t pt{2, 3};
+  point_t pt{0, 2, 3};
   const auto &arr1 = iguana::get_members<point_t>();
   auto &val = arr1.at(1);
   std::visit(
@@ -413,7 +415,7 @@ TEST_CASE("test members") {
       val);
 }
 
-struct test_variant {
+struct test_variant BASE {
   int x;
   std::variant<double, std::string, int> y;
   double z;
@@ -451,7 +453,7 @@ TEST_CASE("test variant") {
         val2->second);
   }
   {
-    test_variant st1 = {5, "Hello, variant!", 3.14};
+    test_variant st1 = {0, 5, "Hello, variant!", 3.14};
     std::string str;
     iguana::to_pb(st1, str);
     test_variant st2;
@@ -460,7 +462,7 @@ TEST_CASE("test variant") {
     CHECK(std::get<std::string>(st2.y) == "Hello, variant!");
   }
   {
-    test_variant st1 = {5, 3.88, 3.14};
+    test_variant st1 = {0, 5, 3.88, 3.14};
     std::string str;
     iguana::to_pb(st1, str);
     test_variant st2;
