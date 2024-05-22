@@ -319,10 +319,12 @@ void bench2(int Count) {
   std::string pb_str;
   pb_simple.SerializeToString(&pb_str);
 
-  stpb::simple_t simple{std::numeric_limits<int32_t>::max(),
+  stpb::simple_t simple{0,
+                        std::numeric_limits<int32_t>::max(),
                         std::numeric_limits<int32_t>::max(),
                         std::numeric_limits<int64_t>::max(),
-                        std::numeric_limits<int64_t>::max(), temp};
+                        std::numeric_limits<int64_t>::max(),
+                        temp};
   std::string sp_str;
   iguana::to_pb(simple, sp_str);
 
@@ -403,7 +405,7 @@ void bench3(int Count) {
 }
 
 void bench4(int Count) {
-  stpb::bench_int32 st_num{10, 20, 31, 42};
+  stpb::bench_int32 st_num{0, 10, 20, 31, 42};
   mygame::bench_int32 pb_num;
   pb_num.set_a(10);
   pb_num.set_b(20);

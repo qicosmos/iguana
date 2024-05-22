@@ -4,14 +4,8 @@
 #include "iguana/pb_writer.hpp"
 #include "unittest_proto3.pb.h"  // protoc gen
 
-#ifdef CHECK
-#define PB_CHECK CHECK
-#define PUBLIC
-#else
-#include <cassert>
 #define PB_CHECK assert
 #define PUBLIC : iguana::pb_base
-#endif
 
 // define the struct as msg in proto
 namespace stpb {
@@ -127,7 +121,7 @@ struct NestOneofMsg PUBLIC {
 };
 REFLECTION(NestOneofMsg, nest_one_of_msg);
 
-struct simple_t {
+struct simple_t PUBLIC {
   int32_t a;
   int32_t b;
   int64_t c;
@@ -136,7 +130,7 @@ struct simple_t {
 };
 REFLECTION(simple_t, a, b, c, d, str);
 
-struct simple_t1 {
+struct simple_t1 PUBLIC {
   int32_t a;
   int32_t b;
   int64_t c;
@@ -147,7 +141,7 @@ REFLECTION(simple_t1, a, b, c, d, str);
 
 enum Color : uint8_t { Red, Green, Blue };
 
-struct simple_t2 {
+struct simple_t2 PUBLIC {
   int16_t a;
   uint8_t b;
   Color c;
@@ -156,7 +150,7 @@ struct simple_t2 {
 };
 REFLECTION(simple_t2, a, b, c, d, str);
 
-struct person {
+struct person PUBLIC {
   int32_t id;
   std::string name;
   int age;
@@ -164,7 +158,7 @@ struct person {
 };
 REFLECTION(person, id, name, age, salary);
 
-struct rect {
+struct rect PUBLIC {
   int32_t x = 1;
   int32_t y = 0;
   int32_t width = 11;
@@ -172,7 +166,7 @@ struct rect {
 };
 REFLECTION(rect, x, y, width, height);
 
-struct Vec3 {
+struct Vec3 PUBLIC {
   float x;
   float y;
   float z;
@@ -180,13 +174,13 @@ struct Vec3 {
   REFLECTION(Vec3, x, y, z);
 };
 
-struct Weapon {
+struct Weapon PUBLIC {
   std::string name;
   int32_t damage;
 };
 REFLECTION(Weapon, name, damage);
 
-struct Monster {
+struct Monster PUBLIC {
   Vec3 pos;
   int32_t mana;
   int32_t hp;
@@ -200,7 +194,7 @@ struct Monster {
 REFLECTION(Monster, pos, mana, hp, name, inventory, color, weapons, equipped,
            path);
 
-struct bench_int32 {
+struct bench_int32 PUBLIC {
   int32_t a;
   int32_t b;
   int32_t c;
@@ -257,21 +251,22 @@ inline mygame::Monster create_monster() {
 }  // namespace protobuf_sample
 
 inline auto create_person() {
-  stpb::person p{432798, std::string(1024, 'A'), 24, 65536.42};
+  stpb::person p{0, 432798, std::string(1024, 'A'), 24, 65536.42};
   return p;
 }
 
 inline stpb::Monster create_sp_monster() {
   stpb::Monster m = {
-      {1, 2, 3},
+      0,
+      {0, 1, 2, 3},
       16,
       24,
       "it is a test",
       "\1\2\3\4",
       stpb::Color::Red,
-      {{"gun", 42}, {"shotgun", 56}},
-      {"air craft", 67},
-      {{7, 8, 9}, {71, 81, 91}},
+      {{0, "gun", 42}, {0, "shotgun", 56}},
+      {0, "air craft", 67},
+      {{0, 7, 8, 9}, {0, 71, 81, 91}},
   };
   return m;
 }
