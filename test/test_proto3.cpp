@@ -2,6 +2,7 @@
 #include "doctest.h"
 #include "proto/unittest_proto3.h"  // msg reflection
 
+#if defined(STRUCT_PB_WITH_PROTO)
 TEST_CASE("test BaseTypeMsg") {
   {  // normal test
     stpb::BaseTypeMsg se_st{0,     100,  200,   300,     400,
@@ -553,6 +554,7 @@ TEST_CASE("test NestOneofMsg ") {
     CheckNestOneofMsg(dese_st, dese_msg);
   }
 }
+#endif
 
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
 int main(int argc, char **argv) { return doctest::Context(argc, argv).run(); }
