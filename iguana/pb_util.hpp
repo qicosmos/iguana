@@ -28,8 +28,30 @@ enum class WireType : uint32_t {
   Unknown
 };
 
+template <typename T, typename Stream>
+IGUANA_INLINE void to_pb(T& t, Stream& out);
+
+template <typename T>
+IGUANA_INLINE void from_pb(T& t, std::string_view pb_str);
+
 struct pb_base {
-  size_t cache_size;
+  virtual void to_pb(std::string& str) {}
+  virtual void from_pb(std::string_view str) {}
+
+  size_t cache_size = 0;
+  virtual ~pb_base() {}
+};
+
+template <typename T>
+struct pb_base_impl : public pb_base {
+  void to_pb(std::string& str) override {
+    iguana::to_pb(*(static_cast<T*>(this)), str);
+  }
+
+  void from_pb(std::string_view str) override {
+    iguana::from_pb(*(static_cast<T*>(this)), str);
+  }
+  virtual ~pb_base_impl() {}
 };
 
 template <typename T>
