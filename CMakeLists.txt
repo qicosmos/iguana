@@ -129,6 +129,7 @@ if(Protobuf_FOUND)
     target_link_libraries(pb_benchmark ${Protobuf_LIBRARIES})
     add_executable(test_proto ${PROTO_SRCS} ${TEST_PROTO})
     target_link_libraries(test_proto ${Protobuf_LIBRARIES})
+    add_test(NAME test_proto COMMAND test_proto)
 endif()
 
 # unit test
