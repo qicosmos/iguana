@@ -546,20 +546,20 @@ void SetNestedMsg(const stpb::NestedMsg& st, pb::NestedMsg& msg) {
 void CheckNestedMsg(const stpb::NestedMsg& st, const pb::NestedMsg& msg) {
   CheckBaseTypeMsg(st.base_msg, msg.base_msg());
 
-  PB_CHECK(st.repeat_base_msg.size() == msg.repeat_base_msg_size());
+  PB_CHECK(st.repeat_base_msg.size() == (size_t)msg.repeat_base_msg_size());
   for (size_t i = 0; i < st.repeat_base_msg.size(); ++i) {
     CheckBaseTypeMsg(st.repeat_base_msg[i], msg.repeat_base_msg(i));
   }
 
   CheckIguanaTypeMsg(st.iguana_type_msg, msg.iguana_type_msg());
 
-  PB_CHECK(st.repeat_iguna_msg.size() == msg.repeat_iguna_msg_size());
+  PB_CHECK(st.repeat_iguna_msg.size() == (size_t)msg.repeat_iguna_msg_size());
   for (size_t i = 0; i < st.repeat_iguna_msg.size(); ++i) {
     CheckIguanaTypeMsg(st.repeat_iguna_msg[i], msg.repeat_iguna_msg(i));
   }
 
   PB_CHECK(st.repeat_repeat_base_msg.size() ==
-           msg.repeat_repeat_base_msg_size());
+           (size_t)msg.repeat_repeat_base_msg_size());
   for (size_t i = 0; i < st.repeat_repeat_base_msg.size(); ++i) {
     CheckRepeatBaseTypeMsg(st.repeat_repeat_base_msg[i],
                            msg.repeat_repeat_base_msg(i));
@@ -584,13 +584,13 @@ void SetMapMsg(const stpb::MapMsg& st, pb::MapMsg& msg) {
 }
 
 void CheckMapMsg(const stpb::MapMsg& st, const pb::MapMsg& msg) {
-  PB_CHECK(msg.sfix64_str_map_size() == st.sfix64_str_map.size());
+  PB_CHECK((size_t)msg.sfix64_str_map_size() == st.sfix64_str_map.size());
   for (const auto& pair : st.sfix64_str_map) {
     auto it = msg.sfix64_str_map().find(pair.first.val);
     PB_CHECK(it != msg.sfix64_str_map().end());
     PB_CHECK(it->second == pair.second);
   }
-  PB_CHECK(msg.str_iguana_type_msg_map_size() ==
+  PB_CHECK((size_t)msg.str_iguana_type_msg_map_size() ==
            st.str_iguana_type_msg_map.size());
   for (const auto& pair : st.str_iguana_type_msg_map) {
     auto it = msg.str_iguana_type_msg_map().find(pair.first);
@@ -598,7 +598,7 @@ void CheckMapMsg(const stpb::MapMsg& st, const pb::MapMsg& msg) {
     CheckIguanaTypeMsg(pair.second, it->second);
   }
 
-  PB_CHECK(msg.int_repeat_base_msg_map_size() ==
+  PB_CHECK((size_t)msg.int_repeat_base_msg_map_size() ==
            st.int_repeat_base_msg_map.size());
   for (const auto& pair : st.int_repeat_base_msg_map) {
     auto it = msg.int_repeat_base_msg_map().find(pair.first);
