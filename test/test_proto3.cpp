@@ -2,10 +2,11 @@
 #include "doctest.h"
 #include "proto/unittest_proto3.h"  // msg reflection
 
+#if defined(STRUCT_PB_WITH_PROTO)
 TEST_CASE("test BaseTypeMsg") {
   {  // normal test
-    stpb::BaseTypeMsg se_st{0,     100,  200,   300,     400,
-                            31.4f, 62.8, false, "World", stpb::Enum::ZERO};
+    stpb::BaseTypeMsg se_st{
+        100, 200, 300, 400, 31.4f, 62.8, false, "World", stpb::Enum::ZERO};
     std::string st_ss;
     iguana::to_pb(se_st, st_ss);
 
@@ -23,8 +24,7 @@ TEST_CASE("test BaseTypeMsg") {
   }
 
   {  // test min and empty str
-    stpb::BaseTypeMsg se_st{0,
-                            std::numeric_limits<int32_t>::min(),
+    stpb::BaseTypeMsg se_st{std::numeric_limits<int32_t>::min(),
                             std::numeric_limits<int64_t>::min(),
                             std::numeric_limits<uint32_t>::min(),
                             std::numeric_limits<uint64_t>::min(),
@@ -49,8 +49,7 @@ TEST_CASE("test BaseTypeMsg") {
     CheckBaseTypeMsg(dese_st, dese_msg);
   }
   {  // test max and long str
-    stpb::BaseTypeMsg se_st{0,
-                            std::numeric_limits<int32_t>::max(),
+    stpb::BaseTypeMsg se_st{std::numeric_limits<int32_t>::max(),
                             std::numeric_limits<int64_t>::max(),
                             std::numeric_limits<uint32_t>::max(),
                             std::numeric_limits<uint64_t>::max(),
@@ -77,7 +76,7 @@ TEST_CASE("test BaseTypeMsg") {
 }
 
 TEST_CASE("test person and monster") {
-  stpb::simple_t2 t{0, -100, 2, stpb::Color::Blue, 4};
+  stpb::simple_t2 t{-100, 2, stpb::Color::Blue, 4};
   std::string str;
   iguana::to_pb(t, str);
 
@@ -135,7 +134,7 @@ TEST_CASE("test person and monster") {
 
 TEST_CASE("test IguanaTypeMsg") {
   {  // test normal value
-    stpb::IguanaTypeMsg se_st{0, {100}, {200}, {300}, {400}, {31}, {32}};
+    stpb::IguanaTypeMsg se_st{{100}, {200}, {300}, {400}, {31}, {32}};
     std::string st_ss;
     iguana::to_pb(se_st, st_ss);
 
@@ -153,8 +152,7 @@ TEST_CASE("test IguanaTypeMsg") {
   }
 
   {  // test min value
-    stpb::IguanaTypeMsg se_st{0,
-                              {std::numeric_limits<int32_t>::min()},
+    stpb::IguanaTypeMsg se_st{{std::numeric_limits<int32_t>::min()},
                               {std::numeric_limits<int64_t>::min()},
                               {std::numeric_limits<uint32_t>::min()},
                               {std::numeric_limits<uint64_t>::min()},
@@ -175,8 +173,7 @@ TEST_CASE("test IguanaTypeMsg") {
     CheckIguanaTypeMsg(dese_st, dese_msg);
   }
   {  // test max value
-    stpb::IguanaTypeMsg se_st{0,
-                              {std::numeric_limits<int32_t>::max()},
+    stpb::IguanaTypeMsg se_st{{std::numeric_limits<int32_t>::max()},
                               {std::numeric_limits<int64_t>::max()},
                               {std::numeric_limits<uint32_t>::max()},
                               {std::numeric_limits<uint64_t>::max()},
@@ -219,7 +216,6 @@ TEST_CASE("test IguanaTypeMsg") {
 TEST_CASE("test RepeatBaseTypeMsg") {
   {
     stpb::RepeatBaseTypeMsg se_st{
-        0,
         {1, 2, 3},
         {4, 5, 6},
         {7, 8, 9},
@@ -244,8 +240,7 @@ TEST_CASE("test RepeatBaseTypeMsg") {
     CheckRepeatBaseTypeMsg(dese_st, dese_msg);
   }
   {  // max and min vlaue
-    stpb::RepeatBaseTypeMsg se_st{0,
-                                  {std::numeric_limits<uint32_t>::max(),
+    stpb::RepeatBaseTypeMsg se_st{{std::numeric_limits<uint32_t>::max(),
                                    std::numeric_limits<uint32_t>::min()},
                                   {std::numeric_limits<uint64_t>::max(),
                                    std::numeric_limits<uint64_t>::min()},
@@ -277,13 +272,8 @@ TEST_CASE("test RepeatBaseTypeMsg") {
 TEST_CASE("test RepeatIguanaTypeMsg") {
   {
     stpb::RepeatIguanaTypeMsg se_st{
-        0,
-        {{0}, {1}, {3}},
-        {{4}, {5}, {6}},
-        {{7}, {8}, {9}},
-        {{10}, {11}, {12}},
-        {{13}, {14}, {15}},
-        {},
+        {{0}, {1}, {3}},    {{4}, {5}, {6}},    {{7}, {8}, {9}},
+        {{10}, {11}, {12}}, {{13}, {14}, {15}}, {},
     };
     std::string st_ss;
     iguana::to_pb(se_st, st_ss);
@@ -303,57 +293,61 @@ TEST_CASE("test RepeatIguanaTypeMsg") {
 }
 
 TEST_CASE("test NestedMsg") {
-  // {
-  //   stpb::NestedMsg se_st{
-  //       /* base_msg */ {100, 200, 300, 400, 31.4f, 62.8, false, "World",
-  //                       stpb::Enum::BAZ},
-  //       /* repeat_base_msg */
-  //       {{1, 2, 3, 4, 5.5f, 6.6, true, "Hello", stpb::Enum::FOO},
-  //        {7, 8, 9, 10, 11.11f, 12.12, false, "Hi", stpb::Enum::BAR}},
-  //       /* iguana_type_msg */ {{100}, {200}, {300}, {400}, {31}, {32}},
-  //       /* repeat_iguna_msg */
-  //       {{{1}, {2}, {3}}, {{4}, {5}, {6}}, {{7}, {8}, {9}}},
-  //       /* repeat_repeat_base_msg */
-  //       {{{1, 2, 3},
-  //         {4, 5, 6},
-  //         {7, 8, 9},
-  //         {10, 11, 12},
-  //         {13.1, 14.2, 15.3},
-  //         {16.4, 17.5, 18.6},
-  //         {"a", "b", "c"},
-  //         {stpb::Enum::FOO, stpb::Enum::BAR, stpb::Enum::BAZ}},
-  //        {{19, 20, 21},
-  //         {22, 23, 24},
-  //         {25, 26, 27},
-  //         {28, 29, 30},
-  //         {31.1, 32.2, 33.3},
-  //         {34.4, 35.5, 36.6},
-  //         {"x", "y", "z"},
-  //         {stpb::Enum::ZERO, stpb::Enum::NEG, stpb::Enum::FOO}}}};
+  {
+    stpb::NestedMsg se_st{
+        /* base_msg */ stpb::BaseTypeMsg{100, 200, 300, 400, 31.4f, 62.8, false,
+                                         "World", stpb::Enum::BAZ},
+        /* repeat_base_msg */
+        std::vector<stpb::BaseTypeMsg>{
+            {1, 2, 3, 4, 5.5f, 6.6, true, "Hello", stpb::Enum::FOO},
+            {7, 8, 9, 10, 11.11f, 12.12, false, "Hi", stpb::Enum::BAR}},
+        /* iguana_type_msg */
+        stpb::IguanaTypeMsg{{100}, {200}, {300}, {400}, {31}, {32}},
+        /* repeat_iguna_msg */
+        std::vector{stpb::IguanaTypeMsg{{1}, {2}, {3}},
+                    stpb::IguanaTypeMsg{{4}, {5}, {6}},
+                    stpb::IguanaTypeMsg{{7}, {8}, {9}}},
+        /* repeat_repeat_base_msg */
+        std::vector<stpb::RepeatBaseTypeMsg>{
+            {{1, 2, 3},
+             {4, 5, 6},
+             {7, 8, 9},
+             {10, 11, 12},
+             {13.1, 14.2, 15.3},
+             {16.4, 17.5, 18.6},
+             {"a", "b", "c"},
+             {stpb::Enum::FOO, stpb::Enum::BAR, stpb::Enum::BAZ}},
+            {{19, 20, 21},
+             {22, 23, 24},
+             {25, 26, 27},
+             {28, 29, 30},
+             {31.1, 32.2, 33.3},
+             {34.4, 35.5, 36.6},
+             {"x", "y", "z"},
+             {stpb::Enum::ZERO, stpb::Enum::NEG, stpb::Enum::FOO}}}};
 
-  //   std::string st_ss;
-  //   iguana::to_pb(se_st, st_ss);
+    std::string st_ss;
+    iguana::to_pb(se_st, st_ss);
 
-  //   pb::NestedMsg se_msg;
-  //   SetNestedMsg(se_st, se_msg);
+    pb::NestedMsg se_msg;
+    SetNestedMsg(se_st, se_msg);
 
-  //   std::string pb_ss;
-  //   se_msg.SerializeToString(&pb_ss);
+    std::string pb_ss;
+    se_msg.SerializeToString(&pb_ss);
 
-  //   CHECK(st_ss == pb_ss);
+    CHECK(st_ss == pb_ss);
 
-  //   stpb::NestedMsg dese_st{};
-  //   iguana::from_pb(dese_st, st_ss);
+    stpb::NestedMsg dese_st{};
+    iguana::from_pb(dese_st, st_ss);
 
-  //   pb::NestedMsg dese_msg;
-  //   dese_msg.ParseFromString(pb_ss);
+    pb::NestedMsg dese_msg;
+    dese_msg.ParseFromString(pb_ss);
 
-  //   CheckNestedMsg(dese_st, dese_msg);
-  // }
+    CheckNestedMsg(dese_st, dese_msg);
+  }
   {  // test empty values
     stpb::NestedMsg se_st{
-        0,
-        /* base_msg */ {0, 0, 0, 0, 0, 0.0f, 0.0, true, "", stpb::Enum::ZERO},
+        /* base_msg */ {0, 0, 0, 0, 0.0f, 0.0, true, "", stpb::Enum::ZERO},
         /* repeat_base_msg */ {},
         /* iguana_type_msg */ {},
         /* repeat_iguna_msg */ {},
@@ -380,60 +374,60 @@ TEST_CASE("test NestedMsg") {
 }
 
 TEST_CASE("test MapMsg") {
-  // {
-  //   stpb::MapMsg se_st{};
+  {
+    stpb::MapMsg se_st{};
 
-  //   se_st.sfix64_str_map.emplace(iguana::sfixed64_t{10}, "ten");
-  //   se_st.sfix64_str_map.emplace(iguana::sfixed64_t{20}, "twenty");
+    se_st.sfix64_str_map.emplace(iguana::sfixed64_t{10}, "ten");
+    se_st.sfix64_str_map.emplace(iguana::sfixed64_t{20}, "twenty");
 
-  //   se_st.str_iguana_type_msg_map.emplace(
-  //       "first", stpb::IguanaTypeMsg{{10}, {20}, {30}, {40}, {50}, {60}});
-  //   se_st.str_iguana_type_msg_map.emplace(
-  //       "second", stpb::IguanaTypeMsg{{11}, {21}, {31}, {41}, {51}, {61}});
+    se_st.str_iguana_type_msg_map.emplace(
+        "first", stpb::IguanaTypeMsg{{10}, {20}, {30}, {40}, {50}, {60}});
+    se_st.str_iguana_type_msg_map.emplace(
+        "second", stpb::IguanaTypeMsg{{11}, {21}, {31}, {41}, {51}, {61}});
 
-  //   se_st.int_repeat_base_msg_map.emplace(
-  //       1, stpb::RepeatBaseTypeMsg{{1, 2},
-  //                                  {3, 4},
-  //                                  {5, 6},
-  //                                  {7, 8},
-  //                                  {9.0f, 10.0f},
-  //                                  {11.0, 12.0},
-  //                                  {"one", "two"},
-  //                                  {stpb::Enum::FOO, stpb::Enum::BAR}});
-  //   se_st.int_repeat_base_msg_map.emplace(
-  //       2, stpb::RepeatBaseTypeMsg{{2, 3},
-  //                                  {4, 5},
-  //                                  {6, 7},
-  //                                  {8, 9},
-  //                                  {10.0f, 11.0f},
-  //                                  {12.0, 13.0},
-  //                                  {"three", "four"},
-  //                                  {stpb::Enum::BAZ, stpb::Enum::NEG}});
+    se_st.int_repeat_base_msg_map.emplace(
+        1, stpb::RepeatBaseTypeMsg{{1, 2},
+                                   {3, 4},
+                                   {5, 6},
+                                   {7, 8},
+                                   {9.0f, 10.0f},
+                                   {11.0, 12.0},
+                                   {"one", "two"},
+                                   {stpb::Enum::FOO, stpb::Enum::BAR}});
+    se_st.int_repeat_base_msg_map.emplace(
+        2, stpb::RepeatBaseTypeMsg{{2, 3},
+                                   {4, 5},
+                                   {6, 7},
+                                   {8, 9},
+                                   {10.0f, 11.0f},
+                                   {12.0, 13.0},
+                                   {"three", "four"},
+                                   {stpb::Enum::BAZ, stpb::Enum::NEG}});
 
-  //   std::string st_ss;
-  //   iguana::to_pb(se_st, st_ss);
+    std::string st_ss;
+    iguana::to_pb(se_st, st_ss);
 
-  //   pb::MapMsg se_msg{};
-  //   SetMapMsg(se_st, se_msg);
-  //   std::string pb_ss;
-  //   se_msg.SerializeToString(&pb_ss);
-  //   // It's okay not to satisfy this.
-  //   // CHECK(st_ss == pb_ss);
-  //   CHECK(st_ss.size() == pb_ss.size());
-  //   stpb::MapMsg dese_st{};
-  //   iguana::from_pb(dese_st, pb_ss);
-  //   pb::MapMsg dese_msg;
-  //   dese_msg.ParseFromString(st_ss);
-  //   CheckMapMsg(dese_st, dese_msg);
-  // }
+    pb::MapMsg se_msg{};
+    SetMapMsg(se_st, se_msg);
+    std::string pb_ss;
+    se_msg.SerializeToString(&pb_ss);
+    // It's okay not to satisfy this.
+    // CHECK(st_ss == pb_ss);
+    CHECK(st_ss.size() == pb_ss.size());
+    stpb::MapMsg dese_st{};
+    iguana::from_pb(dese_st, pb_ss);
+    pb::MapMsg dese_msg;
+    dese_msg.ParseFromString(st_ss);
+    CheckMapMsg(dese_st, dese_msg);
+  }
   {
     // key empty
     stpb::MapMsg se_st{};
     se_st.sfix64_str_map.emplace(iguana::sfixed64_t{30}, "");
     se_st.str_iguana_type_msg_map.emplace(
-        "", stpb::IguanaTypeMsg{0, {0}, {0}, {0}, {0}, {0}, {0}});
+        "", stpb::IguanaTypeMsg{{0}, {0}, {0}, {0}, {0}, {0}});
     se_st.int_repeat_base_msg_map.emplace(
-        3, stpb::RepeatBaseTypeMsg{0, {}, {}, {}, {}, {}, {}, {}, {}});
+        3, stpb::RepeatBaseTypeMsg{{}, {}, {}, {}, {}, {}, {}, {}});
     std::string st_ss;
     iguana::to_pb(se_st, st_ss);
 
@@ -453,7 +447,7 @@ TEST_CASE("test MapMsg") {
 
 TEST_CASE("test BaseOneofMsg") {
   {  // test double
-    stpb::BaseOneofMsg se_st{0, 123, 3.14159, 456.78};
+    stpb::BaseOneofMsg se_st{123, 3.14159, 456.78};
     std::string st_ss;
     iguana::to_pb(se_st, st_ss);
 
@@ -472,7 +466,7 @@ TEST_CASE("test BaseOneofMsg") {
     CheckBaseOneofMsg(dese_st, dese_msg);
   }
   {  // test string
-    stpb::BaseOneofMsg se_st{0, 123, std::string("Hello"), 456.78};
+    stpb::BaseOneofMsg se_st{123, std::string("Hello"), 456.78};
     std::string st_ss;
     iguana::to_pb(se_st, st_ss);
 
@@ -490,9 +484,9 @@ TEST_CASE("test BaseOneofMsg") {
     CheckBaseOneofMsg(dese_st, dese_msg);
   }
   {  // test BaseTypeMsg
-    stpb::BaseTypeMsg baseTypeMsg{0,     100,  200,   300,     400,
-                                  31.4f, 62.8, false, "World", stpb::Enum::BAZ};
-    stpb::BaseOneofMsg se_st{0, 123, baseTypeMsg, 456.78};
+    stpb::BaseTypeMsg baseTypeMsg{
+        100, 200, 300, 400, 31.4f, 62.8, false, "World", stpb::Enum::BAZ};
+    stpb::BaseOneofMsg se_st{123, baseTypeMsg, 456.78};
 
     std::string st_ss;
     iguana::to_pb(se_st, st_ss);
@@ -511,7 +505,7 @@ TEST_CASE("test BaseOneofMsg") {
     CheckBaseOneofMsg(dese_st, dese_msg);
   }
   {  // test empty variant
-    stpb::BaseOneofMsg se_st{0, 123, {}, 456.78};
+    stpb::BaseOneofMsg se_st{123, {}, 456.78};
 
     std::string st_ss;
     iguana::to_pb(se_st, st_ss);
@@ -534,7 +528,7 @@ TEST_CASE("test BaseOneofMsg") {
 
 TEST_CASE("test NestOneofMsg ") {
   {  // Test BaseOneofMsg
-    stpb::BaseOneofMsg baseOneof{0, 123, std::string("Hello"), 456.78};
+    stpb::BaseOneofMsg baseOneof{123, std::string("Hello"), 456.78};
     stpb::NestOneofMsg se_st{{baseOneof}};
 
     std::string st_ss;
@@ -553,6 +547,7 @@ TEST_CASE("test NestOneofMsg ") {
     CheckNestOneofMsg(dese_st, dese_msg);
   }
 }
+#endif
 
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
 int main(int argc, char **argv) { return doctest::Context(argc, argv).run(); }

@@ -25,7 +25,7 @@ set(CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -ldl")
 set(IGUANA_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 20)
+    set(CMAKE_CXX_STANDARD 17)
 endif()
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -106,8 +106,9 @@ add_executable(test_nothrow ${TEST_NOTHROW})
 add_executable(test_util ${TEST_UTIL})
 add_executable(test_pb ${TEST_PB})
 
-option(HAS_PROTOBUF "import protobuf" OFF)
-if(HAS_PROTOBUF)
+find_package(Protobuf QUIET)
+if(Protobuf_FOUND)
+    add_definitions(-DSTRUCT_PB_WITH_PROTO)
     find_package(Protobuf REQUIRED)
     if(Protobuf_FOUND)
         message(STATUS "Found Protobuf: ${Protobuf_VERSION}")
@@ -128,6 +129,7 @@ if(HAS_PROTOBUF)
     target_link_libraries(pb_benchmark ${Protobuf_LIBRARIES})
     add_executable(test_proto ${PROTO_SRCS} ${TEST_PROTO})
     target_link_libraries(test_proto ${Protobuf_LIBRARIES})
+    add_test(NAME test_proto COMMAND test_proto)
 endif()
 
 # unit test
