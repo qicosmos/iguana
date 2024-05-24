@@ -447,11 +447,10 @@ IGUANA_INLINE size_t pb_key_value_size(Type&& t) {
   using T = std::remove_const_t<std::remove_reference_t<Type>>;
   if constexpr (is_reflection_v<T> || is_custom_reflection_v<T>) {
     size_t len = 0;
-    constexpr auto tuple = get_members_tuple<T>();
+    static constexpr auto tuple = get_members_tuple<T>();
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
     for_each_n(
         [&len, &t](auto i) IGUANA__INLINE_LAMBDA {
-          constexpr auto tuple = get_members_tuple<T>();
           using field_type =
               std::tuple_element_t<decltype(i)::value,
                                    std::decay_t<decltype(tuple)>>;
