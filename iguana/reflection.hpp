@@ -550,9 +550,12 @@ namespace iguana::detail {
 #define MAKE_STR_LIST(...) \
   MACRO_CONCAT(CON_STR, GET_ARG_COUNT(__VA_ARGS__))(__VA_ARGS__)
 
+template <typename T>
+struct identity {};
+
 #define MAKE_META_DATA_IMPL(STRUCT_NAME, ...)                                 \
   [[maybe_unused]] inline static auto iguana_reflect_members(                 \
-      STRUCT_NAME const &) {                                                  \
+      const iguana::detail::identity<STRUCT_NAME> &) {                        \
     struct reflect_members {                                                  \
       constexpr decltype(auto) static apply_impl() {                          \
         return std::make_tuple(__VA_ARGS__);                                  \
@@ -602,7 +605,7 @@ constexpr std::array<frozen::string, N> get_alias_arr(Args... pairs) {
 
 #define MAKE_META_DATA_IMPL_ALIAS(STRUCT_NAME, ALIAS, ...)                    \
   [[maybe_unused]] inline static auto iguana_reflect_members(                 \
-      STRUCT_NAME const &) {                                                  \
+      const iguana::detail::identity<STRUCT_NAME> &) {                        \
     struct reflect_members {                                                  \
       constexpr decltype(auto) static apply_impl() {                          \
         return iguana::detail::get_mem_ptr_tp(__VA_ARGS__);                   \
@@ -622,7 +625,8 @@ constexpr std::array<frozen::string, N> get_alias_arr(Args... pairs) {
   }
 
 #define MAKE_META_DATA_IMPL_EMPTY(STRUCT_NAME)                              \
-  inline auto iguana_reflect_members(STRUCT_NAME const &) {                 \
+  inline auto iguana_reflect_members(                                       \
+      const iguana::detail::identity<STRUCT_NAME> &) {                      \
     struct reflect_members {                                                \
       constexpr decltype(auto) static apply_impl() {                        \
         return std::make_tuple();                                           \
@@ -913,14 +917,16 @@ inline int add_custom_fields(std::string_view key,
   CUSTOM_FIELDS_IMPL(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)
 
 template <typename T>
-using Reflect_members = decltype(iguana_reflect_members(std::declval<T>()));
+using Reflect_members = decltype(iguana_reflect_members(
+    std::declval<iguana::detail::identity<T>>()));
 
 template <typename T, typename = void>
 struct is_public_reflection : std::false_type {};
 
 template <typename T>
-struct is_public_reflection<
-    T, std::void_t<decltype(iguana_reflect_members(std::declval<T>()))>>
+struct is_public_reflection<T,
+                            std::void_t<decltype(iguana_reflect_members(
+                                std::declval<iguana::detail::identity<T>>()))>>
     : std::true_type {};
 
 template <typename T>
@@ -932,7 +938,7 @@ struct is_private_reflection : std::false_type {};
 template <typename T>
 struct is_private_reflection<
     T, std::void_t<decltype(std::declval<T>().iguana_reflect_members(
-           std::declval<T>()))>> : std::true_type {};
+           std::declval<iguana::detail::identity<T>>()))>> : std::true_type {};
 
 template <typename T>
 constexpr bool is_private_reflection_v = is_private_reflection<T>::value;
@@ -948,10 +954,10 @@ struct is_reflection<T, std::enable_if_t<is_public_reflection_v<T>>>
 template <typename T>
 inline auto iguana_reflect_type(const T &t) {
   if constexpr (is_public_reflection_v<T>) {
-    return iguana_reflect_members(t);
+    return iguana_reflect_members(iguana::detail::identity<T>{});
   }
   else {
-    return t.iguana_reflect_members(t);
+    return t.iguana_reflect_members(iguana::detail::identity<T>{});
   }
 }
 
@@ -1243,7 +1249,8 @@ constexpr void for_each(const std::tuple<Args...> &t, F &&f,
 }
 
 template <typename T, typename F>
-constexpr std::enable_if_t<is_reflection<T>::value> for_each(T &&t, F &&f) {
+constexpr std::enable_if_t<is_reflection<std::decay_t<T>>::value> for_each(
+    T &&t, F &&f) {
   using M = decltype(iguana_reflect_type(std::forward<T>(t)));
   for_each(M::apply_impl(), std::forward<F>(f),
            std::make_index_sequence<M::value()>{});
