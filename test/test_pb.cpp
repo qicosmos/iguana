@@ -51,6 +51,13 @@ struct test_pb_st1 BASE(test_pb_st1) {
 };
 REFLECTION(test_pb_st1, x, y, z);
 
+struct test_pb_sts BASE(test_pb_sts) {
+  test_pb_sts() = default;
+  test_pb_sts(std::vector<test_pb_st1> l) : list(std::move(l)) {}
+  std::vector<test_pb_st1> list;
+};
+REFLECTION(test_pb_sts, list);
+
 struct test_pb_st2 BASE(test_pb_st2) {
   test_pb_st2() = default;
   test_pb_st2(int a, iguana::fixed32_t b, iguana::fixed64_t c)
@@ -242,6 +249,17 @@ TEST_CASE("test struct_pb") {
     CHECK(inner.x == inner1.x);
     CHECK(inner.y == inner1.y);
     CHECK(inner.z == inner1.z);
+  }
+
+  {
+    test_pb_sts p{};
+    p.list.push_back(test_pb_st1{41, {42}, {43}});
+    std::string str;
+    p.to_pb(str);
+
+    test_pb_sts p1{};
+    p1.from_pb(str);
+    CHECK(p.list[0].z == p1.list[0].z);
   }
 
   {
