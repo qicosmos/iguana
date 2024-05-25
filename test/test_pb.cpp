@@ -15,7 +15,8 @@ void print_hex_str(const std::string &str) {
   std::cout << oss.str() << std::endl;
 }
 
-#define BASE(T) : public iguana::pb_base_impl<T>
+#define BASE(T)
+#define PUBLIC(T) : public iguana::pb_base_impl<T>
 
 struct point_t BASE(point_t) {
   point_t() = default;
@@ -51,7 +52,7 @@ struct test_pb_st1 BASE(test_pb_st1) {
 };
 REFLECTION(test_pb_st1, x, y, z);
 
-struct test_pb_sts BASE(test_pb_sts) {
+struct test_pb_sts PUBLIC(test_pb_sts) {
   test_pb_sts() = default;
   test_pb_sts(std::vector<test_pb_st1> l) : list(std::move(l)) {}
   std::vector<test_pb_st1> list;
@@ -111,7 +112,7 @@ struct pair_t BASE(pair_t) {
 };
 REFLECTION(pair_t, x, y);
 
-struct message_t BASE(message_t) {
+struct message_t PUBLIC(message_t) {
   message_t() = default;
   message_t(int a, pair_t b) : id(a), t(b) {}
   int id;
@@ -149,7 +150,7 @@ struct test_pb_st10 BASE(test_pb_st10) {
 };
 REFLECTION(test_pb_st10, x, y, z);
 
-struct test_pb_st11 BASE(test_pb_st11) {
+struct test_pb_st11 PUBLIC(test_pb_st11) {
   test_pb_st11() = default;
   test_pb_st11(int a, std::vector<std::optional<message_t>> b,
                std::vector<std::string> c)
