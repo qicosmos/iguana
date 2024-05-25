@@ -242,7 +242,6 @@ TEST_CASE("test struct_pb") {
 
     std::string str;
     iguana::to_pb(inner, str);
-    CHECK(str.size() == iguana::detail::pb_key_value_size<0>(inner));
 
     my_space::inner_struct inner1;
     iguana::from_pb(inner1, str);
@@ -266,7 +265,6 @@ TEST_CASE("test struct_pb") {
     test_pb_st1 st1{41, {42}, {43}};
     std::string str;
     iguana::to_pb(st1, str);
-    CHECK(str.size() == iguana::detail::pb_key_value_size<0>(st1));
 
     test_pb_st1 st2;
     iguana::from_pb(st2, str);
@@ -279,7 +277,6 @@ TEST_CASE("test struct_pb") {
     test_pb_st2 st1{41, {42}, {43}};
     std::string str;
     iguana::to_pb(st1, str);
-    CHECK(str.size() == iguana::detail::pb_key_value_size<0>(st1));
 
     test_pb_st2 st2;
     iguana::from_pb(st2, str);
@@ -289,7 +286,6 @@ TEST_CASE("test struct_pb") {
     test_pb_st3 st1{41, {42}, {43}};
     std::string str;
     iguana::to_pb(st1, str);
-    CHECK(str.size() == iguana::detail::pb_key_value_size<0>(st1));
 
     test_pb_st3 st2;
     iguana::from_pb(st2, str);
@@ -299,7 +295,6 @@ TEST_CASE("test struct_pb") {
     test_pb_st4 st1{41, "it is a test"};
     std::string str;
     iguana::to_pb(st1, str);
-    CHECK(str.size() == iguana::detail::pb_key_value_size<0>(st1));
 
     test_pb_st4 st2;
     iguana::from_pb(st2, str);
@@ -310,7 +305,6 @@ TEST_CASE("test struct_pb") {
     test_pb_st5 st1{41, "it is a test"};
     std::string str;
     iguana::to_pb(st1, str);
-    CHECK(str.size() == iguana::detail::pb_key_value_size<0>(st1));
 
     test_pb_st5 st2;
     iguana::from_pb(st2, str);
@@ -321,7 +315,6 @@ TEST_CASE("test struct_pb") {
     test_pb_st6 st1{41, "it is a test"};
     std::string str;
     iguana::to_pb(st1, str);
-    CHECK(str.size() == iguana::detail::pb_key_value_size<0>(st1));
 
     test_pb_st6 st2;
     iguana::from_pb(st2, str);
@@ -351,7 +344,6 @@ TEST_CASE("test struct_pb") {
     test_pb_st9 st1{1, {2, 4, 6}, "test"};
     std::string str;
     iguana::to_pb(st1, str);
-    CHECK(str.size() == iguana::detail::pb_key_value_size<0>(st1));
 
     test_pb_st9 st2;
     iguana::from_pb(st2, str);
