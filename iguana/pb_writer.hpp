@@ -210,7 +210,7 @@ IGUANA_INLINE void to_pb_impl(Type&& t, It&& it, uint32_t*& sz_ptr) {
 template <typename T, typename Stream>
 IGUANA_INLINE void to_pb(T& t, Stream& out) {
   std::vector<uint32_t> size_arr;
-  auto byte_len = detail::pb_key_value_size<0>(t, &size_arr);
+  auto byte_len = detail::pb_key_value_size<0>(t, size_arr);
   detail::resize(out, byte_len);
   auto sz_ptr = size_arr.empty() ? nullptr : &size_arr[0];
   detail::to_pb_impl<0>(t, &out[0], sz_ptr);

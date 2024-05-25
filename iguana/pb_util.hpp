@@ -420,7 +420,7 @@ IGUANA_INLINE size_t str_numeric_size(Type&& t) {
 
 template <size_t key_size, bool omit_default_val = true, typename Type,
           typename Arr>
-IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr* size_arr);
+IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr);
 
 template <typename Variant, typename T, size_t I>
 constexpr inline size_t get_variant_index() {
@@ -439,11 +439,11 @@ constexpr inline size_t get_variant_index() {
 }
 
 template <size_t field_no, typename Type, typename Arr>
-IGUANA_INLINE size_t pb_oneof_size(Type&& t, Arr* size_arr) {
+IGUANA_INLINE size_t pb_oneof_size(Type&& t, Arr& size_arr) {
   using T = std::decay_t<Type>;
   int len = 0;
   std::visit(
-      [&len, size_arr](auto&& value) IGUANA__INLINE_LAMBDA {
+      [&len, &size_arr](auto&& value) IGUANA__INLINE_LAMBDA {
         using value_type =
             std::remove_const_t<std::remove_reference_t<decltype(value)>>;
         constexpr auto offset =
@@ -461,7 +461,7 @@ IGUANA_INLINE size_t pb_oneof_size(Type&& t, Arr* size_arr) {
 // returns size = key_size + optional(len_size) + len
 // when key_size == 0, return len
 template <size_t key_size, bool omit_default_val, typename Type, typename Arr>
-IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr* size_arr) {
+IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr) {
   using T = std::remove_const_t<std::remove_reference_t<Type>>;
   if constexpr (is_reflection_v<T> || is_custom_reflection_v<T>) {
     size_t len = 0;
@@ -469,11 +469,11 @@ IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr* size_arr) {
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
     size_t pre_index = -1;
     if constexpr (!inherits_from_pb_base_v<T> && key_size != 0) {
-      pre_index = (*size_arr).size();
-      (*size_arr).push_back(0);  // placeholder
+      pre_index = size_arr.size();
+      size_arr.push_back(0);  // placeholder
     }
     for_each_n(
-        [&len, &t, size_arr](auto i) IGUANA__INLINE_LAMBDA {
+        [&len, &t, &size_arr](auto i) IGUANA__INLINE_LAMBDA {
           using field_type =
               std::tuple_element_t<decltype(i)::value,
                                    std::decay_t<decltype(tuple)>>;
@@ -501,7 +501,7 @@ IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr* size_arr) {
       t.cache_size = len;
     }
     else if constexpr (key_size != 0) {
-      (*size_arr)[pre_index] = len;
+      size_arr[pre_index] = len;
     }
     if constexpr (key_size == 0) {
       // for top level
@@ -535,7 +535,6 @@ IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr* size_arr) {
         return 0;
       }
       else {
-        (*size_arr).push_back(len);
         return key_size + variant_uint32_size(static_cast<uint32_t>(len)) + len;
       }
     }
@@ -582,13 +581,12 @@ IGUANA_INLINE size_t pb_value_size(Type&& t, uint32_t*& sz_ptr) {
   }
   else if constexpr (is_sequence_container<T>::value) {
     using item_type = typename T::value_type;
+    size_t len = 0;
     if constexpr (!is_lenprefix_v<item_type>) {
-      if constexpr (skip_next) {
-        return *(sz_ptr++);
+      for (auto& item : t) {
+        len += str_numeric_size<0, false>(item);
       }
-      else {
-        return *sz_ptr;
-      }
+      return len;
     }
     else {
       static_assert(!sizeof(item_type), "the size of this type is meaningless");
