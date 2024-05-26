@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <string_view>
