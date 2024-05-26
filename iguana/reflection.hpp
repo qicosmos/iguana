@@ -570,14 +570,16 @@ struct pb_base {
     if (offset == 0) {
       throw std::invalid_argument(std::string(name) + " field not exist ");
     }
-
-    if (type_name != type_string<T>()) {
+#if defined(__clang__) || defined(_MSC_VER) || \
+    (defined(__GNUC__) && __GNUC__ > 8)
+    if (type_name != iguana::type_string<T>()) {
       std::string str = "type is not match: can not assign ";
-      str.append(type_string<T>());
+      str.append(iguana::type_string<T>());
       str.append(" to ").append(type_name);
 
       throw std::invalid_argument(str);
     }
+#endif
     auto ptr = (((char *)this) + offset);
     return *((T *)ptr);
   }
@@ -588,14 +590,16 @@ struct pb_base {
     if (offset == 0) {
       throw std::invalid_argument(std::string(name) + " field not exist ");
     }
-
-    if (type_name != type_string<T>()) {
+#if defined(__clang__) || defined(_MSC_VER) || \
+    (defined(__GNUC__) && __GNUC__ > 8)
+    if (type_name != iguana::type_string<T>()) {
       std::string str = "type is not match: can not assign ";
-      str.append(type_string<T>());
+      str.append(iguana::type_string<T>());
       str.append(" to ").append(type_name);
 
       throw std::invalid_argument(str);
     }
+#endif
     auto ptr = (((char *)this) + offset);
 
     *((T *)ptr) = std::move(val);
