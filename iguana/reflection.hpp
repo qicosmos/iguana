@@ -621,7 +621,7 @@ inline bool register_type() {
 }
 
 #define MAKE_META_DATA_IMPL(STRUCT_NAME, ...)                                 \
-  inline auto IGUANA_UNIQUE_VARIABLE(reg_var) =                               \
+  static inline bool IGUANA_UNIQUE_VARIABLE(reg_var) =                        \
       iguana::detail::register_type<STRUCT_NAME>();                           \
   [[maybe_unused]] inline static auto iguana_reflect_members(                 \
       const iguana::detail::identity<STRUCT_NAME> &) {                        \
@@ -913,11 +913,7 @@ constexpr inline auto get_members() {
       STRUCT_NAME, ALIAS,                         \
       std::tuple_size_v<decltype(std::make_tuple(__VA_ARGS__))>, __VA_ARGS__)
 
-#ifdef _MSC_VER
 #define IGUANA_UNIQUE_VARIABLE(str) MACRO_CONCAT(str, __COUNTER__)
-#else
-#define IGUANA_UNIQUE_VARIABLE(str) MACRO_CONCAT(str, __LINE__)
-#endif
 template <typename T>
 struct iguana_required_struct;
 #define REQUIRED_IMPL(STRUCT_NAME, N, ...)                      \
@@ -972,12 +968,6 @@ inline int add_custom_fields(std::string_view key,
   return 0;
 }
 
-#ifdef _MSC_VER
-#define IGUANA_UNIQUE_VARIABLE(str) MACRO_CONCAT(str, __COUNTER__)
-#else
-#define IGUANA_UNIQUE_VARIABLE(str) MACRO_CONCAT(str, __LINE__)
-#endif
-
 #define CUSTOM_FIELDS_IMPL(STRUCT_NAME, N, ...)                                \
   inline auto IGUANA_UNIQUE_VARIABLE(STRUCT_NAME) = iguana::add_custom_fields( \
       #STRUCT_NAME, {MARCO_EXPAND(MACRO_CONCAT(CON_STR, N)(__VA_ARGS__))});
@@ -1026,7 +1016,7 @@ inline auto iguana_reflect_type(const T &t) {
     return iguana_reflect_members(iguana::detail::identity<T>{});
   }
   else {
-    return t.iguana_reflect_members(&t);
+    return t.iguana_reflect_members(iguana::detail::identity<T>{});
   }
 }
 
