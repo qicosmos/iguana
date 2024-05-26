@@ -19,6 +19,7 @@
 
 #include "detail/string_stream.hpp"
 #include "detail/traits.hpp"
+#include "enum_reflection.hpp"
 #include "frozen/string.h"
 #include "frozen/unordered_map.h"
 
@@ -553,7 +554,74 @@ namespace iguana::detail {
 template <typename T>
 struct identity {};
 
+struct pb_base {
+  virtual void to_pb(std::string &str) {}
+  virtual void from_pb(std::string_view str) {}
+  virtual std::vector<std::string_view> get_fields_name() { return {}; }
+  virtual std::pair<size_t, std::string_view> get_field_info(
+      std::string_view name) {
+    return {};
+  }
+
+  template <typename T>
+  T &get_field_value(std::string_view name) {
+    auto [offset, type_name] = get_field_info(name);
+    if (offset == 0) {
+      throw std::invalid_argument(std::string(name) + " field not exist ");
+    }
+
+    if (type_name != type_string<T>()) {
+      std::string str = "type is not match: can not assign ";
+      str.append(type_string<T>());
+      str.append(" to ").append(type_name);
+
+      throw std::invalid_argument(str);
+    }
+    auto ptr = (((char *)this) + offset);
+    return *((T *)ptr);
+  }
+
+  template <typename T>
+  void set_field_value(std::string_view name, T val) {
+    auto [offset, type_name] = get_field_info(name);
+    if (offset == 0) {
+      throw std::invalid_argument(std::string(name) + " field not exist ");
+    }
+
+    if (type_name != type_string<T>()) {
+      std::string str = "type is not match: can not assign ";
+      str.append(type_string<T>());
+      str.append(" to ").append(type_name);
+
+      throw std::invalid_argument(str);
+    }
+    auto ptr = (((char *)this) + offset);
+
+    *((T *)ptr) = std::move(val);
+  }
+  virtual ~pb_base() {}
+};
+
+inline std::unordered_map<std::string_view,
+                          std::function<std::shared_ptr<pb_base>()>>
+    g_pb_map;
+
+template <typename T>
+inline bool register_type() {
+  if constexpr (std::is_base_of_v<pb_base, T>) {
+    auto it = g_pb_map.emplace(type_string<T>(), [] {
+      return std::make_shared<T>();
+    });
+    return it.second;
+  }
+  else {
+    return true;
+  }
+}
+
 #define MAKE_META_DATA_IMPL(STRUCT_NAME, ...)                                 \
+  inline auto IGUANA_UNIQUE_VARIABLE(reg_var) =                               \
+      iguana::detail::register_type<STRUCT_NAME>();                           \
   [[maybe_unused]] inline static auto iguana_reflect_members(                 \
       const iguana::detail::identity<STRUCT_NAME> &) {                        \
     struct reflect_members {                                                  \
@@ -953,11 +1021,11 @@ struct is_reflection<T, std::enable_if_t<is_public_reflection_v<T>>>
 
 template <typename T>
 inline auto iguana_reflect_type(const T &t) {
-  if constexpr (is_public_reflection_v<T>) {
+  if constexpr (is_public_reflection_v<std::decay_t<T>>) {
     return iguana_reflect_members(iguana::detail::identity<T>{});
   }
   else {
-    return t.iguana_reflect_members(iguana::detail::identity<T>{});
+    return t.iguana_reflect_members(&t);
   }
 }
 

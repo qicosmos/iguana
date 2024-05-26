@@ -34,13 +34,12 @@ IGUANA_INLINE void to_pb(T& t, Stream& out);
 template <typename T>
 IGUANA_INLINE void from_pb(T& t, std::string_view pb_str);
 
-struct pb_base {
-  virtual void to_pb(std::string& str) {}
-  virtual void from_pb(std::string_view str) {}
+using pb_base = detail::pb_base;
 
-  size_t cache_size = 0;
-  virtual ~pb_base() {}
-};
+template <typename T, typename U>
+IGUANA_INLINE constexpr size_t member_offset(T* t, U T::*member) {
+  return (char*)&(t->*member) - (char*)t;
+}
 
 template <typename T>
 struct pb_base_impl : public pb_base {
@@ -51,11 +50,57 @@ struct pb_base_impl : public pb_base {
   void from_pb(std::string_view str) override {
     iguana::from_pb(*(static_cast<T*>(this)), str);
   }
+
+  std::pair<size_t, std::string_view> get_field_info(
+      std::string_view name) override {
+    static constexpr auto map = iguana::get_members<T>();
+    size_t offset = 0;
+    std::string_view filed_type_name;
+    for (auto [no, field] : map) {
+      if (offset > 0) {
+        break;
+      }
+      std::visit(
+          [&](auto val) {
+            if (val.field_name == name) {
+              offset = member_offset((T*)this, val.member_ptr);
+              filed_type_name =
+                  type_string<typename decltype(val)::value_type>();
+            }
+          },
+          field);
+    }
+
+    return std::make_pair(offset, filed_type_name);
+  }
+
+  std::vector<std::string_view> get_fields_name() override {
+    static constexpr auto map = iguana::get_members<T>();
+    std::vector<std::string_view> vec;
+    for (auto [no, val] : map) {
+      std::visit(
+          [&](auto& field) {
+            vec.push_back(std::string_view(field.field_name.data(),
+                                           field.field_name.size()));
+          },
+          val);
+    }
+    return vec;
+  }
+
   virtual ~pb_base_impl() {}
+
+  size_t cache_size = 0;
 };
 
 template <typename T>
 constexpr bool inherits_from_pb_base_v = std::is_base_of_v<pb_base, T>;
+
+IGUANA_INLINE std::shared_ptr<pb_base> create_instance(std::string_view name) {
+  auto it = iguana::detail::g_pb_map.find(name);
+  assert(it != iguana::detail::g_pb_map.end());
+  return it->second();
+}
 
 namespace detail {
 template <typename T>

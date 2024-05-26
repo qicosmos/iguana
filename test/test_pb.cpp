@@ -237,6 +237,53 @@ struct numer_st BASE(numer_st) {
 };
 REFLECTION(numer_st, a, b, c);
 
+TEST_CASE("test reflection") {
+  {
+    auto t = iguana::create_instance("pair_t");
+    t->set_field_value("x", 12);
+    t->set_field_value("y", 24);
+    auto &r0 = t->get_field_value<int>("x");
+    CHECK(r0 == 12);
+    auto &r = t->get_field_value<int>("y");
+    CHECK(r == 24);
+
+    std::string str;
+    t->to_pb(str);
+
+    pair_t t1;
+    t1.from_pb(str);
+
+    pair_t *st = dynamic_cast<pair_t *>(t.get());
+    CHECK(st->x == t1.x);
+    CHECK(st->y == t1.y);
+  }
+  auto t = iguana::create_instance("numer_st");
+  t->set_field_value("a", true);
+  t->set_field_value("b", double(25));
+  t->set_field_value("c", float(42));
+  auto &r0 = t->get_field_value<bool>("a");
+  CHECK(r0);
+  auto &r = t->get_field_value<double>("b");
+  CHECK(r == 25);
+  auto &r1 = t->get_field_value<float>("c");
+  CHECK(r1 == 42);
+
+  numer_st *st = dynamic_cast<numer_st *>(t.get());
+  CHECK(st->a == true);
+  CHECK(st->b == 25);
+  CHECK(st->c == 42);
+
+  std::string str;
+  t->to_pb(str);
+
+  numer_st t1;
+  t1.from_pb(str);
+
+  CHECK(st->a == t1.a);
+  CHECK(st->b == t1.b);
+  CHECK(st->c == t1.c);
+}
+
 TEST_CASE("test struct_pb") {
   {
     my_space::inner_struct inner{41, 42, 43};
