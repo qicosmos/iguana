@@ -6,6 +6,8 @@
 #include "iguana/pb_reader.hpp"
 #include "iguana/pb_writer.hpp"
 
+#if defined(__clang__) || defined(_MSC_VER) || \
+    (defined(__GNUC__) && __GNUC__ > 8)
 void print_hex_str(const std::string &str) {
   std::ostringstream oss;
   oss << std::hex << std::setfill('0');
@@ -616,6 +618,7 @@ TEST_CASE("test variant") {
     CHECK(std::get<double>(st2.y) == 3.88);
   }
 }
+#endif
 
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
 int main(int argc, char **argv) { return doctest::Context(argc, argv).run(); }
