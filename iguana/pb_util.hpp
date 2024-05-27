@@ -63,7 +63,10 @@ struct pb_base_impl : public pb_base {
             if (val.field_name == name) {
               info.offset = member_offset((T*)this, val.member_ptr);
               using value_type = typename decltype(val)::value_type;
+#if defined(__clang__) || defined(_MSC_VER) || \
+    (defined(__GNUC__) && __GNUC__ > 8)
               info.type_name = type_string<value_type>();
+#endif
             }
           },
           field);
