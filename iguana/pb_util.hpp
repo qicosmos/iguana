@@ -51,27 +51,25 @@ struct pb_base_impl : public pb_base {
     iguana::from_pb(*(static_cast<T*>(this)), str);
   }
 
-  std::pair<size_t, std::string_view> get_field_info(
-      std::string_view name) override {
+  iguana::detail::field_info get_field_info(std::string_view name) override {
     static constexpr auto map = iguana::get_members<T>();
-    size_t offset = 0;
-    std::string_view filed_type_name;
+    iguana::detail::field_info info{};
     for (auto [no, field] : map) {
-      if (offset > 0) {
+      if (info.offset > 0) {
         break;
       }
       std::visit(
           [&](auto val) {
             if (val.field_name == name) {
-              offset = member_offset((T*)this, val.member_ptr);
-              filed_type_name =
-                  type_string<typename decltype(val)::value_type>();
+              info.offset = member_offset((T*)this, val.member_ptr);
+              using value_type = typename decltype(val)::value_type;
+              info.type_name = type_string<value_type>();
             }
           },
           field);
     }
 
-    return std::make_pair(offset, filed_type_name);
+    return info;
   }
 
   std::vector<std::string_view> get_fields_name() override {
