@@ -241,6 +241,22 @@ REFLECTION(numer_st, a, b, c);
 
 TEST_CASE("test reflection") {
   {
+    auto t = iguana::create_instance("nest1");
+    my_struct mt{2, true, {42}};
+    t->set_field_value("value", mt);
+    t->set_field_value("name", std::string("test"));
+    t->set_field_value("var", 41);
+    nest1 *st = dynamic_cast<nest1 *>(t.get());
+    auto p = *st;
+    std::cout << p.name << "\n";
+    auto &r0 = t->get_field_value<std::string>("name");
+    CHECK(r0 == "test");
+    auto &r = t->get_field_value<int>("var");
+    CHECK(r == 41);
+    auto &r1 = t->get_field_value<my_struct>("value");
+    CHECK(r1.x == 2);
+  }
+  {
     auto t = iguana::create_instance("pair_t");
     t->set_field_value("x", 12);
     t->set_field_value("y", 24);
