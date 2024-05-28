@@ -17,10 +17,9 @@ void print_hex_str(const std::string &str) {
   std::cout << oss.str() << std::endl;
 }
 
-#define BASE(T)
-#define PUBLIC(T) : public iguana::pb_base_impl<T>
+#define PUBLIC(T) : public iguana::base_impl<T>
 
-struct point_t BASE(point_t) {
+struct point_t {
   point_t() = default;
   point_t(int a, double b) : x(a), y(b) {}
   int x;
@@ -29,7 +28,7 @@ struct point_t BASE(point_t) {
 REFLECTION(point_t, x, y);
 
 namespace my_space {
-struct inner_struct BASE(inner_struct) {
+struct inner_struct {
   inner_struct() = default;
   inner_struct(int a, int b, int c) : x(a), y(b), z(c) {}
   int x;
@@ -44,7 +43,7 @@ constexpr inline auto get_members_impl(inner_struct *) {
 }
 }  // namespace my_space
 
-struct test_pb_st1 BASE(test_pb_st1) {
+struct test_pb_st1 {
   test_pb_st1() = default;
   test_pb_st1(int a, iguana::sint32_t b, iguana::sint64_t c)
       : x(a), y(b), z(c) {}
@@ -61,7 +60,7 @@ struct test_pb_sts PUBLIC(test_pb_sts) {
 };
 REFLECTION(test_pb_sts, list);
 
-struct test_pb_st2 BASE(test_pb_st2) {
+struct test_pb_st2 {
   test_pb_st2() = default;
   test_pb_st2(int a, iguana::fixed32_t b, iguana::fixed64_t c)
       : x(a), y(b), z(c) {}
@@ -71,7 +70,7 @@ struct test_pb_st2 BASE(test_pb_st2) {
 };
 REFLECTION(test_pb_st2, x, y, z);
 
-struct test_pb_st3 BASE(test_pb_st3) {
+struct test_pb_st3 {
   test_pb_st3() = default;
   test_pb_st3(int a, iguana::sfixed32_t b, iguana::sfixed64_t c)
       : x(a), y(b), z(c) {}
@@ -81,7 +80,7 @@ struct test_pb_st3 BASE(test_pb_st3) {
 };
 REFLECTION(test_pb_st3, x, y, z);
 
-struct test_pb_st4 BASE(test_pb_st3) {
+struct test_pb_st4 {
   test_pb_st4() = default;
   test_pb_st4(int a, std::string b) : x(a), y(std::move(b)) {}
   int x;
@@ -89,7 +88,7 @@ struct test_pb_st4 BASE(test_pb_st3) {
 };
 REFLECTION(test_pb_st4, x, y);
 
-struct test_pb_st5 BASE(test_pb_st5) {
+struct test_pb_st5 {
   test_pb_st5() = default;
   test_pb_st5(int a, std::string_view b) : x(a), y(b) {}
   int x;
@@ -97,7 +96,7 @@ struct test_pb_st5 BASE(test_pb_st5) {
 };
 REFLECTION(test_pb_st5, x, y);
 
-struct test_pb_st6 BASE(test_pb_st6) {
+struct test_pb_st6 {
   test_pb_st6() = default;
   test_pb_st6(std::optional<int> a, std::optional<std::string> b)
       : x(std::move(a)), y(std::move(b)) {}
@@ -106,7 +105,7 @@ struct test_pb_st6 BASE(test_pb_st6) {
 };
 REFLECTION(test_pb_st6, x, y);
 
-struct pair_t BASE(pair_t) {
+struct pair_t PUBLIC(pair_t) {
   pair_t() = default;
   pair_t(int a, int b) : x(a), y(b) {}
   int x;
@@ -122,7 +121,7 @@ struct message_t PUBLIC(message_t) {
 };
 REFLECTION(message_t, id, t);
 
-struct test_pb_st8 BASE(test_pb_st8) {
+struct test_pb_st8 {
   test_pb_st8() = default;
   test_pb_st8(int a, pair_t b, message_t c) : x(a), y(b), z(c) {}
 
@@ -132,7 +131,7 @@ struct test_pb_st8 BASE(test_pb_st8) {
 };
 REFLECTION(test_pb_st8, x, y, z);
 
-struct test_pb_st9 BASE(test_pb_st9) {
+struct test_pb_st9 {
   test_pb_st9() = default;
   test_pb_st9(int a, std::vector<int> b, std::string c)
       : x(a), y(std::move(b)), z(std::move(c)) {}
@@ -142,7 +141,7 @@ struct test_pb_st9 BASE(test_pb_st9) {
 };
 REFLECTION(test_pb_st9, x, y, z);
 
-struct test_pb_st10 BASE(test_pb_st10) {
+struct test_pb_st10 {
   test_pb_st10() = default;
   test_pb_st10(int a, std::vector<message_t> b, std::string c)
       : x(a), y(std::move(b)), z(std::move(c)) {}
@@ -163,7 +162,7 @@ struct test_pb_st11 PUBLIC(test_pb_st11) {
 };
 REFLECTION(test_pb_st11, x, y, z);
 
-struct test_pb_st12 BASE(test_pb_st12) {
+struct test_pb_st12 {
   test_pb_st12() = default;
   test_pb_st12(int a, std::map<int, std::string> b,
                std::map<std::string, int> c)
@@ -175,7 +174,7 @@ struct test_pb_st12 BASE(test_pb_st12) {
 };
 REFLECTION(test_pb_st12, x, y, z);
 
-struct test_pb_st13 BASE(test_pb_st13) {
+struct test_pb_st13 {
   test_pb_st13() = default;
   test_pb_st13(int a, std::map<int, message_t> b, std::string c)
       : x(a), y(std::move(b)), z(std::move(c)) {}
@@ -190,7 +189,7 @@ enum class colors_t { red, black };
 
 enum level_t { debug, info };
 
-struct test_pb_st14 BASE(test_pb_st14) {
+struct test_pb_st14 {
   test_pb_st14() = default;
   test_pb_st14(int a, colors_t b, level_t c) : x(a), y(b), z(c) {}
   int x;
@@ -200,7 +199,7 @@ struct test_pb_st14 BASE(test_pb_st14) {
 REFLECTION(test_pb_st14, x, y, z);
 
 namespace client {
-struct person BASE(person) {
+struct person {
   person() = default;
   person(std::string s, int d) : name(s), age(d) {}
   std::string name;
@@ -210,16 +209,14 @@ struct person BASE(person) {
 REFLECTION(person, name, age);
 }  // namespace client
 
-struct my_struct BASE(my_struct) {
-  my_struct() = default;
-  my_struct(int a, bool b, iguana::fixed64_t c) : x(a), y(b), z(c) {}
+struct my_struct {
   int x;
   bool y;
   iguana::fixed64_t z;
 };
 REFLECTION(my_struct, x, y, z);
 
-struct nest1 BASE(nest1) {
+struct nest1 PUBLIC(nest1) {
   nest1() = default;
   nest1(std::string s, my_struct t, int d)
       : name(std::move(s)), value(t), var(d) {}
@@ -227,10 +224,9 @@ struct nest1 BASE(nest1) {
   my_struct value;
   int var;
 };
-
 REFLECTION(nest1, name, value, var);
 
-struct numer_st BASE(numer_st) {
+struct numer_st PUBLIC(numer_st) {
   numer_st() = default;
   numer_st(bool x, double y, float z) : a(x), b(y), c(z) {}
   bool a;
@@ -242,6 +238,9 @@ REFLECTION(numer_st, a, b, c);
 TEST_CASE("test reflection") {
   {
     auto t = iguana::create_instance("nest1");
+    std::vector<std::string_view> fields_name = t->get_fields_name();
+    CHECK(fields_name == std::vector<std::string_view>{"name", "value", "var"});
+
     my_struct mt{2, true, {42}};
     t->set_field_value("value", mt);
     t->set_field_value("name", std::string("test"));
@@ -442,7 +441,7 @@ TEST_CASE("test struct_pb") {
     std::string s;
     m->to_pb(s);
 
-    std::shared_ptr<iguana::pb_base> base = m;
+    std::shared_ptr<iguana::base> base = m;
     std::string str;
     base->to_pb(str);
 
@@ -575,7 +574,7 @@ TEST_CASE("test members") {
       val);
 }
 
-struct test_variant BASE(test_variant) {
+struct test_variant {
   test_variant() = default;
   test_variant(int a, std::variant<double, std::string, int> b, double c)
       : x(a), y(std::move(b)), z(c) {}

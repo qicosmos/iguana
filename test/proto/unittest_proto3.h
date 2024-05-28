@@ -7,7 +7,7 @@
 #endif
 
 #define PB_CHECK assert
-#define PUBLIC(T) : public iguana::pb_base_impl<T>
+#define PUBLIC(T) : public iguana::base_impl<T>
 
 // define the struct as msg in proto
 namespace stpb {

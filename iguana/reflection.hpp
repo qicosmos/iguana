@@ -560,7 +560,7 @@ struct field_info {
   std::string_view type_name;
 };
 
-struct pb_base {
+struct base {
   virtual void to_pb(std::string &str) {}
   virtual void from_pb(std::string_view str) {}
   virtual std::vector<std::string_view> get_fields_name() { return {}; }
@@ -585,7 +585,7 @@ struct pb_base {
 
     *((T *)ptr) = std::move(val);
   }
-  virtual ~pb_base() {}
+  virtual ~base() {}
 
  private:
   template <typename T>
@@ -608,14 +608,14 @@ struct pb_base {
 };
 
 inline std::unordered_map<std::string_view,
-                          std::function<std::shared_ptr<pb_base>()>>
+                          std::function<std::shared_ptr<base>()>>
     g_pb_map;
 
 template <typename T>
 inline bool register_type() {
 #if defined(__clang__) || defined(_MSC_VER) || \
     (defined(__GNUC__) && __GNUC__ > 8)
-  if constexpr (std::is_base_of_v<pb_base, T>) {
+  if constexpr (std::is_base_of_v<base, T>) {
     auto it = g_pb_map.emplace(type_string<T>(), [] {
       return std::make_shared<T>();
     });
