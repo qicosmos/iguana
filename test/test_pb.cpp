@@ -254,6 +254,12 @@ TEST_CASE("test reflection") {
     CHECK(r == 41);
     auto &r1 = t->get_field_value<my_struct>("value");
     CHECK(r1.x == 2);
+
+    t->set_field_value<std::string>("name", "hello");
+    auto &s = t->get_field_value<std::string>("name");
+    CHECK(s == "hello");
+
+    CHECK_THROWS_AS(t->set_field_value<int>("name", 42), std::invalid_argument);
   }
   {
     auto t = iguana::create_instance("pair_t");
@@ -275,9 +281,9 @@ TEST_CASE("test reflection") {
     CHECK(st->y == t1.y);
   }
   auto t = iguana::create_instance("numer_st");
-  t->set_field_value("a", true);
-  t->set_field_value("b", double(25));
-  t->set_field_value("c", float(42));
+  t->set_field_value<bool>("a", true);
+  t->set_field_value<double>("b", 25);
+  t->set_field_value<float>("c", 42);
   auto &r0 = t->get_field_value<bool>("a");
   CHECK(r0);
   auto &r = t->get_field_value<double>("b");

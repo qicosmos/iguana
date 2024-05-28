@@ -576,14 +576,16 @@ struct base {
     return *((T *)ptr);
   }
 
-  template <typename T>
+  template <typename T, typename FiledType = T>
   void set_field_value(std::string_view name, T val) {
     auto info = get_field_info(name);
-    check_field<T>(name, info);
+    check_field<FiledType>(name, info);
 
     auto ptr = (((char *)this) + info.offset);
 
-    *((T *)ptr) = std::move(val);
+    static_assert(std::is_constructible_v<FiledType, T>, "can not assign");
+
+    *((FiledType *)ptr) = std::move(val);
   }
   virtual ~base() {}
 
