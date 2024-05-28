@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -19,6 +20,7 @@
 
 #include "detail/string_stream.hpp"
 #include "detail/traits.hpp"
+#include "enum_reflection.hpp"
 #include "frozen/string.h"
 #include "frozen/unordered_map.h"
 
@@ -553,7 +555,85 @@ namespace iguana::detail {
 template <typename T>
 struct identity {};
 
+struct field_info {
+  size_t offset;
+  std::string_view type_name;
+};
+
+struct base {
+  virtual void to_pb(std::string &str) {}
+  virtual void from_pb(std::string_view str) {}
+  virtual std::vector<std::string_view> get_fields_name() { return {}; }
+  virtual iguana::detail::field_info get_field_info(std::string_view name) {
+    return {};
+  }
+
+  template <typename T>
+  T &get_field_value(std::string_view name) {
+    auto info = get_field_info(name);
+    check_field<T>(name, info);
+    auto ptr = (((char *)this) + info.offset);
+    return *((T *)ptr);
+  }
+
+  template <typename T, typename FiledType = T>
+  void set_field_value(std::string_view name, T val) {
+    auto info = get_field_info(name);
+    check_field<FiledType>(name, info);
+
+    auto ptr = (((char *)this) + info.offset);
+
+    static_assert(std::is_constructible_v<FiledType, T>, "can not assign");
+
+    *((FiledType *)ptr) = std::move(val);
+  }
+  virtual ~base() {}
+
+ private:
+  template <typename T>
+  void check_field(std::string_view name, const field_info &info) {
+    if (info.offset == 0) {
+      throw std::invalid_argument(std::string(name) + " field not exist ");
+    }
+
+#if defined(__clang__) || defined(_MSC_VER) || \
+    (defined(__GNUC__) && __GNUC__ > 8)
+    if (info.type_name != iguana::type_string<T>()) {
+      std::string str = "type is not match: can not assign ";
+      str.append(iguana::type_string<T>());
+      str.append(" to ").append(info.type_name);
+
+      throw std::invalid_argument(str);
+    }
+#endif
+  }
+};
+
+inline std::unordered_map<std::string_view,
+                          std::function<std::shared_ptr<base>()>>
+    g_pb_map;
+
+template <typename T>
+inline bool register_type() {
+#if defined(__clang__) || defined(_MSC_VER) || \
+    (defined(__GNUC__) && __GNUC__ > 8)
+  if constexpr (std::is_base_of_v<base, T>) {
+    auto it = g_pb_map.emplace(type_string<T>(), [] {
+      return std::make_shared<T>();
+    });
+    return it.second;
+  }
+  else {
+    return true;
+  }
+#else
+  return true;
+#endif
+}
+
 #define MAKE_META_DATA_IMPL(STRUCT_NAME, ...)                                 \
+  static inline bool IGUANA_UNIQUE_VARIABLE(reg_var) =                        \
+      iguana::detail::register_type<STRUCT_NAME>();                           \
   [[maybe_unused]] inline static auto iguana_reflect_members(                 \
       const iguana::detail::identity<STRUCT_NAME> &) {                        \
     struct reflect_members {                                                  \
@@ -844,11 +924,7 @@ constexpr inline auto get_members() {
       STRUCT_NAME, ALIAS,                         \
       std::tuple_size_v<decltype(std::make_tuple(__VA_ARGS__))>, __VA_ARGS__)
 
-#ifdef _MSC_VER
 #define IGUANA_UNIQUE_VARIABLE(str) MACRO_CONCAT(str, __COUNTER__)
-#else
-#define IGUANA_UNIQUE_VARIABLE(str) MACRO_CONCAT(str, __LINE__)
-#endif
 template <typename T>
 struct iguana_required_struct;
 #define REQUIRED_IMPL(STRUCT_NAME, N, ...)                      \
@@ -903,12 +979,6 @@ inline int add_custom_fields(std::string_view key,
   return 0;
 }
 
-#ifdef _MSC_VER
-#define IGUANA_UNIQUE_VARIABLE(str) MACRO_CONCAT(str, __COUNTER__)
-#else
-#define IGUANA_UNIQUE_VARIABLE(str) MACRO_CONCAT(str, __LINE__)
-#endif
-
 #define CUSTOM_FIELDS_IMPL(STRUCT_NAME, N, ...)                                \
   inline auto IGUANA_UNIQUE_VARIABLE(STRUCT_NAME) = iguana::add_custom_fields( \
       #STRUCT_NAME, {MARCO_EXPAND(MACRO_CONCAT(CON_STR, N)(__VA_ARGS__))});
@@ -953,7 +1023,7 @@ struct is_reflection<T, std::enable_if_t<is_public_reflection_v<T>>>
 
 template <typename T>
 inline auto iguana_reflect_type(const T &t) {
-  if constexpr (is_public_reflection_v<T>) {
+  if constexpr (is_public_reflection_v<std::decay_t<T>>) {
     return iguana_reflect_members(iguana::detail::identity<T>{});
   }
   else {

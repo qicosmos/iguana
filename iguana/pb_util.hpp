@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstring>
 #include <map>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -34,16 +35,15 @@ IGUANA_INLINE void to_pb(T& t, Stream& out);
 template <typename T>
 IGUANA_INLINE void from_pb(T& t, std::string_view pb_str);
 
-struct pb_base {
-  virtual void to_pb(std::string& str) {}
-  virtual void from_pb(std::string_view str) {}
+using base = detail::base;
 
-  size_t cache_size = 0;
-  virtual ~pb_base() {}
-};
+template <typename T, typename U>
+IGUANA_INLINE constexpr size_t member_offset(T* t, U T::*member) {
+  return (char*)&(t->*member) - (char*)t;
+}
 
 template <typename T>
-struct pb_base_impl : public pb_base {
+struct base_impl : public base {
   void to_pb(std::string& str) override {
     iguana::to_pb(*(static_cast<T*>(this)), str);
   }
@@ -51,11 +51,61 @@ struct pb_base_impl : public pb_base {
   void from_pb(std::string_view str) override {
     iguana::from_pb(*(static_cast<T*>(this)), str);
   }
-  virtual ~pb_base_impl() {}
+
+  iguana::detail::field_info get_field_info(std::string_view name) override {
+    static constexpr auto map = iguana::get_members<T>();
+    iguana::detail::field_info info{};
+    for (auto [no, field] : map) {
+      if (info.offset > 0) {
+        break;
+      }
+      std::visit(
+          [&](auto val) {
+            if (val.field_name == name) {
+              info.offset = member_offset((T*)this, val.member_ptr);
+              using value_type = typename decltype(val)::value_type;
+#if defined(__clang__) || defined(_MSC_VER) || \
+    (defined(__GNUC__) && __GNUC__ > 8)
+              info.type_name = type_string<value_type>();
+#endif
+            }
+          },
+          field);
+    }
+
+    return info;
+  }
+
+  std::vector<std::string_view> get_fields_name() override {
+    static constexpr auto map = iguana::get_members<T>();
+    std::vector<std::string_view> vec;
+    for (auto [no, val] : map) {
+      std::visit(
+          [&](auto& field) {
+            vec.push_back(std::string_view(field.field_name.data(),
+                                           field.field_name.size()));
+          },
+          val);
+    }
+    return vec;
+  }
+
+  virtual ~base_impl() {}
+
+  size_t cache_size = 0;
 };
 
 template <typename T>
-constexpr bool inherits_from_pb_base_v = std::is_base_of_v<pb_base, T>;
+constexpr bool inherits_from_base_v = std::is_base_of_v<base, T>;
+
+IGUANA_INLINE std::shared_ptr<base> create_instance(std::string_view name) {
+  auto it = iguana::detail::g_pb_map.find(name);
+  if (it == iguana::detail::g_pb_map.end()) {
+    throw std::invalid_argument(std::string(name) +
+                                "not inheried from iguana::base_impl");
+  }
+  return it->second();
+}
 
 namespace detail {
 template <typename T>
@@ -468,7 +518,7 @@ IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr) {
     static constexpr auto tuple = get_members_tuple<T>();
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
     size_t pre_index = -1;
-    if constexpr (!inherits_from_pb_base_v<T> && key_size != 0) {
+    if constexpr (!inherits_from_base_v<T> && key_size != 0) {
       pre_index = size_arr.size();
       size_arr.push_back(0);  // placeholder
     }
@@ -497,7 +547,7 @@ IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr) {
           }
         },
         std::make_index_sequence<SIZE>{});
-    if constexpr (inherits_from_pb_base_v<T>) {
+    if constexpr (inherits_from_base_v<T>) {
       t.cache_size = len;
     }
     else if constexpr (key_size != 0) {
@@ -566,7 +616,7 @@ template <bool skip_next = true, typename Type>
 IGUANA_INLINE size_t pb_value_size(Type&& t, uint32_t*& sz_ptr) {
   using T = std::remove_const_t<std::remove_reference_t<Type>>;
   if constexpr (is_reflection_v<T> || is_custom_reflection_v<T>) {
-    if constexpr (inherits_from_pb_base_v<T>) {
+    if constexpr (inherits_from_base_v<T>) {
       return t.cache_size;
     }
     else {
