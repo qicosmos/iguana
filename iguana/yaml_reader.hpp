@@ -259,7 +259,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
         }
       if constexpr (plain_v<value_type>) {
         auto start = it;
-        auto value_end = skip_till<',', ']'>(it, end);
+        auto value_end = yaml_skip_till<',', ']'>(it, end);
         parse_value(value.emplace_back(), start, value_end);
         if (*(it - 1) == ']')
           IGUANA_UNLIKELY { return; }
@@ -316,7 +316,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
       skip_space_and_lines(it, end, min_spaces);
       if constexpr (plain_v<value_type>) {
         auto start = it;
-        auto value_end = skip_till<',', ']'>(it, end);
+        auto value_end = yaml_skip_till<',', ']'>(it, end);
         parse_value(v, start, value_end);
       }
       else {
@@ -370,13 +370,13 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
           return;
         }
       auto start = it;
-      auto value_end = skip_till<':'>(it, end);
+      auto value_end = yaml_skip_till<':'>(it, end);
       key_type key;
       parse_value(key, start, value_end);
       subspaces = skip_space_and_lines(it, end, min_spaces);
       if constexpr (plain_v<value_type>) {
         start = it;
-        value_end = skip_till<',', '}'>(it, end);
+        value_end = yaml_skip_till<',', '}'>(it, end);
         parse_value(value[key], start, value_end);
         if (*(it - 1) == '}')
           IGUANA_UNLIKELY { return; }
@@ -399,7 +399,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end, size_t min_spaces) {
           return;
         }
       auto start = it;
-      auto value_end = skip_till<':'>(it, end);
+      auto value_end = yaml_skip_till<':'>(it, end);
       key_type key;
       parse_value(key, start, value_end);
       subspaces = skip_space_and_lines(it, end, min_spaces);
@@ -494,7 +494,7 @@ IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end, size_t min_spaces) {
   auto spaces = skip_space_and_lines(it, end, min_spaces);
   while (it != end) {
     auto start = it;
-    auto keyend = skip_till<':'>(it, end);
+    auto keyend = yaml_skip_till<':'>(it, end);
     std::string_view key = std::string_view{
         &*start, static_cast<size_t>(std::distance(start, keyend))};
     static constexpr auto frozen_map = get_iguana_struct_map<T>();

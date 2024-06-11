@@ -1,5 +1,6 @@
 #pragma once
 
+#include "detail/pb_type.hpp"
 #include "util.hpp"
 
 namespace iguana {
@@ -42,7 +43,7 @@ IGUANA_INLINE auto skip_till_newline(It &&it, It &&end) {
 }
 
 template <char... C, typename It>
-IGUANA_INLINE auto skip_till(It &&it, It &&end) {
+IGUANA_INLINE auto yaml_skip_till(It &&it, It &&end) {
   if (it == end)
     IGUANA_UNLIKELY { return it; }
   std::decay_t<decltype(it)> res = it;
@@ -93,7 +94,7 @@ IGUANA_INLINE size_t skip_space_and_lines(It &&it, It &&end, size_t minspaces) {
       // skip the --- line
       if ((it != end) && (*it == '-'))
         IGUANA_UNLIKELY {
-          auto line_end = skip_till<false, '\n'>(it, end);
+          auto line_end = yaml_skip_till<false, '\n'>(it, end);
           auto line = std::string_view(
               &*start, static_cast<size_t>(std::distance(start, line_end)));
           if (line != "---") {

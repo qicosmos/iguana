@@ -25,7 +25,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
                               std::string_view name);
 
 template <typename U, typename It, std::enable_if_t<plain_v<U>, int> = 0>
-IGUANA_INLINE void parse_value(U &&value, It &&begin, It &&end) {
+IGUANA_INLINE void xml_parse_value(U &&value, It &&begin, It &&end) {
   using T = std::decay_t<U>;
   if constexpr (string_container_v<T>) {
     if constexpr (string_view_v<T>) {
@@ -70,8 +70,8 @@ IGUANA_INLINE void parse_value(U &&value, It &&begin, It &&end) {
     static constexpr auto str_to_enum = get_enum_map<true, T>();
     if constexpr (bool_v<decltype(str_to_enum)>) {
       // not defined a specialization template
-      parse_value(reinterpret_cast<std::underlying_type_t<T> &>(value), begin,
-                  end);
+      xml_parse_value(reinterpret_cast<std::underlying_type_t<T> &>(value),
+                      begin, end);
     }
     else {
       auto enum_names = std::string_view(
@@ -86,6 +86,12 @@ IGUANA_INLINE void parse_value(U &&value, It &&begin, It &&end) {
     }
   }
 }
+
+template <typename U, typename It, std::enable_if_t<is_pb_type_v<U>, int> = 0>
+IGUANA_INLINE void xml_parse_value(U &&value, It &&begin, It &&end) {
+  xml_parse_value(value.val, begin, end);
+}
+
 template <typename U, typename It,
           std::enable_if_t<map_container_v<U>, int> = 0>
 IGUANA_INLINE void parse_attr(U &&value, It &&it, It &&end) {
@@ -98,7 +104,7 @@ IGUANA_INLINE void parse_attr(U &&value, It &&it, It &&end) {
     auto key_begin = it;
     auto key_end = skip_pass<'='>(it, end);
     key_type key;
-    parse_value(key, key_begin, key_end);
+    xml_parse_value(key, key_begin, key_end);
 
     skip_sapces_and_newline(it, end);
     auto value_begin = it + 1;
@@ -115,7 +121,7 @@ IGUANA_INLINE void parse_attr(U &&value, It &&it, It &&end) {
     else
       IGUANA_UNLIKELY { throw std::runtime_error("expected quote or apos"); }
     value_type v;
-    parse_value(v, value_begin, value_end);
+    xml_parse_value(v, value_begin, value_end);
     value.emplace(std::move(key), std::move(v));
   }
 }
@@ -128,8 +134,14 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
   skip_sapces_and_newline(it, end);
   auto value_begin = it;
   auto value_end = skip_pass<'<'>(it, end);
-  parse_value(value, value_begin, value_end);
+  xml_parse_value(value, value_begin, value_end);
   match_close_tag(it, end, name);
+}
+
+template <typename U, typename It, std::enable_if_t<is_pb_type_v<U>, int> = 0>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
+                              std::string_view name) {
+  parse_item(value.val, it, end, name);
 }
 
 template <typename U, typename It,
@@ -159,6 +171,19 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
   }
 }
 
+template <typename U, typename It,
+          std::enable_if_t<map_container_v<U>, int> = 0>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
+                              std::string_view name) {
+  throw std::bad_function_call();
+}
+
+template <typename U, typename It, std::enable_if_t<variant_v<U>, int> = 0>
+IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
+                              std::string_view name) {
+  throw std::bad_function_call();
+}
+
 template <typename U, typename It, std::enable_if_t<optional_v<U>, int>>
 IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
                               std::string_view name) {
@@ -182,7 +207,7 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
       match_close_tag(it, end, name);
       return;
     }
-    parse_value(value.emplace(), value_begin, value_end);
+    xml_parse_value(value.emplace(), value_begin, value_end);
     match_close_tag(it, end, name);
   }
   else {
@@ -494,8 +519,14 @@ IGUANA_INLINE void from_xml(U &value, const View &view) {
 template <typename Num, std::enable_if_t<num_v<Num>, int> = 0>
 IGUANA_INLINE Num get_number(std::string_view str) {
   Num num;
-  detail::parse_value(num, str.begin(), str.end());
+  detail::xml_parse_value(num, str.begin(), str.end());
   return num;
+}
+
+template <typename T>
+IGUANA_INLINE void from_xml_adl(iguana_adl_t *p, T &t,
+                                std::string_view pb_str) {
+  iguana::from_xml(t, pb_str);
 }
 
 }  // namespace iguana
