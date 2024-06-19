@@ -295,6 +295,16 @@ TEST_CASE("test reflection") {
     std::cout << s.x << " " << s.y << "\n";
     CHECK(st->x == s.x);
     CHECK(st->y == s.y);
+
+    std::string yaml;
+    t->to_yaml(yaml);
+    std::cout << yaml << "\n";
+
+    s = {};
+    s.from_yaml(yaml);
+    std::cout << s.x << " " << s.y << "\n";
+    CHECK(st->x == s.x);
+    CHECK(st->y == s.y);
   }
   auto t = iguana::create_instance("numer_st");
   t->set_field_value<bool>("a", true);

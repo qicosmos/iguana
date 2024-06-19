@@ -9,20 +9,20 @@ namespace iguana {
 namespace detail {
 
 template <typename U, typename It, std::enable_if_t<optional_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
-                              std::string_view name);
+IGUANA_INLINE void xml_parse_item(U &value, It &&it, It &&end,
+                                  std::string_view name);
 
 template <typename U, typename It, std::enable_if_t<smart_ptr_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
-                              std::string_view name);
+IGUANA_INLINE void xml_parse_item(U &value, It &&it, It &&end,
+                                  std::string_view name);
 
 template <typename U, typename It, std::enable_if_t<refletable_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
-                              std::string_view name);
+IGUANA_INLINE void xml_parse_item(U &value, It &&it, It &&end,
+                                  std::string_view name);
 
 template <typename U, typename It, std::enable_if_t<attr_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
-                              std::string_view name);
+IGUANA_INLINE void xml_parse_item(U &value, It &&it, It &&end,
+                                  std::string_view name);
 
 template <typename U, typename It, std::enable_if_t<plain_v<U>, int> = 0>
 IGUANA_INLINE void xml_parse_value(U &&value, It &&begin, It &&end) {
@@ -127,8 +127,8 @@ IGUANA_INLINE void parse_attr(U &&value, It &&it, It &&end) {
 }
 
 template <typename U, typename It, std::enable_if_t<plain_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
-                              std::string_view name) {
+IGUANA_INLINE void xml_parse_item(U &value, It &&it, It &&end,
+                                  std::string_view name) {
   skip_till<'>'>(it, end);
   ++it;
   skip_sapces_and_newline(it, end);
@@ -139,16 +139,16 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
 }
 
 template <typename U, typename It, std::enable_if_t<is_pb_type_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
-                              std::string_view name) {
-  parse_item(value.val, it, end, name);
+IGUANA_INLINE void xml_parse_item(U &value, It &&it, It &&end,
+                                  std::string_view name) {
+  xml_parse_item(value.val, it, end, name);
 }
 
 template <typename U, typename It,
           std::enable_if_t<sequence_container_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
-                              std::string_view name) {
-  parse_item(value.emplace_back(), it, end, name);
+IGUANA_INLINE void xml_parse_item(U &value, It &&it, It &&end,
+                                  std::string_view name) {
+  xml_parse_item(value.emplace_back(), it, end, name);
   skip_sapces_and_newline(it, end);
   while (it != end) {
     match<'<'>(it, end);
@@ -166,27 +166,27 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
         it = start - 1;
         return;
       }
-    parse_item(value.emplace_back(), it, end, name);
+    xml_parse_item(value.emplace_back(), it, end, name);
     skip_sapces_and_newline(it, end);
   }
 }
 
 template <typename U, typename It,
           std::enable_if_t<map_container_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
-                              std::string_view name) {
+IGUANA_INLINE void xml_parse_item(U &value, It &&it, It &&end,
+                                  std::string_view name) {
   throw std::bad_function_call();
 }
 
 template <typename U, typename It, std::enable_if_t<variant_v<U>, int> = 0>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
-                              std::string_view name) {
+IGUANA_INLINE void xml_parse_item(U &value, It &&it, It &&end,
+                                  std::string_view name) {
   throw std::bad_function_call();
 }
 
 template <typename U, typename It, std::enable_if_t<optional_v<U>, int>>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
-                              std::string_view name) {
+IGUANA_INLINE void xml_parse_item(U &value, It &&it, It &&end,
+                                  std::string_view name) {
   using value_type = typename std::remove_reference_t<U>::value_type;
   skip_till<'>'>(it, end);
   if (*(it - 1) == '/')
@@ -211,13 +211,13 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
     match_close_tag(it, end, name);
   }
   else {
-    parse_item(value.emplace(), it, end, name);
+    xml_parse_item(value.emplace(), it, end, name);
   }
 }
 
 template <typename U, typename It, std::enable_if_t<smart_ptr_v<U>, int>>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
-                              std::string_view name) {
+IGUANA_INLINE void xml_parse_item(U &value, It &&it, It &&end,
+                                  std::string_view name) {
   if constexpr (unique_ptr_v<U>) {
     value = std::make_unique<typename std::remove_cvref_t<U>::element_type>();
   }
@@ -225,14 +225,14 @@ IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
     value = std::make_shared<typename std::remove_cvref_t<U>::element_type>();
   }
 
-  parse_item(*value, it, end, name);
+  xml_parse_item(*value, it, end, name);
 }
 
 template <typename U, typename It, std::enable_if_t<attr_v<U>, int>>
-IGUANA_INLINE void parse_item(U &value, It &&it, It &&end,
-                              std::string_view name) {
+IGUANA_INLINE void xml_parse_item(U &value, It &&it, It &&end,
+                                  std::string_view name) {
   parse_attr(value.attr(), it, end);
-  parse_item(value.value(), it, end, name);
+  xml_parse_item(value.value(), it, end, name);
 }
 
 //  /> or skip <?>、 <!> and <tag></tag> until the </name>
@@ -393,8 +393,8 @@ IGUANA_INLINE void check_required(std::string_view key_set) {
 }
 
 template <typename T, typename It, std::enable_if_t<refletable_v<T>, int>>
-IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
-                              std::string_view name) {
+IGUANA_INLINE void xml_parse_item(T &value, It &&it, It &&end,
+                                  std::string_view name) {
   using U = std::decay_t<T>;
   constexpr auto cdata_idx = get_type_index<is_cdata_t, U>();
   skip_till<'>'>(it, end);
@@ -425,7 +425,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
     if (parse_done || key != st_key)
       IGUANA_UNLIKELY { return; }
     if constexpr (!cdata_v<item_type>) {
-      parse_item(value.*member_ptr, it, end, key);
+      xml_parse_item(value.*member_ptr, it, end, key);
       if constexpr (iguana::has_iguana_required_arr_v<U>) {
         key_set.append(key).append(", ");
       }
@@ -459,7 +459,7 @@ IGUANA_INLINE void parse_item(T &value, It &&it, It &&end,
                   "type must be memberptr");
               using V = std::remove_reference_t<decltype(value.*member_ptr)>;
               if constexpr (!cdata_v<V>) {
-                parse_item(value.*member_ptr, it, end, key);
+                xml_parse_item(value.*member_ptr, it, end, key);
                 if constexpr (iguana::has_iguana_required_arr_v<U>) {
                   key_set.append(key).append(", ");
                 }
@@ -497,7 +497,7 @@ IGUANA_INLINE void from_xml(U &value, It &&it, It &&end) {
   std::string_view key =
       std::string_view{&*start, static_cast<size_t>(std::distance(start, it))};
   detail::parse_attr(value.attr(), it, end);
-  detail::parse_item(value.value(), it, end, key);
+  detail::xml_parse_item(value.value(), it, end, key);
 }
 
 template <typename It, typename U, std::enable_if_t<refletable_v<U>, int> = 0>
@@ -507,7 +507,7 @@ IGUANA_INLINE void from_xml(U &value, It &&it, It &&end) {
   skip_till_greater_or_space(it, end);
   std::string_view key =
       std::string_view{&*start, static_cast<size_t>(std::distance(start, it))};
-  detail::parse_item(value, it, end, key);
+  detail::xml_parse_item(value, it, end, key);
 }
 
 template <typename U, typename View,

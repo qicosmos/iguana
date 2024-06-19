@@ -88,7 +88,7 @@ inline bool operator<(const sfixed64_t& lhs, const sfixed64_t& rhs) {
   return lhs.val < rhs.val;
 }
 
-template <class T>
+template <typename Type, typename T = std::decay_t<Type>>
 constexpr bool is_pb_type_v =
     std::is_same_v<sint32_t, T> || std::is_same_v<sint64_t, T> ||
     std::is_same_v<fixed32_t, T> || std::is_same_v<fixed64_t, T> ||
