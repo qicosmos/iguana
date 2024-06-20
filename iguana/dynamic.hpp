@@ -35,6 +35,14 @@ struct base_impl : public base {
     from_xml_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
   }
 
+  void to_yaml(std::string& str) override {
+    to_yaml_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+  }
+
+  void from_yaml(std::string_view str) override {
+    from_yaml_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+  }
+
   iguana::detail::field_info get_field_info(std::string_view name) override {
     static constexpr auto map = iguana::get_members<T>();
     iguana::detail::field_info info{};

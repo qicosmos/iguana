@@ -4,6 +4,10 @@
 #include "util.hpp"
 
 namespace iguana {
+
+template <typename T>
+constexpr inline bool yaml_not_support_v = variant_v<T>;
+
 // return true when it==end
 template <typename It>
 IGUANA_INLINE bool skip_space_till_end(It &&it, It &&end) {
