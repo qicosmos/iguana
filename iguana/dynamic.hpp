@@ -9,38 +9,84 @@ IGUANA_INLINE constexpr size_t member_offset(T* t, U T::*member) {
   return (char*)&(t->*member) - (char*)t;
 }
 
-template <typename T>
+constexpr inline uint8_t ENABLE_JSON = 0x01;
+constexpr inline uint8_t ENABLE_YAML = 0x02;
+constexpr inline uint8_t ENABLE_XML = 0x04;
+constexpr inline uint8_t ENABLE_PB = 0x08;
+constexpr inline uint8_t ENABLE_ALL = 0x0F;
+
+template <typename T, uint8_t ENABLE_FLAG = ENABLE_PB>
 struct base_impl : public base {
   void to_pb(std::string& str) override {
-    to_pb_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+    if constexpr (ENABLE_FLAG & ENABLE_PB) {
+      to_pb_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+    }
+    else {
+      throw std::runtime_error("Protobuf Disabled");
+    }
   }
 
   void from_pb(std::string_view str) override {
-    from_pb_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+    if constexpr (ENABLE_FLAG & ENABLE_PB) {
+      from_pb_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+    }
+    else {
+      throw std::runtime_error("Protobuf Disabled");
+    }
   }
 
   void to_json(std::string& str) override {
-    to_json_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+    if constexpr (ENABLE_FLAG & ENABLE_JSON) {
+      to_json_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+    }
+    else {
+      throw std::runtime_error("Json Disabled");
+    }
   }
 
   void from_json(std::string_view str) override {
-    from_json_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+    if constexpr (ENABLE_FLAG & ENABLE_JSON) {
+      from_json_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+    }
+    else {
+      throw std::runtime_error("Json Disabled");
+    }
   }
 
   void to_xml(std::string& str) override {
-    to_xml_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+    if constexpr (ENABLE_FLAG & ENABLE_XML) {
+      to_xml_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+    }
+    else {
+      throw std::runtime_error("Xml Disabled");
+    }
   }
 
   void from_xml(std::string_view str) override {
-    from_xml_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+    if constexpr (ENABLE_FLAG & ENABLE_XML) {
+      from_xml_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+    }
+    else {
+      throw std::runtime_error("Xml Disabled");
+    }
   }
 
   void to_yaml(std::string& str) override {
-    to_yaml_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+    if constexpr (ENABLE_FLAG & ENABLE_YAML) {
+      to_yaml_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+    }
+    else {
+      throw std::runtime_error("Yaml Disabled");
+    }
   }
 
   void from_yaml(std::string_view str) override {
-    from_yaml_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+    if constexpr (ENABLE_FLAG & ENABLE_YAML) {
+      from_yaml_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+    }
+    else {
+      throw std::runtime_error("Yaml Disabled");
+    }
   }
 
   iguana::detail::field_info get_field_info(std::string_view name) override {
