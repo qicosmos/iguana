@@ -1,5 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
+#include "iguana/iguana.hpp"
 #include "proto/unittest_proto3.h"  // msg reflection
 
 #if defined(STRUCT_PB_WITH_PROTO)

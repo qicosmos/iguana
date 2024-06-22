@@ -1,4 +1,5 @@
 #pragma once
+#include "iguana/dynamic.hpp"
 #include "iguana/pb_reader.hpp"
 #include "iguana/pb_writer.hpp"
 #if defined(STRUCT_PB_WITH_PROTO)

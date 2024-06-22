@@ -3,9 +3,7 @@
 
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
-#include "iguana/pb_reader.hpp"
-#include "iguana/pb_writer.hpp"
-
+#include "iguana/iguana.hpp"
 #if defined(__clang__) || defined(_MSC_VER) || \
     (defined(__GNUC__) && __GNUC__ > 8)
 void print_hex_str(const std::string &str) {
@@ -105,7 +103,7 @@ struct test_pb_st6 {
 };
 REFLECTION(test_pb_st6, x, y);
 
-struct pair_t PUBLIC(pair_t) {
+struct pair_t : public iguana::base_impl<pair_t, iguana::ENABLE_ALL> {
   pair_t() = default;
   pair_t(int a, int b) : x(a), y(b) {}
   int x;
@@ -279,6 +277,34 @@ TEST_CASE("test reflection") {
     pair_t *st = dynamic_cast<pair_t *>(t.get());
     CHECK(st->x == t1.x);
     CHECK(st->y == t1.y);
+    std::string xml;
+    st->to_xml(xml);
+    std::cout << xml << "\n";
+    pair_t s;
+    s.from_xml(xml);
+    std::cout << s.x << " " << s.y << "\n";
+    CHECK(st->x == s.x);
+    CHECK(st->y == s.y);
+
+    std::string json;
+    t->to_json(json);
+    std::cout << json << "\n";
+
+    s = {};
+    s.from_json(json);
+    std::cout << s.x << " " << s.y << "\n";
+    CHECK(st->x == s.x);
+    CHECK(st->y == s.y);
+
+    std::string yaml;
+    t->to_yaml(yaml);
+    std::cout << yaml << "\n";
+
+    s = {};
+    s.from_yaml(yaml);
+    std::cout << s.x << " " << s.y << "\n";
+    CHECK(st->x == s.x);
+    CHECK(st->y == s.y);
   }
   auto t = iguana::create_instance("numer_st");
   t->set_field_value<bool>("a", true);

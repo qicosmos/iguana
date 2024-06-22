@@ -68,7 +68,7 @@ struct my_struct {
 };
 REFLECTION(my_struct, x, y, z);
 
-struct nest1 : public iguana::base_imple<nest1> {
+struct nest1 : public iguana::base_impl<nest1> {
   nest1() = default;
   nest1(std::string s, my_struct t, int d)
       : name(std::move(s)), value(t), var(d) {}

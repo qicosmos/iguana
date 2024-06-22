@@ -563,6 +563,12 @@ struct field_info {
 struct base {
   virtual void to_pb(std::string &str) {}
   virtual void from_pb(std::string_view str) {}
+  virtual void to_xml(std::string &str) {}
+  virtual void from_xml(std::string_view str) {}
+  virtual void to_json(std::string &str) {}
+  virtual void from_json(std::string_view str) {}
+  virtual void to_yaml(std::string &str) {}
+  virtual void from_yaml(std::string_view str) {}
   virtual std::vector<std::string_view> get_fields_name() { return {}; }
   virtual iguana::detail::field_info get_field_info(std::string_view name) {
     return {};
@@ -755,6 +761,8 @@ namespace iguana {
 #define REFLECTION_WITH_NAME(STRUCT_NAME, TABLE_NAME, ...)            \
   MAKE_META_DATA(STRUCT_NAME, TABLE_NAME, GET_ARG_COUNT(__VA_ARGS__), \
                  __VA_ARGS__)
+
+struct iguana_adl_t {};
 
 template <typename T>
 inline auto iguana_reflect_type(const T &t);

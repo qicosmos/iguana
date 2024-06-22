@@ -1,6 +1,7 @@
 #include <google/protobuf/arena.h>
 #define SEQUENTIAL_PARSE
 #include "../test/proto/unittest_proto3.h"
+#include "iguana/iguana.hpp"
 
 class ScopedTimer {
  public:
