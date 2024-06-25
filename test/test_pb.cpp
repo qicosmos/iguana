@@ -211,6 +211,9 @@ struct my_struct {
   int x;
   bool y;
   iguana::fixed64_t z;
+  bool operator==(const my_struct &other) const {
+    return x == other.x && y == other.y && z == other.z;
+  }
 };
 REFLECTION(my_struct, x, y, z);
 
@@ -221,8 +224,9 @@ struct nest1 PUBLIC(nest1) {
   std::string name;
   my_struct value;
   int var;
+  std::variant<int, double> mv;
 };
-REFLECTION(nest1, name, value, var);
+REFLECTION(nest1, name, value, var, mv);
 
 struct numer_st PUBLIC(numer_st) {
   numer_st() = default;
@@ -237,7 +241,8 @@ TEST_CASE("test reflection") {
   {
     auto t = iguana::create_instance("nest1");
     std::vector<std::string_view> fields_name = t->get_fields_name();
-    CHECK(fields_name == std::vector<std::string_view>{"name", "value", "var"});
+    CHECK(fields_name ==
+          std::vector<std::string_view>{"name", "value", "var", "mv"});
 
     my_struct mt{2, true, {42}};
     t->set_field_value("value", mt);
@@ -258,6 +263,28 @@ TEST_CASE("test reflection") {
     CHECK(s == "hello");
 
     CHECK_THROWS_AS(t->set_field_value<int>("name", 42), std::invalid_argument);
+  }
+  {
+    my_struct temp_my{1, false, {3}};
+    nest1 t{"Hi", temp_my, 5};
+
+    auto const temp_variant = std::variant<int, double>{1};
+    t.set_field_value("mv", temp_variant);
+
+    // dynamic any
+    auto const &any_name = t.get_field_any("name");
+    assert(std::any_cast<std::string>(any_name) == "Hi");
+
+    auto const &any_value = t.get_field_any("value");
+    assert(std::any_cast<my_struct>(any_value) == temp_my);
+
+    auto const &any_var = t.get_field_any("var");
+    assert(std::any_cast<int>(any_var) == 5);
+
+    auto const &mvariant_any = t.get_field_any("mv");
+    auto const &mvariant =
+        std::any_cast<std::variant<int, double>>(mvariant_any);
+    assert(mvariant == temp_variant);
   }
   {
     auto t = iguana::create_instance("pair_t");
