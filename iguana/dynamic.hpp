@@ -123,7 +123,7 @@ struct base_impl : public base {
           [&](auto const& field) {
             std::string_view const current_name{field.field_name.data(),
                                                 field.field_name.size()};
-            if (vec.empty() || (!vec.empty() && (vec.back() != current_name))) {
+            if (vec.empty() || (vec.back() != current_name)) {
               vec.push_back(current_name);
             }
           },
