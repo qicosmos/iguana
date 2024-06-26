@@ -117,15 +117,14 @@ struct base_impl : public base {
     static constexpr auto map = iguana::get_members<T>();
 
     std::vector<std::string_view> vec;
-    std::set<std::string_view> sets;
 
     for (auto const& [no, val] : map) {
       std::visit(
           [&](auto const& field) {
-            if (auto it = sets.emplace(field.field_name.data(),
-                                       field.field_name.size());
-                it.second) {
-              vec.push_back(*it.first);
+            std::string_view const current_name{field.field_name.data(),
+                                                field.field_name.size()};
+            if (vec.empty() || (!vec.empty() && (vec.back() != current_name))) {
+              vec.push_back(current_name);
             }
           },
           val);
