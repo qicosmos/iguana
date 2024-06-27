@@ -4,6 +4,7 @@
 
 #ifndef IGUANA_REFLECTION_HPP
 #define IGUANA_REFLECTION_HPP
+#include <any>
 #include <array>
 #include <functional>
 #include <iomanip>
@@ -569,7 +570,8 @@ struct base {
   virtual void from_json(std::string_view str) {}
   virtual void to_yaml(std::string &str) {}
   virtual void from_yaml(std::string_view str) {}
-  virtual std::vector<std::string_view> get_fields_name() { return {}; }
+  virtual std::vector<std::string_view> get_fields_name() const { return {}; }
+  virtual std::any get_field_any(std::string_view name) const { return {}; }
   virtual iguana::detail::field_info get_field_info(std::string_view name) {
     return {};
   }
