@@ -237,6 +237,18 @@ struct numer_st PUBLIC(numer_st) {
 };
 REFLECTION(numer_st, a, b, c);
 
+struct MyPerson : public iguana::base_impl<MyPerson, iguana::ENABLE_JSON> {
+  MyPerson() = default;
+  MyPerson(std::string s, int d) : name(s), age(d) {}
+  std::string name;
+  int64_t age;
+  bool operator==(const MyPerson &other) const {
+    return name == other.name && age == other.age;
+  }
+};
+
+REFLECTION(MyPerson, name, age);
+
 TEST_CASE("test reflection") {
   {
     auto t = iguana::create_instance("nest1");
@@ -285,6 +297,19 @@ TEST_CASE("test reflection") {
     auto const &mvariant =
         std::any_cast<std::variant<int, double>>(mvariant_any);
     assert(mvariant == temp_variant);
+  }
+  {
+    // to_json is an const member_function now
+    MyPerson const p1{"xiaoming", 10};
+    std::string str;
+    p1.to_json(str);
+
+    // p1.to_pb(str); // compile failed
+
+    MyPerson p2;
+    p2.from_json(str);
+
+    assert(p1 == p2);
   }
   {
     auto t = iguana::create_instance("pair_t");
