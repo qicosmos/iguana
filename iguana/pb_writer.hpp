@@ -205,6 +205,206 @@ IGUANA_INLINE void to_pb_impl(Type&& t, It&& it, uint32_t*& sz_ptr) {
     encode_numeric_field<key, omit_default_val>(t, it);
   }
 }
+
+template <typename T>
+IGUANA_INLINE constexpr std::string_view get_type_string() {
+  if constexpr (std::is_integral_v<T>) {
+    if constexpr (sizeof(T) <= 4) {
+      return "int32";
+    }
+    else {
+      return "int64";
+    }
+  }
+  else if constexpr (std::is_same_v<T, std::string> ||
+                     std::is_same_v<T, std::string_view>) {
+    return "string";
+  }
+  else if constexpr (std::is_floating_point_v<T>) {
+    return type_string<T>();
+  }
+  else if constexpr (std::is_enum_v<T>) {
+    // TODO: maybe let user define the enum name and value
+    return "int32";
+  }
+  else {
+    constexpr auto str_type_name = type_string<T>();
+    constexpr size_t pos = str_type_name.rfind("::");
+    if constexpr (pos != std::string_view::npos) {
+      if constexpr (detail::is_signed_varint_v<T> || detail::is_fixed_v<T>) {
+        constexpr size_t pos = str_type_name.rfind("::") + 2;
+        return str_type_name.substr(pos, str_type_name.size() - pos - 2);
+      }
+      else {
+        return str_type_name.substr(pos);
+      }
+    }
+    else {
+      return str_type_name;
+    }
+  }
+}
+
+template <typename T, typename Stream>
+IGUANA_INLINE void numeric_to_proto(Stream& out, std::string_view field_name,
+                                    uint32_t field_no) {
+  constexpr auto name = get_type_string<T>();
+  out.append(name).append(" ");
+  out.append(field_name)
+      .append(" = ")
+      .append(std::to_string(field_no))
+      .append(";\n");
+}
+
+template <size_t space_count = 2, typename Stream>
+IGUANA_INLINE void build_proto_field(Stream& out, std::string_view str_type,
+                                     std::string_view field_name,
+                                     uint32_t field_no) {
+  for (size_t i = 0; i < space_count; i++) {
+    out.append(" ");
+  }
+
+  if (!str_type.empty()) {
+    out.append(str_type);
+  }
+
+  out.append(" ")
+      .append(field_name)
+      .append(" = ")
+      .append(std::to_string(field_no))
+      .append(";\n");
+}
+
+template <typename T, typename Map>
+IGUANA_INLINE void build_sub_proto(Map& map, std::string_view str_type,
+                                   std::string& sub_str);
+
+template <typename Type, typename Stream>
+IGUANA_INLINE void to_proto_impl(
+    Stream& out, std::unordered_map<std::string_view, std::string>& map,
+    std::string_view field_name = "", uint32_t field_no = 0) {
+  std::string sub_str;
+  using T = std::remove_const_t<std::remove_reference_t<Type>>;
+  if constexpr (is_reflection_v<T> || is_custom_reflection_v<T>) {
+    constexpr auto name = get_name<T>();
+    out.append("message ").append(name).append(" {\n");
+    static constexpr auto tuple = get_members_tuple<T>();
+    constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
+
+    for_each_n(
+        [&out, &sub_str, &map](auto i) mutable {
+          using field_type =
+              std::tuple_element_t<decltype(i)::value,
+                                   std::decay_t<decltype(tuple)>>;
+          constexpr auto value = std::get<decltype(i)::value>(tuple);
+
+          using U = typename field_type::value_type;
+          if constexpr (is_reflection_v<U>) {
+            constexpr auto str_type = type_string<U>();
+            build_proto_field(
+                out, str_type,
+                {value.field_name.data(), value.field_name.size()},
+                value.field_no);
+
+            build_sub_proto<U>(map, str_type, sub_str);
+          }
+          else if constexpr (variant_v<U>) {
+            constexpr size_t var_size = std::variant_size_v<U>;
+            using sub_type = typename field_type::sub_type;
+
+            constexpr auto offset =
+                get_variant_index<U, sub_type, var_size - 1>();
+
+            if (offset == 0) {
+              out.append("  oneof ");
+              out.append(value.field_name.data(), value.field_name.size())
+                  .append(" {\n");
+            }
+
+            constexpr auto str_type = get_type_string<sub_type>();
+            std::string field_name = " one_of_";
+            field_name.append(str_type);
+
+            out.append("  ");
+            build_proto_field(out, str_type, field_name, value.field_no);
+
+            if constexpr (is_reflection_v<sub_type>) {
+              build_sub_proto<sub_type>(map, str_type, sub_str);
+            }
+
+            if (offset == var_size - 1) {
+              out.append("  }\n");
+            }
+          }
+          else {
+            to_proto_impl<U>(out, map,
+                             {value.field_name.data(), value.field_name.size()},
+                             value.field_no);
+          }
+        },
+        std::make_index_sequence<SIZE>{});
+    out.append("}\r\n\r\n");
+  }
+  else if constexpr (is_sequence_container<T>::value) {
+    out.append("  repeated");
+    using item_type = typename T::value_type;
+
+    if constexpr (is_lenprefix_v<item_type>) {
+      // non-packed
+      if constexpr (is_reflection_v<item_type>) {
+        constexpr auto str_type = get_type_string<item_type>();
+        build_proto_field(out, str_type, field_name, field_no);
+
+        build_sub_proto<item_type>(map, str_type, sub_str);
+      }
+      else {
+        to_proto_impl<item_type>(out, map, field_name, field_no);
+      }
+    }
+    else {
+      out.append("  ");
+      numeric_to_proto<item_type>(out, field_name, field_no);
+    }
+  }
+  else if constexpr (is_map_container<T>::value) {
+    out.append("  map<");
+    using first_type = typename T::key_type;
+    using second_type = typename T::mapped_type;
+
+    constexpr auto str_first = get_type_string<first_type>();
+    constexpr auto str_second = get_type_string<second_type>();
+    out.append(str_first).append(", ").append(str_second).append(">");
+
+    build_proto_field<1>(out, "", field_name, field_no);
+
+    if constexpr (is_reflection_v<second_type>) {
+      constexpr auto str_type = type_string<second_type>();
+      build_sub_proto<second_type>(map, str_type, sub_str);
+    }
+  }
+  else if constexpr (optional_v<T>) {
+    to_proto_impl<typename T::value_type>(
+        out, map, {field_name.data(), field_name.size()}, field_no);
+  }
+  else if constexpr (std::is_same_v<T, std::string> ||
+                     std::is_same_v<T, std::string_view>) {
+    build_proto_field(out, "string ", field_name, field_no);
+  }
+  else {
+    out.append("  ");
+    numeric_to_proto<Type>(out, field_name, field_no);
+  }
+}
+
+template <typename T, typename Map>
+IGUANA_INLINE void build_sub_proto(Map& map, std::string_view str_type,
+                                   std::string& sub_str) {
+  if (map.find(str_type) == map.end()) {
+    to_proto_impl<T>(sub_str, map);
+    map.emplace(str_type, std::move(sub_str));
+  }
+}
+
 }  // namespace detail
 
 template <typename T, typename Stream>
@@ -214,6 +414,27 @@ IGUANA_INLINE void to_pb(T& t, Stream& out) {
   detail::resize(out, byte_len);
   auto sz_ptr = size_arr.empty() ? nullptr : &size_arr[0];
   detail::to_pb_impl<0>(t, &out[0], sz_ptr);
+}
+
+template <typename T, typename Stream>
+IGUANA_INLINE void to_proto(Stream& out, bool add_header = true,
+                            std::string_view ns = "") {
+  if (add_header) {
+    constexpr std::string_view crlf = "\r\n\r\n";
+    out.append(R"(syntax = "proto3";)").append(crlf);
+    if (!ns.empty()) {
+      out.append("package ").append(ns).append(";").append(crlf);
+    }
+
+    out.append(R"(option optimize_for = SPEED;)").append(crlf);
+    out.append(R"(option cc_enable_arenas = true;)").append(crlf);
+  }
+
+  std::unordered_map<std::string_view, std::string> map;
+  detail::to_proto_impl<T>(out, map);
+  for (auto& [k, s] : map) {
+    out.append(s);
+  }
 }
 
 template <typename T, typename Stream>

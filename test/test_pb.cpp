@@ -1,5 +1,6 @@
 #include <iostream>
 #include <memory>
+#include <optional>
 
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
@@ -237,7 +238,59 @@ struct numer_st PUBLIC(numer_st) {
 };
 REFLECTION(numer_st, a, b, c);
 
+struct person PUBLIC(person) {
+  person() = default;
+  person(int32_t a, std::string b, int c, double d)
+      : id(a), name(std::move(b)), age(c), salary(d) {}
+  int32_t id;
+  std::string name;
+  int age;
+  double salary;
+};
+REFLECTION(person, id, name, age, salary);
+
+struct vector_t {
+  int id;
+  std::variant<int, pair_t, std::string> variant;
+  std::vector<int> ids;
+  std::vector<pair_t> pairs;
+  std::vector<std::string> strs;
+  std::map<std::string, pair_t> map;
+  std::string name;
+  std::optional<int> op_val;
+};
+REFLECTION(vector_t, id, variant, ids, pairs, strs, map, name, op_val);
+
 TEST_CASE("test reflection") {
+  {
+    std::string str;
+    iguana::to_proto<vector_t>(str, true, "pb");
+    std::cout << str;
+  }
+  {
+    std::string str;
+    iguana::to_proto<test_pb_st8>(str, true, "pb");
+    std::cout << str;
+  }
+  {
+    std::string str;
+    iguana::to_proto<test_pb_st1>(str, true, "pb");
+    std::cout << str;
+
+    iguana::to_proto<test_pb_st2>(str, false);
+    std::cout << str;
+
+    iguana::to_proto<test_pb_st3>(str, false);
+    std::cout << str;
+
+    iguana::to_proto<message_t>(str, false);
+    std::cout << str;
+  }
+  {
+    std::string str;
+    iguana::to_proto<person>(str);
+    std::cout << str;
+  }
   {
     auto t = iguana::create_instance("nest1");
     std::vector<std::string_view> fields_name = t->get_fields_name();
