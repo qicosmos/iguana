@@ -407,14 +407,19 @@ IGUANA_INLINE void to_proto_impl(
     }
     else {
       static_assert(enum_to_str.size() > 0, "empty enum not allowed");
-      static_assert(enum_to_str.begin()->first == 0,
+      static_assert((int)(enum_to_str.begin()->first) == 0,
                     "the first enum value must be zero in proto3");
       build_proto_field(out, str_type, field_name, field_no);
       if (map.find(str_type) == map.end()) {
         sub_str.append("enum ").append(str_type).append(" {\n");
         for (auto& [k, field_name] : enum_to_str) {
+          std::string_view name{field_name.data(), field_name.size()};
+          size_t pos = name.rfind("::");
+          if (pos != std::string_view::npos) {
+            name = name.substr(pos + 2);
+          }
           sub_str.append("  ")
-              .append({field_name.data(), field_name.size()})
+              .append(name)
               .append(" = ")
               .append(std::to_string(static_cast<std::underlying_type_t<T>>(k)))
               .append(";\n");

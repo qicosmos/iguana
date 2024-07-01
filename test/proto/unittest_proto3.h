@@ -311,6 +311,19 @@ REFLECTION(bench_int32, a, b, c, d);
 
 }  // namespace stpb
 
+namespace iguana {
+template <>
+struct enum_value<stpb::Color> {
+  constexpr static std::array<int, 3> value = {0, 2, 4};
+};
+
+template <>
+struct enum_value<stpb::Enum> {
+  constexpr static std::array<int, 5> value = {0, 1, 2, 123456, -1};
+};
+
+}  // namespace iguana
+
 inline auto create_person() {
   stpb::person p{432798, std::string(1024, 'A'), 24, 65536.42};
   return p;

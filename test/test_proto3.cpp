@@ -1,3 +1,6 @@
+#include <fstream>
+
+#include "iguana/pb_writer.hpp"
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
 #include "iguana/iguana.hpp"
@@ -294,6 +297,14 @@ TEST_CASE("test RepeatIguanaTypeMsg") {
 }
 
 TEST_CASE("test NestedMsg") {
+  {
+    std::string str;
+    iguana::to_proto<stpb::NestedMsg>(str, "test");
+    std::cout << str;
+
+    std::ofstream out("NestedMsg.proto", std::ios::binary);
+    iguana::to_proto_file<stpb::NestedMsg>(out, "test");
+  }
   {
     stpb::NestedMsg se_st{
         /* base_msg */ stpb::BaseTypeMsg{100, 200, 300, 400, 31.4f, 62.8, false,
