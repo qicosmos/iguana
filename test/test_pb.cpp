@@ -249,8 +249,18 @@ struct person PUBLIC(person) {
 };
 REFLECTION(person, id, name, age, salary);
 
+enum Color { Red = 1, Black = 2, Green = 4 };
+
+namespace iguana {
+template <>
+struct enum_value<Color> {
+  constexpr static std::array<int, 3> value = {1, 2, 4};
+};
+}  // namespace iguana
+
 struct vector_t {
   int id;
+  Color color;
   std::variant<int, pair_t, std::string> variant;
   std::vector<int> ids;
   std::vector<pair_t> pairs;
@@ -259,38 +269,54 @@ struct vector_t {
   std::string name;
   std::optional<int> op_val;
 };
-REFLECTION(vector_t, id, variant, ids, pairs, strs, map, name, op_val);
+REFLECTION(vector_t, id, color, variant, ids, pairs, strs, map, name, op_val);
 
-TEST_CASE("test reflection") {
+TEST_CASE("struct to proto") {
   {
     std::string str;
-    iguana::to_proto<vector_t>(str, true, "pb");
+    iguana::to_proto<vector_t>(str, "pb");
     std::cout << str;
+    CHECK(str.find(R"(syntax = "proto3";)") != std::string::npos);
+    CHECK(str.find("message vector_t") != std::string::npos);
+    CHECK(str.find("map<string, pair_t>  map = 9;") != std::string::npos);
+    CHECK(str.find("Green = 4;") != std::string::npos);
   }
   {
     std::string str;
-    iguana::to_proto<test_pb_st8>(str, true, "pb");
+    iguana::to_proto<test_pb_st8>(str, "pb");
     std::cout << str;
+    CHECK(str.find("message_t z = 3;") != std::string::npos);
+    CHECK(str.find("message message_t") != std::string::npos);
+    CHECK(str.find("pair_t t = 2;") != std::string::npos);
+    CHECK(str.find("message pair_t") != std::string::npos);
   }
   {
     std::string str;
-    iguana::to_proto<test_pb_st1>(str, true, "pb");
+    iguana::to_proto<test_pb_st1>(str, "pb");
     std::cout << str;
+    CHECK(str.find("sint64 z = 3;") != std::string::npos);
 
-    iguana::to_proto<test_pb_st2>(str, false);
+    iguana::to_proto<test_pb_st2, false>(str);
     std::cout << str;
+    CHECK(str.find("fixed64 z = 3;") != std::string::npos);
 
-    iguana::to_proto<test_pb_st3>(str, false);
+    iguana::to_proto<test_pb_st3, false>(str);
     std::cout << str;
+    CHECK(str.find("sfixed64 z = 3;") != std::string::npos);
 
-    iguana::to_proto<message_t>(str, false);
+    iguana::to_proto<message_t, false>(str);
     std::cout << str;
+    CHECK(str.find("pair_t t = 2;") != std::string::npos);
   }
   {
     std::string str;
     iguana::to_proto<person>(str);
     std::cout << str;
+    CHECK(str.find("int32 age = 3;") != std::string::npos);
   }
+}
+
+TEST_CASE("test reflection") {
   {
     auto t = iguana::create_instance("nest1");
     std::vector<std::string_view> fields_name = t->get_fields_name();

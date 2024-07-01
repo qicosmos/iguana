@@ -223,10 +223,6 @@ IGUANA_INLINE constexpr std::string_view get_type_string() {
   else if constexpr (std::is_floating_point_v<T>) {
     return type_string<T>();
   }
-  else if constexpr (std::is_enum_v<T>) {
-    // TODO: maybe let user define the enum name and value
-    return "int32";
-  }
   else {
     constexpr auto str_type_name = type_string<T>();
     constexpr size_t pos = str_type_name.rfind("::");
@@ -390,6 +386,28 @@ IGUANA_INLINE void to_proto_impl(
                      std::is_same_v<T, std::string_view>) {
     build_proto_field(out, "string ", field_name, field_no);
   }
+  else if constexpr (enum_v<T>) {
+    constexpr auto str_type = get_type_string<T>();
+    static constexpr auto enum_to_str = get_enum_map<false, std::decay_t<T>>();
+    if constexpr (bool_v<decltype(enum_to_str)>) {
+      build_proto_field(out, "int32", field_name, field_no);
+    }
+    else {
+      build_proto_field(out, str_type, field_name, field_no);
+      if (map.find(str_type) == map.end()) {
+        sub_str.append("enum ").append(str_type).append(" {\n");
+        for (auto& [k, field_name] : enum_to_str) {
+          sub_str.append("  ")
+              .append({field_name.data(), field_name.size()})
+              .append(" = ")
+              .append(std::to_string(static_cast<std::underlying_type_t<T>>(k)))
+              .append(";\n");
+        }
+        sub_str.append("}\r\n\r\n");
+        map.emplace(str_type, std::move(sub_str));
+      }
+    }
+  }
   else {
     out.append("  ");
     numeric_to_proto<Type>(out, field_name, field_no);
@@ -416,10 +434,9 @@ IGUANA_INLINE void to_pb(T& t, Stream& out) {
   detail::to_pb_impl<0>(t, &out[0], sz_ptr);
 }
 
-template <typename T, typename Stream>
-IGUANA_INLINE void to_proto(Stream& out, bool add_header = true,
-                            std::string_view ns = "") {
-  if (add_header) {
+template <typename T, bool gen_header = true, typename Stream>
+IGUANA_INLINE void to_proto(Stream& out, std::string_view ns = "") {
+  if (gen_header) {
     constexpr std::string_view crlf = "\r\n\r\n";
     out.append(R"(syntax = "proto3";)").append(crlf);
     if (!ns.empty()) {
