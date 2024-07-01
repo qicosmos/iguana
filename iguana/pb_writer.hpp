@@ -209,11 +209,24 @@ IGUANA_INLINE void to_pb_impl(Type&& t, It&& it, uint32_t*& sz_ptr) {
 template <typename T>
 IGUANA_INLINE constexpr std::string_view get_type_string() {
   if constexpr (std::is_integral_v<T>) {
-    if constexpr (sizeof(T) <= 4) {
-      return "int32";
+    if constexpr (std::is_same_v<T, bool>) {
+      return "bool";
+    }
+    else if constexpr (sizeof(T) <= 4) {
+      if constexpr (std::is_unsigned_v<T>) {
+        return "uint32";
+      }
+      else {
+        return "int32";
+      }
     }
     else {
-      return "int64";
+      if constexpr (std::is_unsigned_v<T>) {
+        return "uint64";
+      }
+      else {
+        return "int64";
+      }
     }
   }
   else if constexpr (std::is_same_v<T, std::string> ||
@@ -227,8 +240,8 @@ IGUANA_INLINE constexpr std::string_view get_type_string() {
     constexpr auto str_type_name = type_string<T>();
     constexpr size_t pos = str_type_name.rfind("::");
     if constexpr (pos != std::string_view::npos) {
+      constexpr size_t pos = str_type_name.rfind("::") + 2;
       if constexpr (detail::is_signed_varint_v<T> || detail::is_fixed_v<T>) {
-        constexpr size_t pos = str_type_name.rfind("::") + 2;
         return str_type_name.substr(pos, str_type_name.size() - pos - 2);
       }
       else {
@@ -296,7 +309,7 @@ IGUANA_INLINE void to_proto_impl(
 
           using U = typename field_type::value_type;
           if constexpr (is_reflection_v<U>) {
-            constexpr auto str_type = type_string<U>();
+            constexpr auto str_type = get_type_string<U>();
             build_proto_field(
                 out, str_type,
                 {value.field_name.data(), value.field_name.size()},
@@ -374,7 +387,7 @@ IGUANA_INLINE void to_proto_impl(
     build_proto_field<1>(out, "", field_name, field_no);
 
     if constexpr (is_reflection_v<second_type>) {
-      constexpr auto str_type = type_string<second_type>();
+      constexpr auto str_type = get_type_string<second_type>();
       build_sub_proto<second_type>(map, str_type, sub_str);
     }
   }
