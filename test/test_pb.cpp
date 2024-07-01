@@ -253,12 +253,12 @@ struct person PUBLIC(person) {
 };
 REFLECTION(person, id, name, age, salary);
 
-enum Color { Red = 1, Black = 2, Green = 4 };
+enum Color { Red = 0, Black = 2, Green = 4 };
 
 namespace iguana {
 template <>
 struct enum_value<Color> {
-  constexpr static std::array<int, 3> value = {1, 2, 4};
+  constexpr static std::array<int, 3> value = {0, 2, 4};
 };
 }  // namespace iguana
 

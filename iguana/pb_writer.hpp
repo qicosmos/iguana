@@ -393,6 +393,9 @@ IGUANA_INLINE void to_proto_impl(
       build_proto_field(out, "int32", field_name, field_no);
     }
     else {
+      static_assert(enum_to_str.size() > 0, "empty enum not allowed");
+      static_assert(enum_to_str.begin()->first == 0,
+                    "the first enum value must be zero in proto3");
       build_proto_field(out, str_type, field_name, field_no);
       if (map.find(str_type) == map.end()) {
         sub_str.append("enum ").append(str_type).append(" {\n");
