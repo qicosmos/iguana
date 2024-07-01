@@ -454,6 +454,16 @@ IGUANA_INLINE void to_proto(Stream& out, std::string_view ns = "") {
   }
 }
 
+template <typename T, bool gen_header = true, typename Stream>
+IGUANA_INLINE void to_proto_file(Stream& stream, std::string_view ns = "") {
+  if (!stream.is_open()) {
+    return;
+  }
+  std::string out;
+  to_proto<T, gen_header>(out, ns);
+  stream.write(out.data(), out.size());
+}
+
 template <typename T, typename Stream>
 IGUANA_INLINE void to_pb_adl(iguana_adl_t* p, T& t, Stream& out) {
   to_pb(t, out);

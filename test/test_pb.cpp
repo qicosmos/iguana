@@ -1,6 +1,10 @@
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <optional>
+
+#include "iguana/pb_writer.hpp"
 
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
@@ -280,6 +284,20 @@ TEST_CASE("struct to proto") {
     CHECK(str.find("message vector_t") != std::string::npos);
     CHECK(str.find("map<string, pair_t>  map = 9;") != std::string::npos);
     CHECK(str.find("Green = 4;") != std::string::npos);
+
+    std::ofstream file("test_vector.proto", std::ios::binary);
+    iguana::to_proto_file<vector_t>(file, "pb");
+    file.sync_with_stdio(true);
+    file.flush();
+    file.close();
+
+    size_t size = std::filesystem::file_size("test_vector.proto");
+    std::ifstream in("test_vector.proto", std::ios::binary);
+    std::string read_str;
+    read_str.resize(size);
+    in.read(read_str.data(), size);
+    CHECK(read_str.find("map<string, pair_t>  map = 9;") != std::string::npos);
+    CHECK(read_str.find("Green = 4;") != std::string::npos);
   }
   {
     std::string str;
