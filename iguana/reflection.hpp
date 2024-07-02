@@ -847,7 +847,7 @@ constexpr inline auto build_fields(T t, S &s, uint32_t &index) {
     return build_variant_fields(t, s, I + 1, std::make_index_sequence<Size>{});
   }
   else {
-    uint32_t field_no = (I == index) ? (I + 1) : (I + index);
+    uint32_t field_no = (I == index) ? (I + 1) : (2 + index);
     index++;
     return std::tuple(field_t{t, field_no, s});
   }
