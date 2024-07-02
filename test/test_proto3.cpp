@@ -297,6 +297,8 @@ TEST_CASE("test RepeatIguanaTypeMsg") {
 }
 
 TEST_CASE("test NestedMsg") {
+#if defined(__clang__) || defined(_MSC_VER) || \
+    (defined(__GNUC__) && __GNUC__ > 8)
   {
     std::string str;
     iguana::to_proto<stpb::NestedMsg>(str, "test");
@@ -305,6 +307,7 @@ TEST_CASE("test NestedMsg") {
     std::ofstream out("NestedMsg.proto", std::ios::binary);
     iguana::to_proto_file<stpb::NestedMsg>(out, "test");
   }
+#endif
   {
     stpb::NestedMsg se_st{
         /* base_msg */ stpb::BaseTypeMsg{100, 200, 300, 400, 31.4f, 62.8, false,

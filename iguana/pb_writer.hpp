@@ -206,6 +206,8 @@ IGUANA_INLINE void to_pb_impl(Type&& t, It&& it, uint32_t*& sz_ptr) {
   }
 }
 
+#if defined(__clang__) || defined(_MSC_VER) || \
+    (defined(__GNUC__) && __GNUC__ > 8)
 template <typename T>
 IGUANA_INLINE constexpr std::string_view get_type_string() {
   if constexpr (std::is_integral_v<T>) {
@@ -443,7 +445,7 @@ IGUANA_INLINE void build_sub_proto(Map& map, std::string_view str_type,
     map.emplace(str_type, std::move(sub_str));
   }
 }
-
+#endif
 }  // namespace detail
 
 template <typename T, typename Stream>
@@ -455,6 +457,8 @@ IGUANA_INLINE void to_pb(T& t, Stream& out) {
   detail::to_pb_impl<0>(t, &out[0], sz_ptr);
 }
 
+#if defined(__clang__) || defined(_MSC_VER) || \
+    (defined(__GNUC__) && __GNUC__ > 8)
 template <typename T, bool gen_header = true, typename Stream>
 IGUANA_INLINE void to_proto(Stream& out, std::string_view ns = "") {
   if (gen_header) {
@@ -484,6 +488,7 @@ IGUANA_INLINE void to_proto_file(Stream& stream, std::string_view ns = "") {
   to_proto<T, gen_header>(out, ns);
   stream.write(out.data(), out.size());
 }
+#endif
 
 template <typename T, typename Stream>
 IGUANA_INLINE void to_pb_adl(iguana_adl_t* p, T& t, Stream& out) {

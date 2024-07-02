@@ -275,6 +275,8 @@ struct vector_t {
 };
 REFLECTION(vector_t, id, color, variant, ids, pairs, strs, map, name, op_val);
 
+#if defined(__clang__) || defined(_MSC_VER) || \
+    (defined(__GNUC__) && __GNUC__ > 8)
 TEST_CASE("struct to proto") {
   {
     std::string str;
@@ -333,6 +335,7 @@ TEST_CASE("struct to proto") {
     CHECK(str.find("int32 age = 3;") != std::string::npos);
   }
 }
+#endif
 
 TEST_CASE("test reflection") {
   {
