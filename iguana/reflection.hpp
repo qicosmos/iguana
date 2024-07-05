@@ -562,7 +562,7 @@ struct field_info {
 };
 
 struct base {
-  virtual void to_pb(std::string &str) {}
+  virtual void to_pb(std::string &str) const {}
   virtual void from_pb(std::string_view str) {}
   virtual void to_xml(std::string &str) const {}
   virtual void from_xml(std::string_view str) {}
@@ -803,6 +803,7 @@ struct field_t {
   uint32_t field_no;
 
   auto &value(owner_type &value) const { return value.*member_ptr; }
+  auto const &value(owner_type const &value) const { return value.*member_ptr; }
 };
 
 template <typename T>

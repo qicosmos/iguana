@@ -17,9 +17,9 @@ constexpr inline uint8_t ENABLE_ALL = 0x0F;
 
 template <typename T, uint8_t ENABLE_FLAG = ENABLE_PB>
 struct base_impl : public base {
-  void to_pb(std::string& str) override {
+  void to_pb(std::string& str) const override {
     if constexpr ((ENABLE_FLAG & ENABLE_PB) != 0) {
-      to_pb_adl((iguana_adl_t*)nullptr, *(static_cast<T*>(this)), str);
+      to_pb_adl((iguana_adl_t*)nullptr, *(static_cast<T const*>(this)), str);
     }
     else {
       throw std::runtime_error("Protobuf Disabled");
@@ -160,7 +160,7 @@ struct base_impl : public base {
 
   virtual ~base_impl() {}
 
-  size_t cache_size = 0;
+  mutable size_t cache_size = 0;
 };
 
 IGUANA_INLINE std::shared_ptr<base> create_instance(std::string_view name) {
