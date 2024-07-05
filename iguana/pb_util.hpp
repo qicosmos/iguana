@@ -419,6 +419,7 @@ IGUANA_INLINE size_t pb_oneof_size(Type&& t, Arr& size_arr) {
   int len = 0;
   std::visit(
       [&len, &size_arr](auto&& value) IGUANA__INLINE_LAMBDA {
+        using raw_value_type = decltype(value);
         using value_type =
             std::remove_const_t<std::remove_reference_t<decltype(value)>>;
         constexpr auto offset =
@@ -427,7 +428,7 @@ IGUANA_INLINE size_t pb_oneof_size(Type&& t, Arr& size_arr) {
             ((field_no + offset) << 3) |
             static_cast<uint32_t>(get_wire_type<value_type>());
         len = pb_key_value_size<variant_uint32_size_constexpr(key), false>(
-            std::forward<value_type>(value), size_arr);
+            std::forward<raw_value_type>(value), size_arr);
       },
       std::forward<Type>(t));
   return len;
@@ -454,7 +455,7 @@ IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr) {
                                    std::decay_t<decltype(tuple)>>;
           constexpr auto value = std::get<decltype(i)::value>(tuple);
           using U = typename field_type::value_type;
-          auto& val = value.value(t);
+          auto const& val = value.value(t);
           if constexpr (variant_v<U>) {
             constexpr auto offset =
                 get_variant_index<U, typename field_type::sub_type,

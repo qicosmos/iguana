@@ -562,17 +562,18 @@ struct field_info {
 };
 
 struct base {
-  virtual void to_pb(std::string &str) {}
+  virtual void to_pb(std::string &str) const {}
   virtual void from_pb(std::string_view str) {}
-  virtual void to_xml(std::string &str) {}
+  virtual void to_xml(std::string &str) const {}
   virtual void from_xml(std::string_view str) {}
-  virtual void to_json(std::string &str) {}
+  virtual void to_json(std::string &str) const {}
   virtual void from_json(std::string_view str) {}
-  virtual void to_yaml(std::string &str) {}
+  virtual void to_yaml(std::string &str) const {}
   virtual void from_yaml(std::string_view str) {}
   virtual std::vector<std::string_view> get_fields_name() const { return {}; }
   virtual std::any get_field_any(std::string_view name) const { return {}; }
-  virtual iguana::detail::field_info get_field_info(std::string_view name) {
+  virtual iguana::detail::field_info get_field_info(
+      std::string_view name) const {
     return {};
   }
 
@@ -802,6 +803,7 @@ struct field_t {
   uint32_t field_no;
 
   auto &value(owner_type &value) const { return value.*member_ptr; }
+  auto const &value(owner_type const &value) const { return value.*member_ptr; }
 };
 
 template <typename T>

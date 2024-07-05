@@ -83,6 +83,7 @@ IGUANA_INLINE void to_pb_oneof(Type&& t, It&& it, uint32_t*& sz_ptr) {
   using T = std::decay_t<Type>;
   std::visit(
       [&it, &sz_ptr](auto&& value) IGUANA__INLINE_LAMBDA {
+        using raw_value_type = decltype(value);
         using value_type =
             std::remove_const_t<std::remove_reference_t<decltype(value)>>;
         constexpr auto offset =
@@ -90,7 +91,7 @@ IGUANA_INLINE void to_pb_oneof(Type&& t, It&& it, uint32_t*& sz_ptr) {
         constexpr uint32_t key =
             ((field_no + offset) << 3) |
             static_cast<uint32_t>(get_wire_type<value_type>());
-        to_pb_impl<key, false>(std::forward<value_type>(value), it, sz_ptr);
+        to_pb_impl<key, false>(std::forward<raw_value_type>(value), it, sz_ptr);
       },
       std::forward<Type>(t));
 }
@@ -449,7 +450,7 @@ IGUANA_INLINE void build_sub_proto(Map& map, std::string_view str_type,
 }  // namespace detail
 
 template <typename T, typename Stream>
-IGUANA_INLINE void to_pb(T& t, Stream& out) {
+IGUANA_INLINE void to_pb(T const& t, Stream& out) {
   std::vector<uint32_t> size_arr;
   auto byte_len = detail::pb_key_value_size<0>(t, size_arr);
   detail::resize(out, byte_len);
@@ -491,7 +492,7 @@ IGUANA_INLINE void to_proto_file(Stream& stream, std::string_view ns = "") {
 #endif
 
 template <typename T, typename Stream>
-IGUANA_INLINE void to_pb_adl(iguana_adl_t* p, T& t, Stream& out) {
+IGUANA_INLINE void to_pb_adl(iguana_adl_t* p, T const& t, Stream& out) {
   to_pb(t, out);
 }
 
