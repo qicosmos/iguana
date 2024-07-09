@@ -22,7 +22,7 @@ struct person {
   int arr[2];
 };
 
-TEST_CASE("test field string") {
+TEST_CASE("test field names") {
   constexpr size_t size = members_count_v<person>;
   CHECK(size == 5);
   constexpr auto tp = internal::bind_fake_object_to_tuple<person>();
