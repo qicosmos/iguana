@@ -1,3 +1,7 @@
+#include <sstream>
+#include <utility>
+
+#include "iguana/ylt/reflection/bind_to_tuple.hpp"
 #include "iguana/ylt/reflection/field_names.hpp"
 
 #define DOCTEST_CONFIG_IMPLEMENT
@@ -36,6 +40,34 @@ TEST_CASE("test field names") {
   std::cout << "\n";
   CHECK(arr ==
         std::array<std::string_view, size>{"color", "id", "s", "str", "arr"});
+}
+
+struct simple {
+  int color;
+  int id;
+  std::string str;
+  int age;
+};
+
+TEST_CASE("test field value") {
+  simple p{.color = 2, .id = 10, .str = "hello reflection", .age = 6};
+  auto ptr_tp = internal::bind_to_tuple(p);
+  constexpr auto arr = get_field_names<simple>();
+  std::stringstream out;
+  [&]<size_t... Is>(std::index_sequence<Is...>) {
+    ((out << "name: " << arr[Is] << ", value: " << *std::get<Is>(ptr_tp)
+          << "\n"),
+     ...);
+  }
+  (std::make_index_sequence<arr.size()>{});
+
+  std::string result = out.str();
+  std::cout << out.str();
+
+  std::string expected_str =
+      "name: color, value: 2\nname: id, value: 10\nname: str, value: hello "
+      "reflection\nname: age, value: 6\n";
+  CHECK(result == expected_str);
 }
 
 #endif
