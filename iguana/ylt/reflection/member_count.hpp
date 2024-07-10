@@ -48,6 +48,15 @@ template <typename T>
 constexpr bool optional = !expected<T> && optional_impl<T>::value;
 #endif
 
+template <typename T, uint64_t version = 0>
+struct compatible;
+
+template <typename Type>
+constexpr inline bool is_compatible_v = false;
+
+template <typename Type, uint64_t version>
+constexpr inline bool is_compatible_v<compatible<Type, version>> = true;
+
 struct UniversalVectorType {
   template <typename T>
   operator std::vector<T>();
@@ -69,6 +78,11 @@ struct UniversalNullptrType {
 
 struct UniversalOptionalType {
   template <typename U, typename = std::enable_if_t<optional<U>>>
+  operator U();
+};
+
+struct UniversalCompatibleType {
+  template <typename U, typename = std::enable_if_t<is_compatible_v<U>>>
   operator U();
 };
 
@@ -102,23 +116,26 @@ inline constexpr std::size_t members_count_impl() {
   else if constexpr (is_constructable<T, UniversalNullptrType, Args...>) {
     return members_count_impl<T, Args..., UniversalNullptrType>();
   }
+  else if constexpr (is_constructable<T, UniversalCompatibleType, Args...>) {
+    return members_count_impl<T, Args..., UniversalCompatibleType>();
+  }
   else {
     return sizeof...(Args);
-  }
-}
-
-template <typename T>
-inline constexpr std::size_t members_count() {
-  using type = std::remove_cvref_t<T>;
-  if constexpr (tuple_size<type>) {
-    return std::tuple_size<type>::value;
-  }
-  else {
-    return members_count_impl<type>();
   }
 }
 }  // namespace internal
 
 template <typename T>
-constexpr std::size_t members_count_v = internal::members_count<T>();
+inline constexpr std::size_t members_count() {
+  using type = std::remove_cvref_t<T>;
+  if constexpr (internal::tuple_size<type>) {
+    return std::tuple_size<type>::value;
+  }
+  else {
+    return internal::members_count_impl<type>();
+  }
+}
+
+template <typename T>
+constexpr std::size_t members_count_v = members_count<T>();
 }  // namespace ylt::reflection
