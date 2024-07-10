@@ -51,7 +51,7 @@ template <typename T>
 inline constexpr std::array<std::string_view, members_count_v<T>>
 get_field_names() {
   constexpr size_t Count = members_count_v<T>;
-  constexpr auto tp = internal::bind_fake_object_to_tuple<T>();
+  constexpr auto tp = bind_object_to_tuple<T>();
 
   std::array<std::string_view, Count> arr;
   [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
@@ -61,4 +61,5 @@ get_field_names() {
   (std::make_index_sequence<Count>{});
   return arr;
 }
+
 }  // namespace ylt::reflection

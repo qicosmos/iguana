@@ -1,7 +1,6 @@
 #include <sstream>
 #include <utility>
 
-#include "iguana/ylt/reflection/bind_to_tuple.hpp"
 #include "iguana/ylt/reflection/field_names.hpp"
 
 #define DOCTEST_CONFIG_IMPLEMENT
