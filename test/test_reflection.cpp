@@ -1,7 +1,7 @@
 #include <sstream>
 #include <utility>
 
-#include "iguana/ylt/reflection/field_names.hpp"
+#include "iguana/ylt/reflection/member_names.hpp"
 
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
