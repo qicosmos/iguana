@@ -1,6 +1,10 @@
 #pragma once
 #include "member_count.hpp"
 
+// modify based on:
+// https://github.com/getml/reflect-cpp/blob/main/include/rfl/internal/bind_fake_object_to_tuple.hpp
+// thanks for alxn4's good idea!
+
 namespace ylt::reflection {
 namespace internal {
 
@@ -824,13 +828,13 @@ inline constexpr auto tuple_view(T& t) {
 }  // namespace internal
 
 template <class T>
-inline constexpr auto bind_object_to_tuple() {
+inline constexpr auto struct_to_tuple() {
   return internal::object_tuple_view_helper<T,
                                             members_count_v<T>>::tuple_view();
 }
 
 template <class T>
-inline constexpr auto bind_to_tuple(T& t) {
+inline constexpr auto object_to_tuple(T& t) {
   auto view = internal::tuple_view(t);
   return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
     return std::make_tuple((&std::get<Is>(view))...);

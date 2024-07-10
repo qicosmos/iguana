@@ -23,7 +23,7 @@ inline constexpr auto wrap(const T& arg) noexcept {
 }
 
 template <auto ptr>
-inline constexpr std::string_view get_field_name() {
+inline constexpr std::string_view get_member_name() {
 #if defined(_MSC_VER)
   constexpr std::string_view func_name = __FUNCSIG__;
 #else
@@ -49,13 +49,13 @@ inline constexpr std::string_view get_field_name() {
 
 template <typename T>
 inline constexpr std::array<std::string_view, members_count_v<T>>
-get_field_names() {
+get_member_names() {
   constexpr size_t Count = members_count_v<T>;
-  constexpr auto tp = bind_object_to_tuple<T>();
+  constexpr auto tp = struct_to_tuple<T>();
 
   std::array<std::string_view, Count> arr;
   [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
-    ((arr[Is] = internal::get_field_name<internal::wrap(std::get<Is>(tp))>()),
+    ((arr[Is] = internal::get_member_name<internal::wrap(std::get<Is>(tp))>()),
      ...);
   }
   (std::make_index_sequence<Count>{});

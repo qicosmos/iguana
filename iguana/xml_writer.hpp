@@ -311,8 +311,8 @@ IGUANA_INLINE void render_xml_value(Stream &ss, T &&t, std::string_view name) {
   using U = std::remove_cvref_t<T>;
   constexpr size_t Count = ylt::reflection::members_count_v<U>;
 
-  auto tp = ylt::reflection::bind_to_tuple(t);
-  static constexpr auto arr = ylt::reflection::get_field_names<U>();
+  auto tp = ylt::reflection::object_to_tuple(t);
+  static constexpr auto arr = ylt::reflection::get_member_names<U>();
 
   [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
     (render_xml_value_impl<pretty, spaces, Is>(ss, *std::get<Is>(tp), arr[Is]),
