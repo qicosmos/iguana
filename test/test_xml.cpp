@@ -64,6 +64,35 @@ struct optional_t {
 };
 REFLECTION(optional_t, a, b, c, d, e);
 
+struct my_optional_t {
+  int a;
+  std::optional<int> b;
+  std::optional<std::string> c;
+  bool d;
+  char e;
+};
+
+struct my_list_t {
+  std::vector<my_optional_t> list;
+  int id;
+};
+
+TEST_CASE("test my_list_t") {
+  my_optional_t op{1, 2, {}, 0, 'o'};
+
+  static_assert(std::is_aggregate_v<my_list_t>, "err");
+  std::string ss;
+  iguana::to_xml<true>(op, ss);
+  std::cout << ss << "\n";
+
+  my_list_t l;
+  l.list.push_back(my_optional_t{1, 2, {}, 0, 'o'});
+  l.list.push_back(my_optional_t{3, 4, {}, 1, 'k'});
+  std::string s;
+  iguana::to_xml<true>(l, s);
+  std::cout << s << "\n";
+}
+
 struct list_t {
   std::vector<optional_t> list;
   int id;

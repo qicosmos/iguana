@@ -72,6 +72,12 @@ template <bool pretty, size_t spaces, typename Stream, typename T,
           std::enable_if_t<refletable_v<T>, int> = 0>
 IGUANA_INLINE void render_xml_value(Stream &ss, T &&t, std::string_view name);
 
+template <bool pretty, size_t spaces, typename Stream, typename T,
+          std::enable_if_t<std::is_aggregate_v<std::remove_cvref_t<T>> &&
+                               !refletable_v<T>,
+                           int> = 0>
+IGUANA_INLINE void render_xml_value(Stream &ss, T &&t, std::string_view name);
+
 template <bool pretty, size_t spaces, typename Stream>
 IGUANA_INLINE void render_tail(Stream &ss, std::string_view str) {
   if constexpr (pretty) {
@@ -248,6 +254,31 @@ IGUANA_INLINE void render_xml_value(Stream &ss, const T &value,
   throw std::bad_function_call();
 }
 
+template <bool pretty, size_t spaces, size_t I, typename Stream, typename Value>
+IGUANA_INLINE void render_xml_value_impl(Stream &ss, const Value &value,
+                                         std::string_view tag_name) {
+  using value_type = underline_type_t<Value>;
+  if constexpr (sequence_container_v<value_type>) {
+    render_xml_value<pretty, spaces + 1>(ss, value, tag_name);
+  }
+  else if constexpr (attr_v<value_type>) {
+    render_xml_value<pretty, spaces + 1>(ss, value, tag_name);
+  }
+  else if constexpr (cdata_v<value_type>) {
+    if constexpr (pretty) {
+      ss.append(spaces + 1, '\t');
+      ss.append("<![CDATA[").append(value.value()).append("]]>\n");
+    }
+    else {
+      ss.append("<![CDATA[").append(value.value()).append("]]>");
+    }
+  }
+  else {
+    render_head<pretty, spaces + 1>(ss, tag_name);
+    render_xml_value<pretty, spaces + 1>(ss, value, tag_name);
+  }
+}
+
 template <bool pretty, size_t spaces, typename Stream, typename T,
           std::enable_if_t<refletable_v<T>, int>>
 IGUANA_INLINE void render_xml_value(Stream &ss, T &&t, std::string_view name) {
@@ -257,33 +288,38 @@ IGUANA_INLINE void render_xml_value(Stream &ss, T &&t, std::string_view name) {
   for_each(std::forward<T>(t),
            [&](const auto &v, auto i) IGUANA__INLINE_LAMBDA {
              using M = decltype(iguana_reflect_type(std::forward<T>(t)));
-             using value_type = underline_type_t<decltype(t.*v)>;
              constexpr auto Idx = decltype(i)::value;
              constexpr auto Count = M::value();
              [[maybe_unused]] constexpr std::string_view tag_name =
                  std::string_view(get_name<std::decay_t<T>, Idx>().data(),
                                   get_name<std::decay_t<T>, Idx>().size());
              static_assert(Idx < Count);
-             if constexpr (sequence_container_v<value_type>) {
-               render_xml_value<pretty, spaces + 1>(ss, t.*v, tag_name);
-             }
-             else if constexpr (attr_v<value_type>) {
-               render_xml_value<pretty, spaces + 1>(ss, t.*v, tag_name);
-             }
-             else if constexpr (cdata_v<value_type>) {
-               if constexpr (pretty) {
-                 ss.append(spaces + 1, '\t');
-                 ss.append("<![CDATA[").append((t.*v).value()).append("]]>\n");
-               }
-               else {
-                 ss.append("<![CDATA[").append((t.*v).value()).append("]]>");
-               }
-             }
-             else {
-               render_head<pretty, spaces + 1>(ss, tag_name);
-               render_xml_value<pretty, spaces + 1>(ss, t.*v, tag_name);
-             }
+             render_xml_value_impl<pretty, spaces, Idx>(ss, t.*v, tag_name);
            });
+  render_tail<pretty, spaces>(ss, name);
+}
+
+template <
+    bool pretty, size_t spaces, typename Stream, typename T,
+    std::enable_if_t<
+        std::is_aggregate_v<std::remove_cvref_t<T>> && !refletable_v<T>, int>>
+IGUANA_INLINE void render_xml_value(Stream &ss, T &&t, std::string_view name) {
+  if constexpr (pretty) {
+    ss.push_back('\n');
+  }
+
+  using U = std::remove_cvref_t<T>;
+  constexpr size_t Count = ylt::reflection::members_count_v<U>;
+
+  auto tp = ylt::reflection::internal::bind_to_tuple(t);
+  static constexpr auto arr = ylt::reflection::get_field_names<U>();
+
+  [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
+    (render_xml_value_impl<pretty, spaces, Is>(ss, *std::get<Is>(tp), arr[Is]),
+     ...);
+  }
+  (std::make_index_sequence<Count>{});
+
   render_tail<pretty, spaces>(ss, name);
 }
 
@@ -302,6 +338,16 @@ template <bool pretty = false, typename Stream, typename T,
 IGUANA_INLINE void to_xml(T &&t, Stream &s) {
   constexpr std::string_view root_name = std::string_view(
       get_name<std::decay_t<T>>().data(), get_name<std::decay_t<T>>().size());
+  render_head<pretty, 0>(s, root_name);
+  render_xml_value<pretty, 0>(s, std::forward<T>(t), root_name);
+}
+
+template <bool pretty = false, typename Stream, typename T,
+          std::enable_if_t<std::is_aggregate_v<std::remove_cvref_t<T>> &&
+                               !refletable_v<T>,
+                           int> = 0>
+IGUANA_INLINE void to_xml(T &&t, Stream &s) {
+  constexpr std::string_view root_name = type_string<std::decay_t<T>>();
   render_head<pretty, 0>(s, root_name);
   render_xml_value<pretty, 0>(s, std::forward<T>(t), root_name);
 }
