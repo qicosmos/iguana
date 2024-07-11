@@ -1,5 +1,8 @@
 #pragma once
 #include "field_reflection.hpp"
+
+#if __has_include(<concepts>) || defined(__clang__) || defined(_MSC_VER) || \
+    (defined(__GNUC__) && __GNUC__ > 10)
 #include "member_names.hpp"
 
 namespace ylt::reflection {
@@ -107,3 +110,4 @@ template <ylt::reflection::FixedString s>
 inline constexpr auto operator""_ylts() {
   return s;
 }
+#endif

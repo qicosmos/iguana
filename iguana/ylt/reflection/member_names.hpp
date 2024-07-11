@@ -2,6 +2,8 @@
 #include <string_view>
 
 #include "field_reflection.hpp"
+#if __has_include(<concepts>) || defined(__clang__) || defined(_MSC_VER) || \
+    (defined(__GNUC__) && __GNUC__ > 10)
 #include "member_ptr.hpp"
 
 namespace ylt::reflection {
@@ -73,3 +75,4 @@ inline constexpr auto get_member_names_map() {
   (std::make_index_sequence<name_arr.size()>{});
 }
 }  // namespace ylt::reflection
+#endif

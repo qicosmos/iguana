@@ -1,10 +1,11 @@
 #pragma once
 #include "member_count.hpp"
 
+#if __has_include(<concepts>) || defined(__clang__) || defined(_MSC_VER) || \
+    (defined(__GNUC__) && __GNUC__ > 10)
 // modify based on:
 // https://github.com/getml/reflect-cpp/blob/main/include/rfl/internal/bind_fake_object_to_tuple.hpp
 // thanks for alxn4's greate idea!
-
 namespace ylt::reflection {
 namespace internal {
 
@@ -842,3 +843,4 @@ inline constexpr auto object_to_tuple(T& t) {
   (std::make_index_sequence<std::tuple_size_v<decltype(view)>>());
 }
 }  // namespace ylt::reflection
+#endif

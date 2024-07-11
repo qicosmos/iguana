@@ -7,7 +7,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
 
-#if defined(__clang__) || defined(_MSC_VER) || \
+#if __has_include(<concepts>) || defined(__clang__) || defined(_MSC_VER) || \
     (defined(__GNUC__) && __GNUC__ > 10)
 
 using namespace ylt::reflection;
