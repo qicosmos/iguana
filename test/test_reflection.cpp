@@ -2,6 +2,7 @@
 #include <utility>
 
 #include "iguana/ylt/reflection/member_names.hpp"
+#include "iguana/ylt/reflection/member_value.hpp"
 
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
@@ -25,14 +26,14 @@ struct person {
   int arr[2];
 };
 
-TEST_CASE("test field names") {
+TEST_CASE("test member names") {
   constexpr size_t size = members_count_v<person>;
   CHECK(size == 5);
-  constexpr auto tp = internal::bind_fake_object_to_tuple<person>();
+  constexpr auto tp = struct_to_tuple<person>();
   constexpr size_t tp_size = std::tuple_size_v<decltype(tp)>;
   CHECK(tp_size == 5);
 
-  constexpr auto arr = get_field_names<person>();
+  constexpr auto arr = get_member_names<person>();
   for (auto name : arr) {
     std::cout << name << ", ";
   }
@@ -48,10 +49,10 @@ struct simple {
   int age;
 };
 
-TEST_CASE("test field value") {
+TEST_CASE("test member value") {
   simple p{.color = 2, .id = 10, .str = "hello reflection", .age = 6};
-  auto ptr_tp = internal::bind_to_tuple(p);
-  constexpr auto arr = get_field_names<simple>();
+  auto ptr_tp = object_to_tuple(p);
+  constexpr auto arr = get_member_names<simple>();
   std::stringstream out;
   [&]<size_t... Is>(std::index_sequence<Is...>) {
     ((out << "name: " << arr[Is] << ", value: " << *std::get<Is>(ptr_tp)
@@ -67,10 +68,22 @@ TEST_CASE("test field value") {
       "name: color, value: 2\nname: id, value: 10\nname: str, value: hello "
       "reflection\nname: age, value: 6\n";
   CHECK(result == expected_str);
+
+  constexpr auto map = get_member_names_map<simple>();
+  constexpr size_t index = map.at("age");
+  CHECK(index == 3);
+  auto age = *std::get<index>(ptr_tp);
+  CHECK(age == 6);
+
+  auto& age1 = get_member_by_name<int, "age"_ylts>(p);
+  CHECK(age1 == 6);
+
+  auto& str = get_member_by_name<std::string, "str"_ylts>(p);
+  CHECK(str == "hello reflection");
 }
 
 #endif
 
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
-int main(int argc, char **argv) { return doctest::Context(argc, argv).run(); }
+int main(int argc, char** argv) { return doctest::Context(argc, argv).run(); }
 DOCTEST_MSVC_SUPPRESS_WARNING_POP

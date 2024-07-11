@@ -1,6 +1,7 @@
 #pragma once
 #include <string_view>
 
+#include "field_reflection.hpp"
 #include "member_ptr.hpp"
 
 namespace ylt::reflection {
@@ -62,4 +63,13 @@ get_member_names() {
   return arr;
 }
 
+template <typename T>
+inline constexpr auto get_member_names_map() {
+  constexpr auto name_arr = get_member_names<T>();
+  return [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
+    return frozen::unordered_map<frozen::string, size_t, name_arr.size()>{
+        {name_arr[Is], Is}...};
+  }
+  (std::make_index_sequence<name_arr.size()>{});
+}
 }  // namespace ylt::reflection
