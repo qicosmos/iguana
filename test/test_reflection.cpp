@@ -80,6 +80,12 @@ TEST_CASE("test member value") {
 
   auto& str = get_member_by_name<std::string, "str"_ylts>(p);
   CHECK(str == "hello reflection");
+
+  auto age2 = get_member_by_index<int>(p, 3);
+  CHECK(age2 == 6);
+
+  auto str2 = get_member_by_index<std::string, 2>(p);
+  CHECK(str2 == "hello reflection");
 }
 
 #endif

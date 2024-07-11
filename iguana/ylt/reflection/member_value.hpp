@@ -39,7 +39,7 @@ struct FixedString {
 template <typename Member, typename T>
 inline Member& get_member_by_name(T& t, std::string_view name) {
   static constexpr auto map = get_member_names_map<T>();
-  size_t index = map.at(name);  // may throw out_of_range unknown key.
+  size_t index = map.at(name);  // may throw out_of_range: unknown key.
   auto ptr_tp = object_to_tuple(t);
 
   Member* member_ptr = nullptr;
@@ -66,6 +66,40 @@ inline Member& get_member_by_name(T& t) {
         "given member type is not match the real member type");
   }
   return *member_ptr;
+}
+
+template <typename Member, typename T>
+inline Member& get_member_by_index(T& t, size_t index) {
+  auto ptr_tp = object_to_tuple(t);
+  constexpr size_t tuple_size = std::tuple_size_v<decltype(ptr_tp)>;
+
+  if (index >= tuple_size) {
+    std::string str = "index out of range, ";
+    str.append("index: ")
+        .append(std::to_string(index))
+        .append(" is greater equal than member count ")
+        .append(std::to_string(tuple_size));
+    throw std::out_of_range(str);
+  }
+  Member* member_ptr = nullptr;
+  internal::tuple_switch(member_ptr, index, ptr_tp,
+                         std::make_index_sequence<tuple_size>{});
+  if (member_ptr == nullptr) {
+    throw std::invalid_argument(
+        "given member type is not match the real member type");
+  }
+  return *member_ptr;
+}
+
+template <typename Member, size_t index, typename T>
+inline Member& get_member_by_index(T& t) {
+  auto ptr_tp = object_to_tuple(t);
+
+  static_assert(
+      std::is_same_v<Member*, std::tuple_element_t<index, decltype(ptr_tp)>>,
+      "member type is not match");
+
+  return *std::get<index>(ptr_tp);
 }
 }  // namespace ylt::reflection
 
