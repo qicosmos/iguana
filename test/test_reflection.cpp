@@ -75,19 +75,19 @@ TEST_CASE("test member value") {
   auto age = std::get<index>(ref_tp);
   CHECK(age == 6);
 
-  auto& age1 = get_member_by_name<int>(p, "age");
+  auto& age1 = get_member_value_by_name<int>(p, "age");
   CHECK(age1 == 6);
 
-  auto& age2 = get_member_by_name<int, "age"_ylts>(p);
+  auto& age2 = get_member_value_by_name<int, "age"_ylts>(p);
   CHECK(age2 == 6);
 
-  auto& str = get_member_by_name<std::string, "str"_ylts>(p);
+  auto& str = get_member_value_by_name<std::string, "str"_ylts>(p);
   CHECK(str == "hello reflection");
 
-  auto age3 = get_member_by_index<int>(p, 3);
+  auto age3 = get_member_value_by_index<int>(p, 3);
   CHECK(age3 == 6);
 
-  auto str2 = get_member_by_index<std::string, 2>(p);
+  auto str2 = get_member_value_by_index<2>(p);
   CHECK(str2 == "hello reflection");
 
   for_each(p, []<typename T>(ylt_field<T> field) {
@@ -121,6 +121,12 @@ TEST_CASE("test member value") {
 
   size_t idx3 = get_member_index_by_name<simple>("no_such");
   CHECK(idx3 == 4);
+
+  size_t idx4 = get_member_index_by_value(p, age1);
+  CHECK(idx4 == 3);
+
+  auto name3 = get_member_name_by_value(p, age1);
+  CHECK(name3 == "age");
 }
 
 #endif

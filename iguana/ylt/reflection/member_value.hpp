@@ -31,7 +31,7 @@ inline void tuple_switch(Member& member, std::size_t i, Tuple& t,
 }  // namespace internal
 
 template <typename Member, typename T>
-inline Member& get_member_by_name(T& t, std::string_view name) {
+inline Member& get_member_value_by_name(T& t, std::string_view name) {
   static constexpr auto map = get_member_names_map<T>();
   size_t index = map.at(name);  // may throw out_of_range: unknown key.
   auto ref_tp = object_to_tuple(t);
@@ -47,7 +47,7 @@ inline Member& get_member_by_name(T& t, std::string_view name) {
 }
 
 template <typename Member, FixedString name, typename T>
-inline Member& get_member_by_name(T& t) {
+inline Member& get_member_value_by_name(T& t) {
   static constexpr auto map = get_member_names_map<T>();
   static constexpr size_t index = map.at(name.data);
   auto ref_tp = object_to_tuple(t);
@@ -63,7 +63,7 @@ inline Member& get_member_by_name(T& t) {
 }
 
 template <typename Member, typename T>
-inline Member& get_member_by_index(T& t, size_t index) {
+inline Member& get_member_value_by_index(T& t, size_t index) {
   auto ref_tp = object_to_tuple(t);
   constexpr size_t tuple_size = std::tuple_size_v<decltype(ref_tp)>;
 
@@ -85,15 +85,52 @@ inline Member& get_member_by_index(T& t, size_t index) {
   return *member_ptr;
 }
 
-template <typename Member, size_t index, typename T>
-inline Member& get_member_by_index(T& t) {
+template <size_t index, typename T>
+inline auto& get_member_value_by_index(T& t) {
   auto ref_tp = object_to_tuple(t);
 
-  static_assert(
-      std::is_same_v<Member&, std::tuple_element_t<index, decltype(ref_tp)>>,
-      "member type is not match");
+  static_assert(index < std::tuple_size_v<decltype(ref_tp)>,
+                "index out of range");
 
   return std::get<index>(ref_tp);
+}
+
+template <size_t I, typename T, typename U>
+inline bool check_value(T value, U field_value) {
+  if constexpr (std::is_same_v<T, U>) {
+    return value == field_value;
+  }
+  else {
+    return false;
+  }
+}
+
+template <typename T, typename Field>
+inline size_t get_member_index_by_value(T& t, Field& value) {
+  auto ref_tp = object_to_tuple(t);
+  constexpr size_t tuple_size = std::tuple_size_v<decltype(ref_tp)>;
+
+  size_t index = tuple_size;
+  bool r = false;
+  [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
+    ((void)(!r && (r = check_value<Is>(&std::get<Is>(ref_tp), &value),
+                   index = Is, true)),
+     ...);
+  }
+  (std::make_index_sequence<tuple_size>{});
+
+  return index;
+}
+
+template <typename T, typename Field>
+inline std::string_view get_member_name_by_value(T& t, Field& value) {
+  size_t index = get_member_index_by_value(t, value);
+  constexpr auto arr = get_member_names<T>();
+  if (index == arr.size()) {
+    return "";
+  }
+
+  return arr[index];
 }
 
 template <typename T>
