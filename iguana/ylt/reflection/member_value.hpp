@@ -30,16 +30,6 @@ inline void tuple_switch(Member& member, std::size_t i, Tuple& t,
 }
 }  // namespace internal
 
-template <std::size_t N>
-struct FixedString {
-  char data[N];
-  template <std::size_t... I>
-  constexpr FixedString(const char (&s)[N], std::index_sequence<I...>)
-      : data{s[I]...} {}
-  constexpr FixedString(const char (&s)[N])
-      : FixedString(s, std::make_index_sequence<N>()) {}
-};
-
 template <typename Member, typename T>
 inline Member& get_member_by_name(T& t, std::string_view name) {
   static constexpr auto map = get_member_names_map<T>();

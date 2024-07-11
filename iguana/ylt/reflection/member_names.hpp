@@ -75,6 +75,53 @@ inline constexpr auto get_member_names_map() {
   (std::make_index_sequence<name_arr.size()>{});
 }
 
+template <std::size_t N>
+struct FixedString {
+  char data[N];
+  template <std::size_t... I>
+  constexpr FixedString(const char (&s)[N], std::index_sequence<I...>)
+      : data{s[I]...} {}
+  constexpr FixedString(const char (&s)[N])
+      : FixedString(s, std::make_index_sequence<N>()) {}
+  constexpr std::string_view str() const {
+    return std::string_view{data, N - 1};
+  }
+};
+
+template <typename T>
+inline constexpr size_t get_member_index_by_name(std::string_view name) {
+  constexpr auto arr = get_member_names<T>();
+  for (size_t i = 0; i < arr.size(); i++) {
+    if (arr[i] == name) {
+      return i;
+    }
+  }
+
+  return arr.size();
+}
+
+template <typename T, FixedString name>
+inline constexpr size_t get_member_index_by_name() {
+  return get_member_index_by_name<T>(name.str());
+}
+
+template <typename T, size_t index>
+inline constexpr std::string_view get_member_name_by_index() {
+  static_assert(index < members_count_v<T>, "index out of range");
+  constexpr auto arr = get_member_names<T>();
+  return arr[index];
+}
+
+template <typename T>
+inline constexpr std::string_view get_member_name_by_index(size_t index) {
+  constexpr auto arr = get_member_names<T>();
+  if (index >= arr.size()) {
+    return "";
+  }
+
+  return arr[index];
+}
+
 template <typename T, typename Visit>
 inline constexpr void for_each(Visit func) {
   constexpr auto arr = get_member_names<T>();
