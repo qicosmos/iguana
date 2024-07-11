@@ -49,6 +49,23 @@ struct simple {
   int age;
 };
 
+void test_pointer() {
+  simple t{};
+  auto&& [a, b, c, d] = t;
+  size_t offset1 = (const char*)(&a) - (const char*)(&t);
+  size_t offset2 = (const char*)(&b) - (const char*)(&t);
+  size_t offset3 = (const char*)(&c) - (const char*)(&t);
+  size_t offset4 = (const char*)(&d) - (const char*)(&t);
+
+  const auto& offset_arr = get_member_offset_arr<simple>();
+  CHECK(offset_arr[0] == offset1);
+  CHECK(offset_arr[1] == offset2);
+  CHECK(offset_arr[2] == offset3);
+  CHECK(offset_arr[3] == offset4);
+}
+
+TEST_CASE("test member pointer and offset") { test_pointer(); }
+
 TEST_CASE("test member value") {
   simple p{.color = 2, .id = 10, .str = "hello reflection", .age = 6};
   auto ref_tp = object_to_tuple(p);
