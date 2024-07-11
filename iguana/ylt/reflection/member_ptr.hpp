@@ -836,11 +836,7 @@ inline constexpr auto struct_to_tuple() {
 
 template <class T>
 inline constexpr auto object_to_tuple(T& t) {
-  auto view = internal::tuple_view(t);
-  return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-    return std::make_tuple((&std::get<Is>(view))...);
-  }
-  (std::make_index_sequence<std::tuple_size_v<decltype(view)>>());
+  return internal::tuple_view(t);
 }
 }  // namespace ylt::reflection
 #endif

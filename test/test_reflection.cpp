@@ -51,11 +51,11 @@ struct simple {
 
 TEST_CASE("test member value") {
   simple p{.color = 2, .id = 10, .str = "hello reflection", .age = 6};
-  auto ptr_tp = object_to_tuple(p);
+  auto ref_tp = object_to_tuple(p);
   constexpr auto arr = get_member_names<simple>();
   std::stringstream out;
   [&]<size_t... Is>(std::index_sequence<Is...>) {
-    ((out << "name: " << arr[Is] << ", value: " << *std::get<Is>(ptr_tp)
+    ((out << "name: " << arr[Is] << ", value: " << std::get<Is>(ref_tp)
           << "\n"),
      ...);
   }
@@ -72,7 +72,7 @@ TEST_CASE("test member value") {
   constexpr auto map = get_member_names_map<simple>();
   constexpr size_t index = map.at("age");
   CHECK(index == 3);
-  auto age = *std::get<index>(ptr_tp);
+  auto age = std::get<index>(ref_tp);
   CHECK(age == 6);
 
   auto& age1 = get_member_by_name<int>(p, "age");
