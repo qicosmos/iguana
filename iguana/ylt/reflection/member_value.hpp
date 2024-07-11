@@ -104,6 +104,28 @@ inline Member& get_member_by_index(T& t) {
 
   return *std::get<index>(ptr_tp);
 }
+
+template <typename T>
+struct ylt_field {
+  T& value;
+  size_t index;
+  std::string_view name;
+};
+
+template <typename T>
+ylt_field(T& a, size_t, std::string_view) -> ylt_field<T>;
+
+template <typename T, typename Visit>
+inline void for_each(T& t, Visit func) {
+  auto ptr_tp = object_to_tuple(t);
+  constexpr size_t tuple_size = std::tuple_size_v<decltype(ptr_tp)>;
+  constexpr auto arr = get_member_names<T>();
+  [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
+    (func(ylt_field{*std::get<Is>(ptr_tp), Is, arr[Is]}), ...);
+  }
+  (std::make_index_sequence<tuple_size>{});
+}
+
 }  // namespace ylt::reflection
 
 template <ylt::reflection::FixedString s>

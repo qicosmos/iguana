@@ -86,6 +86,20 @@ TEST_CASE("test member value") {
 
   auto str2 = get_member_by_index<std::string, 2>(p);
   CHECK(str2 == "hello reflection");
+
+  for_each(p, []<typename T>(ylt_field<T> field) {
+    std::cout << field.index << ", " << field.name << ", " << field.value
+              << "\n";
+  });
+
+  for_each(p, [](auto field) {
+    std::cout << field.index << ", " << field.name << ", " << field.value
+              << "\n";
+  });
+
+  for_each<simple>([](size_t index, std::string_view field_name) {
+    std::cout << index << ", " << field_name << "\n";
+  });
 }
 
 #endif

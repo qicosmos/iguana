@@ -74,5 +74,15 @@ inline constexpr auto get_member_names_map() {
   }
   (std::make_index_sequence<name_arr.size()>{});
 }
+
+template <typename T, typename Visit>
+inline constexpr void for_each(Visit func) {
+  constexpr auto arr = get_member_names<T>();
+  [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
+    (func(Is, arr[Is]), ...);
+  }
+  (std::make_index_sequence<arr.size()>{});
+}
+
 }  // namespace ylt::reflection
 #endif
