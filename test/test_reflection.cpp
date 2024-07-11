@@ -75,14 +75,17 @@ TEST_CASE("test member value") {
   auto age = *std::get<index>(ptr_tp);
   CHECK(age == 6);
 
-  auto& age1 = get_member_by_name<int, "age"_ylts>(p);
+  auto& age1 = get_member_by_name<int>(p, "age");
   CHECK(age1 == 6);
+
+  auto& age2 = get_member_by_name<int, "age"_ylts>(p);
+  CHECK(age2 == 6);
 
   auto& str = get_member_by_name<std::string, "str"_ylts>(p);
   CHECK(str == "hello reflection");
 
-  auto age2 = get_member_by_index<int>(p, 3);
-  CHECK(age2 == 6);
+  auto age3 = get_member_by_index<int>(p, 3);
+  CHECK(age3 == 6);
 
   auto str2 = get_member_by_index<std::string, 2>(p);
   CHECK(str2 == "hello reflection");

@@ -46,8 +46,8 @@ inline Member& get_member_by_name(T& t, std::string_view name) {
   auto ptr_tp = object_to_tuple(t);
 
   Member* member_ptr = nullptr;
-  tuple_switch(member_ptr, index, ptr_tp,
-               std::make_index_sequence<map.size()>{});
+  internal::tuple_switch(member_ptr, index, ptr_tp,
+                         std::make_index_sequence<map.size()>{});
   if (member_ptr == nullptr) {
     throw std::invalid_argument(
         "given member type is not match the real member type");
