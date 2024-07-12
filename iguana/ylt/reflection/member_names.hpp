@@ -75,19 +75,13 @@ template <typename T>
 using struct_variant_t = decltype(tuple_to_variant(
     std::declval<decltype(struct_to_tuple<std::remove_cvref_t<T>>())>));
 
-template <typename T, size_t Count>
-struct ylt_struct_offset_map {
-  std::array<size_t, Count> arr;
-};
-
 template <typename T>
-inline auto get_member_offset_arr() {
+inline const auto& get_member_offset_arr() {
   constexpr size_t Count = members_count_v<T>;
   constexpr auto tp = struct_to_tuple<T>();
 
-  [[maybe_unused]] static ylt_struct_offset_map<T, Count> map = {
-      [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
-          std::array<size_t, Count> arr;
+  [[maybe_unused]] static std::array<size_t, Count> arr = {[&]<size_t... Is>(
+      std::index_sequence<Is...>) mutable {std::array<size_t, Count> arr;
   ((arr[Is] = size_t((const char*)std::get<Is>(tp) -
                      (char*)(&internal::wrapper<T>::value))),
    ...);
@@ -96,7 +90,7 @@ inline auto get_member_offset_arr() {
 (std::make_index_sequence<Count>{})
 };  // namespace ylt::reflection
 
-return map.arr;
+return arr;
 }
 
 template <typename T>
