@@ -155,6 +155,10 @@ TEST_CASE("test member value") {
 
   auto name3 = name_of(p, age1);
   CHECK(name3 == "age");
+
+  int no_such = 100;
+  size_t idx5 = index_of(p, no_such);
+  CHECK(idx5 == 4);
 }
 
 #endif

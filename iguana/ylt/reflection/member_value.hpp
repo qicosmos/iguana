@@ -1,4 +1,7 @@
 #pragma once
+#include <algorithm>
+#include <cstddef>
+#include <iterator>
 #include <variant>
 
 #include "template_string.hpp"
@@ -140,19 +143,14 @@ inline bool check_value(T value, U field_value) {
 
 template <typename T, typename Field>
 inline size_t index_of(T& t, Field& value) {
-  auto ref_tp = object_to_tuple(t);
-  constexpr size_t tuple_size = std::tuple_size_v<decltype(ref_tp)>;
-
-  size_t index = tuple_size;
-  bool r = false;
-  [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
-    ((void)(!r && (r = check_value<Is>(&std::get<Is>(ref_tp), &value),
-                   index = Is, true)),
-     ...);
+  const auto& offset_arr = get_member_offset_arr<T>();
+  size_t cur_offset = (const char*)(&value) - (const char*)(&t);
+  auto it = std::lower_bound(offset_arr.begin(), offset_arr.end(), cur_offset);
+  if (it == offset_arr.end()) {
+    return offset_arr.size();
   }
-  (std::make_index_sequence<tuple_size>{});
 
-  return index;
+  return std::distance(offset_arr.begin(), it);
 }
 
 template <typename T, typename Field>
