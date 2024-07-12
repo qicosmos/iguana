@@ -92,7 +92,7 @@ TEST_CASE("test member value") {
   auto age = std::get<index>(ref_tp);
   CHECK(age == 6);
 
-  auto& age1 = get_member_value_by_name<int>(p, "age");
+  auto& age1 = get<int>(p, "age");
   CHECK(age1 == 6);
 
   auto& age2 = get<"age"_ylts>(p);
@@ -101,7 +101,7 @@ TEST_CASE("test member value") {
   auto& var1 = get<"str"_ylts>(p);
   CHECK(var1 == "hello reflection");
 
-  auto age3 = get_member_value_by_index<int>(p, 3);
+  auto age3 = get<int>(p, 3);
   CHECK(age3 == 6);
 
   auto str2 = get<2>(p);
