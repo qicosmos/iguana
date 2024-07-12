@@ -95,16 +95,16 @@ TEST_CASE("test member value") {
   auto& age1 = get_member_value_by_name<int>(p, "age");
   CHECK(age1 == 6);
 
-  auto& age2 = get_member_value_by_name<int, "age"_ylts>(p);
+  auto& age2 = get<"age"_ylts>(p);
   CHECK(age2 == 6);
 
-  auto& str = get_member_value_by_name<std::string, "str"_ylts>(p);
-  CHECK(str == "hello reflection");
+  auto& var1 = get<"str"_ylts>(p);
+  CHECK(var1 == "hello reflection");
 
   auto age3 = get_member_value_by_index<int>(p, 3);
   CHECK(age3 == 6);
 
-  auto str2 = get_member_value_by_index<2>(p);
+  auto str2 = get<2>(p);
   CHECK(str2 == "hello reflection");
 
   for_each(p, []<typename T>(ylt_field<T> field) {

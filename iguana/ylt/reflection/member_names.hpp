@@ -67,11 +67,13 @@ get_member_names() {
 }
 
 template <typename... Args>
-constexpr std::variant<Args...> tuple_to_variant(std::tuple<Args...>&&);
+inline constexpr auto tuple_to_variant(std::tuple<Args...>) {
+  return std::variant<std::add_pointer_t<Args>...>{};
+}
 
 template <typename T>
-using struct_variant_t =
-    decltype(tuple_to_variant(std::declval<decltype(struct_to_tuple<T>())>));
+using struct_variant_t = decltype(tuple_to_variant(
+    std::declval<decltype(struct_to_tuple<std::remove_cvref_t<T>>())>));
 
 template <typename T, size_t Count>
 struct ylt_struct_offset_map {
