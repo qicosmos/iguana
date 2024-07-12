@@ -123,7 +123,7 @@ struct FixedString {
 };
 
 template <typename T>
-inline constexpr size_t get_member_index_by_name(std::string_view name) {
+inline constexpr size_t index_of(std::string_view name) {
   constexpr auto arr = get_member_names<T>();
   for (size_t i = 0; i < arr.size(); i++) {
     if (arr[i] == name) {
@@ -135,19 +135,19 @@ inline constexpr size_t get_member_index_by_name(std::string_view name) {
 }
 
 template <typename T, FixedString name>
-inline constexpr size_t get_member_index_by_name() {
-  return get_member_index_by_name<T>(name.str());
+inline constexpr size_t index_of() {
+  return index_of<T>(name.str());
 }
 
 template <typename T, size_t index>
-inline constexpr std::string_view get_member_name_by_index() {
+inline constexpr std::string_view name_of() {
   static_assert(index < members_count_v<T>, "index out of range");
   constexpr auto arr = get_member_names<T>();
   return arr[index];
 }
 
 template <typename T>
-inline constexpr std::string_view get_member_name_by_index(size_t index) {
+inline constexpr std::string_view name_of(size_t index) {
   constexpr auto arr = get_member_names<T>();
   if (index >= arr.size()) {
     return "";

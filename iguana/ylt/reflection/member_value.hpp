@@ -58,7 +58,7 @@ inline auto& get(T& t) {
 
 template <FixedString name, typename T>
 inline auto& get(T& t) {
-  constexpr size_t index = get_member_index_by_name<T, name>();
+  constexpr size_t index = index_of<T, name>();
   return get<index>(t);
 }
 
@@ -96,7 +96,7 @@ inline bool check_value(T value, U field_value) {
 }
 
 template <typename T, typename Field>
-inline size_t get_member_index_by_value(T& t, Field& value) {
+inline size_t index_of(T& t, Field& value) {
   auto ref_tp = object_to_tuple(t);
   constexpr size_t tuple_size = std::tuple_size_v<decltype(ref_tp)>;
 
@@ -113,8 +113,8 @@ inline size_t get_member_index_by_value(T& t, Field& value) {
 }
 
 template <typename T, typename Field>
-inline std::string_view get_member_name_by_value(T& t, Field& value) {
-  size_t index = get_member_index_by_value(t, value);
+inline std::string_view name_of(T& t, Field& value) {
+  size_t index = index_of(t, value);
   constexpr auto arr = get_member_names<T>();
   if (index == arr.size()) {
     return "";

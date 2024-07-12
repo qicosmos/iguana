@@ -121,28 +121,28 @@ TEST_CASE("test member value") {
     std::cout << index << ", " << field_name << "\n";
   });
 
-  constexpr std::string_view name1 = get_member_name_by_index<simple, 2>();
+  constexpr std::string_view name1 = name_of<simple, 2>();
   CHECK(name1 == "str");
 
-  constexpr std::string_view name2 = get_member_name_by_index<simple>(2);
+  constexpr std::string_view name2 = name_of<simple>(2);
   CHECK(name2 == "str");
 
-  constexpr size_t idx = get_member_index_by_name<simple, "str"_ylts>();
+  constexpr size_t idx = index_of<simple, "str"_ylts>();
   CHECK(idx == 2);
 
-  constexpr size_t idx1 = get_member_index_by_name<simple>("str");
+  constexpr size_t idx1 = index_of<simple>("str");
   CHECK(idx1 == 2);
 
-  constexpr size_t idx2 = get_member_index_by_name<simple, "no_such"_ylts>();
+  constexpr size_t idx2 = index_of<simple, "no_such"_ylts>();
   CHECK(idx2 == 4);
 
-  size_t idx3 = get_member_index_by_name<simple>("no_such");
+  size_t idx3 = index_of<simple>("no_such");
   CHECK(idx3 == 4);
 
-  size_t idx4 = get_member_index_by_value(p, age1);
+  size_t idx4 = index_of(p, age1);
   CHECK(idx4 == 3);
 
-  auto name3 = get_member_name_by_value(p, age1);
+  auto name3 = name_of(p, age1);
   CHECK(name3 == "age");
 }
 
