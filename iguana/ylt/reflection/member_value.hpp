@@ -164,23 +164,29 @@ inline std::string_view name_of(T& t, Field& value) {
   return arr[index];
 }
 
-template <typename T>
-struct ylt_field {
-  T& value;
-  size_t index;
-  std::string_view name;
-};
-
-template <typename T>
-ylt_field(T& a, size_t, std::string_view) -> ylt_field<T>;
-
 template <typename T, typename Visit>
 inline void for_each(T& t, Visit func) {
   auto ref_tp = object_to_tuple(t);
   constexpr size_t tuple_size = std::tuple_size_v<decltype(ref_tp)>;
   constexpr auto arr = get_member_names<T>();
   [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
-    (func(ylt_field{std::get<Is>(ref_tp), Is, arr[Is]}), ...);
+    if constexpr (std::is_invocable_v<Visit, decltype(std::get<0>(ref_tp))>) {
+      (func(std::get<Is>(ref_tp)), ...);
+    }
+    else if constexpr (std::is_invocable_v<Visit, decltype(std::get<0>(ref_tp)),
+                                           std::string_view>) {
+      (func(std::get<Is>(ref_tp), arr[Is]), ...);
+    }
+    else if constexpr (std::is_invocable_v<Visit, decltype(std::get<0>(ref_tp)),
+                                           std::string_view, size_t>) {
+      (func(std::get<Is>(ref_tp), arr[Is], Is), ...);
+    }
+    else {
+      static_assert(sizeof(Visit) < 0,
+                    "invalid arguments, full arguments: [field_value&, "
+                    "std::string_view, size_t], at least has field_value and "
+                    "make sure keep the order of arguments");
+    }
   }
   (std::make_index_sequence<tuple_size>{});
 }

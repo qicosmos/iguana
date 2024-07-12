@@ -118,17 +118,23 @@ TEST_CASE("test member value") {
       },
       var2);
 
-  for_each(p, []<typename T>(ylt_field<T> field) {
-    std::cout << field.index << ", " << field.name << ", " << field.value
-              << "\n";
+  for_each(p, [](auto& field) {
+    std::cout << field << "\n";
   });
 
-  for_each(p, [](auto field) {
-    std::cout << field.index << ", " << field.name << ", " << field.value
-              << "\n";
+  for_each(p, [](auto& field, auto name, auto index) {
+    std::cout << field << ", " << name << ", " << index << "\n";
   });
 
-  for_each<simple>([](size_t index, std::string_view field_name) {
+  for_each(p, [](auto& field, auto name) {
+    std::cout << field << ", " << name << "\n";
+  });
+
+  for_each<simple>([](std::string_view field_name, size_t index) {
+    std::cout << index << ", " << field_name << "\n";
+  });
+
+  for_each<simple>([](std::string_view field_name) {
     std::cout << index << ", " << field_name << "\n";
   });
 

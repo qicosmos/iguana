@@ -154,7 +154,18 @@ template <typename T, typename Visit>
 inline constexpr void for_each(Visit func) {
   constexpr auto arr = get_member_names<T>();
   [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
-    (func(Is, arr[Is]), ...);
+    if constexpr (std::is_invocable_v<Visit, std::string_view, size_t>) {
+      (func(arr[Is], Is), ...);
+    }
+    else if constexpr (std::is_invocable_v<Visit, std::string_view>) {
+      (func(arr[Is]), ...);
+    }
+    else {
+      static_assert(sizeof(Visit) < 0,
+                    "invalid arguments, full arguments: [std::string_view, "
+                    "size_t], at least has std::string_view and make sure keep "
+                    "the order of arguments");
+    }
   }
   (std::make_index_sequence<arr.size()>{});
 }
