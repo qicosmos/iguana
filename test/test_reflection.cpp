@@ -107,6 +107,17 @@ TEST_CASE("test member value") {
   auto str2 = get<2>(p);
   CHECK(str2 == "hello reflection");
 
+  auto var = get(p, 3);
+  CHECK(*std::get<3>(var) == 6);
+
+  auto var2 = get(p, "str");
+  CHECK(*std::get<2>(var2) == "hello reflection");
+  std::visit(
+      [](auto ptr) {
+        std::cout << *ptr << "\n";
+      },
+      var2);
+
   for_each(p, []<typename T>(ylt_field<T> field) {
     std::cout << field.index << ", " << field.name << ", " << field.value
               << "\n";

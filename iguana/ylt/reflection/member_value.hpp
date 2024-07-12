@@ -1,4 +1,6 @@
 #pragma once
+#include <variant>
+
 #include "template_string.hpp"
 
 #if __has_include(<concepts>) || defined(__clang__) || defined(_MSC_VER) || \
@@ -22,11 +24,25 @@ inline void set_member_ptr(Member& member, T t) {
   }
 }
 
+template <typename T>
+struct is_variant : std::false_type {};
+
+template <typename... T>
+struct is_variant<std::variant<T...>> : std::true_type {};
+
 template <typename Member, class Tuple, std::size_t... Is>
-inline void tuple_switch(Member& member, std::size_t i, Tuple& t,
+inline bool tuple_switch(Member& member, std::size_t i, Tuple& t,
                          std::index_sequence<Is...>) {
-  ((void)((i == Is) && ((set_member_ptr(member, &std::get<Is>(t))), true)),
-   ...);
+  if constexpr (is_variant<Member>::value) {
+    return (((i == Is) &&
+             ((member = Member{std::in_place_index<Is>, &std::get<Is>(t)}),
+              true)) ||
+            ...);
+  }
+  else {
+    return (((i == Is) && ((set_member_ptr(member, &std::get<Is>(t))), true)) ||
+            ...);
+  }
 }
 }  // namespace internal
 
@@ -67,6 +83,33 @@ inline Member& get(T& t, std::string_view name) {
         "given member type is not match the real member type");
   }
   return *member_ptr;
+}
+
+template <typename T>
+inline auto get(T& t, size_t index) {
+  auto ref_tp = object_to_tuple(t);
+  constexpr size_t tuple_size = std::tuple_size_v<decltype(ref_tp)>;
+  if (index >= tuple_size) {
+    std::string str = "index out of range, ";
+    str.append("index: ")
+        .append(std::to_string(index))
+        .append(" is greater equal than member count ")
+        .append(std::to_string(tuple_size));
+    throw std::out_of_range(str);
+  }
+
+  using variant = decltype(tuple_to_variant(ref_tp));
+  variant member_ptr;
+  internal::tuple_switch(member_ptr, index, ref_tp,
+                         std::make_index_sequence<tuple_size>{});
+  return member_ptr;
+}
+
+template <typename T>
+inline auto get(T& t, std::string_view name) {
+  static constexpr auto map = get_member_names_map<T>();
+  size_t index = map.at(name);  // may throw out_of_range: unknown key.
+  return get(t, index);
 }
 
 template <size_t index, typename T>
