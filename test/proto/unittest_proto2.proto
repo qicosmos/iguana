@@ -1,0 +1,26 @@
+syntax = "proto2";
+
+package pb2;
+
+// 主要测试optional和packed_t类型
+
+message SimpleMsg {
+  // optional字段在proto2中可以明确表示这个字段是可选的。
+  optional string optional_string = 1 [default = "kim"];
+
+  // optional字段可以没有默认值。
+  optional int32 optional_int32 = 2;
+
+  // repeated字段不能有默认值。
+  repeated sint32 repeated_sint32 = 3 [packed = true];
+  repeated int64 repeated_int64 = 4;
+}
+
+
+message NestedMsg {
+  // 嵌套的message类型字段。
+  optional SimpleMsg msg = 1;
+
+  // repeated字段表示这个字段可以包含零个或多个值。
+  repeated SimpleMsg repeated_simple_msg = 2;
+}

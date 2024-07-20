@@ -89,6 +89,7 @@ set(TEST_XMLNOTHROW test/test_xml_nothrow.cpp)
 set(TEST_PB test/test_pb.cpp)
 set(TEST_PROTO test/test_proto3.cpp)
 set(PB_BENCHMARK benchmark/pb_benchmark.cpp)
+set(TEST_PROTO2 test/test_proto2.cpp)
 
 add_executable(json_example 	${JSON_EXAMPLE})
 add_executable(json_benchmark 	${JSONBENCHMARK})
@@ -127,9 +128,15 @@ if(Protobuf_FOUND)
     
     add_executable(pb_benchmark ${PB_BENCHMARK} ${PROTO_SRCS})
     target_link_libraries(pb_benchmark ${Protobuf_LIBRARIES})
+
     add_executable(test_proto ${PROTO_SRCS} ${TEST_PROTO})
     target_link_libraries(test_proto ${Protobuf_LIBRARIES})
     add_test(NAME test_proto COMMAND test_proto)
+
+    add_executable(test_proto2 ${PROTO_SRCS} ${TEST_PROTO2})
+    target_link_libraries(test_proto2 ${Protobuf_LIBRARIES})
+
+    add_test(NAME test_proto2 COMMAND test_proto2)
 endif()
 
 # unit test
