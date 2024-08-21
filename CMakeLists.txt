@@ -25,7 +25,7 @@ set(CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -ldl")
 set(IGUANA_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 17)
+    set(CMAKE_CXX_STANDARD 20)
 endif()
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -105,6 +105,7 @@ add_executable(yaml_benchmark ${YAMLBENCH})
 add_executable(test_nothrow ${TEST_NOTHROW})
 add_executable(test_util ${TEST_UTIL})
 add_executable(test_pb ${TEST_PB})
+add_executable(test_reflection test/test_reflection.cpp)
 
 find_package(Protobuf QUIET)
 if(Protobuf_FOUND)
