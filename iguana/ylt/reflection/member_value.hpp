@@ -187,8 +187,10 @@ inline constexpr void for_each(T&& t, Visit&& func) {
 
 #if (defined(__GNUC__) && __GNUC__ > 10) || \
     ((defined(__clang__) || defined(_MSC_VER)) && __has_include(<concepts>))
+#if __has_include(<concetps>)
 template <ylt::reflection::FixedString s>
 inline constexpr auto operator""_ylts() {
   return s;
 }
+#endif
 #endif

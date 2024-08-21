@@ -44,6 +44,7 @@ TEST_CASE("test member names") {
   constexpr size_t tp_size = std::tuple_size_v<decltype(tp)>;
   CHECK(tp_size == 5);
 
+#if __has_include(<concetps>)
   constexpr auto arr = member_names<person>;
   for (auto name : arr) {
     std::cout << name << ", ";
@@ -51,6 +52,7 @@ TEST_CASE("test member names") {
   std::cout << "\n";
   CHECK(arr ==
         std::array<std::string_view, size>{"color", "id", "s", "str", "arr"});
+#endif
 }
 
 struct point_t {
@@ -88,6 +90,7 @@ void test_pt() {
 #endif
 }
 
+#if __has_include(<concetps>)
 TEST_CASE("test member value") {
   simple p{.color = 2, .id = 10, .str = "hello reflection", .age = 6};
   auto ref_tp = object_to_tuple(p);
@@ -201,6 +204,7 @@ TEST_CASE("test member value") {
   size_t idx5 = index_of(p, no_such);
   CHECK(idx5 == 4);
 }
+#endif
 
 struct switch_helper {
   template <size_t Index, typename U, typename T>
@@ -210,8 +214,8 @@ struct switch_helper {
     }
     else {
       if constexpr (std::is_same_v<
-                        std::tuple_element_t<Index, std::remove_cvref_t<U>>,
-                        std::remove_cvref_t<T>>) {
+                        std::tuple_element_t<Index, remove_cvref_t<U>>,
+                        remove_cvref_t<T>>) {
         CHECK(std::get<Index>(tp) == value);
       }
       return true;
