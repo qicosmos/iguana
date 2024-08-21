@@ -233,7 +233,7 @@ TEST_CASE("test template switch") {
 }
 
 TEST_CASE("test visitor") {
-  simple p{.color = 2, .id = 10, .str = "hello reflection", .age = 6};
+  simple p{2, 10, "hello reflection", 6};
   size_t size = visit_members(p, [](auto&&... args) {
     ((std::cout << args << ", "), ...);
     std::cout << "\n";
