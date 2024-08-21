@@ -146,6 +146,13 @@ inline constexpr std::string_view name_of(T& t, Field& value) {
   return arr[index];
 }
 
+template <typename Visit, typename U, size_t... Is, typename... Args>
+inline constexpr void visit_members_impl(Visit&& func, U& arr,
+                                         std::index_sequence<Is...>,
+                                         Args&... args) {
+  (func(args, arr[Is]), ...);
+}
+
 template <typename T, typename Visit>
 inline constexpr void for_each(T&& t, Visit&& func) {
   using Tuple = decltype(object_to_tuple(t));
@@ -159,19 +166,27 @@ inline constexpr void for_each(T&& t, Visit&& func) {
     constexpr auto arr = member_names<T>;
     if constexpr (std::is_invocable_v<Visit, first_t, std::string_view>) {
       visit_members(t, [&](auto&... args) {
+#if __cplusplus >= 202002L
         [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
           (func(args, arr[Is]), ...);
         }
         (std::make_index_sequence<arr.size()>{});
+#else
+          visit_members_impl(std::forward<Visit>(func), arr, std::make_index_sequence<arr.size()>{}, args...);
+#endif
       });
     }
     else if constexpr (std::is_invocable_v<Visit, first_t, std::string_view,
                                            size_t>) {
       visit_members(t, [&](auto&... args) {
+#if __cplusplus >= 202002L
         [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
           (func(args, arr[Is], Is), ...);
         }
         (std::make_index_sequence<arr.size()>{});
+#else
+          visit_members_impl(std::forward<Visit>(func), arr, std::make_index_sequence<arr.size()>{}, args...);
+#endif
       });
     }
     else {

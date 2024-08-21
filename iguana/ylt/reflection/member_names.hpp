@@ -48,6 +48,13 @@ inline constexpr std::string_view get_member_name() {
 #endif
 }
 
+template <typename T, typename U, size_t... Is>
+inline constexpr void init_arr_with_tuple(const T& tp, U& arr,
+                                          std::index_sequence<Is...>) {
+  ((arr[Is] = internal::get_member_name<internal::wrap(std::get<Is>(tp))>()),
+   ...);
+}
+
 template <typename T>
 inline constexpr std::array<std::string_view, members_count_v<T>>
 get_member_names() {
@@ -63,24 +70,49 @@ get_member_names() {
     constexpr auto tp = struct_to_tuple<T>();
 
     std::array<std::string_view, Count> arr;
+#if __cplusplus >= 202002L
     [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
       ((arr[Is] =
             internal::get_member_name<internal::wrap(std::get<Is>(tp))>()),
        ...);
     }
     (std::make_index_sequence<Count>{});
+#else
+    init_arr_with_tuple(tp, arr, std::make_index_sequence<Count>{});
+#endif
     return arr;
   }
+}
+
+template <typename T, size_t... Is>
+inline constexpr auto get_member_names_map_impl(T& name_arr,
+                                                std::index_sequence<Is...>) {
+  return frozen::unordered_map<frozen::string, size_t, sizeof...(Is)>{
+      {name_arr[Is], Is}...};
 }
 
 template <typename T>
 inline constexpr auto get_member_names_map() {
   constexpr auto name_arr = get_member_names<T>();
+#if __cplusplus >= 202002L
   return [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
     return frozen::unordered_map<frozen::string, size_t, name_arr.size()>{
         {name_arr[Is], Is}...};
   }
   (std::make_index_sequence<name_arr.size()>{});
+#else
+  return get_member_names_map_impl(name_arr,
+                                   std::make_index_sequence<name_arr.size()>{});
+#endif
+}
+
+template <typename T, typename Tuple, size_t... Is>
+inline auto get_member_offset_arr_impl(Tuple& tp, std::index_sequence<Is...>) {
+  std::array<size_t, sizeof...(Is)> arr;
+  ((arr[Is] = size_t((const char*)std::get<Is>(tp) -
+                     (char*)(&internal::wrapper<T>::value))),
+   ...);
+  return arr;
 }
 
 template <typename T>
@@ -88,6 +120,7 @@ inline const auto& get_member_offset_arr() {
   constexpr size_t Count = members_count_v<T>;
   constexpr auto tp = struct_to_tuple<T>();
 
+#if __cplusplus >= 202002L
   [[maybe_unused]] static std::array<size_t, Count> arr = {[&]<size_t... Is>(
       std::index_sequence<Is...>) mutable {std::array<size_t, Count> arr;
   ((arr[Is] = size_t((const char*)std::get<Is>(tp) -
@@ -99,6 +132,11 @@ inline const auto& get_member_offset_arr() {
 };  // namespace internal
 
 return arr;
+#else
+  [[maybe_unused]] static std::array<size_t, Count> arr =
+      get_member_offset_arr_impl<T>(tp, std::make_index_sequence<Count>{});
+  return arr;
+#endif
 }  // namespace ylt::reflection
 }  // namespace internal
 
@@ -169,9 +207,27 @@ inline constexpr std::string_view name_of(size_t index) {
   return arr[index];
 }
 
+template <typename Visit, typename U, size_t... Is>
+inline constexpr void for_each_impl(Visit&& func, U& arr,
+                                    std::index_sequence<Is...>) {
+  if constexpr (std::is_invocable_v<Visit, std::string_view, size_t>) {
+    (func(arr[Is], Is), ...);
+  }
+  else if constexpr (std::is_invocable_v<Visit, std::string_view>) {
+    (func(arr[Is]), ...);
+  }
+  else {
+    static_assert(sizeof(Visit) < 0,
+                  "invalid arguments, full arguments: [std::string_view, "
+                  "size_t], at least has std::string_view and make sure keep "
+                  "the order of arguments");
+  }
+}
+
 template <typename T, typename Visit>
 inline constexpr void for_each(Visit&& func) {
   constexpr auto& arr = member_names<T>;
+#if __cplusplus >= 202002L
   [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
     if constexpr (std::is_invocable_v<Visit, std::string_view, size_t>) {
       (func(arr[Is], Is), ...);
@@ -187,6 +243,10 @@ inline constexpr void for_each(Visit&& func) {
     }
   }
   (std::make_index_sequence<arr.size()>{});
+#else
+  for_each_impl(std::forward<Visit>(func), arr,
+                std::make_index_sequence<arr.size()>{});
+#endif
 }
 
 }  // namespace ylt::reflection
