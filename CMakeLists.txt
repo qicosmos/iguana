@@ -106,6 +106,16 @@ add_executable(test_nothrow ${TEST_NOTHROW})
 add_executable(test_util ${TEST_UTIL})
 add_executable(test_pb ${TEST_PB})
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9)
+        message(STATUS "GCC version ${CMAKE_CXX_COMPILER_VERSION}")
+        add_executable(test_reflection test/test_reflection.cpp)
+    endif()
+else()
+    add_executable(test_reflection test/test_reflection.cpp)
+endif()
+
+
 find_package(Protobuf QUIET)
 if(Protobuf_FOUND)
     add_definitions(-DSTRUCT_PB_WITH_PROTO)
