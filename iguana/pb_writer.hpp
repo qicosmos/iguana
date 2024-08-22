@@ -25,11 +25,11 @@ IGUANA_INLINE void encode_fixed_field(V val, It&& it) {
   it += size;
 }
 
-template <uint32_t key, bool omit_default_val = true, typename Type,
-          typename It>
+template <bool is_proto2, uint32_t key, bool omit_default_val = true,
+          typename Type, typename It>
 IGUANA_INLINE void to_pb_impl(Type&& t, It&& it, uint32_t*& sz_ptr);
 
-template <uint32_t key, typename V, typename It>
+template <bool is_proto2, uint32_t key, typename V, typename It>
 IGUANA_INLINE void encode_pair_value(V&& val, It&& it, size_t size,
                                      uint32_t*& sz_ptr) {
   if (size == 0)
@@ -40,7 +40,7 @@ IGUANA_INLINE void encode_pair_value(V&& val, It&& it, size_t size,
       serialize_varint(0, it);
     }
   else {
-    to_pb_impl<key, false>(val, it, sz_ptr);
+    to_pb_impl<is_proto2, key, false>(val, it, sz_ptr);
   }
 }
 
@@ -78,7 +78,7 @@ IGUANA_INLINE void encode_numeric_field(T t, It&& it) {
   }
 }
 
-template <uint32_t field_no, typename Type, typename It>
+template <bool is_proto2, uint32_t field_no, typename Type, typename It>
 IGUANA_INLINE void to_pb_oneof(Type&& t, It&& it, uint32_t*& sz_ptr) {
   using T = std::decay_t<Type>;
   std::visit(
@@ -91,19 +91,42 @@ IGUANA_INLINE void to_pb_oneof(Type&& t, It&& it, uint32_t*& sz_ptr) {
         constexpr uint32_t key =
             ((field_no + offset) << 3) |
             static_cast<uint32_t>(get_wire_type<value_type>());
-        to_pb_impl<key, false>(std::forward<raw_value_type>(value), it, sz_ptr);
+        to_pb_impl<is_proto2, key, false>(std::forward<raw_value_type>(value),
+                                          it, sz_ptr);
       },
       std::forward<Type>(t));
 }
 
+template <bool packed, bool is_proto2, uint32_t key, typename Type, typename It>
+IGUANA_INLINE void to_pb_seq(Type&& t, It&& it, uint32_t*& sz_ptr) {
+  using T = std::remove_const_t<std::remove_reference_t<Type>>;
+  using item_type = typename T::value_type;
+  if constexpr (is_lenprefix_v<item_type> || !packed) {
+    // non-packed
+    for (auto& item : t) {
+      to_pb_impl<is_proto2, key, false>(item, it, sz_ptr);
+    }
+  }
+  else {
+    if (t.empty())
+      IGUANA_UNLIKELY { return; }
+    serialize_varint_u32_constexpr<key>(it);
+    serialize_varint(pb_value_size<is_proto2>(t, sz_ptr), it);
+    for (auto& item : t) {
+      encode_numeric_field<0, false>(item, it);
+    }
+  }
+}
+
 // omit_default_val = true indicates to omit the default value in searlization
-template <uint32_t key, bool omit_default_val, typename Type, typename It>
+template <bool is_proto2, uint32_t key, bool omit_default_val, typename Type,
+          typename It>
 IGUANA_INLINE void to_pb_impl(Type&& t, It&& it, uint32_t*& sz_ptr) {
   using T = std::remove_const_t<std::remove_reference_t<Type>>;
   if constexpr (is_reflection_v<T> || is_custom_reflection_v<T>) {
     // can't be omitted even if values are empty
     if constexpr (key != 0) {
-      auto len = pb_value_size(t, sz_ptr);
+      auto len = pb_value_size<is_proto2>(t, sz_ptr);
       serialize_varint_u32_constexpr<key>(it);
       serialize_varint(len, it);
       if (len == 0)
@@ -125,37 +148,24 @@ IGUANA_INLINE void to_pb_impl(Type&& t, It&& it, uint32_t*& sz_ptr) {
                 get_variant_index<U, typename field_type::sub_type,
                                   std::variant_size_v<U> - 1>();
             if constexpr (offset == 0) {
-              to_pb_oneof<value.field_no>(val, it, sz_ptr);
+              to_pb_oneof<is_proto2, value.field_no>(val, it, sz_ptr);
             }
           }
           else {
             constexpr uint32_t sub_key =
-                (value.field_no << 3) |
-                static_cast<uint32_t>(get_wire_type<U>());
-            to_pb_impl<sub_key>(val, it, sz_ptr);
+                get_sub_key<is_proto2, value.field_no, U>();
+            to_pb_impl<is_proto2, sub_key>(val, it, sz_ptr);
           }
         },
         std::make_index_sequence<SIZE>{});
   }
+  else if constexpr (is_packed_t<T>::value) {
+    to_pb_seq<true, is_proto2, key>(t.val, it, sz_ptr);
+  }
   else if constexpr (is_sequence_container<T>::value) {
     // TODO support std::array
     // repeated values can't be omitted even if values are empty
-    using item_type = typename T::value_type;
-    if constexpr (is_lenprefix_v<item_type>) {
-      // non-packed
-      for (auto& item : t) {
-        to_pb_impl<key, false>(item, it, sz_ptr);
-      }
-    }
-    else {
-      if (t.empty())
-        IGUANA_UNLIKELY { return; }
-      serialize_varint_u32_constexpr<key>(it);
-      serialize_varint(pb_value_size(t, sz_ptr), it);
-      for (auto& item : t) {
-        encode_numeric_field<false, 0>(item, it);
-      }
-    }
+    to_pb_seq<!is_proto2, is_proto2, key>(t, it, sz_ptr);
   }
   else if constexpr (is_map_container<T>::value) {
     using first_type = typename T::key_type;
@@ -171,7 +181,7 @@ IGUANA_INLINE void to_pb_impl(Type&& t, It&& it, uint32_t*& sz_ptr) {
       serialize_varint_u32_constexpr<key>(it);
       // k must be string or numeric
       auto k_val_len = str_numeric_size<0, false>(k);
-      auto v_val_len = pb_value_size<false>(v, sz_ptr);
+      auto v_val_len = pb_value_size<is_proto2, false>(v, sz_ptr);
       auto pair_len = key1_size + key2_size + k_val_len + v_val_len;
       if constexpr (is_lenprefix_v<first_type>) {
         pair_len += variant_uint32_size(k_val_len);
@@ -181,15 +191,28 @@ IGUANA_INLINE void to_pb_impl(Type&& t, It&& it, uint32_t*& sz_ptr) {
       }
       serialize_varint(pair_len, it);
       // map k and v can't be omitted even if values are empty
-      encode_pair_value<key1>(k, it, k_val_len, sz_ptr);
-      encode_pair_value<key2>(v, it, v_val_len, sz_ptr);
+      encode_pair_value<is_proto2, key1>(k, it, k_val_len, sz_ptr);
+      encode_pair_value<is_proto2, key2>(v, it, v_val_len, sz_ptr);
     }
   }
   else if constexpr (optional_v<T>) {
     if (!t.has_value()) {
       return;
     }
-    to_pb_impl<key, omit_default_val>(*t, it, sz_ptr);
+    to_pb_impl<is_proto2, key>(*t, it, sz_ptr);
+  }
+  else if constexpr (is_optional_t<T>::value) {
+    using value_type = typename T::value_type;
+    if constexpr (is_reflection_v<value_type> ||
+                  is_custom_reflection_v<value_type>) {
+      to_pb_impl<is_proto2, key>(t.val, it, sz_ptr);
+    }
+    else {
+      if (omit_default_val && t.val == t.default_val) {
+        return;
+      }
+      to_pb_impl<is_proto2, key, false>(t.val, it, sz_ptr);
+    }
   }
   else if constexpr (std::is_same_v<T, std::string> ||
                      std::is_same_v<T, std::string_view>) {
@@ -449,13 +472,13 @@ IGUANA_INLINE void build_sub_proto(Map& map, std::string_view str_type,
 #endif
 }  // namespace detail
 
-template <typename T, typename Stream>
-IGUANA_INLINE void to_pb(T const& t, Stream& out) {
+template <bool is_proto2 = false, typename T, typename Stream>
+IGUANA_INLINE void to_pb(const T& t, Stream& out) {
   std::vector<uint32_t> size_arr;
-  auto byte_len = detail::pb_key_value_size<0>(t, size_arr);
+  auto byte_len = detail::pb_key_value_size<is_proto2, 0>(t, size_arr);
   detail::resize(out, byte_len);
   auto sz_ptr = size_arr.empty() ? nullptr : &size_arr[0];
-  detail::to_pb_impl<0>(t, &out[0], sz_ptr);
+  detail::to_pb_impl<is_proto2, 0>(t, &out[0], sz_ptr);
 }
 
 #if defined(__clang__) || defined(_MSC_VER) || \

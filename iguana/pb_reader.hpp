@@ -23,6 +23,53 @@ IGUANA_INLINE void decode_pair_value(T& val, std::string_view& pb_str) {
   from_pb_impl(val, pb_str);
 }
 
+template <bool is_packed_num, typename T>
+IGUANA_INLINE void decode_sequence(T& val, std::string_view& pb_str,
+                                   uint32_t field_no) {
+  using item_type = typename T::value_type;
+  size_t pos = 0;
+  if constexpr (is_lenprefix_v<item_type> || !is_packed_num) {
+    // item_type non-packed
+    while (!pb_str.empty()) {
+      item_type item{};
+      from_pb_impl(item, pb_str);
+      val.push_back(std::move(item));
+      if (pb_str.empty()) {
+        break;
+      }
+      uint32_t key = detail::decode_varint(pb_str, pos);
+      uint32_t field_number = key >> 3;
+      if (field_number != field_no) {
+        break;
+      }
+      else {
+        pb_str = pb_str.substr(pos);
+      }
+    }
+  }
+  else {
+    // item_type packed
+    size_t pos;
+    uint32_t size = detail::decode_varint(pb_str, pos);
+    pb_str = pb_str.substr(pos);
+    if (pb_str.size() < size)
+      IGUANA_UNLIKELY {
+        throw std::invalid_argument("Invalid fixed int value: too few bytes.");
+      }
+    using item_type = typename T::value_type;
+    size_t start = pb_str.size();
+
+    while (!pb_str.empty()) {
+      item_type item;
+      from_pb_impl(item, pb_str);
+      val.push_back(std::move(item));
+      if (start - pb_str.size() == size) {
+        break;
+      }
+    }
+  }
+}
+
 template <typename T>
 IGUANA_INLINE void from_pb_impl(T& val, std::string_view& pb_str,
                                 uint32_t field_no) {
@@ -41,49 +88,8 @@ IGUANA_INLINE void from_pb_impl(T& val, std::string_view& pb_str,
     from_pb(val, pb_str.substr(0, size));
     pb_str = pb_str.substr(size);
   }
-  else if constexpr (is_sequence_container<T>::value) {
-    using item_type = typename T::value_type;
-    if constexpr (is_lenprefix_v<item_type>) {
-      // item_type non-packed
-      while (!pb_str.empty()) {
-        item_type item{};
-        from_pb_impl(item, pb_str);
-        val.push_back(std::move(item));
-        if (pb_str.empty()) {
-          break;
-        }
-        uint32_t key = detail::decode_varint(pb_str, pos);
-        uint32_t field_number = key >> 3;
-        if (field_number != field_no) {
-          break;
-        }
-        else {
-          pb_str = pb_str.substr(pos);
-        }
-      }
-    }
-    else {
-      // item_type packed
-      size_t pos;
-      uint32_t size = detail::decode_varint(pb_str, pos);
-      pb_str = pb_str.substr(pos);
-      if (pb_str.size() < size)
-        IGUANA_UNLIKELY {
-          throw std::invalid_argument(
-              "Invalid fixed int value: too few bytes.");
-        }
-      using item_type = typename T::value_type;
-      size_t start = pb_str.size();
-
-      while (!pb_str.empty()) {
-        item_type item;
-        from_pb_impl(item, pb_str);
-        val.push_back(std::move(item));
-        if (start - pb_str.size() == size) {
-          break;
-        }
-      }
-    }
+  else if constexpr (is_packed_t<T>::value) {
+    decode_sequence<true>(val.val, pb_str, field_no);
   }
   else if constexpr (is_map_container<T>::value) {
     using item_type = std::pair<typename T::key_type, typename T::mapped_type>;
@@ -170,6 +176,9 @@ IGUANA_INLINE void from_pb_impl(T& val, std::string_view& pb_str,
   else if constexpr (optional_v<T>) {
     from_pb_impl(val.emplace(), pb_str);
   }
+  else if constexpr (is_optional_t<T>::value) {
+    from_pb_impl(val.val, pb_str);
+  }
   else {
     static_assert(!sizeof(T), "err");
   }
@@ -205,21 +214,34 @@ IGUANA_INLINE void from_pb(T& t, std::string_view pb_str) {
           return;
         }
         pb_str = pb_str.substr(pos);
-        if (wire_type != detail::get_wire_type<sub_type>())
-          IGUANA_UNLIKELY { throw std::runtime_error("unmatched wire_type"); }
-        if constexpr (variant_v<value_type>) {
-          detail::parse_oneof(val.value(t), val, pb_str);
+        if constexpr (is_sequence_container<sub_type>::value) {
+          if (wire_type != detail::get_wire_type<sub_type>()) {
+            // while parsing unpacked repeated number, the wire type is a
+            // numeric type so it's not equal and it should be parsed as an
+            // unpacked number.
+            detail::decode_sequence<false>(val.value(t), pb_str, val.field_no);
+          }
+          else {
+            detail::decode_sequence<true>(val.value(t), pb_str, val.field_no);
+          }
         }
         else {
-          detail::from_pb_impl(val.value(t), pb_str, val.field_no);
+          if (wire_type != detail::get_wire_type<sub_type>())
+            IGUANA_UNLIKELY { throw std::runtime_error("unmatched wire_type"); }
+          if constexpr (variant_v<value_type>) {
+            detail::parse_oneof(val.value(t), val, pb_str);
+          }
+          else {
+            detail::from_pb_impl(val.value(t), pb_str, val.field_no);
+          }
+          if (pb_str.empty()) {
+            parse_done = true;
+            return;
+          }
+          key = detail::decode_varint(pb_str, pos);
+          wire_type = static_cast<WireType>(key & 0b0111);
+          field_number = key >> 3;
         }
-        if (pb_str.empty()) {
-          parse_done = true;
-          return;
-        }
-        key = detail::decode_varint(pb_str, pos);
-        wire_type = static_cast<WireType>(key & 0b0111);
-        field_number = key >> 3;
       },
       std::make_index_sequence<SIZE>{});
   if (parse_done)
@@ -233,14 +255,30 @@ IGUANA_INLINE void from_pb(T& t, std::string_view pb_str) {
         [&t, &pb_str, wire_type](auto& val) {
           using sub_type = typename std::decay_t<decltype(val)>::sub_type;
           using value_type = typename std::decay_t<decltype(val)>::value_type;
-          if (wire_type != detail::get_wire_type<sub_type>()) {
-            throw std::runtime_error("unmatched wire_type");
-          }
-          if constexpr (variant_v<value_type>) {
-            detail::parse_oneof(val.value(t), val, pb_str);
+
+          if constexpr (is_sequence_container<sub_type>::value) {
+            using item_type = typename sub_type::value_type;
+            if (wire_type != detail::get_wire_type<sub_type>()) {
+              if (wire_type != detail::get_wire_type<item_type>()) {
+                throw std::runtime_error("unmatched wire_type");
+              }
+              detail::decode_sequence<false>(val.value(t), pb_str,
+                                             val.field_no);
+            }
+            else {
+              detail::decode_sequence<true>(val.value(t), pb_str, val.field_no);
+            }
           }
           else {
-            detail::from_pb_impl(val.value(t), pb_str, val.field_no);
+            if (wire_type != detail::get_wire_type<sub_type>()) {
+              throw std::runtime_error("unmatched wire_type");
+            }
+            if constexpr (variant_v<value_type>) {
+              detail::parse_oneof(val.value(t), val, pb_str);
+            }
+            else {
+              detail::from_pb_impl(val.value(t), pb_str, val.field_no);
+            }
           }
         },
         member);

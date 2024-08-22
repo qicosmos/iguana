@@ -19,6 +19,33 @@
 
 namespace iguana {
 
+template <typename T>
+struct optional_t {
+  using value_type = T;
+  T val;
+  const T default_val;
+  constexpr optional_t(T v = T{}) : val(v), default_val(v) {}
+};
+
+template <>
+struct optional_t<std::string_view> {
+  using value_type = std::string_view;
+  const std::string default_val;
+  value_type val;
+  optional_t(std::string v = "") : default_val(v), val(default_val) {}
+};
+
+template <typename T>
+struct is_optional_t : is_template_instant_of<optional_t, T> {};
+
+template <typename T>
+struct packed_t {
+  std::vector<T> val;
+};
+
+template <typename T>
+struct is_packed_t : is_template_instant_of<packed_t, T> {};
+
 enum class WireType : uint32_t {
   Varint = 0,
   Fixed64 = 1,
@@ -61,10 +88,10 @@ constexpr inline WireType get_wire_type() {
   else if constexpr (std::is_same_v<T, std::string> ||
                      std::is_same_v<T, std::string_view> ||
                      is_reflection_v<T> || is_sequence_container<T>::value ||
-                     is_map_container<T>::value) {
+                     is_map_container<T>::value || is_packed_t<T>::value) {
     return WireType::LengthDelimeted;
   }
-  else if constexpr (optional_v<T>) {
+  else if constexpr (optional_v<T> || is_optional_t<T>::value) {
     return get_wire_type<typename T::value_type>();
   }
   else {
@@ -393,8 +420,8 @@ IGUANA_INLINE size_t str_numeric_size(Type&& t) {
   }
 }
 
-template <size_t key_size, bool omit_default_val = true, typename Type,
-          typename Arr>
+template <bool is_proto2, size_t key_size, bool omit_default_val = true,
+          typename Type, typename Arr>
 IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr);
 
 template <typename Variant, typename T, size_t I>
@@ -413,7 +440,7 @@ constexpr inline size_t get_variant_index() {
   }
 }
 
-template <size_t field_no, typename Type, typename Arr>
+template <bool is_proto2, size_t field_no, typename Type, typename Arr>
 IGUANA_INLINE size_t pb_oneof_size(Type&& t, Arr& size_arr) {
   using T = std::decay_t<Type>;
   int len = 0;
@@ -427,16 +454,53 @@ IGUANA_INLINE size_t pb_oneof_size(Type&& t, Arr& size_arr) {
         constexpr uint32_t key =
             ((field_no + offset) << 3) |
             static_cast<uint32_t>(get_wire_type<value_type>());
-        len = pb_key_value_size<variant_uint32_size_constexpr(key), false>(
-            std::forward<raw_value_type>(value), size_arr);
+        len = pb_key_value_size<is_proto2, variant_uint32_size_constexpr(key),
+                                false>(std::forward<raw_value_type>(value),
+                                       size_arr);
       },
       std::forward<Type>(t));
   return len;
 }
 
+template <bool is_packed_num, bool is_proto2, size_t key_size, typename Type,
+          typename Arr>
+IGUANA_INLINE size_t pb_seq_size(Type&& t, Arr& size_arr) {
+  using T = std::remove_const_t<std::remove_reference_t<Type>>;
+  using item_type = typename T::value_type;
+  size_t len = 0;
+  if constexpr (is_lenprefix_v<item_type> || !is_packed_num) {
+    for (auto& item : t) {
+      len += pb_key_value_size<is_proto2, key_size, false>(item, size_arr);
+    }
+    return len;
+  }
+  else {
+    for (auto& item : t) {
+      // here 0 to get pakced size, and item must be numeric
+      len += str_numeric_size<0, false>(item);
+    }
+    return (len == 0)
+               ? 0
+               : key_size + variant_uint32_size(static_cast<uint32_t>(len)) +
+                     len;
+  }
+}
+
+template <bool is_proto2, uint32_t field_no, typename U>
+constexpr inline uint32_t get_sub_key() {
+  if constexpr (is_proto2 && is_sequence_container<U>::value) {
+    // while encoding the unpacked number, the wire_type should depend on the
+    // value_type
+    return (field_no << 3) |
+           static_cast<uint32_t>(get_wire_type<typename U::value_type>());
+  }
+  return (field_no << 3) | static_cast<uint32_t>(get_wire_type<U>());
+}
+
 // returns size = key_size + optional(len_size) + len
 // when key_size == 0, return len
-template <size_t key_size, bool omit_default_val, typename Type, typename Arr>
+template <bool is_proto2, size_t key_size, bool omit_default_val, typename Type,
+          typename Arr>
 IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr) {
   using T = std::remove_const_t<std::remove_reference_t<Type>>;
   if constexpr (is_reflection_v<T> || is_custom_reflection_v<T>) {
@@ -461,15 +525,14 @@ IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr) {
                 get_variant_index<U, typename field_type::sub_type,
                                   std::variant_size_v<U> - 1>();
             if constexpr (offset == 0) {
-              len += pb_oneof_size<value.field_no>(val, size_arr);
+              len += pb_oneof_size<is_proto2, value.field_no>(val, size_arr);
             }
           }
           else {
             constexpr uint32_t sub_key =
-                (value.field_no << 3) |
-                static_cast<uint32_t>(get_wire_type<U>());
+                get_sub_key<is_proto2, value.field_no, U>();
             constexpr auto sub_keysize = variant_uint32_size_constexpr(sub_key);
-            len += pb_key_value_size<sub_keysize>(val, size_arr);
+            len += pb_key_value_size<is_proto2, sub_keysize>(val, size_arr);
           }
         },
         std::make_index_sequence<SIZE>{});
@@ -494,33 +557,19 @@ IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr) {
     }
   }
   else if constexpr (is_sequence_container<T>::value) {
-    using item_type = typename T::value_type;
-    size_t len = 0;
-    if constexpr (is_lenprefix_v<item_type>) {
-      for (auto& item : t) {
-        len += pb_key_value_size<key_size, false>(item, size_arr);
-      }
-      return len;
-    }
-    else {
-      for (auto& item : t) {
-        // here 0 to get pakced size, and item must be numeric
-        len += str_numeric_size<0, false>(item);
-      }
-      if (len == 0) {
-        return 0;
-      }
-      else {
-        return key_size + variant_uint32_size(static_cast<uint32_t>(len)) + len;
-      }
-    }
+    // proto2 unpacked by default, proto3 packed by default
+    return pb_seq_size<!is_proto2, is_proto2, key_size>(t, size_arr);
+  }
+  else if constexpr (is_packed_t<T>::value) {
+    // packed_t type will pack the value
+    return pb_seq_size<true, is_proto2, key_size>(t.val, size_arr);
   }
   else if constexpr (is_map_container<T>::value) {
     size_t len = 0;
     for (auto& [k, v] : t) {
       // the key_size of  k and v  is constant 1
-      auto kv_len = pb_key_value_size<1, false>(k, size_arr) +
-                    pb_key_value_size<1, false>(v, size_arr);
+      auto kv_len = pb_key_value_size<is_proto2, 1, false>(k, size_arr) +
+                    pb_key_value_size<is_proto2, 1, false>(v, size_arr);
       len += key_size + variant_uint32_size(static_cast<uint32_t>(kv_len)) +
              kv_len;
     }
@@ -530,7 +579,20 @@ IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr) {
     if (!t.has_value()) {
       return 0;
     }
-    return pb_key_value_size<key_size, omit_default_val>(*t, size_arr);
+    return pb_key_value_size<is_proto2, key_size>(*t, size_arr);
+  }
+  else if constexpr (is_optional_t<T>::value) {
+    using value_type = typename T::value_type;
+    if constexpr (is_reflection_v<value_type> ||
+                  is_custom_reflection_v<value_type>) {
+      return pb_key_value_size<is_proto2, key_size>(t.val, size_arr);
+    }
+    else {
+      if (omit_default_val && t.val == t.default_val) {
+        return 0;
+      }
+      return str_numeric_size<key_size, false>(t.val);
+    }
   }
   else {
     return str_numeric_size<key_size, omit_default_val>(t);
@@ -538,7 +600,7 @@ IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr) {
 }
 
 // return the payload size
-template <bool skip_next = true, typename Type>
+template <bool is_proto2, bool skip_next = true, typename Type>
 IGUANA_INLINE size_t pb_value_size(Type&& t, uint32_t*& sz_ptr) {
   using T = std::remove_const_t<std::remove_reference_t<Type>>;
   if constexpr (is_reflection_v<T> || is_custom_reflection_v<T>) {
@@ -575,7 +637,7 @@ IGUANA_INLINE size_t pb_value_size(Type&& t, uint32_t*& sz_ptr) {
     if (!t.has_value()) {
       return 0;
     }
-    return pb_value_size(*t, sz_ptr);
+    return pb_value_size<is_proto2>(*t, sz_ptr);
   }
   else {
     return str_numeric_size<0, false>(t);
