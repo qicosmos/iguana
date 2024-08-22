@@ -6,6 +6,9 @@
 #include "internal/arg_list_macro.hpp"
 
 namespace ylt::reflection {
+template <typename T>
+using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
+
 template <class T>
 struct member_traits {
   using value_type = T;
@@ -136,7 +139,7 @@ template <typename T, typename = void>
 struct is_ylt_refl : std::false_type {};
 
 template <typename T>
-inline constexpr bool is_ylt_refl_v = is_ylt_refl<T>::value;
+inline constexpr bool is_ylt_refl_v = is_ylt_refl<remove_cvref_t<T>>::value;
 
 template <typename T>
 struct is_ylt_refl<T, std::enable_if_t<is_inner_ylt_refl_v<T>>>

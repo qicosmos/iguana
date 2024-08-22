@@ -9,7 +9,7 @@
 namespace iguana {
 
 template <bool Is_writing_escape = true, typename Stream, typename T,
-          std::enable_if_t<refletable_v<T>, int> = 0>
+          std::enable_if_t<ylt_refletable_v<T>, int> = 0>
 IGUANA_INLINE void to_json(T &&t, Stream &s);
 namespace detail {
 template <bool Is_writing_escape = true, typename Stream, typename T>
@@ -122,7 +122,7 @@ IGUANA_INLINE void render_key(Stream &ss, T &&t) {
 }
 
 template <bool Is_writing_escape, typename Stream, typename T,
-          std::enable_if_t<refletable_v<T>, int> = 0>
+          std::enable_if_t<ylt_refletable_v<T>, int> = 0>
 IGUANA_INLINE void to_json_impl(Stream &ss, T &&t) {
   to_json(std::forward<T>(t), ss);
 }
@@ -218,11 +218,9 @@ IGUANA_INLINE void to_json_impl(Stream &ss, const T &v) {
   ss.push_back(']');
 }
 
-constexpr auto write_json_key = [](auto &s, auto i,
-                                   auto &t) IGUANA__INLINE_LAMBDA {
+constexpr auto write_json_key = [](auto &s, auto name) IGUANA__INLINE_LAMBDA {
   s.push_back('"');
   // will be replaced by string_view later
-  constexpr auto name = get_name<decltype(t), decltype(i)::value>();
   s.append(name.data(), name.size());
   s.push_back('"');
 };
@@ -267,28 +265,24 @@ IGUANA_INLINE void to_json_impl(Stream &s, T &&t) {
 }
 }  // namespace detail
 template <bool Is_writing_escape, typename Stream, typename T,
-          std::enable_if_t<refletable_v<T>, int>>
+          std::enable_if_t<ylt_refletable_v<T>, int>>
 IGUANA_INLINE void to_json(T &&t, Stream &s) {
   using namespace detail;
   s.push_back('{');
-  for_each(std::forward<T>(t),
-           [&t, &s](const auto &v, auto i) IGUANA__INLINE_LAMBDA {
-             using M = decltype(iguana_reflect_type(std::forward<T>(t)));
-             constexpr auto Idx = decltype(i)::value;
-             constexpr auto Count = M::value();
-             static_assert(Idx < Count);
-
-             write_json_key(s, i, t);
-             s.push_back(':');
-             to_json_impl<Is_writing_escape>(s, t.*v);
-             if (Idx < Count - 1)
-               IGUANA_LIKELY { s.push_back(','); }
-           });
+  constexpr auto Count =
+      ylt::reflection::members_count_v<ylt::reflection::remove_cvref_t<T>>;
+  ylt::reflection::for_each(t, [&](auto &field, auto name, auto index) {
+    write_json_key(s, name);
+    s.push_back(':');
+    to_json_impl<Is_writing_escape>(s, field);
+    if (index < Count - 1)
+      IGUANA_LIKELY { s.push_back(','); }
+  });
   s.push_back('}');
 }
 
 template <bool Is_writing_escape = true, typename Stream, typename T,
-          std::enable_if_t<non_refletable_v<T>, int> = 0>
+          std::enable_if_t<non_ylt_refletable_v<T>, int> = 0>
 IGUANA_INLINE void to_json(T &&t, Stream &s) {
   using namespace detail;
   to_json_impl<Is_writing_escape>(s, t);

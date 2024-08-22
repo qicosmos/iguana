@@ -17,8 +17,17 @@
 #include "error_code.h"
 #include "field_reflection.hpp"
 #include "reflection.hpp"
+#include "ylt/reflection/member_value.hpp"
+#include "ylt/reflection/user_reflect_macro.hpp"
 
 namespace iguana {
+template <class T>
+constexpr inline bool ylt_refletable_v =
+    ylt::reflection::is_ylt_refl_v<T> ||
+    std::is_aggregate_v<ylt::reflection::remove_cvref_t<T>>;
+
+template <class T>
+constexpr inline bool non_ylt_refletable_v = !ylt_refletable_v<T>;
 
 template <typename T>
 inline constexpr bool char_v = std::is_same_v<std::decay_t<T>, char> ||

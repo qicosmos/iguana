@@ -147,10 +147,17 @@ inline constexpr std::string_view name_of(T& t, Field& value) {
 }
 
 template <typename Visit, typename U, size_t... Is, typename... Args>
+inline constexpr void visit_members_impl0(Visit&& func, U& arr,
+                                          std::index_sequence<Is...>,
+                                          Args&... args) {
+  (func(args, arr[Is]), ...);
+}
+
+template <typename Visit, typename U, size_t... Is, typename... Args>
 inline constexpr void visit_members_impl(Visit&& func, U& arr,
                                          std::index_sequence<Is...>,
                                          Args&... args) {
-  (func(args, arr[Is]), ...);
+  (func(args, arr[Is], Is), ...);
 }
 
 template <typename T, typename Visit>
@@ -172,7 +179,7 @@ inline constexpr void for_each(T&& t, Visit&& func) {
         }
         (std::make_index_sequence<arr.size()>{});
 #else
-          visit_members_impl(std::forward<Visit>(func), arr, std::make_index_sequence<arr.size()>{}, args...);
+          visit_members_impl0(std::forward<Visit>(func), arr, std::make_index_sequence<arr.size()>{}, args...);
 #endif
       });
     }
