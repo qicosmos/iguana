@@ -179,17 +179,20 @@ inline constexpr std::string_view name_of(T& t, Field& value) {
   return arr[index];
 }
 
-template <typename Visit, typename U, size_t... Is, typename... Args>
-inline constexpr void visit_members_impl0(Visit&& func, U& arr,
+template <typename T, typename Visit, typename U, size_t... Is,
+          typename... Args>
+inline constexpr void visit_members_impl0(Visit&& func,
                                           std::index_sequence<Is...>,
                                           Args&... args) {
+  constexpr auto arr = member_names<T>;
   (func(args, arr[Is]), ...);
 }
 
-template <typename Visit, typename U, size_t... Is, typename... Args>
-inline constexpr void visit_members_impl(Visit&& func, U& arr,
+template <typename T, typename Visit, size_t... Is, typename... Args>
+inline constexpr void visit_members_impl(Visit&& func,
                                          std::index_sequence<Is...>,
                                          Args&... args) {
+  constexpr auto arr = member_names<T>;
   (func(args, arr[Is], Is), ...);
 }
 
@@ -203,16 +206,16 @@ inline constexpr void for_each(T&& t, Visit&& func) {
     });
   }
   else {
-    constexpr auto arr = member_names<T>;
     if constexpr (std::is_invocable_v<Visit, first_t, std::string_view>) {
       visit_members(t, [&](auto&... args) {
 #if __cplusplus >= 202002L
         [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
+          constexpr auto arr = member_names<T>;
           (func(args, arr[Is]), ...);
         }
-        (std::make_index_sequence<arr.size()>{});
+        (std::make_index_sequence<sizeof...(args)>{});
 #else
-          visit_members_impl0(std::forward<Visit>(func), arr, std::make_index_sequence<arr.size()>{}, args...);
+          visit_members_impl0<T>(std::forward<Visit>(func), std::make_index_sequence<sizeof...(args)>{}, args...);
 #endif
       });
     }
@@ -221,11 +224,12 @@ inline constexpr void for_each(T&& t, Visit&& func) {
       visit_members(t, [&](auto&... args) {
 #if __cplusplus >= 202002L
         [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
+          constexpr auto arr = member_names<T>;
           (func(args, arr[Is], Is), ...);
         }
-        (std::make_index_sequence<arr.size()>{});
+        (std::make_index_sequence<sizeof...(args)>{});
 #else
-          visit_members_impl(std::forward<Visit>(func), arr, std::make_index_sequence<arr.size()>{}, args...);
+          visit_members_impl<T>(std::forward<Visit>(func), std::make_index_sequence<sizeof...(args)>{}, args...);
 #endif
       });
     }

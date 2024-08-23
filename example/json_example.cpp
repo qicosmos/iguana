@@ -14,7 +14,6 @@ inline char* to_chars_float(T value, char* buffer) {
 #include <iguana/json_reader.hpp>
 #include <iguana/json_writer.hpp>
 
-//#include <boost/timer.hpp>
 
 namespace client {
 struct person {
@@ -22,20 +21,20 @@ struct person {
   int64_t age;
 };
 
-REFLECTION(person, name, age);
+YLT_REFL(person, name, age);
 }  // namespace client
 
 struct MyStruct {
   uint64_t a;
 };
-REFLECTION(MyStruct, a);
+YLT_REFL(MyStruct, a);
 
 struct student {
   int id;
   std::string name;
   int age;
 };
-REFLECTION(student, id, name, age);
+YLT_REFL(student, id, name, age);
 
 void test() {
   MyStruct p = {5566777755311};
@@ -82,7 +81,7 @@ struct book_t {
   std::string_view edition;
   std::vector<std::string_view> author;
 };
-REFLECTION(book_t, title, edition, author);
+YLT_REFL(book_t, title, edition, author);
 
 void test_str_view() {
   {
@@ -108,6 +107,8 @@ void test_str_view() {
 
 namespace my_space {
 struct my_struct {
+  my_struct() = default;
+  my_struct(int a, int b, int c) : x(a), y(b), z(c) {}
   int x, y, z;
   bool operator==(const my_struct& o) const {
     return x == o.x && y == o.y && z == o.z;
@@ -134,11 +135,11 @@ struct nest {
   }
 };
 
-REFLECTION(nest, name, value);
+YLT_REFL(nest, name, value);
 
 void user_defined_struct_example() {
   {
-    my_space::my_struct v{1, 2, 3}, v2;
+    my_space::my_struct v{7, 8, 9}, v2;
     std::string s;
     iguana::to_json(v, s);
     std::cout << s << std::endl;
@@ -159,7 +160,7 @@ struct test_float_t {
   double a;
   float b;
 };
-REFLECTION(test_float_t, a, b);
+YLT_REFL(test_float_t, a, b);
 
 void user_defined_tochars_example() {
   test_float_t t{2.011111, 2.54};
