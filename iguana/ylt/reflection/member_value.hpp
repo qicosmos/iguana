@@ -48,7 +48,40 @@ struct switch_helper {
     }
   }
 };
+
+template <typename... Args>
+inline auto get_variant_type(std::tuple<Args...>&) {
+  return std::variant<std::add_pointer_t<std::remove_reference_t<Args>>...>{};
+}
+
+inline constexpr frozen::string filter_str(const frozen::string& str) {
+  if (str.size() > 3 && str[0] == '_' && str[1] == '_' && str[2] == '_') {
+    auto ptr = str.data() + 3;
+    return frozen::string(ptr, str.size() - 3);
+  }
+  return str;
+}
+
+template <typename T, size_t... Is>
+inline constexpr auto get_variant_map_impl(
+    const std::array<std::string_view, sizeof...(Is)>& arr, T&& t,
+    std::index_sequence<Is...>) {
+  auto ref_tp = object_to_tuple(std::forward<T>(t));
+  using ValueType = decltype(get_variant_type(ref_tp));
+  return frozen::unordered_map<frozen::string, ValueType, sizeof...(Is)>{
+      {filter_str(arr[Is]),
+       ValueType{std::in_place_index<Is>, &std::get<Is>(ref_tp)}}...};
+}
+
 }  // namespace internal
+
+template <typename T>
+inline constexpr auto get_variant_map(T&& t) {
+  using U = ylt::reflection::remove_cvref_t<T>;
+  constexpr auto arr = ylt::reflection::member_names<U>;
+  return internal::get_variant_map_impl(arr, std::forward<T>(t),
+                                        std::make_index_sequence<arr.size()>{});
+}
 
 template <typename Member, typename T>
 inline Member& get(T& t, size_t index) {

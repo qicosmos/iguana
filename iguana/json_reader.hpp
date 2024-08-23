@@ -4,7 +4,8 @@
 #include "json_util.hpp"
 namespace iguana {
 
-template <typename T, typename It, std::enable_if_t<refletable_v<T>, int> = 0>
+template <typename T, typename It,
+          std::enable_if_t<ylt_refletable_v<T>, int> = 0>
 IGUANA_INLINE void from_json(T &value, It &&it, It &&end);
 
 namespace detail {
@@ -16,7 +17,8 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end);
 template <typename U, typename It, std::enable_if_t<smart_ptr_v<U>, int> = 0>
 IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end);
 
-template <typename U, typename It, std::enable_if_t<refletable_v<U>, int> = 0>
+template <typename U, typename It,
+          std::enable_if_t<ylt_refletable_v<U>, int> = 0>
 IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   from_json(value, it, end);
 }
@@ -542,7 +544,7 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
 }
 }  // namespace detail
 
-template <typename T, typename It, std::enable_if_t<refletable_v<T>, int>>
+template <typename T, typename It, std::enable_if_t<ylt_refletable_v<T>, int>>
 IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
   skip_ws(it, end);
   match<'{'>(it, end);
@@ -553,80 +555,82 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
       ++it;
       return;
     }
-  std::string_view key = detail::get_key(it, end);
+  constexpr auto Count =
+      ylt::reflection::members_count_v<ylt::reflection::remove_cvref_t<T>>;
+  if constexpr (Count > 0) {
+    std::string_view key = detail::get_key(it, end);
 #ifdef SEQUENTIAL_PARSE
-  bool parse_done = false;
-  for_each(value, [&](const auto member_ptr, auto i) IGUANA__INLINE_LAMBDA {
-    constexpr auto mkey = iguana::get_name<T, decltype(i)::value>();
-    constexpr std::string_view st_key(mkey.data(), mkey.size());
-    if (parse_done || (key != st_key))
-      IGUANA_UNLIKELY { return; }
-    skip_ws(it, end);
-    match<':'>(it, end);
-    {
-      using namespace detail;
-      from_json_impl(value.*member_ptr, it, end);
-    }
-
-    skip_ws(it, end);
-    if (*it == '}')
-      IGUANA_UNLIKELY {
-        ++it;
-        parse_done = true;
-        return;
-      }
-    else
-      IGUANA_LIKELY { match<','>(it, end); }
-    key = detail::get_key(it, end);
-  });
-  if (parse_done) [[unlikely]] {
-    return;
-  }
-#endif
-  while (it != end) {
-    static constexpr auto frozen_map = get_iguana_struct_map<T>();
-    if constexpr (frozen_map.size() > 0) {
-      const auto &member_it = frozen_map.find(key);
+    bool parse_done = false;
+    ylt::reflection::for_each(value, [&](auto &field, auto name, auto index) {
+      if (parse_done || (key != name))
+        IGUANA_UNLIKELY { return; }
       skip_ws(it, end);
       match<':'>(it, end);
-      if (member_it != frozen_map.end())
-        IGUANA_LIKELY {
-          std::visit(
-              [&](auto &&member_ptr) IGUANA__INLINE_LAMBDA {
-                using V = std::decay_t<decltype(member_ptr)>;
-                if constexpr (std::is_member_pointer_v<V>) {
-                  using namespace detail;
-                  from_json_impl(value.*member_ptr, it, end);
-                }
-                else {
-                  static_assert(!sizeof(V), "type not supported");
-                }
-              },
-              member_it->second);
+      {
+        using namespace detail;
+        from_json_impl(field, it, end);
+      }
+
+      skip_ws(it, end);
+      if (*it == '}')
+        IGUANA_UNLIKELY {
+          ++it;
+          parse_done = true;
+          return;
         }
       else
-        IGUANA_UNLIKELY {
-#ifdef THROW_UNKNOWN_KEY
-          throw std::runtime_error("Unknown key: " + std::string(key));
-#else
-          detail::skip_object_value(it, end);
-#endif
-        }
+        IGUANA_LIKELY { match<','>(it, end); }
+      key = detail::get_key(it, end);
+    });
+    if (parse_done) [[unlikely]] {
+      return;
     }
-    skip_ws(it, end);
-    if (*it == '}')
-      IGUANA_UNLIKELY {
-        ++it;
-        return;
+#endif
+    while (it != end) {
+      auto frozen_map = ylt::reflection::get_variant_map(value);
+      if (frozen_map.size() > 0) {
+        const auto &member_it = frozen_map.find(key);
+        skip_ws(it, end);
+        match<':'>(it, end);
+        if (member_it != frozen_map.end())
+          IGUANA_LIKELY {
+            std::visit(
+                [&](auto &&member_ptr) IGUANA__INLINE_LAMBDA {
+                  using V = std::decay_t<decltype(member_ptr)>;
+                  if constexpr (std::is_pointer_v<V>) {
+                    using namespace detail;
+                    from_json_impl(*member_ptr, it, end);
+                  }
+                  else {
+                    static_assert(!sizeof(V), "type not supported");
+                  }
+                },
+                member_it->second);
+          }
+        else
+          IGUANA_UNLIKELY {
+#ifdef THROW_UNKNOWN_KEY
+            throw std::runtime_error("Unknown key: " + std::string(key));
+#else
+            detail::skip_object_value(it, end);
+#endif
+          }
       }
-    else
-      IGUANA_LIKELY { match<','>(it, end); }
-    key = detail::get_key(it, end);
+      skip_ws(it, end);
+      if (*it == '}')
+        IGUANA_UNLIKELY {
+          ++it;
+          return;
+        }
+      else
+        IGUANA_LIKELY { match<','>(it, end); }
+      key = detail::get_key(it, end);
+    }
   }
 }
 
 template <typename T, typename It,
-          std::enable_if_t<non_refletable_v<T>, int> = 0>
+          std::enable_if_t<non_ylt_refletable_v<T>, int> = 0>
 IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
   using namespace detail;
   from_json_impl(value, it, end);

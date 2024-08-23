@@ -21,14 +21,6 @@
 #include "ylt/reflection/user_reflect_macro.hpp"
 
 namespace iguana {
-template <class T>
-constexpr inline bool ylt_refletable_v =
-    ylt::reflection::is_ylt_refl_v<T> ||
-    std::is_aggregate_v<ylt::reflection::remove_cvref_t<T>>;
-
-template <class T>
-constexpr inline bool non_ylt_refletable_v = !ylt_refletable_v<T>;
-
 template <typename T>
 inline constexpr bool char_v = std::is_same_v<std::decay_t<T>, char> ||
                                std::is_same_v<std::decay_t<T>, char16_t> ||
@@ -151,6 +143,15 @@ constexpr inline bool refletable_v = is_reflection_v<std::remove_cvref_t<T>>;
 
 template <class T>
 constexpr inline bool non_refletable_v = !refletable_v<T>;
+
+template <class T>
+constexpr inline bool ylt_refletable_v =
+    (ylt::reflection::is_ylt_refl_v<T> ||
+     std::is_aggregate_v<
+         ylt::reflection::remove_cvref_t<T>>)&&!fixed_array_v<T>;
+
+template <class T>
+constexpr inline bool non_ylt_refletable_v = !ylt_refletable_v<T>;
 
 template <typename T>
 constexpr inline bool plain_v =

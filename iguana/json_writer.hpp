@@ -271,13 +271,16 @@ IGUANA_INLINE void to_json(T &&t, Stream &s) {
   s.push_back('{');
   constexpr auto Count =
       ylt::reflection::members_count_v<ylt::reflection::remove_cvref_t<T>>;
-  ylt::reflection::for_each(t, [&](auto &field, auto name, auto index) {
-    write_json_key(s, name);
-    s.push_back(':');
-    to_json_impl<Is_writing_escape>(s, field);
-    if (index < Count - 1)
-      IGUANA_LIKELY { s.push_back(','); }
-  });
+  if constexpr (Count > 0) {
+    ylt::reflection::for_each(t, [&](auto &field, auto name, auto index) {
+      write_json_key(s, name);
+      s.push_back(':');
+      to_json_impl<Is_writing_escape>(s, field);
+      if (index < Count - 1)
+        IGUANA_LIKELY { s.push_back(','); }
+    });
+  }
+
   s.push_back('}');
 }
 

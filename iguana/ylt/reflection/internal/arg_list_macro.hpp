@@ -1,7 +1,7 @@
 #pragma once
 #include "common_macro.hpp"
 
-#define WRAP_ARGS0(w, o)
+#define WRAP_ARGS0(w, o, _0)
 #define WRAP_ARGS1(w, o, _1) w(o, _1)
 #include "generate/arg_list_macro_gen.hpp"
 

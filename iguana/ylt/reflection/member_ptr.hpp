@@ -124,8 +124,8 @@ inline constexpr decltype(auto) visit_members(T&& t, Visitor&& visitor) {
                               std::forward<Visitor>(visitor));
   }
   else if constexpr (is_inner_ylt_refl_v<type>) {
-    return type::refl_object_to_tuple(std::forward<T>(t),
-                                      std::forward<Visitor>(visitor));
+    return t.refl_visit_members(std::forward<T>(t),
+                                std::forward<Visitor>(visitor));
   }
   else {
     return internal::tuple_view<Count>(std::forward<T>(t),
