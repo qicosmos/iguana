@@ -13,10 +13,10 @@
 
 #include "define.h"
 #include "detail/charconv.h"
+#include "detail/traits.hpp"
 #include "detail/utf.hpp"
 #include "error_code.h"
 #include "field_reflection.hpp"
-#include "reflection.hpp"
 #include "ylt/reflection/member_value.hpp"
 #include "ylt/reflection/user_reflect_macro.hpp"
 
@@ -138,11 +138,16 @@ template <size_t Idx, typename T>
 using variant_element_t = std::remove_reference_t<decltype(std::get<Idx>(
     std::declval<std::remove_reference_t<T>>()))>;
 
-template <typename T>
-constexpr inline bool refletable_v = is_reflection_v<std::remove_cvref_t<T>>;
+template <typename F, typename Tuple, size_t... Is>
+constexpr void foreach_tuple(F&& f, Tuple& tp, std::index_sequence<Is...>) {
+  (void(f(std::get<Is>(tp), std::integral_constant<size_t, Is>{})), ...);
+}
 
-template <class T>
-constexpr inline bool non_refletable_v = !refletable_v<T>;
+template <typename F, typename Tuple>
+constexpr void foreach_tuple(F&& f, Tuple& tp) {
+  foreach_tuple(std::forward<F>(f), tp,
+                std::make_index_sequence<std::tuple_size_v<Tuple>>{});
+}
 
 template <class T>
 constexpr inline bool ylt_refletable_v =

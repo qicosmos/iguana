@@ -242,13 +242,14 @@ IGUANA_INLINE void to_json_impl(Stream &s, T &&t) {
   using U = typename std::decay_t<T>;
   s.push_back('[');
   constexpr size_t size = std::tuple_size_v<U>;
-  for_each(std::forward<T>(t),
-           [&s, size](auto &v, auto i) IGUANA__INLINE_LAMBDA {
-             to_json_impl<Is_writing_escape>(s, v);
+  foreach_tuple(
+      [&s, size](auto &v, auto i) IGUANA__INLINE_LAMBDA {
+        to_json_impl<Is_writing_escape>(s, v);
 
-             if (i != size - 1)
-               IGUANA_LIKELY { s.push_back(','); }
-           });
+        if (i != size - 1)
+          IGUANA_LIKELY { s.push_back(','); }
+      },
+      std::forward<T>(t));
   s.push_back(']');
 }
 
@@ -291,10 +292,10 @@ IGUANA_INLINE void to_json(T &&t, Stream &s) {
   to_json_impl<Is_writing_escape>(s, t);
 }
 
-template <typename T>
-IGUANA_INLINE void to_json_adl(iguana_adl_t *p, T &t, std::string &pb_str) {
-  to_json(t, pb_str);
-}
+// template <typename T>
+// IGUANA_INLINE void to_json_adl(iguana_adl_t *p, T &t, std::string &pb_str) {
+//   to_json(t, pb_str);
+// }
 
 }  // namespace iguana
 #endif  // SERIALIZE_JSON_HPP

@@ -414,18 +414,20 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   match<'['>(it, end);
   skip_ws(it, end);
 
-  for_each(value, [&](auto &v, auto i) IGUANA__INLINE_LAMBDA {
-    constexpr auto I = decltype(i)::value;
-    if (it == end || *it == ']') {
-      return;
-    }
-    if constexpr (I != 0) {
-      match<','>(it, end);
-      skip_ws(it, end);
-    }
-    from_json_impl(v, it, end);
-    skip_ws(it, end);
-  });
+  foreach_tuple(
+      [&](auto &v, auto i) IGUANA__INLINE_LAMBDA {
+        constexpr auto I = decltype(i)::value;
+        if (it == end || *it == ']') {
+          return;
+        }
+        if constexpr (I != 0) {
+          match<','>(it, end);
+          skip_ws(it, end);
+        }
+        from_json_impl(v, it, end);
+        skip_ws(it, end);
+      },
+      value);
 
   match<']'>(it, end);
 }
@@ -896,10 +898,10 @@ IGUANA_INLINE void from_json_file(T &value, const std::string &filename,
   }
 }
 
-template <typename T>
-IGUANA_INLINE void from_json_adl(iguana_adl_t *p, T &t,
-                                 std::string_view pb_str) {
-  iguana::from_json(t, pb_str);
-}
+// template <typename T>
+// IGUANA_INLINE void from_json_adl(iguana_adl_t *p, T &t,
+//                                  std::string_view pb_str) {
+//   iguana::from_json(t, pb_str);
+// }
 
 }  // namespace iguana

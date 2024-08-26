@@ -829,6 +829,12 @@ template <typename T>
 inline constexpr bool is_reflection_v = is_reflection<T>::value;
 
 template <typename T>
+constexpr inline bool refletable_v = is_reflection_v<std::remove_cvref_t<T>>;
+
+template <class T>
+constexpr inline bool non_refletable_v = !refletable_v<T>;
+
+template <typename T>
 inline constexpr bool is_custom_reflection_v = is_custom_reflection<T>::value;
 
 template <typename T, typename S, size_t... I>

@@ -137,7 +137,7 @@ struct test_double_t {
 YLT_REFL(test_double_t, val);
 
 struct test_empty_t {};
-REFLECTION_EMPTY(test_empty_t);
+YLT_REFL(test_empty_t);
 
 struct test {
   std::string username;
@@ -164,11 +164,11 @@ struct inner_struct {
   int z;
 };
 
-inline auto get_members_impl(inner_struct *) {
-  return std::make_tuple(iguana::field_t{&inner_struct::x, 7, "a"},
-                         iguana::field_t{&inner_struct::y, 9, "b"},
-                         iguana::field_t{&inner_struct::z, 12, "c"});
-}
+// inline auto get_members_impl(inner_struct *) {
+//   return std::make_tuple(iguana::field_t{&inner_struct::x, 7, "a"},
+//                          iguana::field_t{&inner_struct::y, 9, "b"},
+//                          iguana::field_t{&inner_struct::z, 12, "c"});
+// }
 
 inline constexpr size_t iguana_member_count(inner_struct *) { return 3; }
 
@@ -450,7 +450,7 @@ TEST_CASE("test dom parse") {
 TEST_CASE("test simple object") {
   {
     //    test_double_t d{.val = 1.4806532964699196e-22};
-    //    iguana::string_stream ss;
+    //    std::string ss;
     //    iguana::to_json(d, ss);
     //
     //    test_double_t p{};
@@ -479,7 +479,7 @@ TEST_CASE("test simple object") {
 
 TEST_CASE("test two_fields object") {
   two_fields_t obj{{1, 2}, {"aa", "bb"}};
-  iguana::string_stream ss;
+  std::string ss;
   iguana::to_json(obj, ss);
 
   two_fields_t p{};
@@ -490,7 +490,7 @@ TEST_CASE("test two_fields object") {
 TEST_CASE("test simple nested object") {
   person o{"tom", false};
   simple_nested_t t{1, o};
-  iguana::string_stream ss;
+  std::string ss;
   iguana::to_json(t, ss);
 
   simple_nested_t p{};
@@ -503,7 +503,7 @@ TEST_CASE("test simple nested object") {
 
 TEST_CASE("test c array and std::array") {
   arr_t arr{{1, 2}};
-  iguana::string_stream ss;
+  std::string ss;
   iguana::to_json(arr, ss);
   arr_t arr1{};
 
@@ -569,7 +569,7 @@ TEST_CASE("test bool, null, char, int, float") {
 
 TEST_CASE("test vector") {
   vector_t arr{{1, 2}};
-  iguana::string_stream ss;
+  std::string ss;
   iguana::to_json(arr, ss);
 
   vector_t p{};
@@ -581,7 +581,7 @@ TEST_CASE("test map") {
   map_t map{};
   map.map1 = {{1, "hello"}, {2, "iguana"}};
   map.map2 = {{3, "this"}, {4, "hashmap"}};
-  iguana::string_stream ss;
+  std::string ss;
   iguana::to_json(map, ss);
 
   map_t p{};
@@ -606,7 +606,7 @@ TEST_CASE("test nested object") {
 TEST_CASE("test tuple") {
   tuple_t t;
   t.tp = std::make_tuple(2, 3.14, "hello iguana");
-  iguana::string_stream ss;
+  std::string ss;
   iguana::to_json(t, ss);
 
   tuple_t p{};
@@ -619,7 +619,7 @@ TEST_CASE("test tuple") {
 
 TEST_CASE("test list") {
   list_t list{{1, 2, 3}};
-  iguana::string_stream ss;
+  std::string ss;
   iguana::to_json(list, ss);
 
   list_t p{};
@@ -629,7 +629,7 @@ TEST_CASE("test list") {
 
 TEST_CASE("test deque_t") {
   deque_t list{{1, 2, 3}};
-  iguana::string_stream ss;
+  std::string ss;
   iguana::to_json(list, ss);
 
   deque_t p{};
@@ -697,7 +697,7 @@ TEST_CASE("test unique_ptr object") {
 TEST_CASE("test empty object") {
   test_empty_t empty_obj;
 
-  iguana::string_stream ss;
+  std::string ss;
   iguana::to_json(empty_obj, ss);
   CHECK(ss == "{}");
 }
@@ -706,7 +706,7 @@ TEST_CASE("test non-reflectable object") {
   {
     std::tuple<int, double, std::string> t{1, 3.14, std::string("iguana")};
 
-    iguana::string_stream ss;
+    std::string ss;
     iguana::to_json(t, ss);
 
     std::tuple<int, double, std::string> p{};
