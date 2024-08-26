@@ -75,7 +75,7 @@ set(YAML_EXAMPLE
 	example/yaml_example.cpp
 )
 
-set(TEST_SOME test/test.cpp)
+set(TEST_SOME test/test_some.cpp)
 set(TEST_UT test/unit_test.cpp)
 set(TEST_JSON_FILES test/test_json_files.cpp)
 set(TEST_XML test/test_xml.cpp)

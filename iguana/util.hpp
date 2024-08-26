@@ -148,7 +148,8 @@ template <class T>
 constexpr inline bool ylt_refletable_v =
     (ylt::reflection::is_ylt_refl_v<T> ||
      std::is_aggregate_v<
-         ylt::reflection::remove_cvref_t<T>>)&&!fixed_array_v<T>;
+         ylt::reflection::remove_cvref_t<T>>)&&!fixed_array_v<T> &&
+    !ylt::reflection::is_custom_refl_v<T>;
 
 template <class T>
 constexpr inline bool non_ylt_refletable_v = !ylt_refletable_v<T>;

@@ -107,13 +107,13 @@ void test_str_view() {
 
 namespace my_space {
 struct my_struct {
-  my_struct() = default;
-  my_struct(int a, int b, int c) : x(a), y(b), z(c) {}
   int x, y, z;
   bool operator==(const my_struct& o) const {
     return x == o.x && y == o.y && z == o.z;
   }
 };
+
+void ylt_custom_reflect(my_struct*) {}
 
 template <bool Is_writing_escape, typename Stream>
 inline void to_json_impl(Stream& s, const my_struct& t) {

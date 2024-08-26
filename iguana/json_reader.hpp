@@ -8,6 +8,14 @@ template <typename T, typename It,
           std::enable_if_t<ylt_refletable_v<T>, int> = 0>
 IGUANA_INLINE void from_json(T &value, It &&it, It &&end);
 
+template <typename T, typename View,
+          std::enable_if_t<ylt_refletable_v<T>, int> = 0>
+IGUANA_INLINE void from_json(T &value, const View &view);
+
+template <typename T, typename View,
+          std::enable_if_t<non_ylt_refletable_v<T>, int> = 0>
+IGUANA_INLINE void from_json(T &value, const View &view);
+
 namespace detail {
 
 template <typename U, typename It,
@@ -647,8 +655,13 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end,
   }
 }
 
+template <typename T, typename View, std::enable_if_t<ylt_refletable_v<T>, int>>
+IGUANA_INLINE void from_json(T &value, const View &view) {
+  from_json(value, std::begin(view), std::end(view));
+}
+
 template <typename T, typename View,
-          std::enable_if_t<json_view_v<View>, int> = 0>
+          std::enable_if_t<non_ylt_refletable_v<T>, int>>
 IGUANA_INLINE void from_json(T &value, const View &view) {
   from_json(value, std::begin(view), std::end(view));
 }

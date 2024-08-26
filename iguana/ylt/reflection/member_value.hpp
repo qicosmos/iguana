@@ -63,9 +63,9 @@ inline constexpr frozen::string filter_str(const frozen::string& str) {
 }
 
 template <typename T, size_t... Is>
-inline constexpr auto get_variant_map_impl(
-    const std::array<std::string_view, sizeof...(Is)>& arr, T&& t,
-    std::index_sequence<Is...>) {
+inline constexpr auto get_variant_map_impl(T&& t, std::index_sequence<Is...>) {
+  using U = ylt::reflection::remove_cvref_t<T>;
+  constexpr auto arr = ylt::reflection::member_names<U>;
   auto ref_tp = object_to_tuple(std::forward<T>(t));
   using ValueType = decltype(get_variant_type(ref_tp));
   return frozen::unordered_map<frozen::string, ValueType, sizeof...(Is)>{
@@ -77,10 +77,8 @@ inline constexpr auto get_variant_map_impl(
 
 template <typename T>
 inline constexpr auto get_variant_map(T&& t) {
-  using U = ylt::reflection::remove_cvref_t<T>;
-  constexpr auto arr = ylt::reflection::member_names<U>;
-  return internal::get_variant_map_impl(arr, std::forward<T>(t),
-                                        std::make_index_sequence<arr.size()>{});
+  return internal::get_variant_map_impl(
+      std::forward<T>(t), std::make_index_sequence<members_count_v<T>>{});
 }
 
 template <typename Member, typename T>
