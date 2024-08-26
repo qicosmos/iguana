@@ -31,6 +31,15 @@ struct is_variant : std::false_type {};
 template <typename... T>
 struct is_variant<std::variant<T...>> : std::true_type {};
 
+template <class T>
+struct member_tratis {};
+
+template <class T, class Owner>
+struct member_tratis<T Owner::*> {
+  using owner_type = Owner;
+  using value_type = T;
+};
+
 struct switch_helper {
   template <size_t index, typename Member, class Tuple>
   static constexpr size_t run(Member& member, Tuple& t) {
@@ -153,6 +162,19 @@ inline constexpr auto& get(T& t) {
   return get<index>(t);
 }
 #endif
+
+template <auto member>
+inline constexpr size_t index_of() {
+  using T = typename internal::member_tratis<decltype(member)>::owner_type;
+  constexpr auto name = field_string<member>();
+  constexpr auto names = member_names<T>;
+  for (size_t i = 0; i < names.size(); i++) {
+    if (name == names[i]) {
+      return i;
+    }
+  }
+  return names.size();
+}
 
 template <typename T, typename Field>
 inline size_t index_of(T& t, Field& value) {
