@@ -14,7 +14,6 @@ inline char* to_chars_float(T value, char* buffer) {
 #include <iguana/json_reader.hpp>
 #include <iguana/json_writer.hpp>
 
-
 namespace client {
 struct person {
   std::string name;

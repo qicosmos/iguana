@@ -235,7 +235,7 @@ inline constexpr void for_each(T&& t, Visit&& func) {
         }
         (std::make_index_sequence<sizeof...(args)>{});
 #else
-          visit_members_impl0<T>(std::forward<Visit>(func), std::make_index_sequence<sizeof...(args)>{}, args...);
+            visit_members_impl0<T>(std::forward<Visit>(func), std::make_index_sequence<sizeof...(args)>{}, args...);
 #endif
       });
     }
@@ -249,7 +249,7 @@ inline constexpr void for_each(T&& t, Visit&& func) {
         }
         (std::make_index_sequence<sizeof...(args)>{});
 #else
-          visit_members_impl<T>(std::forward<Visit>(func), std::make_index_sequence<sizeof...(args)>{}, args...);
+            visit_members_impl<T>(std::forward<Visit>(func), std::make_index_sequence<sizeof...(args)>{}, args...);
 #endif
       });
     }
