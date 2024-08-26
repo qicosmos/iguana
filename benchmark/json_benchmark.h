@@ -1,13 +1,14 @@
 #pragma once
-#include "iguana/json_reader.hpp"
-#include "iguana/json_writer.hpp"
-#include "iguana/value.hpp"
 #include <chrono>
 #include <iostream>
 #include <map>
 #include <optional>
 #include <tuple>
 #include <vector>
+
+#include "iguana/json_reader.hpp"
+#include "iguana/json_writer.hpp"
+#include "iguana/value.hpp"
 #ifdef HAS_RAPIDJSON
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
@@ -16,27 +17,27 @@
 // canada.json
 struct property_t {
   std::string_view name;
-}; // Property
-REFLECTION(property_t, name);
+};  // Property
+YLT_REFL(property_t, name);
 
 struct polygon_t {
   std::string_view type;
   std::vector<std::vector<std::array<iguana::numeric_str, 2>>> coordinates;
-}; // Polygon
-REFLECTION(polygon_t, type, coordinates);
+};  // Polygon
+YLT_REFL(polygon_t, type, coordinates);
 
 struct feature_t {
   std::string_view type;
   property_t properties;
   polygon_t geometry;
-}; // Feature
-REFLECTION(feature_t, type, properties, geometry);
+};  // Feature
+YLT_REFL(feature_t, type, properties, geometry);
 
 struct FeatureCollection {
   std::string_view type;
   std::vector<feature_t> features;
-}; // FeatureCollection
-REFLECTION(FeatureCollection, type, features);
+};  // FeatureCollection
+YLT_REFL(FeatureCollection, type, features);
 
 // apache_builds.json
 struct jobs_t {
@@ -44,16 +45,16 @@ struct jobs_t {
   std::string_view url;
   std::string_view color;
 };
-REFLECTION(jobs_t, name, url, color);
+YLT_REFL(jobs_t, name, url, color);
 
 struct views_t {
   std::string_view name;
   std::string_view url;
 };
-REFLECTION(views_t, name, url);
+YLT_REFL(views_t, name, url);
 
 struct apache_empty_t {};
-REFLECTION_EMPTY(apache_empty_t);
+YLT_REFL(apache_empty_t);
 
 struct apache_builds {
   std::vector<apache_empty_t> assignedLabels;
@@ -72,10 +73,10 @@ struct apache_builds {
   bool useSecurity;
   std::vector<views_t> views;
 };
-REFLECTION(apache_builds, assignedLabels, mode, nodeDescription, nodeName,
-           numExecutors, description, jobs, overallLoad, primaryView,
-           quietingDown, slaveAgentPort, unlabeledLoad, useCrumbs, useSecurity,
-           views);
+YLT_REFL(apache_builds, assignedLabels, mode, nodeDescription, nodeName,
+         numExecutors, description, jobs, overallLoad, primaryView,
+         quietingDown, slaveAgentPort, unlabeledLoad, useCrumbs, useSecurity,
+         views);
 
 // citm_catalog.json
 struct events_value_t {
@@ -87,28 +88,28 @@ struct events_value_t {
   std::optional<iguana::numeric_str> subjectCode;
   std::optional<std::string_view> subtitle;
   std::vector<iguana::numeric_str> topicIds;
-}; // events_value_t
-REFLECTION(events_value_t, description, id, logo, name, subTopicIds,
-           subjectCode, subtitle, topicIds);
+};  // events_value_t
+YLT_REFL(events_value_t, description, id, logo, name, subTopicIds, subjectCode,
+         subtitle, topicIds);
 
 struct prices_element_t {
   iguana::numeric_str amount;
   iguana::numeric_str audienceSubCategoryId;
   iguana::numeric_str seatCategoryId;
-}; // prices_element_t
-REFLECTION(prices_element_t, amount, audienceSubCategoryId, seatCategoryId);
+};  // prices_element_t
+YLT_REFL(prices_element_t, amount, audienceSubCategoryId, seatCategoryId);
 
 struct areas_element_t {
   iguana::numeric_str areaId;
   std::vector<iguana::numeric_str> blockIds;
-}; // areas_element_t
-REFLECTION(areas_element_t, areaId, blockIds);
+};  // areas_element_t
+YLT_REFL(areas_element_t, areaId, blockIds);
 
 struct seatCategories_element_t {
   std::vector<areas_element_t> areas;
   iguana::numeric_str seatCategoryId;
-}; // seatCategories_element_t
-REFLECTION(seatCategories_element_t, areas, seatCategoryId);
+};  // seatCategories_element_t
+YLT_REFL(seatCategories_element_t, areas, seatCategoryId);
 
 struct performances_element_t {
   iguana::numeric_str eventId;
@@ -120,14 +121,14 @@ struct performances_element_t {
   std::optional<std::string_view> seatMapImage;
   iguana::numeric_str start;
   std::string_view venueCode;
-}; // performances_element_t
-REFLECTION(performances_element_t, eventId, id, logo, name, prices,
-           seatCategories, seatMapImage, start, venueCode);
+};  // performances_element_t
+YLT_REFL(performances_element_t, eventId, id, logo, name, prices,
+         seatCategories, seatMapImage, start, venueCode);
 
 struct venueNames_t {
   std::string_view PLEYEL_PLEYEL;
-}; // venueNames_t
-REFLECTION(venueNames_t, PLEYEL_PLEYEL);
+};  // venueNames_t
+YLT_REFL(venueNames_t, PLEYEL_PLEYEL);
 
 struct citm_object_t {
   std::unordered_map<std::string_view, std::string_view> areaNames;
@@ -143,38 +144,38 @@ struct citm_object_t {
   std::unordered_map<std::string_view, std::vector<iguana::numeric_str>>
       topicSubTopics;
   std::optional<venueNames_t> venueNames;
-}; // citm_object_t
-REFLECTION(citm_object_t, areaNames, audienceSubCategoryNames, blockNames,
-           events, performances, seatCategoryNames, subTopicNames, subjectNames,
-           topicNames, topicSubTopics, venueNames);
+};  // citm_object_t
+YLT_REFL(citm_object_t, areaNames, audienceSubCategoryNames, blockNames, events,
+         performances, seatCategoryNames, subTopicNames, subjectNames,
+         topicNames, topicSubTopics, venueNames);
 
 // gsoc-2018.json
 struct sponsor_t {
-  std::string_view type; //@
+  std::string_view type;  //@
   std::string_view name;
   std::string_view disambiguatingDescription;
   std::string_view description;
   std::string_view url;
   std::string_view logo;
 };
-REFLECTION(sponsor_t, type, name, disambiguatingDescription, description, url,
-           logo);
+YLT_REFL(sponsor_t, type, name, disambiguatingDescription, description, url,
+         logo);
 
 struct author_t {
-  std::string_view type; //@
+  std::string_view type;  //@
   std::string_view name;
 };
-REFLECTION(author_t, type, name);
+YLT_REFL(author_t, type, name);
 
 struct gsoc_element_t {
-  std::string_view context; //@
-  std::string_view type;    //@
+  std::string_view context;  //@
+  std::string_view type;     //@
   std::string_view name;
   std::string_view description;
   sponsor_t sponsor;
   author_t author;
 };
-REFLECTION(gsoc_element_t, context, type, name, description, sponsor, author);
+YLT_REFL(gsoc_element_t, context, type, name, description, sponsor, author);
 
 using gsoc_object_t = std::map<std::string_view, gsoc_element_t>;
 
@@ -184,7 +185,7 @@ struct mesh_element_t {
   std::vector<iguana::numeric_str> usedBones;
   std::vector<iguana::numeric_str> vertexRange;
 };
-REFLECTION(mesh_element_t, indexRange, usedBones, vertexRange);
+YLT_REFL(mesh_element_t, indexRange, usedBones, vertexRange);
 
 struct mesh_t {
   std::vector<mesh_element_t> batches;
@@ -196,8 +197,8 @@ struct mesh_t {
   std::vector<iguana::numeric_str> positions;
   std::vector<iguana::numeric_str> tex0;
 };
-REFLECTION(mesh_t, batches, colors, indices, influences, morphTargets, normals,
-           positions, tex0);
+YLT_REFL(mesh_t, batches, colors, indices, influences, morphTargets, normals,
+         positions, tex0);
 
 // random.json
 struct friend_t {
@@ -205,7 +206,7 @@ struct friend_t {
   std::string_view name;
   std::string_view phone;
 };
-REFLECTION(friend_t, id, name, phone);
+YLT_REFL(friend_t, id, name, phone);
 
 struct random_element_t {
   iguana::numeric_str id;
@@ -220,8 +221,8 @@ struct random_element_t {
   std::vector<friend_t> friends;
   std::string_view field;
 };
-REFLECTION(random_element_t, id, avatar, age, admin, name, company, phone,
-           email, birthDate, friends, field);
+YLT_REFL(random_element_t, id, avatar, age, admin, name, company, phone, email,
+         birthDate, friends, field);
 
 struct random_t {
   iguana::numeric_str id;
@@ -229,7 +230,7 @@ struct random_t {
   iguana::numeric_str total;
   std::vector<random_element_t> result;
 };
-REFLECTION(random_t, id, jsonrpc, total, result);
+YLT_REFL(random_t, id, jsonrpc, total, result);
 
 // github_events.json
 namespace githubEvents {
@@ -250,9 +251,9 @@ struct user_t {
   std::string_view followers_url;
   std::string_view following_url;
 };
-REFLECTION(user_t, gists_url, gravatar_id, url, type, avatar_url,
-           subscriptions_url, organizations_url, received_events_url, repos_url,
-           login, starred_url, id, events_url, followers_url, following_url);
+YLT_REFL(user_t, gists_url, gravatar_id, url, type, avatar_url,
+         subscriptions_url, organizations_url, received_events_url, repos_url,
+         login, starred_url, id, events_url, followers_url, following_url);
 
 struct page_t {
   std::string_view page_name;
@@ -262,14 +263,14 @@ struct page_t {
   std::optional<std::string_view> summary;
   std::string_view action;
 };
-REFLECTION(page_t, page_name, html_url, title, sha, summary, action);
+YLT_REFL(page_t, page_name, html_url, title, sha, summary, action);
 
 struct pull_request_t {
   std::optional<std::string_view> html_url;
   std::optional<std::string_view> patch_url;
   std::optional<std::string_view> diff_url;
 };
-REFLECTION(pull_request_t, html_url, patch_url, diff_url);
+YLT_REFL(pull_request_t, html_url, patch_url, diff_url);
 
 struct forkee_t {
   std::string_view full_name;
@@ -337,18 +338,18 @@ struct forkee_t {
   iguana::numeric_str watchers;
   std::string_view git_url;
 };
-REFLECTION(forkee_t, full_name, stargazers_url, clone_url, fork, url, tags_url,
-           description, merges_url, forks, language, ___private, archive_url,
-           collaborators_url, languages_url, owner, git_refs_url, labels_url,
-           pushed_at, html_url, trees_url, forks_url, commits_url, branches_url,
-           notifications_url, created_at, has_issues, blobs_url, issues_url,
-           open_issues, contents_url, name, statuses_url, assignees_url,
-           forks_count, updated_at, issue_events_url, ssh_url, subscribers_url,
-           mirror_url, ___public, has_wiki, git_commits_url, downloads_url, id,
-           pulls_url, has_downloads, issue_comment_url, watchers_count,
-           homepage, hooks_url, subscription_url, milestones_url, events_url,
-           svn_url, git_tags_url, teams_url, comments_url, open_issues_count,
-           keys_url, contributors_url, size, watchers, git_url, compare_url);
+YLT_REFL(forkee_t, full_name, stargazers_url, clone_url, fork, url, tags_url,
+         description, merges_url, forks, language, ___private, archive_url,
+         collaborators_url, languages_url, owner, git_refs_url, labels_url,
+         pushed_at, html_url, trees_url, forks_url, commits_url, branches_url,
+         notifications_url, created_at, has_issues, blobs_url, issues_url,
+         open_issues, contents_url, name, statuses_url, assignees_url,
+         forks_count, updated_at, issue_events_url, ssh_url, subscribers_url,
+         mirror_url, ___public, has_wiki, git_commits_url, downloads_url, id,
+         pulls_url, has_downloads, issue_comment_url, watchers_count, homepage,
+         hooks_url, subscription_url, milestones_url, events_url, svn_url,
+         git_tags_url, teams_url, comments_url, open_issues_count, keys_url,
+         contributors_url, size, watchers, git_url, compare_url);
 
 struct issue_t {
   user_t user;
@@ -371,9 +372,9 @@ struct issue_t {
   std::string_view events_url;
   std::string_view comments_url;
 };
-REFLECTION(issue_t, user, url, labels, html_url, labels_url, pull_request,
-           created_at, closed_at, milestone, title, body, updated_at, number,
-           state, assignee, id, comments, events_url, comments_url);
+YLT_REFL(issue_t, user, url, labels, html_url, labels_url, pull_request,
+         created_at, closed_at, milestone, title, body, updated_at, number,
+         state, assignee, id, comments, events_url, comments_url);
 
 struct comment_t {
   user_t user;
@@ -384,7 +385,7 @@ struct comment_t {
   std::string_view updated_at;
   iguana::numeric_str id;
 };
-REFLECTION(comment_t, user, url, issue_url, created_at, body, updated_at, id);
+YLT_REFL(comment_t, user, url, issue_url, created_at, body, updated_at, id);
 
 struct actor_org_t {
   std::string_view gravatar_id;
@@ -393,20 +394,20 @@ struct actor_org_t {
   std::string_view url;
   iguana::numeric_str id;
 };
-REFLECTION(actor_org_t, gravatar_id, login, avatar_url, url, id);
+YLT_REFL(actor_org_t, gravatar_id, login, avatar_url, url, id);
 
 struct repo_t {
   std::string_view url;
   iguana::numeric_str id;
   std::string_view name;
 };
-REFLECTION(repo_t, url, id, name);
+YLT_REFL(repo_t, url, id, name);
 
 struct author_t {
   std::string_view email;
   std::string_view name;
 };
-REFLECTION(author_t, email, name);
+YLT_REFL(author_t, email, name);
 
 struct commit_t {
   std::string_view url;
@@ -415,7 +416,7 @@ struct commit_t {
   std::string_view sha;
   author_t author;
 };
-REFLECTION(commit_t, url, message, distinct, sha, author);
+YLT_REFL(commit_t, url, message, distinct, sha, author);
 
 struct payload_t {
   std::optional<std::vector<commit_t>> commits;
@@ -435,9 +436,9 @@ struct payload_t {
 
   std::optional<std::string_view> ref_type;
 };
-REFLECTION(payload_t, commits, distinct_size, ref, push_id, head, before, size,
-           forkee, pages, action, comment, issue, description, master_branch,
-           ref_type);
+YLT_REFL(payload_t, commits, distinct_size, ref, push_id, head, before, size,
+         forkee, pages, action, comment, issue, description, master_branch,
+         ref_type);
 
 struct event_t {
   std::string_view type;
@@ -449,10 +450,10 @@ struct event_t {
   payload_t payload;
   std::string_view id;
 };
-REFLECTION(event_t, type, created_at, actor, repo, ___public, org, payload, id);
+YLT_REFL(event_t, type, created_at, actor, repo, ___public, org, payload, id);
 
 using events_t = std::vector<event_t>;
-} // namespace githubEvents
+}  // namespace githubEvents
 
 namespace marine_ik {
 struct image_element_t {
@@ -460,14 +461,14 @@ struct image_element_t {
   std::string_view uuid;
   std::string_view name;
 };
-REFLECTION(image_element_t, url, uuid, name);
+YLT_REFL(image_element_t, url, uuid, name);
 
 struct item_t {
   std::string_view name;
   std::string_view type;
   std::string_view uuid;
 };
-REFLECTION(item_t, name, type, uuid);
+YLT_REFL(item_t, name, type, uuid);
 
 struct key_element_t {
   std::array<iguana::numeric_str, 4> rot;
@@ -475,13 +476,13 @@ struct key_element_t {
   std::array<iguana::numeric_str, 3> scl;
   std::array<iguana::numeric_str, 3> pos;
 };
-REFLECTION(key_element_t, rot, time, scl, pos);
+YLT_REFL(key_element_t, rot, time, scl, pos);
 
 struct hierarchy_element_t {
   iguana::numeric_str parent;
   std::vector<key_element_t> keys;
 };
-REFLECTION(hierarchy_element_t, parent, keys);
+YLT_REFL(hierarchy_element_t, parent, keys);
 
 struct geo_anim_element_t {
   std::vector<hierarchy_element_t> hierarchy;
@@ -489,7 +490,7 @@ struct geo_anim_element_t {
   iguana::numeric_str fps{};
   std::string_view name;
 };
-REFLECTION(geo_anim_element_t, hierarchy, length, fps, name);
+YLT_REFL(geo_anim_element_t, hierarchy, length, fps, name);
 
 struct bone_element_t {
   iguana::numeric_str parent;
@@ -498,7 +499,7 @@ struct bone_element_t {
   std::array<iguana::numeric_str, 3> scl;
   std::string_view name;
 };
-REFLECTION(bone_element_t, parent, pos, rotq, scl, name);
+YLT_REFL(bone_element_t, parent, pos, rotq, scl, name);
 
 struct geo_meta_data_t {
   iguana::numeric_str uvs;
@@ -509,8 +510,8 @@ struct geo_meta_data_t {
   iguana::numeric_str bones;
   iguana::numeric_str vertices;
 };
-REFLECTION(geo_meta_data_t, uvs, version, faces, generator, normals, bones,
-           vertices);
+YLT_REFL(geo_meta_data_t, uvs, version, faces, generator, normals, bones,
+         vertices);
 
 struct geo_data_t {
   std::vector<std::vector<iguana::numeric_str>> uvs;
@@ -525,15 +526,15 @@ struct geo_data_t {
   std::vector<bone_element_t> bones;
   std::vector<iguana::numeric_str> faces;
 };
-REFLECTION(geo_data_t, uvs, animations, vertices, metadata, name, skinWeights,
-           skinIndices, influencesPerVertex, normals, bones, faces);
+YLT_REFL(geo_data_t, uvs, animations, vertices, metadata, name, skinWeights,
+         skinIndices, influencesPerVertex, normals, bones, faces);
 
 struct geometry_element_t {
   std::string_view type;
   std::string_view uuid;
   geo_data_t data;
 };
-REFLECTION(geometry_element_t, type, uuid, data);
+YLT_REFL(geometry_element_t, type, uuid, data);
 
 struct texture_element_t {
   std::array<iguana::numeric_str, 2> repeat;
@@ -546,8 +547,8 @@ struct texture_element_t {
   std::string_view uuid;
   iguana::numeric_str magFilter{};
 };
-REFLECTION(texture_element_t, repeat, wrap, anisotropy, image, name, mapping,
-           minFilter, uuid, magFilter);
+YLT_REFL(texture_element_t, repeat, wrap, anisotropy, image, name, mapping,
+         minFilter, uuid, magFilter);
 
 struct meta_data_t {
   std::string_view sourceFile;
@@ -555,7 +556,7 @@ struct meta_data_t {
   std::string_view type;
   iguana::numeric_str version{};
 };
-REFLECTION(meta_data_t, sourceFile, generator, type, version);
+YLT_REFL(meta_data_t, sourceFile, generator, type, version);
 
 struct material_element_t : item_t {
   iguana::numeric_str vertexColors{};
@@ -569,9 +570,9 @@ struct material_element_t : item_t {
   bool depthWrite{};
   iguana::numeric_str specular{};
 };
-REFLECTION(material_element_t, vertexColors, name, type, uuid, blending, map,
-           transparent, depthTest, color, shininess, emissive, depthWrite,
-           specular);
+YLT_REFL(material_element_t, vertexColors, name, type, uuid, blending, map,
+         transparent, depthTest, color, shininess, emissive, depthWrite,
+         specular);
 
 struct obj_child_t : item_t {
   std::array<iguana::numeric_str, 16> matrix;
@@ -581,8 +582,8 @@ struct obj_child_t : item_t {
   bool receiveShadow{};
   std::string_view geometry;
 };
-REFLECTION(obj_child_t, name, uuid, matrix, visible, type, material, castShadow,
-           receiveShadow, geometry);
+YLT_REFL(obj_child_t, name, uuid, matrix, visible, type, material, castShadow,
+         receiveShadow, geometry);
 
 struct object_t {
   std::vector<obj_child_t> children;
@@ -590,14 +591,14 @@ struct object_t {
   std::array<iguana::numeric_str, 16> matrix;
   std::string_view uuid;
 };
-REFLECTION(object_t, children, type, matrix, uuid);
+YLT_REFL(object_t, children, type, matrix, uuid);
 
 struct animation_element_t {
   std::vector<iguana::numeric_str> tracks;
   iguana::numeric_str fps;
   std::string_view name;
 };
-REFLECTION(animation_element_t, tracks, fps, name);
+YLT_REFL(animation_element_t, tracks, fps, name);
 
 struct marine_ik_t {
   std::vector<image_element_t> images;
@@ -608,9 +609,9 @@ struct marine_ik_t {
   object_t object;
   std::vector<animation_element_t> animations;
 };
-REFLECTION(marine_ik_t, images, geometries, textures, metadata, materials,
-           object, animations);
-} // namespace marine_ik
+YLT_REFL(marine_ik_t, images, geometries, textures, metadata, materials, object,
+         animations);
+}  // namespace marine_ik
 
 // instruments.json
 struct sample_element {
@@ -630,9 +631,9 @@ struct sample_element {
   iguana::numeric_str vibrato_type;
   iguana::numeric_str volume;
 };
-REFLECTION(sample_element, c5_samplerate, global_volume, legacy_filename,
-           length, loop_end, loop_start, name, pan, sustain_end, sustain_start,
-           vibrato_depth, vibrato_rate, vibrato_sweep, vibrato_type, volume);
+YLT_REFL(sample_element, c5_samplerate, global_volume, legacy_filename, length,
+         loop_end, loop_start, name, pan, sustain_end, sustain_start,
+         vibrato_depth, vibrato_rate, vibrato_sweep, vibrato_type, volume);
 
 struct data_t {
   iguana::numeric_str channel;
@@ -644,7 +645,7 @@ struct data_t {
   iguana::numeric_str volcmd;
   iguana::numeric_str volval;
 };
-REFLECTION(data_t, channel, fxcmd, fxparam, instr, note, row, volcmd, volval);
+YLT_REFL(data_t, channel, fxcmd, fxparam, instr, note, row, volcmd, volval);
 
 struct pattern_element {
   std::optional<std::vector<data_t>> data;
@@ -653,13 +654,13 @@ struct pattern_element {
   iguana::numeric_str rows_per_beat;
   iguana::numeric_str rows_per_measure;
 };
-REFLECTION(pattern_element, data, name, rows, rows_per_beat, rows_per_measure);
+YLT_REFL(pattern_element, data, name, rows, rows_per_beat, rows_per_measure);
 
 struct node_t {
   iguana::numeric_str tick;
   iguana::numeric_str value;
 };
-REFLECTION(node_t, tick, value);
+YLT_REFL(node_t, tick, value);
 
 struct panning_envelope_t {
   iguana::numeric_str loop_end;
@@ -669,8 +670,8 @@ struct panning_envelope_t {
   iguana::numeric_str sustain_end;
   iguana::numeric_str sustain_start;
 };
-REFLECTION(panning_envelope_t, loop_end, loop_start, nodes, release_node,
-           sustain_end, sustain_start);
+YLT_REFL(panning_envelope_t, loop_end, loop_start, nodes, release_node,
+         sustain_end, sustain_start);
 
 struct instrument_element {
   iguana::numeric_str default_filter_cutoff;
@@ -709,17 +710,16 @@ struct instrument_element {
   iguana::numeric_str volume_ramp_down;
   iguana::numeric_str volume_ramp_up;
 };
-REFLECTION(instrument_element, default_filter_cutoff,
-           default_filter_cutoff_enabled, default_filter_mode,
-           default_filter_resonance, default_filter_resonance_enabled,
-           default_pan, duplicate_check_type, duplicate_note_action, fadeout,
-           global_volume, graph_insert, legacy_filename, midi_bank,
-           midi_channel, midi_drum_set, midi_program, name, new_note_action,
-           note_map, panning_envelope, pitch_envelope, pitch_pan_center,
-           pitch_pan_separation, pitch_to_tempo_lock, random_cutoff_weight,
-           random_pan_weight, random_resonance_weight, random_volume_weight,
-           sample_map, tuning, volume_envelope, volume_ramp_down,
-           volume_ramp_up);
+YLT_REFL(instrument_element, default_filter_cutoff,
+         default_filter_cutoff_enabled, default_filter_mode,
+         default_filter_resonance, default_filter_resonance_enabled,
+         default_pan, duplicate_check_type, duplicate_note_action, fadeout,
+         global_volume, graph_insert, legacy_filename, midi_bank, midi_channel,
+         midi_drum_set, midi_program, name, new_note_action, note_map,
+         panning_envelope, pitch_envelope, pitch_pan_center,
+         pitch_pan_separation, pitch_to_tempo_lock, random_cutoff_weight,
+         random_pan_weight, random_resonance_weight, random_volume_weight,
+         sample_map, tuning, volume_envelope, volume_ramp_down, volume_ramp_up);
 
 struct instruments_t {
   std::optional<iguana::numeric_str> graphstate;
@@ -732,5 +732,5 @@ struct instruments_t {
   std::vector<sample_element> samples;
   iguana::numeric_str version;
 };
-REFLECTION(instruments_t, graphstate, instruments, message, name, orderlist,
-           patterns, pluginstate, samples, version);
+YLT_REFL(instruments_t, graphstate, instruments, message, name, orderlist,
+         patterns, pluginstate, samples, version);

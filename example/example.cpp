@@ -8,19 +8,19 @@ struct person {
   std::string name;
   int age;
 };
-REFLECTION(person, name, age)
+YLT_REFL(person, name, age)
 
 struct one_t {
   int id;
 };
-REFLECTION(one_t, id);
+YLT_REFL(one_t, id);
 
 struct two {
   std::string name;
   one_t one;
   int age;
 };
-REFLECTION(two, name, one, age);
+YLT_REFL(two, name, one, age);
 
 struct composit_t {
   int a;
@@ -31,7 +31,7 @@ struct composit_t {
   double f;
   std::vector<one_t> g;
 };
-REFLECTION(composit_t, a, b, c, d, e, f, g);
+YLT_REFL(composit_t, a, b, c, d, e, f, g);
 
 void test_json() {
   person p;

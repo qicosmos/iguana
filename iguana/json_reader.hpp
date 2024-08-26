@@ -96,10 +96,10 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   }
 }
 
-template <typename U, typename It, std::enable_if_t<is_pb_type_v<U>, int> = 0>
-IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
-  from_json_impl(value.val, it, end);
-}
+// template <typename U, typename It, std::enable_if_t<is_pb_type_v<U>, int> =
+// 0> IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
+//   from_json_impl(value.val, it, end);
+// }
 
 template <typename U, typename It, std::enable_if_t<numeric_str_v<U>, int> = 0>
 IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {

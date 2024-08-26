@@ -1,5 +1,4 @@
 #define DOCTEST_CONFIG_IMPLEMENT
-#include <iguana/json_util.hpp>
 #include <iguana/json_writer.hpp>
 #include <iostream>
 #include <optional>
@@ -125,7 +124,7 @@ struct json0_obj_t {
   bool another_bool{};
 };
 YLT_REFL(json0_obj_t, fixed_name_object, another_object, string_array, string,
-           number, boolean, another_bool);
+         number, boolean, another_bool);
 
 struct tuple_t {
   std::tuple<int, double, std::string> tp;
@@ -883,12 +882,15 @@ YLT_REFL(dummy_nest_t1, id, t);
 //   static_assert(count3 == 2);
 
 //   constexpr size_t count5 = iguana::duplicate_count<
-//       dummy_nest_t1, &dummy_nest_t1::id>();  // has duplicate field "id": 1 id
-//                                              // field + more than one name "id"
+//       dummy_nest_t1, &dummy_nest_t1::id>();  // has duplicate field "id": 1
+//       id
+//                                              // field + more than one name
+//                                              "id"
 //   static_assert(count5 == 3);
 //   constexpr size_t count4 =
 //       iguana::duplicate_count<dummy_nest_t,
-//                               &person::name>();  // &person::name is not belong
+//                               &person::name>();  // &person::name is not
+//                               belong
 //                                                  // to dummy_nest_t
 //   static_assert(count4 == 1);
 
@@ -1033,6 +1035,8 @@ struct my_struct {
     return x == o.x && y == o.y && z == o.z;
   }
 };
+
+void ylt_custom_reflect(my_struct *) {}
 
 template <bool Is_writing_escape, typename Stream>
 inline void to_json_impl(Stream &s, const my_struct &t) {

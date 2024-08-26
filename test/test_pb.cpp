@@ -5,6 +5,7 @@
 #include <optional>
 
 #include "iguana/pb_writer.hpp"
+#include "iguana/reflection.hpp"
 
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
@@ -108,7 +109,7 @@ struct test_pb_st6 {
 };
 REFLECTION(test_pb_st6, x, y);
 
-struct pair_t : public iguana::base_impl<pair_t, iguana::ENABLE_ALL> {
+struct pair_t : public iguana::base_impl<pair_t> {
   pair_t() = default;
   pair_t(int a, int b) : x(a), y(b) {}
   int x;
@@ -242,7 +243,7 @@ struct numer_st PUBLIC(numer_st) {
 };
 REFLECTION(numer_st, a, b, c);
 
-struct MyPerson : public iguana::base_impl<MyPerson, iguana::ENABLE_JSON> {
+struct MyPerson : public iguana::base_impl<MyPerson> {
   MyPerson() = default;
   MyPerson(std::string s, int d) : name(s), age(d) {}
   std::string name;
@@ -397,19 +398,19 @@ TEST_CASE("test reflection") {
         std::any_cast<std::variant<int, double>>(mvariant_any);
     assert(mvariant == temp_variant);
   }
-  {
-    // to_json is an const member_function now
-    MyPerson const p1{"xiaoming", 10};
-    std::string str;
-    p1.to_json(str);
+  // {
+  //   // to_json is an const member_function now
+  //   MyPerson const p1{"xiaoming", 10};
+  //   std::string str;
+  //   p1.to_json(str);
 
-    // p1.to_pb(str); // compile failed
+  //   // p1.to_pb(str); // compile failed
 
-    MyPerson p2;
-    p2.from_json(str);
+  //   MyPerson p2;
+  //   p2.from_json(str);
 
-    assert(p1 == p2);
-  }
+  //   assert(p1 == p2);
+  // }
   {
     auto t = iguana::create_instance("pair_t");
     t->set_field_value("x", 12);
@@ -437,15 +438,15 @@ TEST_CASE("test reflection") {
     CHECK(st->x == s.x);
     CHECK(st->y == s.y);
 
-    std::string json;
-    t->to_json(json);
-    std::cout << json << "\n";
+    // std::string json;
+    // t->to_json(json);
+    // std::cout << json << "\n";
 
-    s = {};
-    s.from_json(json);
-    std::cout << s.x << " " << s.y << "\n";
-    CHECK(st->x == s.x);
-    CHECK(st->y == s.y);
+    // s = {};
+    // s.from_json(json);
+    // std::cout << s.x << " " << s.y << "\n";
+    // CHECK(st->x == s.x);
+    // CHECK(st->y == s.y);
 
     std::string yaml;
     t->to_yaml(yaml);
