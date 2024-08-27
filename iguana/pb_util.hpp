@@ -434,107 +434,225 @@ IGUANA_INLINE size_t pb_oneof_size(Type&& t, Arr& size_arr) {
   return len;
 }
 
+template <typename T, typename = void>
+struct is_custom_reflection : std::false_type {};
+
+template <typename T>
+struct is_custom_reflection<
+    T, std::void_t<decltype(get_members_impl(std::declval<T*>()))>>
+    : std::true_type {};
+
+template <typename T>
+inline constexpr bool is_custom_reflection_v =
+    is_custom_reflection<ylt::reflection::remove_cvref_t<T>>::value;
+
+// T: parant type, value_type: member value pointer type, SubType: subtype from
+// variant
+template <typename T, typename ValuePtr,
+          typename SubType = std::remove_pointer_t<ValuePtr>>
+struct pb_field_t {
+  using owner_type = T;
+  using value_type = ValuePtr;
+  using sub_type = SubType;
+  constexpr pb_field_t() = default;
+  explicit constexpr pb_field_t(ValuePtr member, uint32_t number,
+                                frozen::string name = "")
+      : member_ptr(member), field_name(name), field_no(number) {}
+
+  ValuePtr member_ptr;
+  frozen::string field_name;
+  uint32_t field_no;
+
+  auto& value() const { return *member_ptr; }
+};
+
+// using value_type = typename member_traits<T>::value_type;
+// return std::tuple(field_t<T, std::variant_alternative_t<I, value_type>>{
+//     t, (base_idx + uint32_t(I)), s}...);
+
+template <typename T, typename Field, size_t... I>
+constexpr inline auto build_pb_variant_fields(Field t, std::string_view name,
+                                              uint32_t base_idx,
+                                              std::index_sequence<I...>) {
+  using value_type = std::remove_pointer_t<Field>;
+  return std::tuple(
+      pb_field_t<T, Field, std::variant_alternative_t<I, value_type>>{
+          t, (base_idx + uint32_t(I)), name}...);
+}
+
+template <std::size_t, typename>
+struct make_reverse_index_sequence_helper;
+
+template <std::size_t N, std::size_t... NN>
+struct make_reverse_index_sequence_helper<N, std::index_sequence<NN...>>
+    : std::index_sequence<(N - NN)...> {};
+
+template <size_t N>
+struct make_reverse_index_sequence
+    : make_reverse_index_sequence_helper<
+          N - 1, decltype(std::make_index_sequence<N>{})> {};
+
+template <typename T, uint32_t I, typename ValueType>
+constexpr inline auto build_fields_impl(ValueType field, std::string_view name,
+                                        uint32_t& index) {
+  using MemberPtr = decltype(field);
+  using value_type = std::remove_pointer_t<ValueType>;
+  if constexpr (is_variant<value_type>::value) {
+    constexpr uint32_t variant_size = std::variant_size_v<value_type>;
+    size_t base_index = index;
+    index += (variant_size - 1);
+    return build_pb_variant_fields<T>(field, name, base_index,
+                                      std::make_index_sequence<variant_size>{});
+  }
+  else {
+    uint32_t field_no = (I == index) ? (I + 1) : (2 + index);
+    index++;
+    return std::tuple(pb_field_t<T, MemberPtr>(field, field_no, name));
+  }
+}
+
+// template<typename... Args>
+// inline auto cat_pb_fields(Args&&... args) {
+//   ((std::cout<<std::get<0>(args).field_name.data()<<" "),...);
+//   std::cout << "\n";
+//   return std::tuple_cat(args...);
+// }
+
+template <typename T, typename Tuple, size_t... I>
+inline auto build_pb_fields(Tuple&& tp, std::index_sequence<I...>) {
+  constexpr auto arr = ylt::reflection::member_names<T>;
+  uint32_t index = 0;
+  return (build_fields_impl<T, I>(&std::get<I>(tp), arr[I], index), ...);
+}
+
+template <typename T>
+inline auto get_pb_members_tuple(T&& t) {
+  using U = ylt::reflection::remove_cvref_t<T>;
+  if constexpr (ylt_refletable_v<U>) {
+    auto tp = ylt::reflection::object_to_tuple(std::forward<T>(t));
+    constexpr size_t Size = std::tuple_size_v<decltype(tp)>;
+    return build_pb_fields<U>(tp, std::make_index_sequence<Size>{});
+    // return ylt::reflection::visit_members(std::forward<T>(t), [&](auto&...
+    // args) {
+    //   return build_pb_fields<U>(std::tuple(&args...),
+    //   std::make_index_sequence<sizeof...(args)>{});
+    //   });
+  }
+  else if constexpr (is_custom_reflection_v<U>) {
+    return get_members_impl((U*)nullptr);
+  }
+  else {
+    static_assert(!sizeof(T), "not a reflectable type");
+  }
+}
+
 // returns size = key_size + optional(len_size) + len
 // when key_size == 0, return len
 template <size_t key_size, bool omit_default_val, typename Type, typename Arr>
 IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr) {
   using T = std::remove_const_t<std::remove_reference_t<Type>>;
-  if constexpr (is_reflection_v<T> || is_custom_reflection_v<T>) {
+  if constexpr (ylt_refletable_v<T>) {
     size_t len = 0;
-    static constexpr auto tuple = get_members_tuple<T>();
-    constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
-    size_t pre_index = -1;
-    if constexpr (!inherits_from_base_v<T> && key_size != 0) {
-      pre_index = size_arr.size();
-      size_arr.push_back(0);  // placeholder
-    }
-    for_each_n(
-        [&len, &t, &size_arr](auto i) IGUANA__INLINE_LAMBDA {
-          using field_type =
-              std::tuple_element_t<decltype(i)::value,
-                                   std::decay_t<decltype(tuple)>>;
-          constexpr auto value = std::get<decltype(i)::value>(tuple);
-          using U = typename field_type::value_type;
-          auto const& val = value.value(t);
-          if constexpr (variant_v<U>) {
-            constexpr auto offset =
-                get_variant_index<U, typename field_type::sub_type,
-                                  std::variant_size_v<U> - 1>();
-            if constexpr (offset == 0) {
-              len += pb_oneof_size<value.field_no>(val, size_arr);
-            }
-          }
-          else {
-            constexpr uint32_t sub_key =
-                (value.field_no << 3) |
-                static_cast<uint32_t>(get_wire_type<U>());
-            constexpr auto sub_keysize = variant_uint32_size_constexpr(sub_key);
-            len += pb_key_value_size<sub_keysize>(val, size_arr);
-          }
-        },
-        std::make_index_sequence<SIZE>{});
-    if constexpr (inherits_from_base_v<T>) {
-      t.cache_size = len;
-    }
-    else if constexpr (key_size != 0) {
-      size_arr[pre_index] = len;
-    }
-    if constexpr (key_size == 0) {
-      // for top level
-      return len;
-    }
-    else {
-      if (len == 0) {
-        // equals key_size  + variant_uint32_size(len)
-        return key_size + 1;
-      }
-      else {
-        return key_size + variant_uint32_size(static_cast<uint32_t>(len)) + len;
-      }
-    }
+    auto tp = get_pb_members_tuple(std::forward<Type>(t));
+    std::cout << "\n";
+
+    // size_t pre_index = -1;
+    // if constexpr (!inherits_from_base_v<T> && key_size != 0) {
+    //   pre_index = size_arr.size();
+    //   size_arr.push_back(0);  // placeholder
+    // }
+    // for_each_n(
+    //     [&len, &t, &size_arr](auto i) IGUANA__INLINE_LAMBDA {
+    //       using field_type =
+    //           std::tuple_element_t<decltype(i)::value,
+    //                                std::decay_t<decltype(tuple)>>;
+    //       constexpr auto value = std::get<decltype(i)::value>(tuple);
+    //       using U = typename field_type::value_type;
+    //       auto const& val = value.value(t);
+    //       if constexpr (variant_v<U>) {
+    //         constexpr auto offset =
+    //             get_variant_index<U, typename field_type::sub_type,
+    //                               std::variant_size_v<U> - 1>();
+    //         if constexpr (offset == 0) {
+    //           len += pb_oneof_size<value.field_no>(val, size_arr);
+    //         }
+    //       }
+    //       else {
+    //         constexpr uint32_t sub_key =
+    //             (value.field_no << 3) |
+    //             static_cast<uint32_t>(get_wire_type<U>());
+    //         constexpr auto sub_keysize =
+    //         variant_uint32_size_constexpr(sub_key); len +=
+    //         pb_key_value_size<sub_keysize>(val, size_arr);
+    //       }
+    //     },
+    //     std::make_index_sequence<SIZE>{});
+    // if constexpr (inherits_from_base_v<T>) {
+    //   t.cache_size = len;
+    // }
+    // else if constexpr (key_size != 0) {
+    //   size_arr[pre_index] = len;
+    // }
+    // if constexpr (key_size == 0) {
+    //   // for top level
+    //   return len;
+    // }
+    // else {
+    //   if (len == 0) {
+    //     // equals key_size  + variant_uint32_size(len)
+    //     return key_size + 1;
+    //   }
+    //   else {
+    //     return key_size + variant_uint32_size(static_cast<uint32_t>(len)) +
+    //     len;
+    //   }
+    // }
+    return 0;
   }
-  else if constexpr (is_sequence_container<T>::value) {
-    using item_type = typename T::value_type;
-    size_t len = 0;
-    if constexpr (is_lenprefix_v<item_type>) {
-      for (auto& item : t) {
-        len += pb_key_value_size<key_size, false>(item, size_arr);
-      }
-      return len;
-    }
-    else {
-      for (auto& item : t) {
-        // here 0 to get pakced size, and item must be numeric
-        len += str_numeric_size<0, false>(item);
-      }
-      if (len == 0) {
-        return 0;
-      }
-      else {
-        return key_size + variant_uint32_size(static_cast<uint32_t>(len)) + len;
-      }
-    }
-  }
-  else if constexpr (is_map_container<T>::value) {
-    size_t len = 0;
-    for (auto& [k, v] : t) {
-      // the key_size of  k and v  is constant 1
-      auto kv_len = pb_key_value_size<1, false>(k, size_arr) +
-                    pb_key_value_size<1, false>(v, size_arr);
-      len += key_size + variant_uint32_size(static_cast<uint32_t>(kv_len)) +
-             kv_len;
-    }
-    return len;
-  }
-  else if constexpr (optional_v<T>) {
-    if (!t.has_value()) {
-      return 0;
-    }
-    return pb_key_value_size<key_size, omit_default_val>(*t, size_arr);
-  }
-  else {
-    return str_numeric_size<key_size, omit_default_val>(t);
-  }
+  // else if constexpr (is_sequence_container<T>::value) {
+  //   using item_type = typename T::value_type;
+  //   size_t len = 0;
+  //   if constexpr (is_lenprefix_v<item_type>) {
+  //     for (auto& item : t) {
+  //       len += pb_key_value_size<key_size, false>(item, size_arr);
+  //     }
+  //     return len;
+  //   }
+  //   else {
+  //     for (auto& item : t) {
+  //       // here 0 to get pakced size, and item must be numeric
+  //       len += str_numeric_size<0, false>(item);
+  //     }
+  //     if (len == 0) {
+  //       return 0;
+  //     }
+  //     else {
+  //       return key_size + variant_uint32_size(static_cast<uint32_t>(len)) +
+  //       len;
+  //     }
+  //   }
+  // }
+  // else if constexpr (is_map_container<T>::value) {
+  //   size_t len = 0;
+  //   for (auto& [k, v] : t) {
+  //     // the key_size of  k and v  is constant 1
+  //     auto kv_len = pb_key_value_size<1, false>(k, size_arr) +
+  //                   pb_key_value_size<1, false>(v, size_arr);
+  //     len += key_size + variant_uint32_size(static_cast<uint32_t>(kv_len)) +
+  //            kv_len;
+  //   }
+  //   return len;
+  // }
+  // else if constexpr (optional_v<T>) {
+  //   if (!t.has_value()) {
+  //     return 0;
+  //   }
+  //   return pb_key_value_size<key_size, omit_default_val>(*t, size_arr);
+  // }
+  // else {
+  //   return str_numeric_size<key_size, omit_default_val>(t);
+  // }
+  return 0;
 }
 
 // return the payload size

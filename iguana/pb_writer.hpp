@@ -449,13 +449,14 @@ IGUANA_INLINE void build_sub_proto(Map& map, std::string_view str_type,
 #endif
 }  // namespace detail
 
-template <typename T, typename Stream>
+template <typename T, typename Stream,
+          std::enable_if_t<ylt_refletable_v<T>, int> = 0>
 IGUANA_INLINE void to_pb(T const& t, Stream& out) {
   std::vector<uint32_t> size_arr;
   auto byte_len = detail::pb_key_value_size<0>(t, size_arr);
   detail::resize(out, byte_len);
-  auto sz_ptr = size_arr.empty() ? nullptr : &size_arr[0];
-  detail::to_pb_impl<0>(t, &out[0], sz_ptr);
+  // auto sz_ptr = size_arr.empty() ? nullptr : &size_arr[0];
+  // detail::to_pb_impl<0>(t, &out[0], sz_ptr);
 }
 
 #if defined(__clang__) || defined(_MSC_VER) || \
