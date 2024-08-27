@@ -109,7 +109,9 @@ struct test_pb_st6 {
 };
 REFLECTION(test_pb_st6, x, y);
 
-struct pair_t : public iguana::base_impl<pair_t> {
+struct pair_t
+    : public iguana::base_impl<pair_t, iguana::ENABLE_XML | iguana::ENABLE_PB |
+                                           iguana::ENABLE_YAML> {
   pair_t() = default;
   pair_t(int a, int b) : x(a), y(b) {}
   int x;
