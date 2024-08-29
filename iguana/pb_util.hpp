@@ -466,63 +466,61 @@ struct pb_field_t {
   auto& value() const { return *member_ptr; }
 };
 
-// using value_type = typename member_traits<T>::value_type;
-// return std::tuple(field_t<T, std::variant_alternative_t<I, value_type>>{
-//     t, (base_idx + uint32_t(I)), s}...);
+template <size_t I, typename ValueType, typename Array>
+constexpr inline auto get_field_no_impl(Array& arr, size_t& index) {
+  arr[I] = index;
+  using value_type = std::remove_pointer_t<ValueType>;
+  if constexpr (is_variant<value_type>::value) {
+    constexpr size_t variant_size = std::variant_size_v<value_type>;
+    index += (variant_size);
+  }
+  else {
+    index++;
+    return;
+  }
+}
+
+template <typename Tuple, size_t... I>
+inline constexpr auto get_field_no(std::index_sequence<I...>) {
+  std::array<size_t, sizeof...(I)> arr{};
+  size_t index = 0;
+  (get_field_no_impl<I, decltype(&std::get<I>(std::declval<Tuple>()))>(arr,
+                                                                       index),
+   ...);
+  return arr;
+}
 
 template <typename T, typename Field, size_t... I>
 constexpr inline auto build_pb_variant_fields(Field t, std::string_view name,
-                                              uint32_t base_idx,
+                                              size_t field_no,
                                               std::index_sequence<I...>) {
   using value_type = std::remove_pointer_t<Field>;
   return std::tuple(
       pb_field_t<T, Field, std::variant_alternative_t<I, value_type>>{
-          t, (base_idx + uint32_t(I)), name}...);
+          t, (uint32_t)(field_no + I), name}...);
 }
 
-template <std::size_t, typename>
-struct make_reverse_index_sequence_helper;
-
-template <std::size_t N, std::size_t... NN>
-struct make_reverse_index_sequence_helper<N, std::index_sequence<NN...>>
-    : std::index_sequence<(N - NN)...> {};
-
-template <size_t N>
-struct make_reverse_index_sequence
-    : make_reverse_index_sequence_helper<
-          N - 1, decltype(std::make_index_sequence<N>{})> {};
-
-template <typename T, uint32_t I, typename ValueType>
-constexpr inline auto build_fields_impl(ValueType field, std::string_view name,
-                                        uint32_t& index) {
-  using MemberPtr = decltype(field);
+template <typename T, typename ValueType>
+constexpr inline auto build_pb_fields_impl(ValueType field,
+                                           std::string_view name,
+                                           size_t field_no) {
   using value_type = std::remove_pointer_t<ValueType>;
   if constexpr (is_variant<value_type>::value) {
     constexpr uint32_t variant_size = std::variant_size_v<value_type>;
-    size_t base_index = index;
-    index += (variant_size - 1);
-    return build_pb_variant_fields<T>(field, name, base_index,
+    return build_pb_variant_fields<T>(field, name, field_no,
                                       std::make_index_sequence<variant_size>{});
   }
   else {
-    uint32_t field_no = (I == index) ? (I + 1) : (2 + index);
-    index++;
-    return std::tuple(pb_field_t<T, MemberPtr>(field, field_no, name));
+    return std::tuple(pb_field_t<T, ValueType>(field, field_no, name));
   }
 }
 
-// template<typename... Args>
-// inline auto cat_pb_fields(Args&&... args) {
-//   ((std::cout<<std::get<0>(args).field_name.data()<<" "),...);
-//   std::cout << "\n";
-//   return std::tuple_cat(args...);
-// }
-
-template <typename T, typename Tuple, size_t... I>
-inline auto build_pb_fields(Tuple&& tp, std::index_sequence<I...>) {
+template <typename T, typename Tuple, typename Array, size_t... I>
+inline auto build_pb_fields(Tuple&& tp, const Array& indexs,
+                            std::index_sequence<I...>) {
   constexpr auto arr = ylt::reflection::member_names<T>;
-  uint32_t index = 0;
-  return (build_fields_impl<T, I>(&std::get<I>(tp), arr[I], index), ...);
+  return std::tuple_cat(
+      build_pb_fields_impl<T>(&std::get<I>(tp), arr[I], indexs[I] + 1)...);
 }
 
 template <typename T>
@@ -531,7 +529,11 @@ inline auto get_pb_members_tuple(T&& t) {
   if constexpr (ylt_refletable_v<U>) {
     auto tp = ylt::reflection::object_to_tuple(std::forward<T>(t));
     constexpr size_t Size = std::tuple_size_v<decltype(tp)>;
-    return build_pb_fields<U>(tp, std::make_index_sequence<Size>{});
+
+    constexpr std::array<size_t, Size> arr =
+        get_field_no<decltype(tp)>(std::make_index_sequence<Size>{});
+
+    return build_pb_fields<U>(tp, arr, std::make_index_sequence<Size>{});
     // return ylt::reflection::visit_members(std::forward<T>(t), [&](auto&...
     // args) {
     //   return build_pb_fields<U>(std::tuple(&args...),
@@ -552,7 +554,7 @@ template <size_t key_size, bool omit_default_val, typename Type, typename Arr>
 IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr) {
   using T = std::remove_const_t<std::remove_reference_t<Type>>;
   if constexpr (ylt_refletable_v<T>) {
-    size_t len = 0;
+    // size_t len = 0;
     auto tp = get_pb_members_tuple(std::forward<Type>(t));
     std::cout << "\n";
 
