@@ -27,7 +27,7 @@ template <typename T>
 IGUANA_INLINE void from_pb_impl(T& val, std::string_view& pb_str,
                                 uint32_t field_no) {
   size_t pos = 0;
-  if constexpr (is_reflection_v<T>) {
+  if constexpr (ylt_refletable_v<T>) {
     size_t pos;
     uint32_t size = detail::decode_varint(pb_str, pos);
     pb_str = pb_str.substr(pos);
