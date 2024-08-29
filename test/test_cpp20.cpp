@@ -53,7 +53,7 @@ YLT_REFL(point_t, x, y);
 TEST_CASE("test pb") {
   {
     test_variant t(1, "test", 3);
-    auto tp = iguana::detail::get_pb_members_tuple(t);
+    auto tp = iguana::detail::get_pb_members_tuple<decltype(t)>();
 
     CHECK(std::get<0>(tp).field_no == 1);
     CHECK(std::get<1>(tp).field_no == 2);
@@ -64,7 +64,7 @@ TEST_CASE("test pb") {
 
   {
     test_variant1 t{"test", 2, 3};
-    auto tp = iguana::detail::get_pb_members_tuple(t);
+    auto tp = iguana::detail::get_pb_members_tuple<decltype(t)>();
 
     CHECK(std::get<0>(tp).field_no == 1);
     CHECK(std::get<1>(tp).field_no == 2);
@@ -75,7 +75,7 @@ TEST_CASE("test pb") {
 
   {
     test_variant2 t{2, 3, "test"};
-    auto tp = iguana::detail::get_pb_members_tuple(t);
+    auto tp = iguana::detail::get_pb_members_tuple<decltype(t)>();
 
     CHECK(std::get<0>(tp).field_no == 1);
     CHECK(std::get<1>(tp).field_no == 2);
@@ -86,7 +86,7 @@ TEST_CASE("test pb") {
 
   {
     test_variant3 t{2, "test", 3, "ok", 5, 6};
-    auto tp = iguana::detail::get_pb_members_tuple(t);
+    auto tp = iguana::detail::get_pb_members_tuple<decltype(t)>();
 
     CHECK(std::get<0>(tp).field_no == 1);
     CHECK(std::get<1>(tp).field_no == 2);

@@ -518,7 +518,7 @@ constexpr inline auto build_pb_fields_impl(size_t offset,
 }
 
 template <typename Tuple, typename T, typename Array, size_t... I>
-inline auto build_pb_fields(T&& t, const Array& offset_arr,
+inline auto build_pb_fields(const Array& offset_arr,
                             std::index_sequence<I...>) {
   constexpr auto arr = ylt::reflection::member_names<T>;
   constexpr std::array<size_t, sizeof...(I)> indexs =
@@ -529,13 +529,13 @@ inline auto build_pb_fields(T&& t, const Array& offset_arr,
 }
 
 template <typename T>
-inline auto get_pb_members_tuple(T&& t) {
+inline auto get_pb_members_tuple() {
   using U = ylt::reflection::remove_cvref_t<T>;
   if constexpr (ylt_refletable_v<U>) {
     static auto& offset_arr = ylt::reflection::member_offsets<U>;
     using Tuple = decltype(ylt::reflection::struct_to_tuple<U>());
-    return build_pb_fields<Tuple>(
-        t, offset_arr, std::make_index_sequence<std::tuple_size_v<Tuple>>{});
+    return build_pb_fields<Tuple, T>(
+        offset_arr, std::make_index_sequence<std::tuple_size_v<Tuple>>{});
     // return ylt::reflection::visit_members(std::forward<T>(t), [&](auto&...
     // args) {
     //   return build_pb_fields<U>(std::tuple(&args...),
@@ -557,7 +557,7 @@ IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr) {
   using T = std::remove_const_t<std::remove_reference_t<Type>>;
   if constexpr (ylt_refletable_v<T>) {
     // size_t len = 0;
-    static auto tp = get_pb_members_tuple(std::forward<Type>(t));
+    static auto tp = get_pb_members_tuple<T>();
     std::cout << "\n";
 
     // size_t pre_index = -1;
