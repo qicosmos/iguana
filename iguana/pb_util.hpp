@@ -446,32 +446,31 @@ template <typename T>
 inline constexpr bool is_custom_reflection_v =
     is_custom_reflection<ylt::reflection::remove_cvref_t<T>>::value;
 
-// T: parant type, value_type: member value pointer type, SubType: subtype from
+// owner_type: parant type, value_type: member value type, SubType: subtype from
 // variant
-template <typename T, typename ValuePtr,
-          typename SubType = std::remove_pointer_t<ValuePtr>>
+template <typename MemberPtr, size_t FieldNo,
+          typename ElementType = typename member_traits<MemberPtr>::value_type>
 struct pb_field_t {
-  using owner_type = T;
-  using value_type = ValuePtr;
-  using sub_type = SubType;
+  using member_type = MemberPtr;
+  using owner_type = typename member_traits<MemberPtr>::owner_type;
+  using value_type = typename member_traits<MemberPtr>::value_type;
+  using sub_type = ElementType;
+
   constexpr pb_field_t() = default;
-  explicit constexpr pb_field_t(ValuePtr member, uint32_t number,
-                                frozen::string name = "")
-      : member_ptr(member), field_name(name), field_no(number) {}
+  auto& value(owner_type& value) const { return value.*member_ptr; }
+  auto const& value(owner_type const& value) const { return value.*member_ptr; }
 
-  ValuePtr member_ptr;
-  frozen::string field_name;
-  uint32_t field_no;
+  MemberPtr member_ptr;
+  std::string_view field_name;
 
-  auto& value() const { return *member_ptr; }
+  inline static constexpr uint32_t field_no = FieldNo;
 };
 
 template <size_t I, typename ValueType, typename Array>
 constexpr inline auto get_field_no_impl(Array& arr, size_t& index) {
   arr[I] = index;
-  using value_type = std::remove_pointer_t<ValueType>;
-  if constexpr (is_variant<value_type>::value) {
-    constexpr size_t variant_size = std::variant_size_v<value_type>;
+  if constexpr (is_variant<ValueType>::value) {
+    constexpr size_t variant_size = std::variant_size_v<ValueType>;
     index += (variant_size);
   }
   else {
@@ -484,56 +483,59 @@ template <typename Tuple, size_t... I>
 inline constexpr auto get_field_no(std::index_sequence<I...>) {
   std::array<size_t, sizeof...(I)> arr{};
   size_t index = 0;
-  (get_field_no_impl<I, decltype(&std::get<I>(std::declval<Tuple>()))>(arr,
-                                                                       index),
+  (get_field_no_impl<I, std::remove_pointer_t<std::tuple_element_t<I, Tuple>>>(
+       arr, index),
    ...);
   return arr;
 }
 
-template <typename T, typename Field, size_t... I>
-constexpr inline auto build_pb_variant_fields(Field t, std::string_view name,
-                                              size_t field_no,
+template <size_t field_no, typename MemberPtr, size_t... I>
+constexpr inline auto build_pb_variant_fields(MemberPtr field,
+                                              std::string_view name,
                                               std::index_sequence<I...>) {
-  using value_type = std::remove_pointer_t<Field>;
+  using value_type = typename member_traits<MemberPtr>::value_type;
   return std::tuple(
-      pb_field_t<T, Field, std::variant_alternative_t<I, value_type>>{
-          t, (uint32_t)(field_no + I), name}...);
+      pb_field_t<MemberPtr, field_no + I + 1,
+                 std::variant_alternative_t<I, value_type>>{field, name}...);
 }
 
-template <typename T, typename ValueType>
-constexpr inline auto build_pb_fields_impl(ValueType field,
-                                           std::string_view name,
-                                           size_t field_no) {
-  using value_type = std::remove_pointer_t<ValueType>;
+template <typename T, size_t field_no, typename ValueType>
+constexpr inline auto build_pb_fields_impl(size_t offset,
+                                           std::string_view name) {
+  using value_type = std::remove_pointer_t<std::remove_reference_t<ValueType>>;
+  using U = std::remove_reference_t<T>;
+  using P = value_type U::*;
+  P member_ptr = *reinterpret_cast<P*>(&offset);
+
   if constexpr (is_variant<value_type>::value) {
     constexpr uint32_t variant_size = std::variant_size_v<value_type>;
-    return build_pb_variant_fields<T>(field, name, field_no,
-                                      std::make_index_sequence<variant_size>{});
+    return build_pb_variant_fields<field_no>(
+        std::move(member_ptr), name, std::make_index_sequence<variant_size>{});
   }
   else {
-    return std::tuple(pb_field_t<T, ValueType>(field, field_no, name));
+    return std::tuple(pb_field_t<P, field_no + 1>{member_ptr, name});
   }
 }
 
-template <typename T, typename Tuple, typename Array, size_t... I>
-inline auto build_pb_fields(Tuple&& tp, const Array& indexs,
+template <typename Tuple, typename T, typename Array, size_t... I>
+inline auto build_pb_fields(T&& t, const Array& offset_arr,
                             std::index_sequence<I...>) {
   constexpr auto arr = ylt::reflection::member_names<T>;
+  constexpr std::array<size_t, sizeof...(I)> indexs =
+      get_field_no<Tuple>(std::make_index_sequence<sizeof...(I)>{});
   return std::tuple_cat(
-      build_pb_fields_impl<T>(&std::get<I>(tp), arr[I], indexs[I] + 1)...);
+      build_pb_fields_impl<T, indexs[I], std::tuple_element_t<I, Tuple>>(
+          offset_arr[I], arr[I])...);
 }
 
 template <typename T>
 inline auto get_pb_members_tuple(T&& t) {
   using U = ylt::reflection::remove_cvref_t<T>;
   if constexpr (ylt_refletable_v<U>) {
-    auto tp = ylt::reflection::object_to_tuple(std::forward<T>(t));
-    constexpr size_t Size = std::tuple_size_v<decltype(tp)>;
-
-    constexpr std::array<size_t, Size> arr =
-        get_field_no<decltype(tp)>(std::make_index_sequence<Size>{});
-
-    return build_pb_fields<U>(tp, arr, std::make_index_sequence<Size>{});
+    static auto& offset_arr = ylt::reflection::member_offsets<U>;
+    using Tuple = decltype(ylt::reflection::struct_to_tuple<U>());
+    return build_pb_fields<Tuple>(
+        t, offset_arr, std::make_index_sequence<std::tuple_size_v<Tuple>>{});
     // return ylt::reflection::visit_members(std::forward<T>(t), [&](auto&...
     // args) {
     //   return build_pb_fields<U>(std::tuple(&args...),
@@ -555,7 +557,7 @@ IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr) {
   using T = std::remove_const_t<std::remove_reference_t<Type>>;
   if constexpr (ylt_refletable_v<T>) {
     // size_t len = 0;
-    auto tp = get_pb_members_tuple(std::forward<Type>(t));
+    static auto tp = get_pb_members_tuple(std::forward<Type>(t));
     std::cout << "\n";
 
     // size_t pre_index = -1;
