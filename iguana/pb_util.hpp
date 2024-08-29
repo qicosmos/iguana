@@ -60,7 +60,7 @@ constexpr inline WireType get_wire_type() {
   }
   else if constexpr (std::is_same_v<T, std::string> ||
                      std::is_same_v<T, std::string_view> ||
-                     is_reflection_v<T> || is_sequence_container<T>::value ||
+                     ylt_refletable_v<T> || is_sequence_container<T>::value ||
                      is_map_container<T>::value) {
     return WireType::LengthDelimeted;
   }
@@ -657,7 +657,7 @@ IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr) {
 template <bool skip_next = true, typename Type>
 IGUANA_INLINE size_t pb_value_size(Type&& t, uint32_t*& sz_ptr) {
   using T = std::remove_const_t<std::remove_reference_t<Type>>;
-  if constexpr (is_reflection_v<T> || is_custom_reflection_v<T>) {
+  if constexpr (ylt_refletable_v<T> || is_custom_reflection_v<T>) {
     if constexpr (inherits_from_base_v<T>) {
       return t.cache_size;
     }
