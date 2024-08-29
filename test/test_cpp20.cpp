@@ -105,6 +105,10 @@ TEST_CASE("test pb") {
 
   iguana::to_pb(pt, str);
   std::cout << str.size() << "\n";
+
+  std::string proto;
+  iguana::to_proto<test_variant3>(proto);
+  std::cout << proto;
 }
 
 TEST_CASE("test simple") {
