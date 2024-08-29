@@ -698,5 +698,58 @@ IGUANA_INLINE size_t pb_value_size(Type&& t, uint32_t*& sz_ptr) {
   }
 }
 
+template <typename T>
+struct field_type_t;
+
+template <typename... Args>
+struct field_type_t<std::tuple<Args...>> {
+  using value_type = std::variant<Args...>;
+};
+
+template <typename T>
+constexpr size_t count_variant_size() {
+  if constexpr (is_variant<T>::value) {
+    return std::variant_size_v<T>;
+  }
+  else {
+    return 1;
+  }
+}
+
+template <typename T, size_t... I>
+constexpr size_t tuple_type_count_impl(std::index_sequence<I...>) {
+  return (
+      (count_variant_size<member_value_type_t<std::tuple_element_t<I, T>>>() +
+       ...));
+}
+
+template <typename T>
+constexpr size_t tuple_type_count() {
+  return tuple_type_count_impl<T>(
+      std::make_index_sequence<std::tuple_size_v<T>>{});
+}
+
+template <typename T, size_t Size, typename Tuple, size_t... I>
+constexpr auto inline get_members_impl(Tuple&& tp, std::index_sequence<I...>) {
+  return frozen::unordered_map<uint32_t, T, sizeof...(I)>{
+      {std::get<I>(tp).field_no,
+       T{std::in_place_index<I>, std::move(std::get<I>(tp))}}...};
+}
+
+template <typename T>
+inline auto get_members() {
+  if constexpr (ylt_refletable_v<T> || is_custom_reflection_v<T>) {
+    static auto tp = get_pb_members_tuple<T>();
+    using Tuple = std::decay_t<decltype(tp)>;
+    using value_type = typename field_type_t<Tuple>::value_type;
+    constexpr auto Size = tuple_type_count<Tuple>();
+    return get_members_impl<value_type, Size>(tp,
+                                              std::make_index_sequence<Size>{});
+  }
+  else {
+    static_assert(!sizeof(T), "expected reflection or custom reflection");
+  }
+}
+
 }  // namespace detail
 }  // namespace iguana

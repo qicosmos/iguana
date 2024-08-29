@@ -98,6 +98,14 @@ TEST_CASE("test pb") {
     CHECK(std::get<7>(tp).field_no == 8);
     CHECK(std::get<8>(tp).field_no == 9);
     CHECK(std::get<9>(tp).field_no == 10);
+
+    std::string str;
+    iguana::to_pb(t, str);
+    std::cout << str.size() << "\n";
+
+    test_variant3 pt1;
+    iguana::from_pb(pt1, str);
+    std::cout << "\n";
   }
 
   point_t pt{1, 2};
@@ -105,6 +113,9 @@ TEST_CASE("test pb") {
 
   iguana::to_pb(pt, str);
   std::cout << str.size() << "\n";
+
+  point_t pt1;
+  iguana::from_pb(pt1, str);
 
   std::string proto;
   iguana::to_proto<test_variant3>(proto);

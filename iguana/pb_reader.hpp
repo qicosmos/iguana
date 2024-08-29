@@ -227,7 +227,7 @@ IGUANA_INLINE void from_pb(T& t, std::string_view pb_str) {
 #endif
   while (true) {
     pb_str = pb_str.substr(pos);
-    constexpr static auto map = get_members<T>();
+    static auto map = detail::get_members<T>();
     auto& member = map.at(field_number);
     std::visit(
         [&t, &pb_str, wire_type](auto& val) {
@@ -256,8 +256,9 @@ IGUANA_INLINE void from_pb(T& t, std::string_view pb_str) {
   }
 }
 
-template <typename T>
-IGUANA_INLINE void from_pb_adl(iguana_adl_t* p, T& t, std::string_view pb_str) {
-  iguana::from_pb(t, pb_str);
-}
+// template <typename T>
+// IGUANA_INLINE void from_pb_adl(iguana_adl_t* p, T& t, std::string_view
+// pb_str) {
+//   iguana::from_pb(t, pb_str);
+// }
 }  // namespace iguana
