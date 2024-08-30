@@ -1,5 +1,5 @@
 #define DOCTEST_CONFIG_IMPLEMENT
-// #define SEQUENTIAL_PARSE
+#define SEQUENTIAL_PARSE
 #include "doctest.h"
 #include "iguana/iguana.hpp"
 
@@ -50,10 +50,52 @@ YLT_REFL(test_variant3, x, y, z, a, b, c);
 YLT_REFL(point_t, x, y);
 #endif
 
+struct test_variant4 {
+  test_variant4() = default;
+  test_variant4(int a, std::variant<double, std::string, int> b, double c)
+      : x(a), y(std::move(b)), z(c) {}
+
+#if __cplusplus < 202002L
+  YLT_REFL(test_variant4, x, y, z);
+#endif
+
+ private:
+  int x;
+  std::variant<double, std::string, int> y;
+  double z;
+};
+
 TEST_CASE("test pb") {
   {
+    using Tuple1 = decltype(ylt::reflection::object_to_tuple(
+        std::declval<test_variant4>()));
+    std::cout << type_string<Tuple1>() << "\n";
+
+    test_variant4 t(1, "test", 3);
+    auto tp = iguana::detail::get_pb_members_tuple(t);
+
+    std::string proto;
+    iguana::to_proto<test_variant4>(proto);
+    std::cout << proto;
+
+    static_assert(std::get<0>(tp).field_no == 1, "err");
+
+    CHECK(std::get<0>(tp).field_no == 1);
+    CHECK(std::get<1>(tp).field_no == 2);
+    CHECK(std::get<2>(tp).field_no == 3);
+    CHECK(std::get<3>(tp).field_no == 4);
+    CHECK(std::get<4>(tp).field_no == 5);
+
+    std::string str;
+    iguana::to_pb(t, str);
+
+    test_variant4 t1;
+    iguana::from_pb(t1, str);
+    std::cout << "\n";
+  }
+  {
     test_variant t(1, "test", 3);
-    auto tp = iguana::detail::get_pb_members_tuple<decltype(t)>();
+    auto tp = iguana::detail::get_pb_members_tuple(t);
 
     CHECK(std::get<0>(tp).field_no == 1);
     CHECK(std::get<1>(tp).field_no == 2);
@@ -64,7 +106,7 @@ TEST_CASE("test pb") {
 
   {
     test_variant1 t{"test", 2, 3};
-    auto tp = iguana::detail::get_pb_members_tuple<decltype(t)>();
+    auto tp = iguana::detail::get_pb_members_tuple(t);
 
     CHECK(std::get<0>(tp).field_no == 1);
     CHECK(std::get<1>(tp).field_no == 2);
@@ -75,7 +117,7 @@ TEST_CASE("test pb") {
 
   {
     test_variant2 t{2, 3, "test"};
-    auto tp = iguana::detail::get_pb_members_tuple<decltype(t)>();
+    auto tp = iguana::detail::get_pb_members_tuple(t);
 
     CHECK(std::get<0>(tp).field_no == 1);
     CHECK(std::get<1>(tp).field_no == 2);
@@ -86,7 +128,7 @@ TEST_CASE("test pb") {
 
   {
     test_variant3 t{2, "test", 3, "ok", 5, 6};
-    auto tp = iguana::detail::get_pb_members_tuple<decltype(t)>();
+    auto tp = iguana::detail::get_pb_members_tuple(t);
 
     CHECK(std::get<0>(tp).field_no == 1);
     CHECK(std::get<1>(tp).field_no == 2);

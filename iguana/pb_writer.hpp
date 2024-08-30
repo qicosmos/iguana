@@ -109,7 +109,7 @@ IGUANA_INLINE void to_pb_impl(Type&& t, It&& it, uint32_t*& sz_ptr) {
       if (len == 0)
         IGUANA_UNLIKELY { return; }
     }
-    static auto tuple = get_pb_members_tuple<T>();
+    static auto tuple = get_pb_members_tuple(std::forward<Type>(t));
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
     for_each_n(
         [&t, &it, &sz_ptr](auto i) IGUANA__INLINE_LAMBDA {
@@ -300,7 +300,8 @@ IGUANA_INLINE void to_proto_impl(
   if constexpr (ylt_refletable_v<T> || is_custom_reflection_v<T>) {
     constexpr auto name = type_string<T>();
     out.append("message ").append(name).append(" {\n");
-    static auto tuple = get_pb_members_tuple<T>();
+    static T t;
+    static auto tuple = get_pb_members_tuple(t);
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
 
     for_each_n(

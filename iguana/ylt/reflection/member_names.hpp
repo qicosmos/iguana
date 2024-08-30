@@ -107,25 +107,22 @@ inline constexpr auto get_member_names_map() {
 }
 
 template <typename T, typename Tuple, size_t... Is>
-inline auto get_member_offset_arr_impl(Tuple& tp, std::index_sequence<Is...>) {
+inline auto get_member_offset_arr_impl(T& t, Tuple& tp,
+                                       std::index_sequence<Is...>) {
   std::array<size_t, sizeof...(Is)> arr;
-  ((arr[Is] = size_t((const char*)std::get<Is>(tp) -
-                     (char*)(&internal::wrapper<T>::value))),
-   ...);
+  ((arr[Is] = size_t((const char*)&std::get<Is>(tp) - (char*)(&t))), ...);
   return arr;
 }
 
 template <typename T>
-inline const auto& get_member_offset_arr() {
+inline const auto& get_member_offset_arr(T&& t) {
   constexpr size_t Count = members_count_v<T>;
-  constexpr auto tp = struct_to_tuple<T>();
+  auto tp = ylt::reflection::object_to_tuple(std::forward<T>(t));
 
 #if __cplusplus >= 202002L
   [[maybe_unused]] static std::array<size_t, Count> arr = {[&]<size_t... Is>(
       std::index_sequence<Is...>) mutable {std::array<size_t, Count> arr;
-  ((arr[Is] = size_t((const char*)std::get<Is>(tp) -
-                     (char*)(&internal::wrapper<T>::value))),
-   ...);
+  ((arr[Is] = size_t((const char*)&std::get<Is>(tp) - (char*)(&t))), ...);
   return arr;
 }
 (std::make_index_sequence<Count>{})
@@ -134,9 +131,14 @@ inline const auto& get_member_offset_arr() {
 return arr;
 #else
   [[maybe_unused]] static std::array<size_t, Count> arr =
-      get_member_offset_arr_impl<T>(tp, std::make_index_sequence<Count>{});
+      get_member_offset_arr_impl(t, tp, std::make_index_sequence<Count>{});
   return arr;
 #endif
+}  // namespace ylt::reflection
+
+template <typename T>
+inline const auto& get_member_offset_arr() {
+  return get_member_offset_arr(internal::wrapper<T>::value);
 }  // namespace ylt::reflection
 }  // namespace internal
 

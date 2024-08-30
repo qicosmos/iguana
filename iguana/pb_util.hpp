@@ -483,7 +483,8 @@ template <typename Tuple, size_t... I>
 inline constexpr auto get_field_no(std::index_sequence<I...>) {
   std::array<size_t, sizeof...(I)> arr{};
   size_t index = 0;
-  (get_field_no_impl<I, std::remove_pointer_t<std::tuple_element_t<I, Tuple>>>(
+  (get_field_no_impl<
+       I, ylt::reflection::remove_cvref_t<std::tuple_element_t<I, Tuple>>>(
        arr, index),
    ...);
   return arr;
@@ -502,7 +503,7 @@ constexpr inline auto build_pb_variant_fields(MemberPtr field,
 template <typename T, size_t field_no, typename ValueType>
 constexpr inline auto build_pb_fields_impl(size_t offset,
                                            std::string_view name) {
-  using value_type = std::remove_pointer_t<std::remove_reference_t<ValueType>>;
+  using value_type = ylt::reflection::remove_cvref_t<ValueType>;
   using U = std::remove_reference_t<T>;
   using P = value_type U::*;
   P member_ptr = *reinterpret_cast<P*>(&offset);
@@ -529,11 +530,12 @@ inline auto build_pb_fields(const Array& offset_arr,
 }
 
 template <typename T>
-inline auto get_pb_members_tuple() {
+inline auto get_pb_members_tuple(T&& t) {
   using U = ylt::reflection::remove_cvref_t<T>;
   if constexpr (ylt_refletable_v<U>) {
-    static auto& offset_arr = ylt::reflection::member_offsets<U>;
-    using Tuple = decltype(ylt::reflection::struct_to_tuple<U>());
+    static auto& offset_arr =
+        ylt::reflection::internal::get_member_offset_arr(std::forward<T>(t));
+    using Tuple = decltype(ylt::reflection::object_to_tuple(std::declval<U>()));
     return build_pb_fields<Tuple, T>(
         offset_arr, std::make_index_sequence<std::tuple_size_v<Tuple>>{});
     // return ylt::reflection::visit_members(std::forward<T>(t), [&](auto&...
@@ -557,7 +559,7 @@ IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr) {
   using T = std::remove_const_t<std::remove_reference_t<Type>>;
   if constexpr (ylt_refletable_v<T>) {
     size_t len = 0;
-    static auto tuple = get_pb_members_tuple<T>();
+    static auto tuple = get_pb_members_tuple(std::forward<Type>(t));
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
     size_t pre_index = -1;
     if constexpr (!inherits_from_base_v<T> && key_size != 0) {
@@ -737,9 +739,9 @@ constexpr auto inline get_members_impl(Tuple&& tp, std::index_sequence<I...>) {
 }
 
 template <typename T>
-inline auto get_members() {
+inline auto get_members(T&& t) {
   if constexpr (ylt_refletable_v<T> || is_custom_reflection_v<T>) {
-    static auto tp = get_pb_members_tuple<T>();
+    static auto tp = get_pb_members_tuple(std::forward<T>(t));
     using Tuple = std::decay_t<decltype(tp)>;
     using value_type = typename field_type_t<Tuple>::value_type;
     constexpr auto Size = tuple_type_count<Tuple>();

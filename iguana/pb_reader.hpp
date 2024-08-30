@@ -191,7 +191,7 @@ IGUANA_INLINE void from_pb(T& t, std::string_view pb_str) {
   WireType wire_type = static_cast<WireType>(key & 0b0111);
   uint32_t field_number = key >> 3;
 #ifdef SEQUENTIAL_PARSE
-  static auto tp = detail::get_pb_members_tuple<T>();
+  static auto tp = detail::get_pb_members_tuple(t);
   constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tp)>>;
   bool parse_done = false;
   detail::for_each_n(
@@ -227,7 +227,7 @@ IGUANA_INLINE void from_pb(T& t, std::string_view pb_str) {
 #endif
   while (true) {
     pb_str = pb_str.substr(pos);
-    static auto map = detail::get_members<T>();
+    static auto map = detail::get_members(std::forward<T>(t));
     auto& member = map.at(field_number);
     std::visit(
         [&t, &pb_str, wire_type](auto& val) {
