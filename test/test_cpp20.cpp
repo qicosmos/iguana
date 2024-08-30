@@ -185,6 +185,13 @@ TEST_CASE("test simple") {
   std::cout << pt1.x << "\n";
 }
 
+TEST_CASE("test xml") {
+  point_t t{1, 3};
+  std::string xml;
+  iguana::to_xml(t, xml);
+  std::cout << xml << "\n";
+}
+
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
 int main(int argc, char** argv) { return doctest::Context(argc, argv).run(); }
 DOCTEST_MSVC_SUPPRESS_WARNING_POP
