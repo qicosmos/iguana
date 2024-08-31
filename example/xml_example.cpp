@@ -1,5 +1,6 @@
 #include <iguana/xml_reader.hpp>
 #include <iguana/xml_writer.hpp>
+#include <iostream>
 
 enum class enum_status {
   start,
@@ -9,7 +10,7 @@ struct child_t {
   int key1;
   int key2;
 };
-REFLECTION(child_t, key1, key2);
+YLT_REFL(child_t, key1, key2);
 struct some_type_t {
   std::vector<float> price;
   std::optional<std::string> description;
@@ -21,8 +22,8 @@ struct some_type_t {
   std::string_view addr;
   enum_status status;
 };
-REFLECTION(some_type_t, price, description, child, hasdescription, c, d_v, name,
-           addr, status);
+YLT_REFL(some_type_t, price, description, child, hasdescription, c, d_v, name,
+         addr, status);
 void some_type_example() {
   std::string str = R"(
 <?xml version="1.0" encoding="UTF-8"?>
@@ -71,11 +72,11 @@ struct book_t {
   std::string title;
   std::string author;
 };
-REFLECTION(book_t, title, author);
+YLT_REFL(book_t, title, author);
 struct library {
   iguana::xml_attr_t<book_t> book;
 };
-REFLECTION(library, book);
+YLT_REFL(library, book);
 
 void lib_example() {
   std::string str = R"(
@@ -121,7 +122,7 @@ struct package_t {
   iguana::xml_attr_t<std::optional<std::string_view>> version;
   iguana::xml_attr_t<std::string_view> changelog;
 };
-REFLECTION(package_t, version, changelog);
+YLT_REFL(package_t, version, changelog);
 void package_example() {
   auto validator = [](iguana::xml_attr_t<package_t> package) {
     assert(package.attr()["name"] == "apr-util-ldap");
@@ -164,7 +165,7 @@ struct derived_t : public base_t {
   int version;
   std::string tag;
 };
-REFLECTION(derived_t, id, name, version, tag);
+YLT_REFL(derived_t, id, name, version, tag);
 
 void derived_object() {
   derived_t d{};
@@ -191,13 +192,13 @@ void derived_object() {
 struct description_t {
   iguana::xml_cdata_t<std::string> cdata;
 };
-REFLECTION(description_t, cdata);
+YLT_REFL(description_t, cdata);
 struct node_t {
   std::string title;
   description_t description;
   iguana::xml_cdata_t<> cdata;
 };
-REFLECTION(node_t, title, description, cdata);
+YLT_REFL(node_t, title, description, cdata);
 void cdata_example() {
   std::string str = R"(
     <node_t>
@@ -232,18 +233,18 @@ struct city_t {
   iguana::xml_cdata_t<> cd;
   std::string name;
 };
-REFLECTION(city_t, area, cd, name);
+YLT_REFL(city_t, area, cd, name);
 struct cities_t {
   std::vector<city_t> city;
 };
-REFLECTION(cities_t, city);
+YLT_REFL(cities_t, city);
 struct province {
   iguana::xml_attr_t<long> area;
   iguana::xml_cdata_t<> cd;
   std::unique_ptr<cities_t> cities;
   std::string capital;
 };
-REFLECTION(province, area, cd, cities, capital);
+YLT_REFL(province, area, cd, cities, capital);
 
 void province_example() {
   std::string_view str = R"(
@@ -286,7 +287,7 @@ struct text_t {
   escape_attr_t ID;
   std::string DisplayName;
 };
-REFLECTION(text_t, ID, DisplayName);
+YLT_REFL(text_t, ID, DisplayName);
 void escape_example() {
   {
     std::string str = R"(

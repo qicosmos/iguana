@@ -453,8 +453,7 @@ IGUANA_INLINE void xml_parse_item(T &value, It &&it, It &&end,
       IGUANA_LIKELY {
         std::visit(
             [&](auto field) IGUANA__INLINE_LAMBDA {
-              using V = ylt::reflection::remove_cvref_t<decltype(field)>;
-              std::cout << type_string<decltype(field)>() << "\n";
+              using V = std::remove_pointer_t<decltype(field)>;
               if constexpr (!cdata_v<V>) {
                 xml_parse_item(*field, it, end, key);
                 if constexpr (iguana::has_iguana_required_arr_v<U>) {
@@ -521,10 +520,10 @@ IGUANA_INLINE Num get_number(std::string_view str) {
   return num;
 }
 
-template <typename T>
-IGUANA_INLINE void from_xml_adl(iguana_adl_t *p, T &t,
-                                std::string_view pb_str) {
-  iguana::from_xml(t, pb_str);
-}
+// template <typename T>
+// IGUANA_INLINE void from_xml_adl(iguana_adl_t *p, T &t,
+//                                 std::string_view pb_str) {
+//   iguana::from_xml(t, pb_str);
+// }
 
 }  // namespace iguana

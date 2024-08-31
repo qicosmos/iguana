@@ -194,7 +194,7 @@ struct node_t {
   description_t description;
   iguana::xml_cdata_t<> cdata;
 };
-YLT_REFL(node_t, title /*, description, cdata*/);
+YLT_REFL(node_t, title, description, cdata);
 TEST_CASE("test example cdata") {
   auto validator = [](node_t node) {
     CHECK(node.title == "what's the cdata");

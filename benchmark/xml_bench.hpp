@@ -19,18 +19,18 @@ struct package_t {
   std::optional<std::string_view> version;
   std::vector<std::string_view> file;
 };
-REFLECTION(package_t, version, file);
+YLT_REFL(package_t, version, file);
 
 struct filelists_t {
   std::vector<package_t> package;
 };
-REFLECTION(filelists_t, package);
+YLT_REFL(filelists_t, package);
 // ************ struct for sample_rss.xml ****************
 
 struct skip_t {
   std::string_view skip;
 };
-REFLECTION(skip_t, skip);
+YLT_REFL(skip_t, skip);
 struct item_t {
   std::string_view title;
   std::string_view link;
@@ -49,17 +49,17 @@ struct item_t {
   std::optional<std::string_view> media_content;
   std::string_view itunes_keywords;
 };
-REFLECTION(item_t, title, link, description, pubDate, enclosure, guid,
-           itunes_author, itunes_subtitle, itunes_summary, itunes_explicit,
-           itunes_duration, dc_creator, media_thumbnail, author, media_content,
-           itunes_keywords);
+YLT_REFL(item_t, title, link, description, pubDate, enclosure, guid,
+         itunes_author, itunes_subtitle, itunes_summary, itunes_explicit,
+         itunes_duration, dc_creator, media_thumbnail, author, media_content,
+         itunes_keywords);
 
 struct image_t {
   std::string_view link;
   std::string_view url;
   std::string_view title;
 };
-REFLECTION(image_t, link, url, title);
+YLT_REFL(image_t, link, url, title);
 
 struct channel_t {
   std::string_view title;
@@ -82,15 +82,15 @@ struct channel_t {
   std::string_view media_rating;
   std::string_view media_description;
 };
-REFLECTION(channel_t, title, link, description, generator, docs, language,
-           pubDate, lastBuildDate, image, itunes_author, itunes_subtitle,
-           itunes_keywords, itunes_image, itunes_explicit, itunes_block, item,
-           media_credit, media_rating, media_description);
+YLT_REFL(channel_t, title, link, description, generator, docs, language,
+         pubDate, lastBuildDate, image, itunes_author, itunes_subtitle,
+         itunes_keywords, itunes_image, itunes_explicit, itunes_block, item,
+         media_credit, media_rating, media_description);
 
 struct rss_t {
   channel_t channel;
 };
-REFLECTION(rss_t, channel);
+YLT_REFL(rss_t, channel);
 
 // ************ struct for bench_num.xml ****************
 
@@ -103,16 +103,16 @@ struct goods_t {
   std::string_view rating;
   std::string_view discount;
 };
-REFLECTION(goods_t, id, sales, inventory, weight, price, rating, discount);
+YLT_REFL(goods_t, id, sales, inventory, weight, price, rating, discount);
 struct storeowner_t {
   std::string_view name;
   std::string_view telephone;
 };
-REFLECTION(storeowner_t, name, telephone);
+YLT_REFL(storeowner_t, name, telephone);
 struct store_t {
   std::string_view name;
   std::string_view address;
   storeowner_t owner;
   std::vector<goods_t> goods;
 };
-REFLECTION(store_t, name, address, owner, goods);
+YLT_REFL(store_t, name, address, owner, goods);
