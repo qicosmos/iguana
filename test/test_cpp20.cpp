@@ -9,6 +9,10 @@ struct point_t {
   int x;
   int y;
 };
+REQUIRED(point_t, x, y);
+#if __cplusplus < 202002L
+YLT_REFL(point_t, x, y);
+#endif
 
 struct test_variant {
   test_variant() = default;
@@ -45,10 +49,6 @@ struct test_variant3 {
   double c;
 };
 YLT_REFL(test_variant3, x, y, z, a, b, c);
-
-#if __cplusplus < 202002L
-YLT_REFL(point_t, x, y);
-#endif
 
 struct test_variant4 {
   test_variant4() = default;
@@ -185,11 +185,69 @@ TEST_CASE("test simple") {
   std::cout << pt1.x << "\n";
 }
 
+struct description_t {
+  iguana::xml_cdata_t<std::string> cdata;
+};
+YLT_REFL(description_t, cdata);
+struct node_t {
+  std::string title;
+  description_t description;
+  iguana::xml_cdata_t<> cdata;
+};
+YLT_REFL(node_t, title /*, description, cdata*/);
+TEST_CASE("test example cdata") {
+  auto validator = [](node_t node) {
+    CHECK(node.title == "what's the cdata");
+    CHECK(node.cdata.value() == "<p>this is a  cdata node</p>");
+    CHECK(node.description.cdata.value() ==
+          "<p>nest cdata node1 and </p>node2</p>");
+  };
+  std::string str = R"(
+    <?xml version="1.0" encoding="UTF-8"?>
+    <node_t>
+      <title>what's the cdata</title>
+      <description>
+        <![CDATA[<p>nest cdata node1 and </p>]]>
+        <!-- This is a comment -->
+        <![CDATA[ node2</p>]]>
+      </description>
+      <!DOCTYPE test node>
+      <?myapp instruction?>
+      <!-- <price>3.25</price> -->
+      <!-- <price a="b"/> -->
+      <![CDATA[<p>this is a  cdata node</p>]]>
+    </node_t>
+  )";
+  // only parse cdata node
+  node_t node;
+  iguana::from_xml(node, str);
+  validator(node);
+
+  {
+    std::string ss;
+    iguana::to_xml(node, ss);
+    node_t node1;
+    iguana::from_xml(node1, ss);
+    validator(node1);
+  }
+  {
+    std::string ss;
+    iguana::to_xml<true>(node, ss);
+    node_t node1;
+    iguana::from_xml(node1, ss);
+    validator(node1);
+  }
+}
+
 TEST_CASE("test xml") {
   point_t t{1, 3};
   std::string xml;
   iguana::to_xml(t, xml);
   std::cout << xml << "\n";
+
+  point_t t1;
+  iguana::from_xml(t1, xml.begin(), xml.end());
+  std::cout << t1.x << "\n";
 }
 
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
