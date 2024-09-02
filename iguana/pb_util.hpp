@@ -573,11 +573,11 @@ IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr) {
                                    std::decay_t<decltype(tuple)>>;
           auto value = std::get<decltype(i)::value>(tuple);
           using U = typename field_type::value_type;
+          using sub_type = typename field_type::sub_type;
           auto& val = value.value(t);
           if constexpr (variant_v<U>) {
             constexpr auto offset =
-                get_variant_index<U, typename field_type::sub_type,
-                                  std::variant_size_v<U> - 1>();
+                get_variant_index<U, sub_type, std::variant_size_v<U> - 1>();
             if constexpr (offset == 0) {
               len += pb_oneof_size<value.field_no>(val, size_arr);
             }

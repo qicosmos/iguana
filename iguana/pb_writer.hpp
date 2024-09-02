@@ -120,10 +120,10 @@ IGUANA_INLINE void to_pb_impl(Type&& t, It&& it, uint32_t*& sz_ptr) {
           auto& val = value.value(t);
 
           using U = typename field_type::value_type;
+          using sub_type = typename field_type::sub_type;
           if constexpr (variant_v<U>) {
             constexpr auto offset =
-                get_variant_index<U, typename field_type::sub_type,
-                                  std::variant_size_v<U> - 1>();
+                get_variant_index<U, sub_type, std::variant_size_v<U> - 1>();
             if constexpr (offset == 0) {
               to_pb_oneof<value.field_no>(val, it, sz_ptr);
             }
@@ -312,6 +312,7 @@ IGUANA_INLINE void to_proto_impl(
           auto value = std::get<decltype(i)::value>(tuple);
 
           using U = typename field_type::value_type;
+          using sub_type = typename field_type::sub_type;
           if constexpr (ylt_refletable_v<U>) {
             constexpr auto str_type = get_type_string<U>();
             build_proto_field(
@@ -323,7 +324,6 @@ IGUANA_INLINE void to_proto_impl(
           }
           else if constexpr (variant_v<U>) {
             constexpr size_t var_size = std::variant_size_v<U>;
-            using sub_type = typename field_type::sub_type;
 
             constexpr auto offset =
                 get_variant_index<U, sub_type, var_size - 1>();
