@@ -1,9 +1,10 @@
-#include "iguana/yaml_reader.hpp"
-#include "iguana/yaml_writer.hpp"
 #include <iostream>
 
+#include "iguana/yaml_reader.hpp"
+#include "iguana/yaml_writer.hpp"
+
 class ScopedTimer {
-public:
+ public:
   ScopedTimer(const char *name)
       : m_name(name), m_beg(std::chrono::high_resolution_clock::now()) {}
   ScopedTimer(const char *name, uint64_t &ns) : ScopedTimer(name) {
@@ -20,7 +21,7 @@ public:
                 << std::setw(12) << dur.count() << " ns\n";
   }
 
-private:
+ private:
   const char *m_name;
   std::chrono::time_point<std::chrono::high_resolution_clock> m_beg;
   uint64_t *m_ns = nullptr;
@@ -42,31 +43,31 @@ std::string yaml_file_content(const std::string &filename) {
   return content;
 }
 
-/*--------- REFLECTION appveyor.yml-------------*/
+/*--------- YLT_REFL appveyor.yml-------------*/
 
 struct matrix_t {
   std::string_view compiler;
   std::string_view generator;
   std::string_view configuration;
 };
-REFLECTION(matrix_t, compiler, generator, configuration);
+YLT_REFL(matrix_t, compiler, generator, configuration);
 struct environment_t {
   std::vector<matrix_t> matrix;
 };
-REFLECTION(environment_t, matrix);
+YLT_REFL(environment_t, matrix);
 struct ex_matrix_t {
   std::string_view fast_finish;
 };
-REFLECTION(ex_matrix_t, fast_finish);
+YLT_REFL(ex_matrix_t, fast_finish);
 struct artifact_t {
   std::string_view path;
   std::string_view name;
 };
-REFLECTION(artifact_t, path, name);
+YLT_REFL(artifact_t, path, name);
 struct skip_commit_t {
   std::vector<std::string_view> files;
 };
-REFLECTION(skip_commit_t, files);
+YLT_REFL(skip_commit_t, files);
 struct appveyor_t {
   std::string_view version;
   std::string_view image;
@@ -78,33 +79,33 @@ struct appveyor_t {
   std::vector<artifact_t> artifacts;
   skip_commit_t skip_commits;
 };
-REFLECTION(appveyor_t, version, image, environment, matrix, install,
-           build_script, test_script, artifacts, skip_commits);
+YLT_REFL(appveyor_t, version, image, environment, matrix, install, build_script,
+         test_script, artifacts, skip_commits);
 
-/*--------- REFLECTION travis.yml-------------*/
+/*--------- YLT_REFL travis.yml-------------*/
 struct apt_t {
   std::vector<std::string_view> sources;
 };
-REFLECTION(apt_t, sources);
+YLT_REFL(apt_t, sources);
 struct addon_t {
   apt_t apt;
 };
-REFLECTION(addon_t, apt);
+YLT_REFL(addon_t, apt);
 
 struct env_t {
   std::vector<std::string_view> global;
 };
-REFLECTION(env_t, global);
+YLT_REFL(env_t, global);
 
 struct in_env_t {
   std::string_view env;
 };
-REFLECTION(in_env_t, env);
+YLT_REFL(in_env_t, env);
 
 struct mat_t {
   std::vector<in_env_t> include;
 };
-REFLECTION(mat_t, include);
+YLT_REFL(mat_t, include);
 
 struct travis_t {
   std::string_view sudo;
@@ -117,5 +118,5 @@ struct travis_t {
   std::vector<std::string_view> script;
   std::vector<std::string_view> after_success;
 };
-REFLECTION(travis_t, sudo, dist, language, addons, env, matrix, install, script,
-           after_success);
+YLT_REFL(travis_t, sudo, dist, language, addons, env, matrix, install, script,
+         after_success);

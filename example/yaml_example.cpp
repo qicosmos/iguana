@@ -1,5 +1,3 @@
-#include "iguana/yaml_reader.hpp"
-#include "iguana/yaml_writer.hpp"
 #include <cassert>
 #include <deque>
 #include <iostream>
@@ -7,6 +5,9 @@
 #include <list>
 #include <optional>
 #include <vector>
+
+#include "iguana/yaml_reader.hpp"
+#include "iguana/yaml_writer.hpp"
 
 enum class enum_status {
   start,
@@ -23,8 +24,8 @@ struct some_type_t {
   std::string_view addr;
   enum_status status;
 };
-REFLECTION(some_type_t, price, description, child, hasdescription, c, d_v, name,
-           addr, status);
+YLT_REFL(some_type_t, price, description, child, hasdescription, c, d_v, name,
+         addr, status);
 
 void some_type_example() {
   std::string str = R"(
@@ -65,19 +66,19 @@ struct address_t {
   std::string_view state;
   std::string_view country;
 };
-REFLECTION(address_t, street, city, state, country);
+YLT_REFL(address_t, street, city, state, country);
 struct contact_t {
   std::string_view type;
   std::string_view value;
 };
-REFLECTION(contact_t, type, value);
+YLT_REFL(contact_t, type, value);
 struct person_t {
   std::string_view name;
   int age;
   address_t address;
   std::vector<contact_t> contacts;
 };
-REFLECTION(person_t, name, age, address, contacts);
+YLT_REFL(person_t, name, age, address, contacts);
 
 std::ostream &operator<<(std::ostream &os, person_t p) {
   os << "name: " << p.name << "\tage: " << p.age << std::endl;
@@ -126,7 +127,7 @@ struct map_person_t {
   map_type address;
   std::vector<map_type> contacts;
 };
-REFLECTION(map_person_t, name, age, address, contacts);
+YLT_REFL(map_person_t, name, age, address, contacts);
 void map_person_example() {
   std::string str = R"(
 name: John Doe
@@ -161,17 +162,17 @@ struct product_t {
   float price;
   std::optional<std::string> description;
 };
-REFLECTION(product_t, name, price, description);
+YLT_REFL(product_t, name, price, description);
 struct store_t {
   std::string name;
   std::string_view location;
   std::vector<product_t> products;
 };
-REFLECTION(store_t, name, location, products);
+YLT_REFL(store_t, name, location, products);
 struct store_example_t {
   store_t store;
 };
-REFLECTION(store_example_t, store);
+YLT_REFL(store_example_t, store);
 void store_example() {
   std::string str = R"(
 store:
@@ -212,17 +213,17 @@ struct book_t {
   std::optional<std::string_view> title;
   std::vector<std::string_view> categories;
 };
-REFLECTION(book_t, title, categories);
+YLT_REFL(book_t, title, categories);
 struct library_t {
   std::unique_ptr<std::string_view> name;
   std::string location;
   std::vector<std::unique_ptr<book_t>> books;
 };
-REFLECTION(library_t, name, location, books);
+YLT_REFL(library_t, name, location, books);
 struct library_example_t {
   std::vector<library_t> libraries;
 };
-REFLECTION(library_example_t, libraries);
+YLT_REFL(library_example_t, libraries);
 
 void library_example() {
   std::string str = R"(
@@ -284,7 +285,7 @@ struct movie_t {
   std::optional<int> year;
   std::vector<std::string> actors;
 };
-REFLECTION(movie_t, title, year, actors);
+YLT_REFL(movie_t, title, year, actors);
 void test_tuple_example() {
   std::string str = R"(
 # this is a movie

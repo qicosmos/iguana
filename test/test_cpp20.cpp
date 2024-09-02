@@ -250,6 +250,17 @@ TEST_CASE("test xml") {
   std::cout << t1.x << "\n";
 }
 
+TEST_CASE("test yaml") {
+  point_t t{1, 3};
+  std::string yaml;
+  iguana::to_yaml(t, yaml);
+  std::cout << yaml << "\n";
+
+  point_t t1;
+  iguana::from_yaml(t1, yaml.begin(), yaml.end());
+  std::cout << t1.x << "\n";
+}
+
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
 int main(int argc, char** argv) { return doctest::Context(argc, argv).run(); }
 DOCTEST_MSVC_SUPPRESS_WARNING_POP

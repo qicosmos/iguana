@@ -149,6 +149,15 @@ constexpr void foreach_tuple(F&& f, Tuple& tp) {
                 std::make_index_sequence<std::tuple_size_v<Tuple>>{});
 }
 
+template <typename F, typename T>
+inline constexpr auto for_each_tuple(F&& f, T&& tup) {
+  std::apply(
+      [&f](auto&&... args) {
+        (f(args), ...);
+      },
+      std::forward<T>(tup));
+}
+
 template <class T>
 constexpr inline bool ylt_refletable_v =
     (ylt::reflection::is_ylt_refl_v<T> ||
