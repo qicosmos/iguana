@@ -266,6 +266,47 @@ inline constexpr void for_each(T&& t, Visit&& func) {
   }
 }
 
+template <auto ptr>
+struct field_alias_t {
+  std::string_view alias_name;
+  inline static constexpr auto mem_ptr = ptr;
+};
+
+template <typename T>
+struct ylt_alias_struct {
+  static inline constexpr bool has_alias_v = false;
+};
+
+template <typename Tuple, size_t... Is>
+inline constexpr auto get_alias_map_impl(Tuple& tp,
+                                         std::index_sequence<Is...>) {
+  return frozen::unordered_map<size_t, std::string_view, sizeof...(Is)>{
+      {index_of<std::tuple_element_t<Is, Tuple>::mem_ptr>(),
+       std::get<Is>(tp).alias_name}...};
+}
+
+template <typename T>
+constexpr auto get_field_alias_map() {
+  if constexpr (ylt_alias_struct<T>::has_alias_v) {
+    constexpr auto tp = ylt_alias_struct<T>::get_field_alias();
+    return get_alias_map_impl(
+        tp, std::make_index_sequence<std::tuple_size_v<decltype(tp)>>{});
+  }
+  else {
+    return std::array<size_t, 0>{};
+  }
+}
+
+template <typename T>
+constexpr std::string_view get_struct_alias_name() {
+  if constexpr (ylt_alias_struct<T>::has_alias_v) {
+    return ylt_alias_struct<T>::get_struct_alias();
+  }
+  else {
+    return "";
+  }
+}
+
 }  // namespace ylt::reflection
 
 #if (defined(__GNUC__) && __GNUC__ > 10) || \
