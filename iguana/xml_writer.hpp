@@ -315,7 +315,7 @@ IGUANA_INLINE void render_xml_value(Stream &ss, T &&t, std::string_view name) {
   static constexpr auto arr = ylt::reflection::get_member_names<U>();
 
   [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
-    (render_xml_value_impl<pretty, spaces, Is>(ss, *std::get<Is>(tp), arr[Is]),
+    (render_xml_value_impl<pretty, spaces, Is>(ss, std::get<Is>(tp), arr[Is]),
      ...);
   }
   (std::make_index_sequence<Count>{});
