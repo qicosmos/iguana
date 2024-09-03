@@ -521,7 +521,7 @@ constexpr inline auto build_pb_fields_impl(size_t offset,
 template <typename Tuple, typename T, typename Array, size_t... I>
 inline auto build_pb_fields(const Array& offset_arr,
                             std::index_sequence<I...>) {
-  constexpr auto arr = ylt::reflection::member_names<T>;
+  constexpr auto arr = ylt::reflection::get_member_names<T>();
   constexpr std::array<size_t, sizeof...(I)> indexs =
       get_field_no<Tuple>(std::make_index_sequence<sizeof...(I)>{});
   return std::tuple_cat(

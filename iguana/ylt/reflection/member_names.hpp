@@ -7,6 +7,12 @@
 
 namespace ylt::reflection {
 
+template <typename T>
+struct ylt_alias_struct;
+
+template <typename T>
+inline constexpr auto get_alias_field_names();
+
 namespace internal {
 
 template <class T>
@@ -47,6 +53,39 @@ inline constexpr std::string_view get_member_name() {
                 "or MSVC or switch to the rfl::Field-syntax.");
 #endif
 }
+
+template <class T>
+struct member_tratis {};
+
+template <class T, class Owner>
+struct member_tratis<T Owner::*> {
+  using owner_type = Owner;
+  using value_type = T;
+};
+
+template <typename T, typename = void>
+struct has_alias_field_names_t : std::false_type {};
+
+template <typename T>
+struct has_alias_field_names_t<
+    T, std::void_t<decltype(ylt_alias_struct<T>::get_alias_field_names())>>
+    : std::true_type {};
+
+template <typename T>
+inline constexpr bool has_alias_field_names_v =
+    has_alias_field_names_t<T>::value;
+
+template <typename T, typename = void>
+struct has_alias_struct_names_t : std::false_type {};
+
+template <typename T>
+struct has_alias_struct_names_t<
+    T, std::void_t<decltype(ylt_alias_struct<T>::get_alias_struct_name())>>
+    : std::true_type {};
+
+template <typename T>
+inline constexpr bool has_alias_struct_name_v =
+    has_alias_struct_names_t<T>::value;
 
 template <typename T, typename U, size_t... Is>
 inline constexpr void init_arr_with_tuple(const T& tp, U& arr,
@@ -155,10 +194,70 @@ template <typename T>
 constexpr auto member_names_map = internal::get_member_names_map<T>();
 
 template <typename T>
-constexpr auto member_names = internal::get_member_names<T>();
+inline auto member_offsets = internal::get_member_offset_arr<T>();
+
+template <auto member>
+inline constexpr size_t index_of() {
+  using T = typename internal::member_tratis<decltype(member)>::owner_type;
+  constexpr auto name = field_string<member>();
+  constexpr auto names = internal::get_member_names<T>();
+  for (size_t i = 0; i < names.size(); i++) {
+    if (name == names[i]) {
+      return i;
+    }
+  }
+  return names.size();
+}
+
+template <auto ptr>
+struct field_alias_t {
+  std::string_view alias_name;
+  inline static constexpr auto mem_ptr = ptr;
+};
+
+template <typename Tuple, size_t... Is>
+inline constexpr auto get_alias_field_names_impl(Tuple& tp,
+                                                 std::index_sequence<Is...>) {
+  return std::array<std::pair<size_t, std::string_view>, sizeof...(Is)>{
+      std::make_pair(index_of<std::tuple_element_t<Is, Tuple>::mem_ptr>(),
+                     std::get<Is>(tp).alias_name)...};
+}
 
 template <typename T>
-inline auto member_offsets = internal::get_member_offset_arr<T>();
+inline constexpr auto get_alias_field_names() {
+  if constexpr (internal::has_alias_field_names_v<T>) {
+    constexpr auto tp = ylt_alias_struct<T>::get_alias_field_names();
+    return get_alias_field_names_impl(
+        tp, std::make_index_sequence<std::tuple_size_v<decltype(tp)>>{});
+  }
+  else {
+    return std::array<std::string_view, 0>{};
+  }
+}
+
+template <typename T>
+constexpr std::string_view get_struct_name() {
+  if constexpr (internal::has_alias_struct_name_v<T>) {
+    return ylt_alias_struct<T>::get_alias_struct_name();
+  }
+  else {
+    return type_string<T>();
+  }
+}
+
+template <typename T>
+inline constexpr std::array<std::string_view, members_count_v<T>>
+get_member_names() {
+  auto arr = internal::get_member_names<T>();
+  using U = ylt::reflection::remove_cvref_t<T>;
+  if constexpr (internal::has_alias_field_names_v<U>) {
+    constexpr auto alias_arr = get_alias_field_names<U>();
+    for (size_t i = 0; i < alias_arr.size(); i++) {
+      arr[alias_arr[i].first] = alias_arr[i].second;
+    }
+  }
+  return arr;
+}
 
 template <std::size_t N>
 struct FixedString {
@@ -175,7 +274,7 @@ struct FixedString {
 
 template <typename T>
 inline constexpr size_t index_of(std::string_view name) {
-  constexpr auto& arr = member_names<T>;
+  constexpr auto arr = get_member_names<T>();
   for (size_t i = 0; i < arr.size(); i++) {
     if (arr[i] == name) {
       return i;
@@ -195,13 +294,13 @@ inline constexpr size_t index_of() {
 template <typename T, size_t index>
 inline constexpr std::string_view name_of() {
   static_assert(index < members_count_v<T>, "index out of range");
-  constexpr auto& arr = member_names<T>;
+  constexpr auto arr = get_member_names<T>();
   return arr[index];
 }
 
 template <typename T>
 inline constexpr std::string_view name_of(size_t index) {
-  constexpr auto& arr = member_names<T>;
+  constexpr auto arr = get_member_names<T>();
   if (index >= arr.size()) {
     return "";
   }
@@ -228,7 +327,7 @@ inline constexpr void for_each_impl(Visit&& func, U& arr,
 
 template <typename T, typename Visit>
 inline constexpr void for_each(Visit&& func) {
-  constexpr auto& arr = member_names<T>;
+  constexpr auto arr = get_member_names<T>();
 #if __cplusplus >= 202002L
   [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
     if constexpr (std::is_invocable_v<Visit, std::string_view, size_t>) {

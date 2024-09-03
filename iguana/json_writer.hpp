@@ -270,8 +270,8 @@ template <bool Is_writing_escape, typename Stream, typename T,
 IGUANA_INLINE void to_json(T &&t, Stream &s) {
   using namespace detail;
   s.push_back('{');
-  constexpr auto Count =
-      ylt::reflection::members_count_v<ylt::reflection::remove_cvref_t<T>>;
+  using U = ylt::reflection::remove_cvref_t<T>;
+  constexpr auto Count = ylt::reflection::members_count_v<U>;
   if constexpr (Count > 0) {
     ylt::reflection::for_each(t, [&](auto &field, auto name, auto index) {
       write_json_key(s, name);

@@ -31,15 +31,6 @@ struct is_variant : std::false_type {};
 template <typename... T>
 struct is_variant<std::variant<T...>> : std::true_type {};
 
-template <class T>
-struct member_tratis {};
-
-template <class T, class Owner>
-struct member_tratis<T Owner::*> {
-  using owner_type = Owner;
-  using value_type = T;
-};
-
 struct switch_helper {
   template <size_t index, typename Member, class Tuple>
   static constexpr size_t run(Member& member, Tuple& t) {
@@ -74,7 +65,7 @@ inline constexpr frozen::string filter_str(const frozen::string& str) {
 template <typename T, size_t... Is>
 inline constexpr auto get_variant_map_impl(T&& t, std::index_sequence<Is...>) {
   using U = ylt::reflection::remove_cvref_t<T>;
-  constexpr auto arr = ylt::reflection::member_names<U>;
+  constexpr auto arr = ylt::reflection::get_member_names<U>();
   auto ref_tp = object_to_tuple(std::forward<T>(t));
   using ValueType = decltype(get_variant_type(ref_tp));
   return frozen::unordered_map<frozen::string, ValueType, sizeof...(Is)>{
@@ -163,19 +154,6 @@ inline constexpr auto& get(T& t) {
 }
 #endif
 
-template <auto member>
-inline constexpr size_t index_of() {
-  using T = typename internal::member_tratis<decltype(member)>::owner_type;
-  constexpr auto name = field_string<member>();
-  constexpr auto names = member_names<T>;
-  for (size_t i = 0; i < names.size(); i++) {
-    if (name == names[i]) {
-      return i;
-    }
-  }
-  return names.size();
-}
-
 template <typename T, typename Field>
 inline size_t index_of(T& t, Field& value) {
   const auto& offset_arr = member_offsets<T>;
@@ -191,7 +169,7 @@ inline size_t index_of(T& t, Field& value) {
 template <typename T, typename Field>
 inline constexpr std::string_view name_of(T& t, Field& value) {
   size_t index = index_of(t, value);
-  constexpr auto arr = member_names<T>;
+  constexpr auto arr = get_member_names<T>();
   if (index == arr.size()) {
     return "";
   }
@@ -204,7 +182,7 @@ template <typename T, typename Visit, typename U, size_t... Is,
 inline constexpr void visit_members_impl0(Visit&& func,
                                           std::index_sequence<Is...>,
                                           Args&... args) {
-  constexpr auto arr = member_names<T>;
+  constexpr auto arr = get_member_names<T>();
   (func(args, arr[Is]), ...);
 }
 
@@ -212,7 +190,7 @@ template <typename T, typename Visit, size_t... Is, typename... Args>
 inline constexpr void visit_members_impl(Visit&& func,
                                          std::index_sequence<Is...>,
                                          Args&... args) {
-  constexpr auto arr = member_names<T>;
+  constexpr auto arr = get_member_names<T>();
   (func(args, arr[Is], Is), ...);
 }
 
@@ -230,7 +208,7 @@ inline constexpr void for_each(T&& t, Visit&& func) {
       visit_members(t, [&](auto&... args) {
 #if __cplusplus >= 202002L
         [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
-          constexpr auto arr = member_names<T>;
+          constexpr auto arr = get_member_names<T>();
           (func(args, arr[Is]), ...);
         }
         (std::make_index_sequence<sizeof...(args)>{});
@@ -246,7 +224,7 @@ inline constexpr void for_each(T&& t, Visit&& func) {
       visit_members(t, [&](auto&... args) {
 #if __cplusplus >= 202002L
         [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
-          constexpr auto arr = member_names<T>;
+          constexpr auto arr = get_member_names<T>();
           (func(args, arr[Is], Is), ...);
         }
         (std::make_index_sequence<sizeof...(args)>{});
@@ -263,47 +241,6 @@ inline constexpr void for_each(T&& t, Visit&& func) {
                     "std::string_view, size_t], at least has field_value and "
                     "make sure keep the order of arguments");
     }
-  }
-}
-
-template <auto ptr>
-struct field_alias_t {
-  std::string_view alias_name;
-  inline static constexpr auto mem_ptr = ptr;
-};
-
-template <typename T>
-struct ylt_alias_struct {
-  static inline constexpr bool has_alias_v = false;
-};
-
-template <typename Tuple, size_t... Is>
-inline constexpr auto get_alias_map_impl(Tuple& tp,
-                                         std::index_sequence<Is...>) {
-  return frozen::unordered_map<size_t, std::string_view, sizeof...(Is)>{
-      {index_of<std::tuple_element_t<Is, Tuple>::mem_ptr>(),
-       std::get<Is>(tp).alias_name}...};
-}
-
-template <typename T>
-constexpr auto get_field_alias_map() {
-  if constexpr (ylt_alias_struct<T>::has_alias_v) {
-    constexpr auto tp = ylt_alias_struct<T>::get_field_alias();
-    return get_alias_map_impl(
-        tp, std::make_index_sequence<std::tuple_size_v<decltype(tp)>>{});
-  }
-  else {
-    return std::array<size_t, 0>{};
-  }
-}
-
-template <typename T>
-constexpr std::string_view get_struct_alias_name() {
-  if constexpr (ylt_alias_struct<T>::has_alias_v) {
-    return ylt_alias_struct<T>::get_struct_alias();
-  }
-  else {
-    return "";
   }
 }
 

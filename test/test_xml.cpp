@@ -172,7 +172,7 @@ struct some_type_t {
   enum_status status;
 };
 YLT_REFL(some_type_t, price, description, child, hasdescription, c, d_v, name,
-           addr, status);
+         addr, status);
 
 TEST_CASE("test parse_done") {
   std::string str = R"(
@@ -728,33 +728,50 @@ TEST_CASE("test throw while parsing an illegal number") {
   }
 }
 
-// struct next_obj_t {
-//   int x;
-//   int y;
-// };
-// YLT_REFL_ALIAS(next_obj_t, "next", FLDALIAS(&next_obj_t::x, "w"),
-//                  FLDALIAS(&next_obj_t::y, "h"));
+struct next_obj_t {
+  int x;
+  int y;
+};
+YLT_REFL(next_obj_t, x, y);
 
-// struct out_object {
-//   std::unique_ptr<int> id;
-//   std::string_view name;
-//   next_obj_t obj;
-//   YLT_REFL_ALIAS(out_object, "qi", FLDALIAS(&out_object::id, "i"),
-//                    FLDALIAS(&out_object::name, "na"),
-//                    FLDALIAS(&out_object::obj, "obj"));
-// };
+template <>
+struct ylt::reflection::ylt_alias_struct<next_obj_t> {
+  static constexpr std::string_view get_alias_struct_name() { return "next"; }
 
-// TEST_CASE("test alias") {
-//   out_object m{std::make_unique<int>(20), "tom", {21, 42}};
-//   std::string xml_str;
-//   iguana::to_xml(m, xml_str);
+  static constexpr auto get_alias_field_names() {
+    return std::make_tuple(field_alias_t<&next_obj_t::x>{"w"},
+                           field_alias_t<&next_obj_t::y>{"h"});
+  }
+};
 
-//   out_object m1;
-//   iguana::from_xml(m1, xml_str);
-//   CHECK(m1.name == "tom");
-//   CHECK(m1.obj.x == 21);
-//   CHECK(m1.obj.y == 42);
-// }
+struct out_object {
+  std::unique_ptr<int> id;
+  std::string_view name;
+  next_obj_t obj;
+  YLT_REFL(out_object, id, name, obj);
+};
+
+template <>
+struct ylt::reflection::ylt_alias_struct<out_object> {
+  static constexpr std::string_view get_alias_struct_name() { return "qi"; }
+
+  static constexpr auto get_alias_field_names() {
+    return std::make_tuple(field_alias_t<&out_object::id>{"w"},
+                           field_alias_t<&out_object::name>{"h"});
+  }
+};
+
+TEST_CASE("test alias") {
+  out_object m{std::make_unique<int>(20), "tom", {21, 42}};
+  std::string xml_str;
+  iguana::to_xml(m, xml_str);
+
+  out_object m1;
+  iguana::from_xml(m1, xml_str);
+  CHECK(m1.name == "tom");
+  CHECK(m1.obj.x == 21);
+  CHECK(m1.obj.y == 42);
+}
 
 struct text_t {
   using escape_attr_t =

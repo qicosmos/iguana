@@ -565,8 +565,8 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
       ++it;
       return;
     }
-  constexpr auto Count =
-      ylt::reflection::members_count_v<ylt::reflection::remove_cvref_t<T>>;
+  using U = ylt::reflection::remove_cvref_t<T>;
+  constexpr auto Count = ylt::reflection::members_count_v<U>;
   if constexpr (Count > 0) {
     std::string_view key = detail::get_key(it, end);
 #ifdef SEQUENTIAL_PARSE

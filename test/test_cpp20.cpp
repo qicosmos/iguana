@@ -14,6 +14,23 @@ REQUIRED(point_t, x, y);
 YLT_REFL(point_t, x, y);
 #endif
 
+struct point_t1 {
+  int x;
+  int y;
+};
+#if __cplusplus < 202002L
+YLT_REFL(point_t1, x, y);
+#endif
+
+template <>
+struct ylt::reflection::ylt_alias_struct<point_t1> {
+  static constexpr std::string_view get_alias_struct_name() { return "point"; }
+
+  static constexpr auto get_alias_field_names() {
+    return std::make_tuple(field_alias_t<&point_t::x>{"X"},
+                           field_alias_t<&point_t::y>{"Y"});
+  }
+};
 struct test_variant {
   test_variant() = default;
   test_variant(int a, std::variant<double, std::string, int> b, double c)
@@ -240,14 +257,35 @@ TEST_CASE("test example cdata") {
 }
 
 TEST_CASE("test xml") {
-  point_t t{1, 3};
+  constexpr auto alias_names =
+      ylt::reflection::get_alias_field_names<point_t1>();
+  constexpr auto names = ylt::reflection::get_member_names<point_t1>();
+  constexpr auto st_name = ylt::reflection::get_struct_name<point_t1>();
+  CHECK(names == std::array<std::string_view, 2>{"X", "Y"});
+  CHECK(alias_names[0].second == "X");
+  CHECK(alias_names[1].second == "Y");
+  CHECK(st_name == "point");
+
+  constexpr auto map1 = ylt::reflection::get_member_names<int>();
+  constexpr auto name1 = ylt::reflection::get_struct_name<int>();
+  static_assert(map1.size() == 0);
+  static_assert(name1 == "int");
+
+  point_t1 t{1, 3};
   std::string xml;
   iguana::to_xml(t, xml);
   std::cout << xml << "\n";
 
-  point_t t1;
+  point_t1 t1;
   iguana::from_xml(t1, xml.begin(), xml.end());
   std::cout << t1.x << "\n";
+
+  std::string json;
+  iguana::to_json(t, json);
+
+  point_t1 t2;
+  iguana::from_json(t2, json);
+  std::cout << t2.x << "\n";
 }
 
 TEST_CASE("test yaml") {

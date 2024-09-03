@@ -284,7 +284,7 @@ IGUANA_INLINE void to_xml(T &&t, Stream &s) {
   using value_type = typename std::decay_t<T>::value_type;
   static_assert(ylt_refletable_v<value_type>, "value_type must be refletable");
   constexpr std::string_view root_name =
-      ylt::reflection::type_string<value_type>();
+      ylt::reflection::get_struct_name<value_type>();
   render_xml_value<pretty, 0>(s, std::forward<T>(t), root_name);
 }
 
@@ -292,7 +292,7 @@ template <bool pretty = false, typename Stream, typename T,
           std::enable_if_t<ylt_refletable_v<T>, int> = 0>
 IGUANA_INLINE void to_xml(T &&t, Stream &s) {
   constexpr std::string_view root_name =
-      type_string<ylt::reflection::remove_cvref_t<T>>();
+      ylt::reflection::get_struct_name<ylt::reflection::remove_cvref_t<T>>();
   render_head<pretty, 0>(s, root_name);
   render_xml_value<pretty, 0>(s, std::forward<T>(t), root_name);
 }
