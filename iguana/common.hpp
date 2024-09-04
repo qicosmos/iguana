@@ -214,7 +214,7 @@ inline auto get_pb_members_tuple(T&& t) {
   using U = ylt::reflection::remove_cvref_t<T>;
   if constexpr (ylt_refletable_v<U>) {
     static auto& offset_arr =
-        ylt::reflection::internal::get_member_offset_arr(std::forward<T>(t));
+        ylt::reflection::internal::get_member_offset_arr(ylt::reflection::internal::wrapper<U>::value);
     using Tuple = decltype(ylt::reflection::object_to_tuple(std::declval<U>()));
     return build_pb_fields<Tuple, T>(
         offset_arr, std::make_index_sequence<std::tuple_size_v<Tuple>>{});
