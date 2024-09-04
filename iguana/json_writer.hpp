@@ -292,10 +292,10 @@ IGUANA_INLINE void to_json(T &&t, Stream &s) {
   to_json_impl<Is_writing_escape>(s, t);
 }
 
-// template <typename T>
-// IGUANA_INLINE void to_json_adl(iguana_adl_t *p, T &t, std::string &pb_str) {
-//   to_json(t, pb_str);
-// }
+template <typename T>
+IGUANA_INLINE void to_json_adl(iguana_adl_t *p, T &t, std::string &pb_str) {
+  to_json(t, pb_str);
+}
 
 }  // namespace iguana
 #endif  // SERIALIZE_JSON_HPP

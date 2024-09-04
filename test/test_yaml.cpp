@@ -94,7 +94,7 @@ struct plain_type_t {
   std::optional<float> num;
   std::optional<int> price;
 };
-REFLECTION(plain_type_t, isok, status, c, hasprice, num, price);
+YLT_REFL(plain_type_t, isok, status, c, hasprice, num, price);
 TEST_CASE("test plain_type") {
   plain_type_t p{false, enum_status::stop, 'a', true};
   p.price = 20;
@@ -231,7 +231,7 @@ TEST_CASE("test exception") {
 struct test_string_t {
   std::vector<std::string> txt;
 };
-REFLECTION(test_string_t, txt);
+YLT_REFL(test_string_t, txt);
 TEST_CASE("test block string") {
   std::string str = R"(
 txt:
@@ -263,7 +263,7 @@ txt:
 struct arr_t {
   std::vector<std::string_view> arr;
 };
-REFLECTION(arr_t, arr);
+YLT_REFL(arr_t, arr);
 TEST_CASE("test array") {
   std::string str = R"(
   arr : [
@@ -304,7 +304,7 @@ TEST_CASE("test array") {
 struct nest_arr_t {
   std::vector<std::vector<std::string_view>> arr;
 };
-REFLECTION(nest_arr_t, arr);
+YLT_REFL(nest_arr_t, arr);
 TEST_CASE("test nest arr ") {
   std::string str = R"(
   arr : [[
@@ -357,7 +357,7 @@ TEST_CASE("test nest arr ") {
 struct nest_float_arr_t {
   std::vector<std::vector<float>> arr;
 };
-REFLECTION(nest_float_arr_t, arr);
+YLT_REFL(nest_float_arr_t, arr);
 TEST_CASE("test arr with float") {
   std::string str = R"(
   arr :
@@ -377,7 +377,7 @@ TEST_CASE("test arr with float") {
 struct map_t {
   std::unordered_map<std::string_view, std::string_view> map;
 };
-REFLECTION(map_t, map);
+YLT_REFL(map_t, map);
 TEST_CASE("test map") {
   std::string str = R"(
   map : {
@@ -402,7 +402,7 @@ TEST_CASE("test map") {
 struct map_arr_t {
   std::unordered_map<std::string_view, std::vector<std::string_view>> map;
 };
-REFLECTION(map_arr_t, map);
+YLT_REFL(map_arr_t, map);
 TEST_CASE("test map") {
   std::string str = R"(
   map : {
@@ -440,7 +440,7 @@ TEST_CASE("test map") {
 struct test_str_t {
   std::string_view str;
 };
-REFLECTION(test_str_t, str);
+YLT_REFL(test_str_t, str);
 TEST_CASE("test str type") {
   std::string str = R"(
   str :
@@ -470,8 +470,8 @@ struct some_type_t {
   std::string_view addr;
   enum_status status;
 };
-REFLECTION(some_type_t, price, description, child, hasdescription, c, d_v, name,
-           addr, status);
+YLT_REFL(some_type_t, price, description, child, hasdescription, c, d_v, name,
+         addr, status);
 TEST_CASE("test some_type") {
   auto validator_some_type = [](some_type_t s) {
     CHECK(s.price[0] == 1.23f);
@@ -518,19 +518,19 @@ struct address_t {
   std::string_view state;
   std::string_view country;
 };
-REFLECTION(address_t, street, city, state, country);
+YLT_REFL(address_t, street, city, state, country);
 struct contact_t {
   std::string_view type;
   std::string_view value;
 };
-REFLECTION(contact_t, type, value);
+YLT_REFL(contact_t, type, value);
 struct person_t {
   std::string_view name;
   int age;
   address_t address;
   std::vector<contact_t> contacts;
 };
-REFLECTION(person_t, name, age, address, contacts);
+YLT_REFL(person_t, name, age, address, contacts);
 TEST_CASE("test person_t") {
   auto validator_person = [](const person_t &p) {
     CHECK(p.name == "John Doe");
@@ -577,17 +577,17 @@ struct product_t {
   float price;
   std::optional<std::string> description;
 };
-REFLECTION(product_t, name, price, description);
+YLT_REFL(product_t, name, price, description);
 struct store_t {
   std::string name;
   std::string_view location;
   std::vector<product_t> products;
 };
-REFLECTION(store_t, name, location, products);
+YLT_REFL(store_t, name, location, products);
 struct store_example_t {
   store_t store;
 };
-REFLECTION(store_example_t, store);
+YLT_REFL(store_example_t, store);
 TEST_CASE("test example store") {
   std::string str = R"(
 store:
@@ -630,17 +630,17 @@ struct book_t {
   std::optional<std::string_view> title;
   std::vector<std::string_view> categories;
 };
-REFLECTION(book_t, title, categories);
+YLT_REFL(book_t, title, categories);
 struct library_t {
   std::unique_ptr<std::string_view> name;
   std::string location;
   std::vector<std::unique_ptr<book_t>> books;
 };
-REFLECTION(library_t, name, location, books);
+YLT_REFL(library_t, name, location, books);
 struct library_example_t {
   std::vector<library_t> libraries;
 };
-REFLECTION(library_example_t, libraries);
+YLT_REFL(library_example_t, libraries);
 
 TEST_CASE("test example books") {
   std::vector<book_t> books;
@@ -726,7 +726,7 @@ struct movie_t {
   std::optional<int> year;
   std::vector<std::string> actors;
 };
-REFLECTION(movie_t, title, year, actors);
+YLT_REFL(movie_t, title, year, actors);
 TEST_CASE("test_tuple_example") {
   std::string str = R"(
 # this is a movie
@@ -797,7 +797,7 @@ struct test_enum_t {
   Color g;
   Color h;
 };
-REFLECTION(test_enum_t, a, b, c, d, e, f, g, h);
+YLT_REFL(test_enum_t, a, b, c, d, e, f, g, h);
 
 #if defined(__clang__) || defined(_MSC_VER) || \
     (defined(__GNUC__) && __GNUC__ > 8)
@@ -849,7 +849,7 @@ struct enum_exception_t {
   State a;
   State b;
 };
-REFLECTION(enum_exception_t, a, b);
+YLT_REFL(enum_exception_t, a, b);
 
 #if defined(__clang__) || defined(_MSC_VER) || \
     (defined(__GNUC__) && __GNUC__ > 8)
@@ -883,10 +883,10 @@ class some_object {
   some_object(int i, std::string str) : id(i), name(str) {}
   int get_id() const { return id; }
   std::string get_name() const { return name; }
-  REFLECTION(some_object, id, name);
+  YLT_REFL(some_object, id, name);
 };
 
-TEST_CASE("test inner reflection") {
+TEST_CASE("test inner YLT_REFL") {
   some_object obj{20, "tom"};
   std::string str;
   iguana::to_yaml(obj, str);
@@ -903,7 +903,7 @@ struct Contents_t {
   std::shared_ptr<std::vector<std::unique_ptr<int>>> vec_s;
   std::string b;
 };
-REFLECTION(Contents_t, vec, vec_s, b);
+YLT_REFL(Contents_t, vec, vec_s, b);
 
 TEST_CASE("test smart_ptr") {
   std::string str = R"(

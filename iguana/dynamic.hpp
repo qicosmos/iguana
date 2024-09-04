@@ -1,5 +1,5 @@
 #pragma once
-#include "reflection.hpp"
+#include "common.hpp"
 
 namespace iguana {
 using base = detail::base;
@@ -17,6 +17,7 @@ constexpr inline uint8_t ENABLE_ALL = 0x0F;
 
 template <typename T, uint8_t ENABLE_FLAG = ENABLE_PB>
 struct base_impl : public base {
+  base_impl() { [[maybe_unused]] static bool r = register_type<T>(); }
   void to_pb(std::string& str) const override {
     if constexpr ((ENABLE_FLAG & ENABLE_PB) != 0) {
       to_pb_adl((iguana_adl_t*)nullptr, *(static_cast<T const*>(this)), str);
@@ -91,7 +92,8 @@ struct base_impl : public base {
 
   iguana::detail::field_info get_field_info(
       std::string_view name) const override {
-    static constexpr auto map = iguana::get_members<T>();
+    static auto map =
+        detail::get_members(ylt::reflection::internal::wrapper<T>::value);
     iguana::detail::field_info info{};
     for (auto const& [no, field] : map) {
       if (info.offset > 0) {
@@ -116,7 +118,8 @@ struct base_impl : public base {
   }
 
   std::vector<std::string_view> get_fields_name() const override {
-    static constexpr auto map = iguana::get_members<T>();
+    static auto map =
+        detail::get_members(ylt::reflection::internal::wrapper<T>::value);
 
     std::vector<std::string_view> vec;
 
@@ -135,7 +138,8 @@ struct base_impl : public base {
   }
 
   std::any get_field_any(std::string_view name) const override {
-    static constexpr auto map = iguana::get_members<T>();
+    static auto map =
+        detail::get_members(ylt::reflection::internal::wrapper<T>::value);
     std::any result;
 
     for (auto const& [no, field] : map) {

@@ -520,10 +520,10 @@ IGUANA_INLINE Num get_number(std::string_view str) {
   return num;
 }
 
-// template <typename T>
-// IGUANA_INLINE void from_xml_adl(iguana_adl_t *p, T &t,
-//                                 std::string_view pb_str) {
-//   iguana::from_xml(t, pb_str);
-// }
+template <typename T>
+IGUANA_INLINE void from_xml_adl(iguana_adl_t *p, T &t,
+                                std::string_view pb_str) {
+  iguana::from_xml(t, pb_str);
+}
 
 }  // namespace iguana

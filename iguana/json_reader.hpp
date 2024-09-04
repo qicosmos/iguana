@@ -898,10 +898,10 @@ IGUANA_INLINE void from_json_file(T &value, const std::string &filename,
   }
 }
 
-// template <typename T>
-// IGUANA_INLINE void from_json_adl(iguana_adl_t *p, T &t,
-//                                  std::string_view pb_str) {
-//   iguana::from_json(t, pb_str);
-// }
+template <typename T>
+IGUANA_INLINE void from_json_adl(iguana_adl_t *p, T &t,
+                                 std::string_view pb_str) {
+  iguana::from_json(t, pb_str);
+}
 
 }  // namespace iguana

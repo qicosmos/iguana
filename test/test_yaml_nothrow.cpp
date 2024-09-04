@@ -1,8 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
 #undef THROW_UNKNOWN_KEY
-#include "iguana/yaml_reader.hpp"
-#include "iguana/yaml_writer.hpp"
 #include <deque>
 #include <iostream>
 #include <iterator>
@@ -10,22 +8,25 @@
 #include <optional>
 #include <vector>
 
+#include "iguana/yaml_reader.hpp"
+#include "iguana/yaml_writer.hpp"
+
 struct product_t {
   std::string_view name;
   float price;
   std::optional<std::string> description;
 };
-REFLECTION(product_t, name, price, description);
+YLT_REFL(product_t, name, price, description);
 struct store_t {
   std::string name;
   std::string_view location;
   std::vector<product_t> products;
 };
-REFLECTION(store_t, name, location, products);
+YLT_REFL(store_t, name, location, products);
 struct store_example_t {
   store_t store;
 };
-REFLECTION(store_example_t, store);
+YLT_REFL(store_example_t, store);
 TEST_CASE("test nothrow unknown key") {
   std::string str = R"(
 unkonwnkey: aabb

@@ -616,10 +616,10 @@ IGUANA_INLINE void from_yaml(T &value, const View &view,
   }
 }
 
-// template <typename T>
-// IGUANA_INLINE void from_yaml_adl(iguana_adl_t *p, T &t,
-//                                  std::string_view pb_str) {
-//   iguana::from_yaml(t, pb_str);
-// }
+template <typename T>
+IGUANA_INLINE void from_yaml_adl(iguana_adl_t *p, T &t,
+                                 std::string_view pb_str) {
+  iguana::from_yaml(t, pb_str);
+}
 
 }  // namespace iguana

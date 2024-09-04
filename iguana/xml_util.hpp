@@ -1,4 +1,5 @@
 #pragma once
+#include "common.hpp"
 #include "detail/pb_type.hpp"
 #include "util.hpp"
 

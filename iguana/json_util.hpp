@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "common.hpp"
 #include "detail/string_stream.hpp"
 #include "util.hpp"
 #include "value.hpp"

@@ -297,9 +297,9 @@ IGUANA_INLINE void to_xml(T &&t, Stream &s) {
   render_xml_value<pretty, 0>(s, std::forward<T>(t), root_name);
 }
 
-// template <typename T>
-// IGUANA_INLINE void to_xml_adl(iguana_adl_t *p, T &t, std::string &pb_str) {
-//   to_xml(t, pb_str);
-// }
+template <typename T>
+IGUANA_INLINE void to_xml_adl(iguana_adl_t *p, T &t, std::string &pb_str) {
+  to_xml(t, pb_str);
+}
 
 }  // namespace iguana

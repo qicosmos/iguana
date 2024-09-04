@@ -13,6 +13,7 @@
 
 #include "define.h"
 #include "detail/charconv.h"
+#include "detail/pb_type.hpp"
 #include "detail/traits.hpp"
 #include "detail/utf.hpp"
 #include "error_code.h"
@@ -163,7 +164,7 @@ constexpr inline bool ylt_refletable_v =
     (ylt::reflection::is_ylt_refl_v<T> ||
      std::is_aggregate_v<
          ylt::reflection::remove_cvref_t<T>>)&&!fixed_array_v<T> &&
-    !ylt::reflection::is_custom_refl_v<T>;
+    !ylt::reflection::is_custom_refl_v<T> && !is_pb_type_v<T>;
 
 template <class T>
 constexpr inline bool non_ylt_refletable_v = !ylt_refletable_v<T>;

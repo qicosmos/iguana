@@ -9,7 +9,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "iguana/reflection.hpp"
 #include "iguana/xml_reader.hpp"
 #include "iguana/xml_writer.hpp"
 

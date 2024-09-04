@@ -256,9 +256,8 @@ IGUANA_INLINE void from_pb(T& t, std::string_view pb_str) {
   }
 }
 
-// template <typename T>
-// IGUANA_INLINE void from_pb_adl(iguana_adl_t* p, T& t, std::string_view
-// pb_str) {
-//   iguana::from_pb(t, pb_str);
-// }
+template <typename T>
+IGUANA_INLINE void from_pb_adl(iguana_adl_t* p, T& t, std::string_view pb_str) {
+  iguana::from_pb(t, pb_str);
+}
 }  // namespace iguana

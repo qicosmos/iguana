@@ -193,9 +193,9 @@ IGUANA_INLINE void to_yaml(T &&t, Stream &s) {
     static_assert(!sizeof(T), "don't suppport this type");
 }
 
-// template <typename T>
-// IGUANA_INLINE void to_yaml_adl(iguana_adl_t *p, const T &t,
-//                                std::string &pb_str) {
-//   to_yaml(t, pb_str);
-// }
+template <typename T>
+IGUANA_INLINE void to_yaml_adl(iguana_adl_t *p, const T &t,
+                               std::string &pb_str) {
+  to_yaml(t, pb_str);
+}
 }  // namespace iguana
