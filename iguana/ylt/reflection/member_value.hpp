@@ -49,11 +49,6 @@ struct switch_helper {
   }
 };
 
-template <typename... Args>
-inline auto get_variant_type(std::tuple<Args...>&) {
-  return std::variant<std::add_pointer_t<std::remove_reference_t<Args>>...>{};
-}
-
 inline constexpr frozen::string filter_str(const frozen::string& str) {
   if (str.size() > 3 && str[0] == '_' && str[1] == '_' && str[2] == '_') {
     auto ptr = str.data() + 3;
@@ -62,23 +57,40 @@ inline constexpr frozen::string filter_str(const frozen::string& str) {
   return str;
 }
 
+template <typename T, typename Tuple, size_t... Is>
+inline auto get_variant_type() {
+  return std::variant<
+      ylt::reflection::remove_cvref_t<std::tuple_element_t<Is, Tuple>>
+          T::*...>{};
+}
+
+template <typename T, typename value_type>
+inline auto get_member_ptr(size_t offset) {
+  using P = value_type T::*;
+  return *(P*)(&offset);
+}
+
 template <typename T, size_t... Is>
-inline constexpr auto get_variant_map_impl(T&& t, std::index_sequence<Is...>) {
+inline constexpr auto get_variant_map_impl(std::index_sequence<Is...>) {
   using U = ylt::reflection::remove_cvref_t<T>;
   constexpr auto arr = ylt::reflection::get_member_names<U>();
-  auto ref_tp = object_to_tuple(std::forward<T>(t));
-  using ValueType = decltype(get_variant_type(ref_tp));
+  auto& offset_arr = get_member_offset_arr(wrapper<U>::value);
+  using Tuple = decltype(ylt::reflection::object_to_tuple(std::declval<U>()));
+  using ValueType = decltype(get_variant_type<U, Tuple, Is...>());
   return frozen::unordered_map<frozen::string, ValueType, sizeof...(Is)>{
       {filter_str(arr[Is]),
-       ValueType{std::in_place_index<Is>, &std::get<Is>(ref_tp)}}...};
+       ValueType{std::in_place_index<Is>,
+                 get_member_ptr<U, ylt::reflection::remove_cvref_t<
+                                       std::tuple_element_t<Is, Tuple>>>(
+                     offset_arr[Is])}}...};
 }
 
 }  // namespace internal
 
 template <typename T>
-inline constexpr auto get_variant_map(T&& t) {
-  return internal::get_variant_map_impl(
-      std::forward<T>(t), std::make_index_sequence<members_count_v<T>>{});
+inline constexpr auto get_variant_map() {
+  return internal::get_variant_map_impl<T>(
+      std::make_index_sequence<members_count_v<T>>{});
 }
 
 template <typename Member, typename T>

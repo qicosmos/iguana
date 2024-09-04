@@ -571,33 +571,34 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
     std::string_view key = detail::get_key(it, end);
 #ifdef SEQUENTIAL_PARSE
     bool parse_done = false;
-    ylt::reflection::for_each(value, [&](auto &field, auto name, auto index) {
-      if (parse_done || (key != name))
-        IGUANA_UNLIKELY { return; }
-      skip_ws(it, end);
-      match<':'>(it, end);
-      {
-        using namespace detail;
-        from_json_impl(field, it, end);
-      }
+    ylt::reflection::for_each(
+        value, [&](auto &field, auto name, auto index) IGUANA__INLINE_LAMBDA {
+          if (parse_done || (key != name))
+            IGUANA_UNLIKELY { return; }
+          skip_ws(it, end);
+          match<':'>(it, end);
+          {
+            using namespace detail;
+            from_json_impl(field, it, end);
+          }
 
-      skip_ws(it, end);
-      if (*it == '}')
-        IGUANA_UNLIKELY {
-          ++it;
-          parse_done = true;
-          return;
-        }
-      else
-        IGUANA_LIKELY { match<','>(it, end); }
-      key = detail::get_key(it, end);
-    });
+          skip_ws(it, end);
+          if (*it == '}')
+            IGUANA_UNLIKELY {
+              ++it;
+              parse_done = true;
+              return;
+            }
+          else
+            IGUANA_LIKELY { match<','>(it, end); }
+          key = detail::get_key(it, end);
+        });
     if (parse_done) [[unlikely]] {
       return;
     }
 #endif
     while (it != end) {
-      auto frozen_map = ylt::reflection::get_variant_map(value);
+      static auto frozen_map = ylt::reflection::get_variant_map<U>();
       if (frozen_map.size() > 0) {
         const auto &member_it = frozen_map.find(key);
         skip_ws(it, end);
@@ -605,11 +606,11 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
         if (member_it != frozen_map.end())
           IGUANA_LIKELY {
             std::visit(
-                [&](auto &&member_ptr) IGUANA__INLINE_LAMBDA {
+                [&](auto member_ptr) IGUANA__INLINE_LAMBDA {
                   using V = std::decay_t<decltype(member_ptr)>;
-                  if constexpr (std::is_pointer_v<V>) {
+                  if constexpr (std::is_member_pointer_v<V>) {
                     using namespace detail;
-                    from_json_impl(*member_ptr, it, end);
+                    from_json_impl(value.*member_ptr, it, end);
                   }
                   else {
                     static_assert(!sizeof(V), "type not supported");

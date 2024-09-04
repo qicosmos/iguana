@@ -447,15 +447,15 @@ IGUANA_INLINE void xml_parse_item(T &value, It &&it, It &&end,
     }
   // map parse
   while (true) {
-    auto frozen_map = ylt::reflection::get_variant_map(value);
+    static auto frozen_map = ylt::reflection::get_variant_map<U>();
     const auto &member_it = frozen_map.find(key);
     if (member_it != frozen_map.end())
       IGUANA_LIKELY {
         std::visit(
             [&](auto field) IGUANA__INLINE_LAMBDA {
-              using V = std::remove_pointer_t<decltype(field)>;
+              using V = std::remove_reference_t<decltype(value.*field)>;
               if constexpr (!cdata_v<V>) {
-                xml_parse_item(*field, it, end, key);
+                xml_parse_item(value.*field, it, end, key);
                 if constexpr (iguana::has_iguana_required_arr_v<U>) {
                   key_set.append(key).append(", ");
                 }
