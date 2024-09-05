@@ -72,9 +72,7 @@ struct test_variant4 {
   test_variant4(int a, std::variant<double, std::string, int> b, double c)
       : x(a), y(std::move(b)), z(c) {}
 
-#if __cplusplus < 202002L
   YLT_REFL(test_variant4, x, y, z);
-#endif
 
  private:
   int x;
