@@ -739,8 +739,7 @@ struct ylt::reflection::ylt_alias_struct<next_obj_t> {
   static constexpr std::string_view get_alias_struct_name() { return "next"; }
 
   static constexpr auto get_alias_field_names() {
-    return std::make_tuple(field_alias_t<&next_obj_t::x>{"w"},
-                           field_alias_t<&next_obj_t::y>{"h"});
+    return std::make_tuple(field_alias_t<0>{"w"}, field_alias_t<1>{"h"});
   }
 };
 
@@ -756,8 +755,7 @@ struct ylt::reflection::ylt_alias_struct<out_object> {
   static constexpr std::string_view get_alias_struct_name() { return "qi"; }
 
   static constexpr auto get_alias_field_names() {
-    return std::make_tuple(field_alias_t<&out_object::id>{"w"},
-                           field_alias_t<&out_object::name>{"h"});
+    return std::make_tuple(field_alias_t<0>{"w"}, field_alias_t<1>{"h"});
   }
 };
 

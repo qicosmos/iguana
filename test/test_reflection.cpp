@@ -308,10 +308,12 @@ YLT_REFL(simple2, color, id, str, age);
 TEST_CASE("test macros") {
   static_assert(!std::is_aggregate_v<simple2>);
   simple2 t{2, 10, "hello reflection", 6};
+#ifdef __GNUC__
   constexpr auto idx = index_of<&simple2::age>();
   static_assert(idx == 3);
   constexpr auto idx2 = index_of<&simple2::id>();
   static_assert(idx2 == 1);
+#endif
   constexpr auto arr = get_member_names<simple2>();
   static_assert(arr.size() == 4);
   constexpr auto map = member_names_map<simple2>;

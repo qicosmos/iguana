@@ -194,11 +194,13 @@ IGUANA_INLINE void from_pb(T& t, std::string_view pb_str) {
   static auto tp = detail::get_pb_members_tuple(t);
   constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tp)>>;
   bool parse_done = false;
+  auto ptr = &t;
   detail::for_each_n(
-      [&](auto i) IGUANA__INLINE_LAMBDA {
+      [&, ptr](auto i) IGUANA__INLINE_LAMBDA {
         auto val = std::get<decltype(i)::value>(tp);
         using sub_type = typename std::decay_t<decltype(val)>::sub_type;
         using value_type = typename std::decay_t<decltype(val)>::value_type;
+        constexpr bool is_variant_v = variant_v<value_type>;
         // sub_type is the element type when value_type is the variant type;
         // otherwise, they are the same.
         if (parse_done || field_number != val.field_no) {
@@ -207,11 +209,13 @@ IGUANA_INLINE void from_pb(T& t, std::string_view pb_str) {
         pb_str = pb_str.substr(pos);
         if (wire_type != detail::get_wire_type<sub_type>())
           IGUANA_UNLIKELY { throw std::runtime_error("unmatched wire_type"); }
-        if constexpr (variant_v<value_type>) {
-          detail::parse_oneof(val.value(t), val, pb_str);
+
+        auto member_ptr = (value_type*)((char*)(ptr) + val.offset);
+        if constexpr (is_variant_v) {
+          detail::parse_oneof(*member_ptr, val, pb_str);
         }
         else {
-          detail::from_pb_impl(val.value(t), pb_str, val.field_no);
+          detail::from_pb_impl(*member_ptr, pb_str, val.field_no);
         }
         if (pb_str.empty()) {
           parse_done = true;

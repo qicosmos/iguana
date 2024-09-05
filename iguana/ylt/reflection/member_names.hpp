@@ -210,17 +210,17 @@ inline constexpr size_t index_of() {
   return names.size();
 }
 
-template <auto ptr>
+template <size_t Idx>
 struct field_alias_t {
   std::string_view alias_name;
-  inline static constexpr auto mem_ptr = ptr;
+  inline static constexpr auto index = Idx;
 };
 
 template <typename Tuple, size_t... Is>
 inline constexpr auto get_alias_field_names_impl(Tuple& tp,
                                                  std::index_sequence<Is...>) {
   return std::array<std::pair<size_t, std::string_view>, sizeof...(Is)>{
-      std::make_pair(index_of<std::tuple_element_t<Is, Tuple>::mem_ptr>(),
+      std::make_pair(std::tuple_element_t<Is, std::decay_t<Tuple>>::index,
                      std::get<Is>(tp).alias_name)...};
 }
 

@@ -23,8 +23,7 @@ struct ylt::reflection::ylt_alias_struct<point_t1> {
   static constexpr std::string_view get_alias_struct_name() { return "point"; }
 
   static constexpr auto get_alias_field_names() {
-    return std::make_tuple(field_alias_t<&point_t::x>{"X"},
-                           field_alias_t<&point_t::y>{"Y"});
+    return std::make_tuple(field_alias_t<0>{"X"}, field_alias_t<1>{"Y"});
   }
 };
 struct test_variant {
