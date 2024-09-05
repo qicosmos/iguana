@@ -187,12 +187,14 @@ TEST_CASE("test simple") {
   static_assert(iguana::ylt_refletable_v<point_t>, "e");
   iguana::to_json(pt, str);
   std::cout << str << "\n";
-  auto map = ylt::reflection::get_variant_map(pt);
+  static auto map = ylt::reflection::get_variant_map<point_t>();
   for (auto& [key, var] : map) {
     std::cout << key.data() << "\n";
     std::visit(
-        [](auto ptr) {
-          std::cout << *ptr << "\n";
+        [&](auto offset) {
+          using value_type = typename decltype(offset)::type;
+          auto member_ptr = (value_type*)((char*)(&pt) + offset.value);
+          std::cout << *member_ptr << "\n";
         },
         var);
   }

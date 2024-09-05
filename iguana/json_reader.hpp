@@ -606,15 +606,12 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
         if (member_it != frozen_map.end())
           IGUANA_LIKELY {
             std::visit(
-                [&](auto member_ptr) IGUANA__INLINE_LAMBDA {
-                  using V = std::decay_t<decltype(member_ptr)>;
-                  if constexpr (std::is_member_pointer_v<V>) {
-                    using namespace detail;
-                    from_json_impl(value.*member_ptr, it, end);
-                  }
-                  else {
-                    static_assert(!sizeof(V), "type not supported");
-                  }
+                [&](auto offset) IGUANA__INLINE_LAMBDA {
+                  using namespace detail;
+                  using value_type = typename decltype(offset)::type;
+                  auto member_ptr =
+                      (value_type *)((char *)(&value) + offset.value);
+                  from_json_impl(*member_ptr, it, end);
                 },
                 member_it->second);
           }

@@ -551,15 +551,11 @@ IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end, size_t min_spaces) {
       if (member_it != frozen_map.end())
         IGUANA_LIKELY {
           std::visit(
-              [&](auto field_ptr) IGUANA__INLINE_LAMBDA {
-                using V = decltype(field_ptr);
-                if constexpr (std::is_member_pointer_v<V>) {
-                  detail::yaml_parse_item(value.*field_ptr, it, end,
-                                          spaces + 1);
-                }
-                else {
-                  static_assert(!sizeof(V), "type not supported");
-                }
+              [&](auto offset) IGUANA__INLINE_LAMBDA {
+                using value_type = typename decltype(offset)::type;
+                auto member_ptr =
+                    (value_type *)((char *)(&value) + offset.value);
+                detail::yaml_parse_item(*member_ptr, it, end, spaces + 1);
               },
               member_it->second);
         }

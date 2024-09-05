@@ -213,16 +213,11 @@ template <typename T>
 inline auto get_pb_members_tuple(T&& t) {
   using U = ylt::reflection::remove_cvref_t<T>;
   if constexpr (ylt_refletable_v<U>) {
-    static auto& offset_arr =
-        ylt::reflection::internal::get_member_offset_arr(ylt::reflection::internal::wrapper<U>::value);
+    static auto& offset_arr = ylt::reflection::internal::get_member_offset_arr(
+        ylt::reflection::internal::wrapper<U>::value);
     using Tuple = decltype(ylt::reflection::object_to_tuple(std::declval<U>()));
     return build_pb_fields<Tuple, T>(
         offset_arr, std::make_index_sequence<std::tuple_size_v<Tuple>>{});
-    // return ylt::reflection::visit_members(std::forward<T>(t), [&](auto&...
-    // args) {
-    //   return build_pb_fields<U>(std::tuple(&args...),
-    //   std::make_index_sequence<sizeof...(args)>{});
-    //   });
   }
   else if constexpr (is_custom_reflection_v<U>) {
     return get_members_impl((U*)nullptr);

@@ -452,10 +452,12 @@ IGUANA_INLINE void xml_parse_item(T &value, It &&it, It &&end,
     if (member_it != frozen_map.end())
       IGUANA_LIKELY {
         std::visit(
-            [&](auto field) IGUANA__INLINE_LAMBDA {
-              using V = std::remove_reference_t<decltype(value.*field)>;
-              if constexpr (!cdata_v<V>) {
-                xml_parse_item(value.*field, it, end, key);
+            [&](auto offset) IGUANA__INLINE_LAMBDA {
+              using value_type = typename decltype(offset)::type;
+              if constexpr (!cdata_v<value_type>) {
+                auto member_ptr =
+                    (value_type *)((char *)(&value) + offset.value);
+                xml_parse_item(*member_ptr, it, end, key);
                 if constexpr (iguana::has_iguana_required_arr_v<U>) {
                   key_set.append(key).append(", ");
                 }

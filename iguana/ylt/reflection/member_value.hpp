@@ -57,17 +57,16 @@ inline constexpr frozen::string filter_str(const frozen::string& str) {
   return str;
 }
 
+template <typename value_type>
+struct offset_t {
+  using type = value_type;
+  size_t value;
+};
+
 template <typename T, typename Tuple, size_t... Is>
 inline auto get_variant_type() {
-  return std::variant<
-      ylt::reflection::remove_cvref_t<std::tuple_element_t<Is, Tuple>>
-          T::*...>{};
-}
-
-template <typename T, typename value_type>
-inline auto get_member_ptr(size_t offset) {
-  using P = value_type T::*;
-  return *(P*)(&offset);
+  return std::variant<offset_t<
+      ylt::reflection::remove_cvref_t<std::tuple_element_t<Is, Tuple>>>...>{};
 }
 
 template <typename T, size_t... Is>
@@ -80,9 +79,8 @@ inline constexpr auto get_variant_map_impl(std::index_sequence<Is...>) {
   return frozen::unordered_map<frozen::string, ValueType, sizeof...(Is)>{
       {filter_str(arr[Is]),
        ValueType{std::in_place_index<Is>,
-                 get_member_ptr<U, ylt::reflection::remove_cvref_t<
-                                       std::tuple_element_t<Is, Tuple>>>(
-                     offset_arr[Is])}}...};
+                 offset_t<ylt::reflection::remove_cvref_t<
+                     std::tuple_element_t<Is, Tuple>>>{offset_arr[Is]}}}...};
 }
 
 }  // namespace internal
