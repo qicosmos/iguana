@@ -40,14 +40,10 @@ struct inner_struct {
   int z;
 };
 
-constexpr inline auto get_members_impl(inner_struct *) {
-  return std::make_tuple(
-      iguana::detail::pb_field_t<decltype(&inner_struct::x), 7>{
-          &inner_struct::x, "a"},
-      iguana::detail::pb_field_t<decltype(&inner_struct::x), 9>{
-          &inner_struct::y, "b"},
-      iguana::detail::pb_field_t<decltype(&inner_struct::x), 12>{
-          &inner_struct::z, "c"});
+inline auto get_members_impl(inner_struct *) {
+  return std::make_tuple(iguana::build_pb_field<&inner_struct::x, 7>("a"),
+                         iguana::build_pb_field<&inner_struct::y, 9>("b"),
+                         iguana::build_pb_field<&inner_struct::z, 12>("c"));
 }
 }  // namespace my_space
 

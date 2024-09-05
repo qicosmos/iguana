@@ -128,19 +128,25 @@ inline constexpr bool is_custom_reflection_v =
 
 // owner_type: parant type, value_type: member value type, SubType: subtype from
 // variant
-template <typename MemberPtr, size_t FieldNo,
-          typename ElementType = typename member_traits<MemberPtr>::value_type>
+template <typename Owner, typename Value, size_t FieldNo,
+          typename ElementType = Value>
 struct pb_field_t {
-  using member_type = MemberPtr;
-  using owner_type = typename member_traits<MemberPtr>::owner_type;
-  using value_type = typename member_traits<MemberPtr>::value_type;
+  using owner_type = Owner;
+  using value_type = Value;
   using sub_type = ElementType;
 
   constexpr pb_field_t() = default;
-  auto& value(owner_type& value) const { return value.*member_ptr; }
-  auto const& value(owner_type const& value) const { return value.*member_ptr; }
+  auto& value(owner_type& value) const {
+    auto member_ptr = (value_type*)((char*)(&value) + offset);
+    return *member_ptr;
+  }
+  // auto const& value(owner_type const& value) const {
+  //   auto member_ptr =
+  //                     (value_type *)((char *)(&value) + offset);
+  //   return *member_ptr;
+  // }
 
-  MemberPtr member_ptr;
+  size_t offset;
   std::string_view field_name;
 
   inline static constexpr uint32_t field_no = FieldNo;
@@ -170,14 +176,13 @@ inline constexpr auto get_field_no(std::index_sequence<I...>) {
   return arr;
 }
 
-template <size_t field_no, typename MemberPtr, size_t... I>
-constexpr inline auto build_pb_variant_fields(MemberPtr field,
+template <typename T, typename value_type, size_t field_no, size_t... I>
+constexpr inline auto build_pb_variant_fields(size_t offset,
                                               std::string_view name,
                                               std::index_sequence<I...>) {
-  using value_type = typename member_traits<MemberPtr>::value_type;
   return std::tuple(
-      pb_field_t<MemberPtr, field_no + I + 1,
-                 std::variant_alternative_t<I, value_type>>{field, name}...);
+      pb_field_t<T, value_type, field_no + I + 1,
+                 std::variant_alternative_t<I, value_type>>{offset, name}...);
 }
 
 template <typename T, size_t field_no, typename ValueType>
@@ -185,16 +190,14 @@ constexpr inline auto build_pb_fields_impl(size_t offset,
                                            std::string_view name) {
   using value_type = ylt::reflection::remove_cvref_t<ValueType>;
   using U = std::remove_reference_t<T>;
-  using P = value_type U::*;
-  P member_ptr = *reinterpret_cast<P*>(&offset);
 
   if constexpr (is_variant<value_type>::value) {
     constexpr uint32_t variant_size = std::variant_size_v<value_type>;
-    return build_pb_variant_fields<field_no>(
-        std::move(member_ptr), name, std::make_index_sequence<variant_size>{});
+    return build_pb_variant_fields<U, value_type, field_no>(
+        offset, name, std::make_index_sequence<variant_size>{});
   }
   else {
-    return std::tuple(pb_field_t<P, field_no + 1>{member_ptr, name});
+    return std::tuple(pb_field_t<U, value_type, field_no + 1>{offset, name});
   }
 }
 
@@ -259,5 +262,20 @@ inline bool register_type() {
 #else
   return true;
 #endif
+}
+
+template <typename T, typename U>
+IGUANA_INLINE constexpr size_t member_offset(T* t, U T::*member) {
+  return (char*)&(t->*member) - (char*)t;
+}
+
+template <auto ptr, size_t field_no>
+IGUANA_INLINE auto build_pb_field(std::string_view name) {
+  using owner =
+      typename ylt::reflection::member_traits<decltype(ptr)>::owner_type;
+  using value_type =
+      typename ylt::reflection::member_traits<decltype(ptr)>::value_type;
+  size_t offset = member_offset((owner*)nullptr, ptr);
+  return iguana::detail::pb_field_t<owner, value_type, field_no>{offset, name};
 }
 }  // namespace iguana

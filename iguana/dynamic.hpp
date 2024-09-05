@@ -4,11 +4,6 @@
 namespace iguana {
 using base = detail::base;
 
-template <typename T, typename U>
-IGUANA_INLINE constexpr size_t member_offset(T* t, U T::*member) {
-  return (char*)&(t->*member) - (char*)t;
-}
-
 constexpr inline uint8_t ENABLE_JSON = 0x01;
 constexpr inline uint8_t ENABLE_YAML = 0x02;
 constexpr inline uint8_t ENABLE_XML = 0x04;
@@ -102,7 +97,7 @@ struct base_impl : public base {
       std::visit(
           [&](auto const& val) {
             if (val.field_name == name) {
-              info.offset = member_offset((T*)this, val.member_ptr);
+              info.offset = val.offset;
               using value_type =
                   typename std::remove_reference_t<decltype(val)>::value_type;
 #if defined(__clang__) || defined(_MSC_VER) || \
@@ -151,8 +146,7 @@ struct base_impl : public base {
             if (val.field_name == name) {
               using value_type =
                   typename std::remove_reference_t<decltype(val)>::value_type;
-              auto const offset = member_offset((T*)this, val.member_ptr);
-              auto ptr = (char*)this + offset;
+              auto ptr = (char*)this + val.offset;
               result = *((value_type*)ptr);
             }
           },

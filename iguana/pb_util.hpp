@@ -15,7 +15,6 @@
 
 #include "common.hpp"
 #include "detail/pb_type.hpp"
-// #include "reflection.hpp"
 #include "util.hpp"
 
 namespace iguana {
