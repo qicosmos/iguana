@@ -198,7 +198,8 @@ inline auto member_offsets = internal::get_member_offset_arr<T>();
 
 template <auto member>
 inline constexpr size_t index_of() {
-  using T = typename internal::member_tratis<decltype(member)>::owner_type;
+  using T = typename internal::member_tratis<
+      std::remove_const_t<decltype(member)>>::owner_type;
   constexpr auto name = field_string<member>();
   constexpr auto names = internal::get_member_names<T>();
   for (size_t i = 0; i < names.size(); i++) {

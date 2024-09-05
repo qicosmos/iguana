@@ -87,8 +87,6 @@ TEST_CASE("test pb") {
     iguana::to_proto<test_variant4>(proto);
     std::cout << proto;
 
-    static_assert(std::get<0>(tp).field_no == 1, "err");
-
     CHECK(std::get<0>(tp).field_no == 1);
     CHECK(std::get<1>(tp).field_no == 2);
     CHECK(std::get<2>(tp).field_no == 3);
