@@ -10,17 +10,13 @@ struct point_t {
   int y;
 };
 REQUIRED(point_t, x, y);
-#if __cplusplus < 202002L
 YLT_REFL(point_t, x, y);
-#endif
 
 struct point_t1 {
   int x;
   int y;
 };
-#if __cplusplus < 202002L
 YLT_REFL(point_t1, x, y);
-#endif
 
 template <>
 struct ylt::reflection::ylt_alias_struct<point_t1> {
@@ -39,9 +35,7 @@ struct test_variant {
   std::variant<double, std::string, int> y;
   double z;
 };
-#if __cplusplus < 202002L
 YLT_REFL(test_variant, x, y, z);
-#endif
 
 struct test_variant1 {
   std::variant<double, std::string, int> x;
