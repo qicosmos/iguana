@@ -84,7 +84,7 @@ inline constexpr remove_cvref_t<T>& get_fake_object() noexcept {
 #include "member_macro.hpp"
 
 template <class T>
-inline constexpr auto tuple_view(T& t) {
+inline constexpr auto tuple_view(T&& t) {
   return internal::object_tuple_view_helper<T, members_count_v<T>>::tuple_view(
       t);
 }
