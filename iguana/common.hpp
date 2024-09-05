@@ -135,7 +135,7 @@ struct pb_field_t {
   using value_type = Value;
   using sub_type = ElementType;
 
-  constexpr pb_field_t() = default;
+  // constexpr pb_field_t() = default;
   auto& value(owner_type& value) const {
     auto member_ptr = (value_type*)((char*)(&value) + offset);
     return *member_ptr;
