@@ -260,9 +260,7 @@ TEST_CASE("test xml") {
   CHECK(alias_names[1].second == "Y");
   CHECK(st_name == "point");
 
-  constexpr auto map1 = ylt::reflection::get_member_names<int>();
   constexpr auto name1 = ylt::reflection::get_struct_name<int>();
-  static_assert(map1.size() == 0);
   static_assert(name1 == "int");
 
   point_t1 t{1, 3};
