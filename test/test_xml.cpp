@@ -17,7 +17,7 @@ struct Owner_t {
     return ID == rhs.ID && DisplayName == rhs.DisplayName;
   }
 };
-REFLECTION(Owner_t, ID, DisplayName);
+YLT_REFL(Owner_t, ID, DisplayName);
 struct Contents {
   std::string Key;
   std::string LastModified;
@@ -33,7 +33,7 @@ struct Contents {
            StorageClass == rhs.StorageClass && Owner == rhs.Owner;
   }
 };
-REFLECTION(Contents, Key, LastModified, ETag, Type, Size, StorageClass, Owner);
+YLT_REFL(Contents, Key, LastModified, ETag, Type, Size, StorageClass, Owner);
 
 TEST_CASE("simple test") {
   Contents contents{"key", "ddd", "ccc", "aaa", 123, "aaa", {"bbb", "sss"}};
@@ -62,13 +62,13 @@ struct optional_t {
   bool d;
   char e;
 };
-REFLECTION(optional_t, a, b, c, d, e);
+YLT_REFL(optional_t, a, b, c, d, e);
 
 struct list_t {
   std::vector<optional_t> list;
   int id;
 };
-REFLECTION(list_t, list, id);
+YLT_REFL(list_t, list, id);
 
 TEST_CASE("test vector") {
   auto validator = [](list_t l) {
@@ -109,7 +109,7 @@ TEST_CASE("test vector") {
 struct test_arr_t {
   std::vector<iguana::xml_attr_t<int, std::map<std::string_view, int>>> item;
 };
-REFLECTION(test_arr_t, item);
+YLT_REFL(test_arr_t, item);
 
 TEST_CASE("test vector with attr") {
   auto validator = [](test_arr_t &array) {
@@ -159,7 +159,7 @@ struct child_t {
   int key1;
   int key2;
 };
-REFLECTION(child_t, key1, key2);
+YLT_REFL(child_t, key1, key2);
 struct some_type_t {
   std::vector<float> price;
   std::optional<std::string> description;
@@ -171,8 +171,8 @@ struct some_type_t {
   std::string_view addr;
   enum_status status;
 };
-REFLECTION(some_type_t, price, description, child, hasdescription, c, d_v, name,
-           addr, status);
+YLT_REFL(some_type_t, price, description, child, hasdescription, c, d_v, name,
+         addr, status);
 
 TEST_CASE("test parse_done") {
   std::string str = R"(
@@ -247,11 +247,11 @@ struct book_t {
   std::string title;
   std::string author;
 };
-REFLECTION(book_t, title, author);
+YLT_REFL(book_t, title, author);
 struct library {
   iguana::xml_attr_t<book_t> book;
 };
-REFLECTION(library, book);
+YLT_REFL(library, book);
 TEST_CASE("test library with attr") {
   auto validator = [](library lib) {
     CHECK(lib.book.attr()["id"] == "1234");
@@ -303,7 +303,7 @@ struct package_t {
   iguana::xml_attr_t<std::optional<std::string_view>> version;
   iguana::xml_attr_t<std::string_view> changelog;
 };
-REFLECTION(package_t, version, changelog);
+YLT_REFL(package_t, version, changelog);
 TEST_CASE("test example package") {
   auto validator = [](iguana::xml_attr_t<package_t> package) {
     CHECK(package.attr()["name"] == "apr-util-ldap");
@@ -347,13 +347,13 @@ TEST_CASE("test example package") {
 struct description_t {
   iguana::xml_cdata_t<std::string> cdata;
 };
-REFLECTION(description_t, cdata);
+YLT_REFL(description_t, cdata);
 struct node_t {
   std::string title;
   description_t description;
   iguana::xml_cdata_t<> cdata;
 };
-REFLECTION(node_t, title, description, cdata);
+YLT_REFL(node_t, title, description, cdata);
 TEST_CASE("test example cdata") {
   auto validator = [](node_t node) {
     CHECK(node.title == "what's the cdata");
@@ -403,7 +403,7 @@ struct test_exception_t {
   bool b;
   char c;
 };
-REFLECTION(test_exception_t, a, b, c);
+YLT_REFL(test_exception_t, a, b, c);
 TEST_CASE("test exception") {
   {
     std::string str = "<root> <a>d3</a> </root>";
@@ -439,18 +439,18 @@ struct city_t {
   iguana::xml_cdata_t<> cd;
   std::string name;
 };
-REFLECTION(city_t, area, cd, name);
+YLT_REFL(city_t, area, cd, name);
 struct cities_t {
   std::vector<city_t> city;
 };
-REFLECTION(cities_t, city);
+YLT_REFL(cities_t, city);
 struct province {
   iguana::xml_attr_t<long> area;
   iguana::xml_cdata_t<> cd;
   std::unique_ptr<cities_t> cities;
   std::string capital;
 };
-REFLECTION(province, area, cd, cities, capital);
+YLT_REFL(province, area, cd, cities, capital);
 
 TEST_CASE("test province example") {
   auto validator = [](province &p) {
@@ -519,7 +519,7 @@ struct some_book {
   std::string_view title;
   std::string_view author;
 };
-REFLECTION(some_book, title, author);
+YLT_REFL(some_book, title, author);
 REQUIRED(some_book, title, author);
 
 TEST_CASE("test required filed") {
@@ -567,7 +567,7 @@ struct test_enum_t {
   Color g;
   Color h;
 };
-REFLECTION(test_enum_t, a, b, c, d, e, f, g, h);
+YLT_REFL(test_enum_t, a, b, c, d, e, f, g, h);
 
 #if defined(__clang__) || defined(_MSC_VER) || \
     (defined(__GNUC__) && __GNUC__ > 8)
@@ -620,7 +620,7 @@ struct enum_exception_t {
   State a;
   State b;
 };
-REFLECTION(enum_exception_t, a, b);
+YLT_REFL(enum_exception_t, a, b);
 
 TEST_CASE("enum exception") {
   std::string str = R"(
@@ -652,7 +652,7 @@ class some_object {
   some_object(int i, std::string str) : id(i), name(str) {}
   int get_id() const { return id; }
   std::string get_name() const { return name; }
-  REFLECTION(some_object, id, name);
+  YLT_REFL(some_object, id, name);
 };
 
 TEST_CASE("test inner reflection") {
@@ -672,7 +672,7 @@ struct Contents_t {
   std::shared_ptr<std::vector<std::unique_ptr<int>>> vec_s;
   std::string b;
 };
-REFLECTION(Contents_t, vec, vec_s, b);
+YLT_REFL(Contents_t, vec, vec_s, b);
 
 TEST_CASE("test smart_ptr") {
   std::string str = R"(
@@ -732,16 +732,31 @@ struct next_obj_t {
   int x;
   int y;
 };
-REFLECTION_ALIAS(next_obj_t, "next", FLDALIAS(&next_obj_t::x, "w"),
-                 FLDALIAS(&next_obj_t::y, "h"));
+YLT_REFL(next_obj_t, x, y);
+
+template <>
+struct ylt::reflection::ylt_alias_struct<next_obj_t> {
+  static constexpr std::string_view get_alias_struct_name() { return "next"; }
+
+  static constexpr auto get_alias_field_names() {
+    return std::make_tuple(field_alias_t<0>{"w"}, field_alias_t<1>{"h"});
+  }
+};
 
 struct out_object {
   std::unique_ptr<int> id;
   std::string_view name;
   next_obj_t obj;
-  REFLECTION_ALIAS(out_object, "qi", FLDALIAS(&out_object::id, "i"),
-                   FLDALIAS(&out_object::name, "na"),
-                   FLDALIAS(&out_object::obj, "obj"));
+  YLT_REFL(out_object, id, name, obj);
+};
+
+template <>
+struct ylt::reflection::ylt_alias_struct<out_object> {
+  static constexpr std::string_view get_alias_struct_name() { return "qi"; }
+
+  static constexpr auto get_alias_field_names() {
+    return std::make_tuple(field_alias_t<0>{"w"}, field_alias_t<1>{"h"});
+  }
 };
 
 TEST_CASE("test alias") {
@@ -762,7 +777,7 @@ struct text_t {
   escape_attr_t ID;
   std::string DisplayName;
 };
-REFLECTION(text_t, ID, DisplayName);
+YLT_REFL(text_t, ID, DisplayName);
 TEST_CASE("test escape") {
   using text_attr_type =
       iguana::xml_attr_t<text_t, std::map<std::string_view, std::string>>;

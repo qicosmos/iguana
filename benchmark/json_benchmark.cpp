@@ -1,7 +1,7 @@
 #include "json_benchmark.h"
 
 class ScopedTimer {
-public:
+ public:
   ScopedTimer(const char *name)
       : m_name(name), m_beg(std::chrono::high_resolution_clock::now()) {}
   ScopedTimer(const char *name, uint64_t &ns) : ScopedTimer(name) {
@@ -18,7 +18,7 @@ public:
                 << std::setw(12) << dur.count() << " ns\n";
   }
 
-private:
+ private:
   const char *m_name;
   std::chrono::time_point<std::chrono::high_resolution_clock> m_beg;
   uint64_t *m_ns = nullptr;
@@ -60,7 +60,8 @@ struct fixed_name_object_t {
   std::string name4{};
 
 #ifdef HAS_RAPIDJSON
-  template <typename Writer> void Serialize(Writer &writer) const {
+  template <typename Writer>
+  void Serialize(Writer &writer) const {
     writer.StartObject();
     writer.String("name0");
     writer.String(name0);
@@ -76,14 +77,15 @@ struct fixed_name_object_t {
   }
 #endif
 };
-REFLECTION(fixed_name_object_t, name0, name1, name2, name3, name4);
+YLT_REFL(fixed_name_object_t, name0, name1, name2, name3, name4);
 
 struct nested_object_t {
   std::vector<std::array<double, 3>> v3s{};
   std::string id{};
 
 #ifdef HAS_RAPIDJSON
-  template <typename Writer> void Serialize(Writer &writer) const {
+  template <typename Writer>
+  void Serialize(Writer &writer) const {
     writer.StartObject();
     writer.String("v3s");
     writer.StartArray();
@@ -103,7 +105,7 @@ struct nested_object_t {
   }
 #endif
 };
-REFLECTION(nested_object_t, v3s, id);
+YLT_REFL(nested_object_t, v3s, id);
 
 struct another_object_t {
   std::string string{};
@@ -112,7 +114,8 @@ struct another_object_t {
   nested_object_t nested_object{};
 
 #ifdef HAS_RAPIDJSON
-  template <typename Writer> void Serialize(Writer &writer) const {
+  template <typename Writer>
+  void Serialize(Writer &writer) const {
     writer.StartObject();
     writer.String("string");
     writer.String(string);
@@ -126,7 +129,7 @@ struct another_object_t {
   }
 #endif
 };
-REFLECTION(another_object_t, string, another_string, boolean, nested_object);
+YLT_REFL(another_object_t, string, another_string, boolean, nested_object);
 
 struct obj_t {
   //   fixed_object_t fixed_object{};
@@ -139,7 +142,8 @@ struct obj_t {
   bool another_bool{};
 
 #ifdef HAS_RAPIDJSON
-  template <typename Writer> void Serialize(Writer &writer) const {
+  template <typename Writer>
+  void Serialize(Writer &writer) const {
     writer.StartObject();
     writer.String("fixed_name_object");
     fixed_name_object.Serialize(writer);
@@ -167,8 +171,8 @@ struct obj_t {
   }
 #endif
 };
-REFLECTION(obj_t, fixed_name_object, another_object, string_array, string,
-           number, boolean, another_bool);
+YLT_REFL(obj_t, fixed_name_object, another_object, string_array, string, number,
+         boolean, another_bool);
 
 obj_t create_object() {
   fixed_name_object_t fix_obj = {"James", "Abraham", "Susan", "Frank",
@@ -283,7 +287,9 @@ void test_from_json_file() {
   for (auto &pair : test_map) {
     auto content = iguana::json_file_content(pair.first);
     std::visit(
-        [&](auto &&arg) { test_from_json(pair.first, arg, content, 10); },
+        [&](auto &&arg) {
+          test_from_json(pair.first, arg, content, 10);
+        },
         pair.second);
   }
 }

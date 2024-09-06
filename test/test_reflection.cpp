@@ -45,7 +45,7 @@ TEST_CASE("test member names") {
   CHECK(tp_size == 5);
 
 #if __has_include(<concetps>)
-  constexpr auto arr = member_names<person>;
+  constexpr auto arr = get_member_names<person>();
   for (auto name : arr) {
     std::cout << name << ", ";
   }
@@ -94,7 +94,7 @@ void test_pt() {
 TEST_CASE("test member value") {
   simple p{.color = 2, .id = 10, .str = "hello reflection", .age = 6};
   auto ref_tp = object_to_tuple(p);
-  constexpr auto arr = member_names<simple>;
+  constexpr auto arr = get_member_names<simple>();
   std::stringstream out;
   [&]<size_t... Is>(std::index_sequence<Is...>) {
     ((out << "name: " << arr[Is] << ", value: " << std::get<Is>(ref_tp)
@@ -308,7 +308,13 @@ YLT_REFL(simple2, color, id, str, age);
 TEST_CASE("test macros") {
   static_assert(!std::is_aggregate_v<simple2>);
   simple2 t{2, 10, "hello reflection", 6};
-  constexpr auto arr = member_names<simple2>;
+#ifdef __GNUC__
+  constexpr auto idx = index_of<&simple2::age>();
+  static_assert(idx == 3);
+  constexpr auto idx2 = index_of<&simple2::id>();
+  static_assert(idx2 == 1);
+#endif
+  constexpr auto arr = get_member_names<simple2>();
   static_assert(arr.size() == 4);
   constexpr auto map = member_names_map<simple2>;
   constexpr size_t index = map.at("age");

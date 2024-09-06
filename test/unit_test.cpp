@@ -3,8 +3,8 @@
 #include <list>
 #include <vector>
 
-#include "iguana/reflection.hpp"
 #define DOCTEST_CONFIG_IMPLEMENT
+// #define SEQUENTIAL_PARSE
 #include <iguana/json_util.hpp>
 #include <iguana/json_writer.hpp>
 #include <iostream>
@@ -243,7 +243,7 @@ struct test_enum_t {
   Color g;
   Color h;
 };
-REFLECTION(test_enum_t, a, b, c, d, e, f, g, h);
+YLT_REFL(test_enum_t, a, b, c, d, e, f, g, h);
 
 #if defined(__clang__) || defined(_MSC_VER) || \
     (defined(__GNUC__) && __GNUC__ > 8)
@@ -303,10 +303,11 @@ TEST_CASE("test parse item char") {
     CHECK(test == 'c');
   }
   {
-      // std::string str{"\""};
-      // char test{};
-      // CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
-  } {
+    std::string str{"\""};
+    char test{};
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
+  }
+  {
     std::string str{R"("\)"};
     char test{};
     CHECK_THROWS_WITH(iguana::from_json(test, str.begin(), str.end()),
@@ -405,22 +406,22 @@ TEST_CASE("test parse item optional") {
 struct optional_t {
   std::optional<bool> p;
 };
-REFLECTION(optional_t, p);
+YLT_REFL(optional_t, p);
 
 struct struct_test_t {
   int32_t value;
 };
-REFLECTION(struct_test_t, value);
+YLT_REFL(struct_test_t, value);
 
 struct struct_container_t {
   std::vector<struct_test_t> values;
 };
-REFLECTION(struct_container_t, values);
+YLT_REFL(struct_container_t, values);
 
 struct struct_container_1_t {
   std::optional<struct_container_t> val;
 };  // entities_t
-REFLECTION(struct_container_1_t, val);
+YLT_REFL(struct_container_1_t, val);
 
 TEST_CASE("test optional") {
   {
@@ -472,7 +473,7 @@ TEST_CASE("test optional") {
 }
 
 struct empty_t {};
-REFLECTION_EMPTY(empty_t);
+YLT_REFL(empty_t);
 
 TEST_CASE("test empty struct") {
   empty_t t;
@@ -489,7 +490,7 @@ struct keyword_t {
   std::string ___protected;
   std::string ___class;
 };
-REFLECTION(keyword_t, ___private, ___protected, ___public, ___class);
+YLT_REFL(keyword_t, ___private, ___protected, ___public, ___class);
 
 TEST_CASE("test keyword") {
   std::string ss =
@@ -507,7 +508,7 @@ struct config_actor_type {
   std::string make;
   std::string config;
 };
-REFLECTION(config_actor_type, id, make, config);
+YLT_REFL(config_actor_type, id, make, config);
 
 struct config_app_json_type {
   long id = 0;
@@ -515,7 +516,7 @@ struct config_app_json_type {
   std::string loglevel;
   std::vector<config_actor_type> actors;
 };
-REFLECTION(config_app_json_type, id, threads, loglevel, actors);
+YLT_REFL(config_app_json_type, id, threads, loglevel, actors);
 
 TEST_CASE("test long") {
   config_app_json_type app{1234};
@@ -686,7 +687,7 @@ struct book_t {
   std::optional<std::string_view> edition;
   std::vector<std::string_view> author;
 };
-REFLECTION(book_t, title, edition, author);
+YLT_REFL(book_t, title, edition, author);
 TEST_CASE("test the string_view") {
   {
     std::string str = R"("C++ \ntemplates")";
@@ -773,7 +774,7 @@ struct st_char_t {
   char b[5];
   char c[5];
 };
-REFLECTION(st_char_t, a, b, c);
+YLT_REFL(st_char_t, a, b, c);
 TEST_CASE("test char") {
   std::string str = R"(
   {
@@ -816,7 +817,7 @@ TEST_CASE("test char") {
 struct fixed_vector_arr_t {
   std::vector<int> a[4];
 };
-REFLECTION(fixed_vector_arr_t, a);
+YLT_REFL(fixed_vector_arr_t, a);
 TEST_CASE("test fixed array") {
   std::string str = R"(
 {
@@ -854,7 +855,7 @@ struct vector_bool_t {
   std::vector<bool> a;
   bool b;
 };
-REFLECTION(vector_bool_t, a, b);
+YLT_REFL(vector_bool_t, a, b);
 TEST_CASE("test vector<bool>") {
   std::string str = R"({
   "a": [true, false],
@@ -880,7 +881,7 @@ struct test_numeric_t {
   std::vector<iguana::numeric_str> arr;
   iguana::numeric_str num;
 };
-REFLECTION(test_numeric_t, arr, num);
+YLT_REFL(test_numeric_t, arr, num);
 TEST_CASE("test numeric string") {
   std::string str = R"(
 { "arr": [1.5 , 2.4 , 3.7],
@@ -909,7 +910,7 @@ struct test_uint8_t {
   int8_t b;
   char c;
 };
-REFLECTION(test_uint8_t, a, b, c);
+YLT_REFL(test_uint8_t, a, b, c);
 TEST_CASE("test uint8 and int8") {
   std::string str = R"(
 { 
@@ -944,10 +945,10 @@ class some_object {
   some_object(int i, std::string str) : id(i), name(str) {}
   int get_id() const { return id; }
   std::string get_name() const { return name; }
-  REFLECTION(some_object, id, name);
+  YLT_REFL(some_object, id, name);
 };
 
-TEST_CASE("test inner reflection") {
+TEST_CASE("test inner YLT_REFL") {
   some_object obj{20, "tom"};
   std::string str;
   iguana::to_json(obj, str);
@@ -964,7 +965,7 @@ struct Contents_t {
   std::shared_ptr<std::vector<std::unique_ptr<int>>> vec_s;
   std::string b;
 };
-REFLECTION(Contents_t, vec, vec_s, b);
+YLT_REFL(Contents_t, vec, vec_s, b);
 
 TEST_CASE("test smart_ptr") {
   std::string str = R"(
@@ -993,7 +994,7 @@ struct person1 {
   std::shared_ptr<std::string> name;
   std::shared_ptr<int64_t> age;
 };
-REFLECTION(person1, name, age);
+YLT_REFL(person1, name, age);
 
 TEST_CASE("test smart point issue 223") {
   person1 p{std::make_shared<std::string>("tom"),

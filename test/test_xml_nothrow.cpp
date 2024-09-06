@@ -21,7 +21,7 @@ struct order_t {
   enum_status status;
   float total;
 };
-REFLECTION(order_t, status, total);
+YLT_REFL(order_t, status, total);
 
 TEST_CASE("test unkonwn key") {
   auto validator = [](order_t od) {
@@ -91,7 +91,7 @@ struct text_t {
   escape_attr_t ID;
   std::string DisplayName;
 };
-REFLECTION(text_t, ID, DisplayName);
+YLT_REFL(text_t, ID, DisplayName);
 TEST_CASE("test escape") {
   {
     std::string str = R"(

@@ -2,7 +2,6 @@
 #include <stdexcept>
 #include <vector>
 
-#include "iguana/reflection.hpp"
 #include "iguana/value.hpp"
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <filesystem>
