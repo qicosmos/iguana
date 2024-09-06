@@ -131,7 +131,7 @@ inline constexpr bool is_custom_reflection_v =
 template <typename Owner, typename Value, size_t FieldNo,
           typename ElementType = Value>
 struct pb_field_t {
-  using owner_type = Owner;
+  using owner_type = ylt::reflection::remove_cvref_t<Owner>;
   using value_type = Value;
   using sub_type = ElementType;
 
@@ -140,11 +140,10 @@ struct pb_field_t {
     auto member_ptr = (value_type*)((char*)(&value) + offset);
     return *member_ptr;
   }
-  // auto const& value(owner_type const& value) const {
-  //   auto member_ptr =
-  //                     (value_type *)((char *)(&value) + offset);
-  //   return *member_ptr;
-  // }
+  auto const& value(const owner_type& value) const {
+    auto member_ptr = (value_type*)((char*)(&value) + offset);
+    return *member_ptr;
+  }
 
   size_t offset;
   std::string_view field_name;

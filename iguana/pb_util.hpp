@@ -439,7 +439,7 @@ IGUANA_INLINE size_t pb_oneof_size(Type&& t, Arr& size_arr) {
 template <size_t key_size, bool omit_default_val, typename Type, typename Arr>
 IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr) {
   using T = std::remove_const_t<std::remove_reference_t<Type>>;
-  if constexpr (ylt_refletable_v<T>) {
+  if constexpr (ylt_refletable_v<T> || is_custom_reflection_v<T>) {
     size_t len = 0;
     static auto tuple = get_pb_members_tuple(std::forward<Type>(t));
     constexpr size_t SIZE = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
