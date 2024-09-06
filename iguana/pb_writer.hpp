@@ -450,8 +450,10 @@ IGUANA_INLINE void build_sub_proto(Map& map, std::string_view str_type,
 #endif
 }  // namespace detail
 
-template <typename T, typename Stream,
-          std::enable_if_t<ylt_refletable_v<T>, int> = 0>
+template <
+    typename T, typename Stream,
+    std::enable_if_t<ylt_refletable_v<T> || detail::is_custom_reflection_v<T>,
+                     int> = 0>
 IGUANA_INLINE void to_pb(T const& t, Stream& out) {
   std::vector<uint32_t> size_arr;
   auto byte_len = detail::pb_key_value_size<0>(t, size_arr);

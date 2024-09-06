@@ -493,18 +493,18 @@ TEST_CASE("test YLT_REFL") {
 }
 
 TEST_CASE("test struct_pb") {
-  // {
-  //   my_space::inner_struct inner{41, 42, 43};
+  {
+    my_space::inner_struct inner{41, 42, 43};
 
-  //   std::string str;
-  //   iguana::to_pb(inner, str);
+    std::string str;
+    iguana::to_pb(inner, str);
 
-  //   my_space::inner_struct inner1;
-  //   iguana::from_pb(inner1, str);
-  //   CHECK(inner.x == inner1.x);
-  //   CHECK(inner.y == inner1.y);
-  //   CHECK(inner.z == inner1.z);
-  // }
+    my_space::inner_struct inner1;
+    iguana::from_pb(inner1, str);
+    CHECK(inner.x == inner1.x);
+    CHECK(inner.y == inner1.y);
+    CHECK(inner.z == inner1.z);
+  }
 
   {
     test_pb_sts p{};
