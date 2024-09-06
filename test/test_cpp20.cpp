@@ -288,6 +288,45 @@ TEST_CASE("test yaml") {
   std::cout << t1.x << "\n";
 }
 
+struct person {
+  int id;
+  std::string name;
+  int age;
+  bool operator==(person const& rhs) const {
+    return id == rhs.id && name == rhs.name && age == rhs.age;
+  }
+};
+
+#if __cplusplus >= 202002L
+TEST_CASE("test cpp20") {
+  person p{1, "tom", 20};
+  std::string json;
+  iguana::to_json(p, json);
+  person p1;
+  iguana::from_json(p1, json);
+  CHECK(p == p1);
+
+  std::string xml;
+  iguana::to_xml(p, xml);
+  person p2;
+  iguana::from_xml(p2, xml);
+  CHECK(p == p2);
+
+  std::string yaml;
+  iguana::to_yaml(p, yaml);
+  person p3;
+  iguana::from_yaml(p3, yaml);
+  CHECK(p == p3);
+
+  std::string pb;
+  iguana::to_pb(p, pb);
+  person p4;
+  iguana::from_pb(p4, pb);
+  CHECK(p == p4);
+  std::cout << "ok\n";
+}
+#endif
+
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
 int main(int argc, char** argv) { return doctest::Context(argc, argv).run(); }
 DOCTEST_MSVC_SUPPRESS_WARNING_POP
