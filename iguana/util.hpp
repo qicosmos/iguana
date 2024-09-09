@@ -15,7 +15,7 @@
 #include "detail/charconv.h"
 #include "detail/utf.hpp"
 #include "error_code.h"
-#include "field_reflection.hpp"
+#include "ylt/reflection/template_string.hpp"
 #include "reflection.hpp"
 
 namespace iguana {

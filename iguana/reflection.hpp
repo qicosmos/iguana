@@ -21,7 +21,7 @@
 
 #include "detail/string_stream.hpp"
 #include "detail/traits.hpp"
-#include "field_reflection.hpp"
+#include "ylt/reflection/template_string.hpp"
 #include "frozen/string.h"
 #include "frozen/unordered_map.h"
 

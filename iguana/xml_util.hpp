@@ -1,6 +1,6 @@
 #pragma once
 #include "detail/pb_type.hpp"
-#include "field_reflection.hpp"
+#include "ylt/reflection/template_string.hpp"
 #include "util.hpp"
 #include "ylt/reflection/member_names.hpp"
 
