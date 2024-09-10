@@ -187,8 +187,7 @@ inline constexpr std::string_view name_of(T& t, Field& value) {
   return arr[index];
 }
 
-template <typename T, typename Visit, typename U, size_t... Is,
-          typename... Args>
+template <typename T, typename Visit, size_t... Is, typename... Args>
 inline constexpr void visit_members_impl0(Visit&& func,
                                           std::index_sequence<Is...>,
                                           Args&... args) {
