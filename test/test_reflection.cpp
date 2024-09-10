@@ -1,4 +1,5 @@
 #include <sstream>
+#include <unordered_map>
 #include <utility>
 
 #include "iguana/ylt/reflection/member_value.hpp"
