@@ -1,4 +1,5 @@
 #include <sstream>
+#include <unordered_map>
 #include <utility>
 
 #include "iguana/ylt/reflection/member_value.hpp"
@@ -37,7 +38,66 @@ struct person {
   int arr[2];
 };
 
+class pool {
+ public:
+  auto emplace(int k, int v) { return map_.emplace(k, v); }
+
+ private:
+  std::unordered_map<int, int> map_;
+};
+YLT_REFL_PRIVATE(pool, map_);
+
+void test_refl_private() {
+  pool p;
+  for (size_t i = 0; i < 1000; i++) {
+    p.emplace(i, i + 1);
+  }
+
+  for_each(p, [](auto& map) {
+    std::cout << map.size() << "\n";
+  });
+}
+
+#if __cplusplus >= 202002L
+struct point {
+  int x;
+  int y;
+};
+void test_json5() {
+  point pt{2, 4};
+  std::string json5;
+  json5.append("{");
+  ylt::reflection::for_each(pt, [&](auto& field, auto name) {
+    json5.append(name).append(":").append(std::to_string(field)).append(",");
+  });
+  json5.back() = '}';
+  CHECK(json5 == "{x:2,y:4}");
+
+  point pt1;
+  std::string_view str = json5;
+  ylt::reflection::for_each(pt1, [&](auto& field, auto name) {
+    auto start = str.find(name);
+    auto end = str.find(",");
+    if (end == std::string_view::npos) {
+      end = str.find('}');
+    }
+
+    auto field_str = str.substr(start, end - start);
+    start = field_str.find(':') + 1;
+    auto value_str = field_str.substr(start, end - start);
+
+    using value_type = std::remove_reference_t<decltype(field)>;
+    if constexpr (std::is_integral_v<value_type>) {
+      field = atoi(value_str.data());
+    }
+  });
+  CHECK(pt.x == pt1.x);
+  CHECK(pt.y == pt1.y);
+}
+#endif
+
 TEST_CASE("test member names") {
+  test_refl_private();
   constexpr size_t size = members_count_v<person>;
   CHECK(size == 5);
   constexpr auto tp = struct_to_tuple<person>();
