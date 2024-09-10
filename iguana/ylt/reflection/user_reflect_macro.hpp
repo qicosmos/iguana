@@ -84,6 +84,7 @@ inline static decltype(auto) refl_object_to_tuple_impl(T &&t) {
   namespace ylt::reflection {                                             \
   inline constexpr auto get_private_ptrs(const identity<STRUCT> &t);      \
   template struct private_visitor<STRUCT, ##__VA_ARGS__>;                 \
+  }                                                                       \
   template <typename Visitor>                                             \
   inline static constexpr decltype(auto) refl_visit_members(              \
       STRUCT &t, Visitor &&visitor) {                                     \
@@ -105,7 +106,6 @@ inline static decltype(auto) refl_object_to_tuple_impl(T &&t) {
   [[maybe_unused]] inline static constexpr std::size_t refl_member_count( \
       const ylt::reflection::identity<STRUCT> &t) {                       \
     return (std::size_t)YLT_ARG_COUNT(__VA_ARGS__);                       \
-  }                                                                       \
   }
 
 #define YLT_REFL_PRIVATE(STRUCT, ...)                                        \
