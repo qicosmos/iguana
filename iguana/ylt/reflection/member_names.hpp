@@ -8,9 +8,6 @@
 namespace ylt::reflection {
 
 template <typename T>
-struct ylt_alias_struct;
-
-template <typename T>
 inline constexpr auto get_alias_field_names();
 
 namespace internal {
