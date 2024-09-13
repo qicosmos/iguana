@@ -8,9 +8,6 @@
 namespace ylt::reflection {
 
 template <typename T>
-struct ylt_alias_struct;
-
-template <typename T>
 inline constexpr auto get_alias_field_names();
 
 namespace internal {
@@ -64,32 +61,54 @@ struct member_tratis<T Owner::*> {
 };
 
 template <typename T, typename = void>
+struct has_alias_struct_name_t : std::false_type {};
+
+template <typename T>
+struct has_alias_struct_name_t<
+    T, std::void_t<decltype(get_alias_struct_name((T*)nullptr))>>
+    : std::true_type {};
+
+template <typename T, typename = void>
+struct has_inner_alias_struct_name_t : std::false_type {};
+
+template <typename T>
+struct has_inner_alias_struct_name_t<
+    T, std::void_t<decltype(T::get_alias_struct_name((T*)nullptr))>>
+    : std::true_type {};
+
+template <typename T>
+constexpr bool has_alias_struct_name_v = has_alias_struct_name_t<T>::value;
+
+template <typename T>
+constexpr bool has_inner_alias_struct_name_v =
+    has_inner_alias_struct_name_t<T>::value;
+
+template <typename T, typename = void>
 struct has_alias_field_names_t : std::false_type {};
 
 template <typename T>
 struct has_alias_field_names_t<
-    T, std::void_t<decltype(ylt_alias_struct<T>::get_alias_field_names())>>
+    T, std::void_t<decltype(get_alias_field_names((T*)nullptr))>>
     : std::true_type {};
-
-template <typename T>
-inline constexpr bool has_alias_field_names_v =
-    has_alias_field_names_t<T>::value;
 
 template <typename T, typename = void>
-struct has_alias_struct_names_t : std::false_type {};
+struct has_inner_alias_field_names_t : std::false_type {};
 
 template <typename T>
-struct has_alias_struct_names_t<
-    T, std::void_t<decltype(ylt_alias_struct<T>::get_alias_struct_name())>>
+struct has_inner_alias_field_names_t<
+    T, std::void_t<decltype(T::get_alias_field_names((T*)nullptr))>>
     : std::true_type {};
 
 template <typename T>
-inline constexpr bool has_alias_struct_name_v =
-    has_alias_struct_names_t<T>::value;
+constexpr bool has_alias_field_names_v = has_alias_field_names_t<T>::value;
+
+template <typename T>
+constexpr bool has_inner_alias_field_names_v =
+    has_inner_alias_field_names_t<T>::value;
 
 template <typename T, typename U, size_t... Is>
-inline constexpr void init_arr_with_tuple(const T& tp, U& arr,
-                                          std::index_sequence<Is...>) {
+inline constexpr void init_arr_with_tuple(U& arr, std::index_sequence<Is...>) {
+  constexpr auto tp = struct_to_tuple<T>();
   ((arr[Is] = internal::get_member_name<internal::wrap(std::get<Is>(tp))>()),
    ...);
 }
@@ -106,10 +125,9 @@ get_member_names() {
     return type::refl_member_names(ylt::reflection::identity<type>{});
   }
   else {
-    constexpr auto tp = struct_to_tuple<T>();
-
     std::array<std::string_view, Count> arr;
 #if __cplusplus >= 202002L
+    constexpr auto tp = struct_to_tuple<T>();
     [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
       ((arr[Is] =
             internal::get_member_name<internal::wrap(std::get<Is>(tp))>()),
@@ -117,7 +135,7 @@ get_member_names() {
     }
     (std::make_index_sequence<Count>{});
 #else
-    init_arr_with_tuple(tp, arr, std::make_index_sequence<Count>{});
+    init_arr_with_tuple<T>(arr, std::make_index_sequence<Count>{});
 #endif
     return arr;
   }
@@ -210,26 +228,18 @@ inline constexpr size_t index_of() {
   return names.size();
 }
 
-template <size_t Idx>
 struct field_alias_t {
   std::string_view alias_name;
-  inline static constexpr auto index = Idx;
+  size_t index;
 };
-
-template <typename Tuple, size_t... Is>
-inline constexpr auto get_alias_field_names_impl(Tuple& tp,
-                                                 std::index_sequence<Is...>) {
-  return std::array<std::pair<size_t, std::string_view>, sizeof...(Is)>{
-      std::make_pair(std::tuple_element_t<Is, std::decay_t<Tuple>>::index,
-                     std::get<Is>(tp).alias_name)...};
-}
 
 template <typename T>
 inline constexpr auto get_alias_field_names() {
   if constexpr (internal::has_alias_field_names_v<T>) {
-    constexpr auto tp = ylt_alias_struct<T>::get_alias_field_names();
-    return get_alias_field_names_impl(
-        tp, std::make_index_sequence<std::tuple_size_v<decltype(tp)>>{});
+    return get_alias_field_names((T*)nullptr);
+  }
+  else if constexpr (internal::has_inner_alias_field_names_v<T>) {
+    return T::get_alias_field_names((T*)nullptr);
   }
   else {
     return std::array<std::string_view, 0>{};
@@ -239,7 +249,10 @@ inline constexpr auto get_alias_field_names() {
 template <typename T>
 constexpr std::string_view get_struct_name() {
   if constexpr (internal::has_alias_struct_name_v<T>) {
-    return ylt_alias_struct<T>::get_alias_struct_name();
+    return get_alias_struct_name((T*)nullptr);
+  }
+  else if constexpr (internal::has_inner_alias_struct_name_v<T>) {
+    return T::get_alias_struct_name((T*)nullptr);
   }
   else {
     return type_string<T>();
@@ -251,10 +264,11 @@ inline constexpr std::array<std::string_view, members_count_v<T>>
 get_member_names() {
   auto arr = internal::get_member_names<T>();
   using U = ylt::reflection::remove_cvref_t<T>;
-  if constexpr (internal::has_alias_field_names_v<U>) {
+  if constexpr (internal::has_alias_field_names_v<U> ||
+                internal::has_inner_alias_field_names_v<U>) {
     constexpr auto alias_arr = get_alias_field_names<U>();
     for (size_t i = 0; i < alias_arr.size(); i++) {
-      arr[alias_arr[i].first] = alias_arr[i].second;
+      arr[alias_arr[i].index] = alias_arr[i].alias_name;
     }
   }
   return arr;

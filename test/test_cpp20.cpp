@@ -15,17 +15,16 @@ YLT_REFL(point_t, x, y);
 struct point_t1 {
   int x;
   int y;
+
+  static constexpr auto get_alias_field_names(point_t1*) {
+    return std::array{field_alias_t{"X", 0}, field_alias_t{"Y", 1}};
+  }
+  static constexpr std::string_view get_alias_struct_name(point_t1*) {
+    return "point";
+  }
 };
 YLT_REFL(point_t1, x, y);
 
-template <>
-struct ylt::reflection::ylt_alias_struct<point_t1> {
-  static constexpr std::string_view get_alias_struct_name() { return "point"; }
-
-  static constexpr auto get_alias_field_names() {
-    return std::make_tuple(field_alias_t<0>{"X"}, field_alias_t<1>{"Y"});
-  }
-};
 struct test_variant {
   test_variant() = default;
   test_variant(int a, std::variant<double, std::string, int> b, double c)
@@ -253,8 +252,8 @@ TEST_CASE("test xml") {
   constexpr auto names = ylt::reflection::get_member_names<point_t1>();
   constexpr auto st_name = ylt::reflection::get_struct_name<point_t1>();
   CHECK(names == std::array<std::string_view, 2>{"X", "Y"});
-  CHECK(alias_names[0].second == "X");
-  CHECK(alias_names[1].second == "Y");
+  CHECK(alias_names[0].alias_name == "X");
+  CHECK(alias_names[1].alias_name == "Y");
   CHECK(st_name == "point");
 
   constexpr auto name1 = ylt::reflection::get_struct_name<int>();
