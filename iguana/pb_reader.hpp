@@ -74,7 +74,7 @@ IGUANA_INLINE void from_pb_impl(T& val, std::string_view& pb_str,
         }
 
       detail::resize(val, size);
-      int index = 0;
+      size_t index = 0;
       size_t start = pb_str.size();
       while (!pb_str.empty() && index < size) {
         from_pb_impl(val[index], pb_str);
