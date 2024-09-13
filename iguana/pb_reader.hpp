@@ -73,8 +73,8 @@ IGUANA_INLINE void from_pb_impl(T& val, std::string_view& pb_str,
               "Invalid fixed int value: too few bytes.");
         }
 
-      detail::resize(val, size);
-      // val.resize(size);
+      // detail::resize(val, size);
+      val.resize(size);
       size_t index = 0;
       size_t start = pb_str.size();
       while (!pb_str.empty() && index < size) {
