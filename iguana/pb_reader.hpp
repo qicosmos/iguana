@@ -80,15 +80,17 @@ IGUANA_INLINE void from_pb_impl(T& val, std::string_view& pb_str,
         pb_str = pb_str.substr(size);
       }
       else {
-        detail::resize(val, size);
+        size_t num = size / sizeof(item_type);
+        size_t old_size = val.size();
+        detail::resize(val, old_size + num);
         size_t index = 0;
         size_t start = pb_str.size();
-        while (!pb_str.empty() && index < size) {
-          from_pb_impl(val[index], pb_str);
+        while (!pb_str.empty() && index < num) {
+          from_pb_impl(val[old_size + index], pb_str);
           index++;
           if (start - pb_str.size() == size) {
-            if (index < size) {
-              detail::resize(val, index);
+            if (index < num) {
+              detail::resize(val, old_size + index);
             }
             break;
           }
