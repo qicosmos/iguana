@@ -15,7 +15,7 @@ iguana 是header only的，从github 将iguana clone 下来之后，在cmake 里
 ```
 
 # 编译期反射介绍
-[编译期反射库介绍](lang/reflection_introduction.md)
+[编译期反射库介绍](reflection_introduction.md)
 
 # 编译器要求
 
