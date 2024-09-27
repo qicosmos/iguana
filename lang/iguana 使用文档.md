@@ -14,6 +14,9 @@ iguana 是header only的，从github 将iguana clone 下来之后，在cmake 里
 #include <iguana/json_writer.hpp>
 ```
 
+# 编译期反射介绍
+[编译期反射库介绍](lang/reflection_introduction.md)
+
 # 编译器要求
 
 gcc9+、clang11+、msvc2019+
@@ -27,9 +30,12 @@ struct person
     std::string_view name;
     int age;
 };
+
+#if __cplusplus >= 202002L
 YLT_REFL(person, name, age); // 通过这个宏定义元数据让person 成为一个可反射对象
+#endif
 ```
-通过YLT_REFL 宏定义元数据之后就可以一行代码实现json 的序列化与反序列化了。
+如何使用C++20 编译器(gcc11+, clang13+, msvc2022)则无需定义YLT_REFL宏的，否则需要通过YLT_REFL 宏定义元数据，定义之后就可以一行代码实现json 的序列化与反序列化了。
 
 ```c++
 person p = { "tom", 28 };
