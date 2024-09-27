@@ -16,7 +16,7 @@ qq 交流群 701594518
 [struct_pb](lang/struct_pb_intro.md)
 
 ### Motivation ###
-Serialize an object to any other format data with compile-time reflection, such as json, xml, binary, table and so on.
+Serialize an object to any other format data with compile-time YLT_REFL, such as json, xml, binary, table and so on.
 This library is designed to unify and simplify serialization in a portable cross-platform manner. This library is also easy to extend, and you can serialize any format of data with the library.
 This library provides a portable cross-platform way of: 
 
@@ -24,6 +24,10 @@ This library provides a portable cross-platform way of:
 - serialization of xml
 - serialization of yaml
 - serialization of any customized format
+
+### compile time reflection ###
+
+[reflection lib introduction](lang/reflection_introduction.md)
 
 ### Tutorial ###
 This Tutorial is provided to give you a view of how *iguana* works for serialization. 
@@ -38,10 +42,12 @@ struct person
     std::string  name;
     int          age;
 };
-REFLECTION(person, name, age) //define meta data
+#if __cplusplus >= 202002L
+YLT_REFL(person, name, age) //define meta data
+#endif
 ```
 
-Defining meta data is very simple, and just needs to define in a `REFLECTION` macro.
+Defining meta data is very simple, if your compiler is C++20 compiler(gcc11+, clang13+, msvc2022), no need define YLT_REFL, other wise need to define in a `YLT_REFL` macro.
 
 Now let's serialize `person` to `json` string.
 
@@ -141,7 +147,7 @@ struct one_t
 {
     int id;
 };
-REFLECTION(one_t, id);
+YLT_REFL(one_t, id);
 
 struct two
 {
@@ -149,7 +155,7 @@ struct two
     one_t one;
     int age;
 };
-REFLECTION(two, name, one, age);
+YLT_REFL(two, name, one, age);
 
 struct composit_t
 {
@@ -161,7 +167,7 @@ struct composit_t
     double f;
     std::list<one_t> g;
 };
-REFLECTION(composit_t, a, b, c, d, e, f, g);
+YLT_REFL(composit_t, a, b, c, d, e, f, g);
 ```
 
 Then call the simple interface:
@@ -187,13 +193,13 @@ struct book_t {
   std::string author;
   float price;
 };
-REFLECTION(book_t, author, price);
+YLT_REFL(book_t, author, price);
 struct library_t {
   std::string name;
   int id;
   std::vector<book_t> book;
 };
-REFLECTION(library_t, name, id, book);
+YLT_REFL(library_t, name, id, book);
 ```
 
 And then, simply call the interface:
@@ -236,7 +242,7 @@ struct plain_type_t {
   std::optional<float> num;
   std::optional<int> price;
 };
-REFLECTION(plain_type_t, isok, status, c, hasprice, num, price);
+YLT_REFL(plain_type_t, isok, status, c, hasprice, num, price);
 ```
 
 And then, simply call the interface:
@@ -311,7 +317,7 @@ struct enum_t {
     Status a;
     Status b;
 };
-REFLECTION(enum_t, a, b);
+YLT_REFL(enum_t, a, b);
 
 // deserialization
 enum_t e;
@@ -333,7 +339,7 @@ iguana::to_json(e1, ss);
 
 ### Scripts
 
-Automatically generate `REFLECTION` macros based by struct.
+Automatically generate `YLT_REFL` macros based by struct.
 
 To get a list of basic options and switches use:
 
@@ -382,11 +388,11 @@ struct person {
   std::string name;
   int age;
 };
-REFLECTION(person, name, age);
+YLT_REFL(person, name, age);
 char *iguana = NULL;
 
 struct composit_t { int a; std::vector<std::string> b; int c; std::map<int, int> d; std::unordered_map<int, int> e; double f;};
-REFLECTION(composit_t, a, b, c, d, e, f);
+YLT_REFL(composit_t, a, b, c, d, e, f);
 
 struct composit_t2
 {
@@ -397,7 +403,7 @@ struct composit_t2
   std::unordered_map<int, int> random_name__;
   double __f__number__complex;
 };
-REFLECTION(composit_t2, a, b, iguana, example_test, random_name__, __f__number__complex);
+YLT_REFL(composit_t2, a, b, iguana, example_test, random_name__, __f__number__complex);
 ```
 
 other example:
@@ -406,7 +412,7 @@ other example:
 python automatic_macro_generator.py -i test_macro_generator.cpp -o have_macro.cpp
 ```
 
-test_macro_generator.cpp will be unchanged, have_macro.cpp will be changed to source file with REFLECTION macro.
+test_macro_generator.cpp will be unchanged, have_macro.cpp will be changed to source file with YLT_REFL macro.
 
 scripts works out of the box with Python version 2.7 and 3.x on any platform.
 
@@ -417,7 +423,7 @@ Notes: In Python3,Will prompt `DeprecationWarning: 'U' mode is deprecated`.Ignor
 
 - **Question**: Why is the library called *iguana*?
 
-  - **Answer**: I think serialization is like an iguana, because the only difference is the displaying format, however the meta data is never changed. With changeless meta data and reflection, you can serialize an object to any format, which is like how an iguana does.
+  - **Answer**: I think serialization is like an iguana, because the only difference is the displaying format, however the meta data is never changed. With changeless meta data and YLT_REFL, you can serialize an object to any format, which is like how an iguana does.
 
 - **Question**: Does *iguana* support raw pointer?
 
@@ -429,7 +435,7 @@ Notes: In Python3,Will prompt `DeprecationWarning: 'U' mode is deprecated`.Ignor
 
 
 - **Question**: Is *iguana* high performance?
-  - **Answer**: Yes, it is, because *iguana* is based on compile-time reflection.
+  - **Answer**: Yes, it is, because *iguana* is based on compile-time YLT_REFL.
 
 - **Question**: I found a bug, how could I report?
   - **Answer**: Create an issue on [GitHub](https://github.com/qicosmos/iguana) with a detailed description. 
