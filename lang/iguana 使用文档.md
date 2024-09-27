@@ -35,7 +35,7 @@ struct person
 YLT_REFL(person, name, age); // 通过这个宏定义元数据让person 成为一个可反射对象
 #endif
 ```
-如何使用C++20 编译器(gcc11+, clang13+, msvc2022)则无需定义YLT_REFL宏的，否则需要通过YLT_REFL 宏定义元数据，定义之后就可以一行代码实现json 的序列化与反序列化了。
+如果使用C++20 编译器(gcc11+, clang13+, msvc2022)则无需定义YLT_REFL宏的，否则需要通过YLT_REFL 宏定义元数据，定义之后就可以一行代码实现json 的序列化与反序列化了。
 
 ```c++
 person p = { "tom", 28 };
