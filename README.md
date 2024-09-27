@@ -16,7 +16,7 @@ qq 交流群 701594518
 [struct_pb](lang/struct_pb_intro.md)
 
 ### Motivation ###
-Serialize an object to any other format data with compile-time YLT_REFL, such as json, xml, binary, table and so on.
+Serialize an object to any other format data with compile-time reflection, such as json, xml, binary, table and so on.
 This library is designed to unify and simplify serialization in a portable cross-platform manner. This library is also easy to extend, and you can serialize any format of data with the library.
 This library provides a portable cross-platform way of: 
 
@@ -435,7 +435,7 @@ Notes: In Python3,Will prompt `DeprecationWarning: 'U' mode is deprecated`.Ignor
 
 
 - **Question**: Is *iguana* high performance?
-  - **Answer**: Yes, it is, because *iguana* is based on compile-time YLT_REFL.
+  - **Answer**: Yes, it is, because *iguana* is based on compile-time reflection.
 
 - **Question**: I found a bug, how could I report?
   - **Answer**: Create an issue on [GitHub](https://github.com/qicosmos/iguana) with a detailed description. 
