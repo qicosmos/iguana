@@ -85,8 +85,8 @@ def main():
                 # get str
                 member_list = get_members_in_list(content)
                 content = ""
-                # get reflection macro string
-                reflection_str = "REFLECTION(" + struct_name + ','
+                # get YLT_REFL macro string
+                reflection_str = "YLT_REFL(" + struct_name + ','
                 length_of_members = len(member_list)
                 count = 0
                 for member in member_list:

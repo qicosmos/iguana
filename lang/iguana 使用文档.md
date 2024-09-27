@@ -19,7 +19,7 @@ iguana 是header only的，从github 将iguana clone 下来之后，在cmake 里
 gcc9+、clang11+、msvc2019+
 
 # json 序列化/反序列化
-iguana 序列化需要先定义一个可反射的对象，通过REFLECTION 可以轻松定义一个可反射对象。
+iguana 序列化需要先定义一个可反射的对象，通过YLT_REFL 可以轻松定义一个可反射对象。
 
 ```c++
 struct person
@@ -27,9 +27,9 @@ struct person
     std::string_view name;
     int age;
 };
-REFLECTION(person, name, age); // 通过这个宏定义元数据让person 成为一个可反射对象
+YLT_REFL(person, name, age); // 通过这个宏定义元数据让person 成为一个可反射对象
 ```
-通过REFLECTION 宏定义元数据之后就可以一行代码实现json 的序列化与反序列化了。
+通过YLT_REFL 宏定义元数据之后就可以一行代码实现json 的序列化与反序列化了。
 
 ```c++
 person p = { "tom", 28 };
@@ -74,7 +74,7 @@ struct some_obj {
     std::string_view name;
     iguana::numeric_str age;
 };
-REFLECTION(some_obj, name, age);
+YLT_REFL(some_obj, name, age);
 
 void test_view(){
     std::string_view str = "{\"name\":\"tom\", \"age\":20}";
@@ -110,7 +110,7 @@ struct some_obj {
     std::string_view name;
     int age;
 };
-REFLECTION(some_obj, name, age);
+YLT_REFL(some_obj, name, age);
 
 void test() {
     person p = {"admin", 20};
@@ -135,7 +135,7 @@ struct person {
     std::string_view name;
     int age;
 };
-REFLECTION(person, name, age);
+YLT_REFL(person, name, age);
 
 void test_pretty() {
     person p{"tom", 20};
@@ -171,11 +171,11 @@ struct book_t {
   std::string title;
   std::string author;
 };
-REFLECTION(book_t, title, author);
+YLT_REFL(book_t, title, author);
 struct library {
   iguana::xml_attr_t<book_t> book;
 };
-REFLECTION(library, book);
+YLT_REFL(library, book);
 TEST_CASE("test library with attr") {
   auto validator = [](library lib) {
     CHECK(lib.book.attr()["id"] == "1234");
@@ -214,7 +214,7 @@ struct some_obj {
     std::string_view name;
     int age;
 };
-REFLECTION(some_obj, name, age);
+YLT_REFL(some_obj, name, age);
 
 void test() {
     std::string_view xml = R"(
@@ -249,7 +249,13 @@ public:
     person() = default;
     person(std::shared_ptr<std::string> id, std::unique_ptr<std::string> name) : id_(id), name_(std::move(name)) {}
 
-    REFLECTION_ALIAS(person, "rootnode", FLDALIAS(&person::id_, "id"), FLDALIAS(&person::name_, "name"));
+    static constexpr auto get_alias_field_names(person*) {
+      return std::array{field_alias_t{"id", 0}, field_alias_t{"name", 1}};
+    }
+    static constexpr std::string_view get_alias_struct_name(person*) {
+      return "rootnode";
+    }
+    YLT_REFL(person, id_, name_);
 
     void parse_xml() {
         iguana::from_xml(*this, xml_str);
@@ -259,18 +265,18 @@ public:
     }
 }
 ```
-REFLECTION_ALIAS 中需要填写结构体的别名和字段的别名，通过别名将标签和结构体字段关联起来就可以保证正确的解析了。
+get_alias_field_names 函数中需要填写结构体的别名，get_alias_struct_name 函数中填写字段的别名，别名字段的索引需要和YLT_REFL宏定义的字段顺序一致，通过别名将标签和结构体字段关联起来就可以保证正确的解析了。
 
 这个例子同时也展示了iguana 支持智能指针的序列化和反序列化。
 
 # 如何处理私有字段
-如果类里面有私有字段，在外面定义REFLECTION 宏会出错，因为无法访问私有字段，这时候把宏定义到类里面即可，但要保证宏是public的。
+如果类里面有私有字段，在外面定义YLT_REFL 宏会出错，因为无法访问私有字段，这时候把宏定义到类里面即可，但要保证宏是public的。
 ```c++
 class person {
     std::string name;
     int age;
 public:
-    REFLECTION(person, name, age);
+    YLT_REFL(person, name, age);
 };
 ```
 
@@ -289,7 +295,7 @@ struct plain_type_t {
   std::optional<float> num;
   std::optional<int> price;
 };
-REFLECTION(plain_type_t, isok, status, c, hasprice, num, price);
+YLT_REFL(plain_type_t, isok, status, c, hasprice, num, price);
 ```
 
 ```c++
@@ -320,7 +326,7 @@ struct enum_t {
     Status a;
     Status b;
 };
-REFLECTION(enum_t, a, b);
+YLT_REFL(enum_t, a, b);
 
 namespace iguana {
     template <> struct enum_value<Status> {
@@ -390,7 +396,7 @@ struct test_float_t {
   double a;
   float b;
 };
-REFLECTION(test_float_t, a, b);
+YLT_REFL(test_float_t, a, b);
 void user_defined_tochars_example() {
   test_float_t t{2.011111, 2.54};
   std::string ss;
