@@ -104,7 +104,7 @@ TEST_CASE("test member names") {
   constexpr size_t tp_size = std::tuple_size_v<decltype(tp)>;
   CHECK(tp_size == 5);
 
-#if __has_include(<concetps>)
+#if __cplusplus >= 202002L
   constexpr auto arr = get_member_names<person>();
   for (auto name : arr) {
     std::cout << name << ", ";
@@ -144,13 +144,13 @@ void test_pt() {
   static_assert(y == 4);
   CHECK(y == 4);
 
-#if __has_include(<concetps>)
+#if __cplusplus >= 202002L
   constexpr auto x = get<"x"_ylts>(pt);
   static_assert(x == 2);
 #endif
 }
 
-#if __has_include(<concetps>)
+#if __cplusplus >= 202002L
 TEST_CASE("test member value") {
   simple p{.color = 2, .id = 10, .str = "hello reflection", .age = 6};
   auto ref_tp = object_to_tuple(p);
@@ -180,7 +180,7 @@ TEST_CASE("test member value") {
   auto& age1 = get<int>(p, "age");
   CHECK(age1 == 6);
 
-#if __has_include(<concetps>)
+#if __cplusplus >= 202002L
   auto& age2 = get<"age"_ylts>(p);
   CHECK(age2 == 6);
 
@@ -240,7 +240,7 @@ TEST_CASE("test member value") {
   constexpr std::string_view name2 = name_of<simple>(2);
   CHECK(name2 == "str");
 
-#if __has_include(<concetps>)
+#if __cplusplus >= 202002L
   constexpr size_t idx = index_of<simple, "str"_ylts>();
   CHECK(idx == 2);
 
@@ -428,18 +428,18 @@ TEST_CASE("test macros") {
   auto var = get(t, 3);
   CHECK(*std::get<3>(var) == 6);
 
-#if __has_include(<concetps>)
+#if __cplusplus >= 202002L
   auto& age2 = get<"age"_ylts>(t);
   CHECK(age2 == 6);
 
   auto& var1 = get<"str"_ylts>(t);
   CHECK(var1 == "hello reflection");
 
-  constexpr size_t idx = index_of<simple2, "str"_ylts>();
-  CHECK(idx == 2);
+  constexpr size_t i1 = index_of<simple2, "str"_ylts>();
+  CHECK(i1 == 2);
 
-  constexpr size_t idx2 = index_of<simple2, "no_such"_ylts>();
-  CHECK(idx2 == 4);
+  constexpr size_t i2 = index_of<simple2, "no_such"_ylts>();
+  CHECK(i2 == 4);
 #endif
 
   constexpr std::string_view name1 = name_of<simple2, 2>();
