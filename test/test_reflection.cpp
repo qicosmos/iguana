@@ -435,11 +435,11 @@ TEST_CASE("test macros") {
   auto& var1 = get<"str"_ylts>(t);
   CHECK(var1 == "hello reflection");
 
-  constexpr size_t idx = index_of<simple2, "str"_ylts>();
-  CHECK(idx == 2);
+  constexpr size_t i1 = index_of<simple2, "str"_ylts>();
+  CHECK(i1 == 2);
 
-  constexpr size_t idx2 = index_of<simple2, "no_such"_ylts>();
-  CHECK(idx2 == 4);
+  constexpr size_t i2 = index_of<simple2, "no_such"_ylts>();
+  CHECK(i2 == 4);
 #endif
 
   constexpr std::string_view name1 = name_of<simple2, 2>();
