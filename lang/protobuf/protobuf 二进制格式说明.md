@@ -1,7 +1,9 @@
 protobuf 二进制格式说明
 
 # 基本格式
-protobuf 的消息字段二进制格式是按照key-value方式一个个排列的，key是varint 编码的值：(field_number << 3 | wire_type)，key 也被称为tag。最后的3个bit位始终用来表示value的wire_type。为什么用3 bit来表示wire_type呢？因为protobuf 只有6 种wire_typ：VARINT、I64、LEN、SGROUP、EGROUP 和 I32，刚好可以用3 bit表示。
+protobuf 的消息字段二进制格式是按照key-value方式一个个排列的，key是varint 编码的值，它由字段编号和类型组成：(field_number << 3 | wire_type)，key 也被称为tag。tag的最后的3个bit位始终用来表示value的wire_type。
+
+为什么用3 bit来表示wire_type呢？因为protobuf 只有6 种wire_typ：VARINT、I64、LEN、SGROUP、EGROUP 和 I32，刚好可以用3 bit表示。
 
 ID  | Name   | Used For
 --- | ------ | --------------------------------------------------------
