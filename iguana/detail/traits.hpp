@@ -143,6 +143,16 @@ concept is_resizable_char_container_v = requires(Type container) {
   requires is_char_v<typename std::remove_cvref_t<Type>::value_type>;
   container.resize(std::size_t{});
 };
+
+template <typename T>
+concept char_writer = requires(T t) {
+  t.write((const char *)nullptr, std::size_t{});
+};
+
+template <typename T>
+concept char_reader = requires(T t) {
+  t.read((char *)nullptr, std::size_t{});
+};
 #else
 template <typename T, typename = void>
 struct container_impl : std::false_type {};
@@ -168,13 +178,35 @@ struct resizable_char_container_impl<
                    decltype(std::declval<T>().begin()),
                    decltype(std::declval<T>().end()),
                    std::enable_if_t<
-                       is_char_t<typename std::remove_cvref_t<T>::value_type>>,
+                       is_char_v<typename std::remove_cvref_t<T>::value_type>>,
                    decltype(std::declval<T>().resize(std::size_t{}))>>
     : std::true_type {};
 
 template <typename T>
 constexpr bool is_resizable_char_container_v =
     resizable_char_container_impl<T>::value;
+
+template <typename T, typename = void>
+struct char_writer_impl : std::false_type {};
+
+template <typename T>
+struct char_writer_impl<T, std::void_t<decltype(std::declval<T>().write(
+                               (const char *)nullptr, std::size_t{}))>>
+    : std::true_type {};
+
+template <typename T>
+constexpr bool char_writer = char_writer_impl<T>::value;
+
+template <typename T, typename = void>
+struct char_reader_impl : std::false_type {};
+
+template <typename T>
+struct char_reader_impl<T, std::void_t<decltype(std::declval<T>().read(
+                               (char *)nullptr, std::size_t{}))>>
+    : std::true_type {};
+
+template <typename T>
+constexpr bool char_reader = char_reader_impl<T>::value;
 #endif
 
 }  // namespace iguana
