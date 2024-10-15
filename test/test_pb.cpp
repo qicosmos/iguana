@@ -765,6 +765,26 @@ TEST_CASE("test members") {
       val);
 }
 
+struct some_obj_t {
+  std::string *name_;
+  int id_;
+
+  const std::string &name() const { return *name_; }
+};
+YLT_REFL(some_obj_t, name(), id_);
+
+TEST_CASE("mixed method and field") {
+  std::shared_ptr<std::string> ptr(new std::string("test"));
+  some_obj_t obj{ptr.get(), 42};
+  std::string str;
+  iguana::to_pb(obj, str);
+  CHECK(!str.empty());
+
+  some_obj_t obj1;
+  iguana::from_pb(obj1, str);
+  CHECK(obj.id_ == obj1.id_);
+}
+
 struct test_variant {
   test_variant() = default;
   test_variant(int a, std::variant<double, std::string, int> b, double c)
