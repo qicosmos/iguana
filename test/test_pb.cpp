@@ -769,6 +769,7 @@ struct some_obj_t {
   std::string *name_;
   int id_;
 
+  std::string &name() { return *name_; }
   const std::string &name() const { return *name_; }
 };
 YLT_REFL(some_obj_t, name(), id_);
