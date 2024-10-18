@@ -28,6 +28,7 @@
 #include "frozen/bits/basic_types.h"
 
 #include <array>
+#include <cstdint>
 #include <limits>
 
 namespace frozen {
