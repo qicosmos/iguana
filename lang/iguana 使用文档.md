@@ -31,7 +31,7 @@ struct person
     int age;
 };
 
-#if __cplusplus >= 202002L
+#if __cplusplus < 202002L
 YLT_REFL(person, name, age); // 通过这个宏定义元数据让person 成为一个可反射对象
 #endif
 ```
