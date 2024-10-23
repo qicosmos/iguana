@@ -23,6 +23,7 @@ This library provides a portable cross-platform way of:
 - serialization of json
 - serialization of xml
 - serialization of yaml
+- serialization of protobuf
 - serialization of any customized format
 
 ### compile time reflection ###
@@ -330,12 +331,40 @@ std::string ss;
 iguana::to_json(e1, ss);
 ```
 
+### Serialization of protobuf
+similar with before:
+```cpp
+struct person {
+  int id;
+  std::string name;
+  int age;
+  bool operator==(person const& rhs) const {
+    return id == rhs.id && name == rhs.name && age == rhs.age;
+  }
+};
+
+#if __cplusplus < 202002L
+YLT_REFL(person, id, name, age) //define meta data
+#endif
+
+void test() {
+  person p{1, "tom", 20};
+  std::string pb;
+  iguana::to_pb(p, pb);
+  person p1;
+  iguana::from_pb(p1, pb);
+  CHECK(p == p1);
+}
+```
+[more detail](lang/struct_pb_intro.md)
+
 ### Full sources:
 
 
 + More examples about [json](https://github.com/qicosmos/iguana/blob/master/example/example.cpp)
 + More examples about [xml](https://github.com/qicosmos/iguana/blob/master/example/xml_example.cpp)
 + More examples about [yaml](https://github.com/qicosmos/iguana/blob/master/example/yaml_example.cpp)
++ More examples about [struct_pb](https://github.com/qicosmos/iguana/blob/master/test/test_pb.cpp)
 
 ### Scripts
 
