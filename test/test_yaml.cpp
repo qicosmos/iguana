@@ -146,6 +146,23 @@ price: 20 # this is price
   validator(*op_p2);
 }
 
+struct my_optional_t {
+  int a;
+  std::optional<int> b;
+  std::optional<std::string> c;
+  bool d;
+  char e;
+};
+
+TEST_CASE("test aggregate reflect") {
+  my_optional_t op{1, 2, {}, 0, 'o'};
+
+  static_assert(std::is_aggregate_v<my_optional_t>, "err");
+  std::string ss;
+  iguana::to_yaml(op, ss);
+  std::cout << ss << "\n";
+}
+
 TEST_CASE("test optional") {
   std::string str = R"()";
   std::optional<int> opt;
