@@ -50,13 +50,7 @@ class struct_code_generator : public google::protobuf::compiler::CodeGenerator {
     auto output = context->Open(filename);
     // std::cout << parameter << std::endl;
     bool enable_optional = true;
-    bool enable_reflection = false;
-    if (parameter.find("enable_reflection") != std::string::npos) {
-      enable_reflection = true;
-    }
-    else if (parameter.find("disable_reflection") != std::string::npos) {
-      enable_reflection = false;
-    }
+    bool enable_inherit = false;
 
     if (parameter.find("del_optional") != std::string::npos) {
       enable_optional = false;
@@ -64,6 +58,11 @@ class struct_code_generator : public google::protobuf::compiler::CodeGenerator {
     else if (parameter.find("add_optional") != std::string::npos) {
       enable_optional = true;
     }
+
+    if (parameter.find("enable_inherit") != std::string::npos) {
+      enable_inherit = true;
+    }
+
     // Use ZeroCopyOutputStream
     google::protobuf::io::ZeroCopyOutputStream* zero_copy_output = output;
 
@@ -106,7 +105,7 @@ class struct_code_generator : public google::protobuf::compiler::CodeGenerator {
       std::string struct_macro_str = "";
 
       struct_default_str = code_generate_struct_default(
-          single_struct.get_struct_name(), enable_reflection);
+          single_struct.get_struct_name(), enable_inherit);
       struct_constructor_str = code_generate_struct_constructor(
           single_struct.get_struct_name(), single_struct.get_tokens(),
           enable_optional);
@@ -117,9 +116,10 @@ class struct_code_generator : public google::protobuf::compiler::CodeGenerator {
 
       write_to_output(zero_copy_output, (const void*)struct_default_str.c_str(),
                       struct_default_str.size());
-      write_to_output(zero_copy_output,
-                      (const void*)struct_constructor_str.c_str(),
-                      struct_constructor_str.size());
+      if (enable_inherit)
+        write_to_output(zero_copy_output,
+                        (const void*)struct_constructor_str.c_str(),
+                        struct_constructor_str.size());
       write_to_output(zero_copy_output, (const void*)struct_body_str.c_str(),
                       struct_body_str.size());
       write_to_output(zero_copy_output, (const void*)struct_macro_str.c_str(),

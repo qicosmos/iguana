@@ -11,19 +11,23 @@ std::string code_generate_header() {
 }
 
 std::string code_generate_struct_default(const std::string &struct_name,
-                                         bool reflection) {
+                                         bool enable_inherit) {
   std::string result = "struct ";
   result.append(struct_name);
-  if (reflection) {
+
+  if (enable_inherit) {
     result.append(" : public iguana::base_impl<");
     result.append(struct_name);
     result.append("> ");
   }
-  result.append("{\n\t");
 
-  result.append(struct_name);
-  result.append("() = default;\n\t");
+  result.append(" {\n");
 
+  if (enable_inherit) {
+    result.append("\t");
+    result.append(struct_name);
+    result.append("() = default;\n\t");
+  }
   return result;
 }
 
