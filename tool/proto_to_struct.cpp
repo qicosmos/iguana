@@ -48,14 +48,11 @@ class struct_code_generator : public google::protobuf::compiler::CodeGenerator {
     std::string filename = file->name() + ".h";
 
     auto output = context->Open(filename);
-    // std::cout << parameter << std::endl;
-    bool enable_optional = true;
+
+    bool enable_optional = false;
     bool enable_inherit = false;
 
-    if (parameter.find("del_optional") != std::string::npos) {
-      enable_optional = false;
-    }
-    else if (parameter.find("add_optional") != std::string::npos) {
+    if (parameter.find("add_optional") != std::string::npos) {
       enable_optional = true;
     }
 

@@ -15,12 +15,12 @@ cmake .. && make
 Usage:
 
 ```shell
-protoc --plugin=protoc-gen-example=./proto_to_struct data.proto --example_out=protos
+protoc --plugin=protoc-gen-custom=./build/proto_to_struct  data.proto --custom_out=:./protos
 ```
 
 data.proto is the original file that is intended to be the structure pack file.
 
-`--example_out=` is followed by the path to the generated file.
+`--custom_out=` is followed by the path to the generated file.
 
 data.proto:
 
@@ -89,79 +89,88 @@ generate struct pack file:
 #pragma once
 #include <ylt/struct_pb.hpp>
 
-#define PUBLIC(T) : public iguana::base_impl<T>
-
 enum class Color {
 	Red = 0,
 	Green = 1,
 	Blue = 2,
 };
 
-struct Vec3 PUBLIC(Vec3) {
-	Vec3() = default;
-	Vec3(float a, float b, float c) : x(a), y(b), z(c) {}
+struct Vec3 {
 	float x;
 	float y;
 	float z;
 };
 YLT_REFL(Vec3, x, y, z);
 
-struct Weapon PUBLIC(Weapon) {
-	Weapon() = default;
-	Weapon(std::string a, int32 b) : name(std::move(a)), damage(b) {}
+struct Weapon {
 	std::string name;
-	int32 damage;
+	int32_t damage;
 };
 YLT_REFL(Weapon, name, damage);
 
-struct Monster PUBLIC(Monster) {
-	Monster() = default;
-	Monster(Vec3 a, int32 b, int32 c, std::string d, std::string e, enum Color f, std::vector<Weapon> g, Weapon h, std::vector<Vec3> i) : pos(a), mana(b), hp(c), name(std::move(d)), inventory(std::move(e)), weapons(std::move(g)), equipped(h), path(std::move(i)) {}
+struct Monster {
 	Vec3 pos;
-	int32 mana;
-	int32 hp;
+	int32_t mana;
+	int32_t hp;
 	std::string name;
 	std::string inventory;
-	enum Color color;
+	Color color;
 	std::vector<Weapon> weapons;
 	Weapon equipped;
 	std::vector<Vec3> path;
 };
 YLT_REFL(Monster, pos, mana, hp, name, inventory, color, weapons, equipped, path);
 
-struct Monsters PUBLIC(Monsters) {
-	Monsters() = default;
-	Monsters(std::vector<Monster> a) : monsters(std::move(a)) {}
+struct Monsters {
 	std::vector<Monster> monsters;
 };
 YLT_REFL(Monsters, monsters);
 
-struct person PUBLIC(person) {
-	person() = default;
-	person(int32 a, std::string b, int32 c, double d) : id(a), name(std::move(b)), age(c), salary(d) {}
-	int32 id;
+struct person {
+	int32_t id;
 	std::string name;
-	int32 age;
+	int32_t age;
 	double salary;
 };
 YLT_REFL(person, id, name, age, salary);
 
-struct persons PUBLIC(persons) {
-	persons() = default;
-	persons(std::vector<person> a) : person_list(std::move(a)) {}
+struct persons {
 	std::vector<person> person_list;
 };
 YLT_REFL(persons, person_list);
 
-struct bench_int32 PUBLIC(bench_int32) {
-	bench_int32() = default;
-	bench_int32(int32 a, int32 b, int32 c, int32 d) : a(a), b(b), c(c), d(d) {}
-	int32 a;
-	int32 b;
-	int32 c;
-	int32 d;
+struct bench_int32 {
+	int32_t a;
+	int32_t b;
+	int32_t c;
+	int32_t d;
 };
 YLT_REFL(bench_int32, a, b, c, d);
 
 
+```
+
+There are two parameters:
+
+## add_optional
+
+Generate C++ files in optional struct pack format.
+
+```shell
+protoc --plugin=protoc-gen-custom=./build/proto_to_struct  data.proto --custom_out=add_optional:./protos
+```
+
+## enable_inherit
+
+Generate C++ files in non std::optional format and the file conforms to the `struct pb` standard.
+
+```shell
+protoc --plugin=protoc-gen-custom=./build/proto_to_struct  data.proto --custom_out=enable_inherit:./protos
+
+```
+
+## add_optional and enable_inherit
+
+```shell
+protoc --plugin=protoc-gen-custom=./build/proto_to_struct  data.proto --custom_out=add_optional+enable_inherit:./protos
 ```
