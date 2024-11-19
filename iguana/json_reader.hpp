@@ -25,6 +25,9 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end);
 template <typename U, typename It, std::enable_if_t<smart_ptr_v<U>, int> = 0>
 IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end);
 
+template <typename U, typename It, std::enable_if_t<variant_v<U>, int> = 0>
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end);
+
 template <typename U, typename It,
           std::enable_if_t<ylt_refletable_v<U>, int> = 0>
 IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
@@ -546,7 +549,7 @@ IGUANA_INLINE void from_json_variant(U &value, It &it, It &end,
   end = temp_end;
 }
 
-template <typename U, typename It, std::enable_if_t<variant_v<U>, int> = 0>
+template <typename U, typename It, std::enable_if_t<variant_v<U>, int>>
 IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   from_json_variant(value, it, end,
                     std::make_index_sequence<

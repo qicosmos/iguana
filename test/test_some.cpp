@@ -217,22 +217,33 @@ TEST_CASE("test throw while parsing an illegal number") {
   }
 }
 
+struct my_variant_nest_t {
+  std::string a;
+  bool operator==(const my_variant_nest_t &o) const { return o.a == a; }
+};
+YLT_REFL(my_variant_nest_t, a);
+
 struct my_variant_t {
   std::string name;
   std::variant<int, std::string> var;
+  std::vector<std::variant<int, my_variant_nest_t>> var1;
 };
-YLT_REFL(my_variant_t, name, var);
+YLT_REFL(my_variant_t, name, var, var1);
 
 TEST_CASE("test variant") {
   std::variant<int, std::string> var;
+  std::variant<int, my_variant_nest_t> var1;
   var = 1;
-  my_variant_t v{"Hi", var}, v2;
+  var1 = my_variant_nest_t{"1234"};
+  my_variant_t v{"Hi", var, {var1}}, v2;
   std::string s;
   iguana::to_json(v, s);
   std::cout << s << std::endl;
 
   iguana::from_json(v2, s);
   CHECK(v.var == v2.var);
+  CHECK(v.var1.size() == v2.var1.size());
+  CHECK(v.var1[0] == v2.var1[0]);
 }
 
 TEST_CASE("test from issues") {
