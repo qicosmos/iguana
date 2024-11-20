@@ -115,14 +115,14 @@ struct Monster {
 	std::string name;
 	std::string inventory;
 	Color color;
-	std::vector<Weapon> weapons;
+	std::vector<Weapon>weapons;
 	Weapon equipped;
-	std::vector<Vec3> path;
+	std::vector<Vec3>path;
 };
 YLT_REFL(Monster, pos, mana, hp, name, inventory, color, weapons, equipped, path);
 
 struct Monsters {
-	std::vector<Monster> monsters;
+	std::vector<Monster>monsters;
 };
 YLT_REFL(Monsters, monsters);
 
@@ -135,7 +135,7 @@ struct person {
 YLT_REFL(person, id, name, age, salary);
 
 struct persons {
-	std::vector<person> person_list;
+	std::vector<person>person_list;
 };
 YLT_REFL(persons, person_list);
 
@@ -192,14 +192,14 @@ struct Monster {
 	std::optional<std::string> name;
 	std::optional<std::string> inventory;
 	Color color;
-	std::vector<std::optional<Weapon>> weapons;
+	std::optional<std::vector<Weapon>> weapons;
 	std::optional<Weapon> equipped;
-	std::vector<std::optional<Vec3>> path;
+	std::optional<std::vector<Vec3>> path;
 };
 YLT_REFL(Monster, pos, mana, hp, name, inventory, color, weapons, equipped, path);
 
 struct Monsters {
-	std::vector<std::optional<Monster>> monsters;
+	std::optional<std::vector<Monster>> monsters;
 };
 YLT_REFL(Monsters, monsters);
 
@@ -212,7 +212,7 @@ struct person {
 YLT_REFL(person, id, name, age, salary);
 
 struct persons {
-	std::vector<std::optional<person>> person_list;
+	std::optional<std::vector<person>> person_list;
 };
 YLT_REFL(persons, person_list);
 
@@ -351,23 +351,23 @@ YLT_REFL(Weapon, name, damage);
 
 struct Monster : public iguana::base_impl<Monster>  {
 	Monster() = default;
-	Monster(std::optional<Vec3> a, int32_t b, int32_t c, std::optional<std::string> d, std::optional<std::string> e, Color f, std::vector<std::optional<Weapon>> g, std::optional<Weapon> h, std::vector<std::optional<Vec3>> i) : pos(a), mana(b), hp(c), name(std::move(d)), inventory(std::move(e)), color(f), weapons(std::move(g)), equipped(h), path(std::move(i)) {}
+	Monster(std::optional<Vec3> a, int32_t b, int32_t c, std::optional<std::string> d, std::optional<std::string> e, Color f, std::optional<std::vector<Weapon>> g, std::optional<Weapon> h, std::optional<std::vector<Vec3>> i) : pos(a), mana(b), hp(c), name(std::move(d)), inventory(std::move(e)), color(f), weapons(std::move(g)), equipped(h), path(std::move(i)) {}
 	std::optional<Vec3> pos;
 	int32_t mana;
 	int32_t hp;
 	std::optional<std::string> name;
 	std::optional<std::string> inventory;
 	Color color;
-	std::vector<std::optional<Weapon>> weapons;
+	std::optional<std::vector<Weapon>> weapons;
 	std::optional<Weapon> equipped;
-	std::vector<std::optional<Vec3>> path;
+	std::optional<std::vector<Vec3>> path;
 };
 YLT_REFL(Monster, pos, mana, hp, name, inventory, color, weapons, equipped, path);
 
 struct Monsters : public iguana::base_impl<Monsters>  {
 	Monsters() = default;
-	Monsters(std::vector<std::optional<Monster>> a) : monsters(std::move(a)) {}
-	std::vector<std::optional<Monster>> monsters;
+	Monsters(std::optional<std::vector<Monster>> a) : monsters(std::move(a)) {}
+	std::optional<std::vector<Monster>> monsters;
 };
 YLT_REFL(Monsters, monsters);
 
@@ -383,8 +383,8 @@ YLT_REFL(person, id, name, age, salary);
 
 struct persons : public iguana::base_impl<persons>  {
 	persons() = default;
-	persons(std::vector<std::optional<person>> a) : person_list(std::move(a)) {}
-	std::vector<std::optional<person>> person_list;
+	persons(std::optional<std::vector<person>> a) : person_list(std::move(a)) {}
+	std::optional<std::vector<person>> person_list;
 };
 YLT_REFL(persons, person_list);
 

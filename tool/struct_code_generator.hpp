@@ -33,7 +33,7 @@ std::string code_generate_struct_default(const std::string &struct_name,
 
 std::string code_generate_struct_constructor(
     const std::string &struct_name, const std::vector<struct_token> lists,
-    bool add_optiional) {
+    bool add_optional) {
   std::string result = struct_name + "(";
   int i = 0;
   int list_size = lists.size() - 1;
@@ -56,17 +56,23 @@ std::string code_generate_struct_constructor(
     }
     else if (it->type == struct_token_type::proto_string) {
       if (it->lable == lable_type::lable_repeated) {
-        result.append("std::vector<std::string> ");
+        if (add_optional) {
+          result.append("std::optional<");
+        }
+        result.append("std::vector<std::string>");
+        if (add_optional) {
+          result.append("> ");
+        }
         result += parameter_value[i];
       }
       else {
-        if (add_optiional) {
+        if (add_optional) {
           result.append("std::optional<");
         }
 
         result.append("std::");
         result.append(it->type_name);
-        if (add_optiional) {
+        if (add_optional) {
           result.append(">");
         }
         result.append(" ");
@@ -87,25 +93,27 @@ std::string code_generate_struct_constructor(
     }
     else {
       if (it->lable == lable_type::lable_repeated) {
-        result.append("std::vector<");
-
-        if (add_optiional) {
+        if (add_optional) {
           result.append("std::optional<");
         }
 
+        result.append("std::vector<");
+
         result.append(it->type_name);
-        if (add_optiional) {
-          result.append(">");
+        result.append(">");
+
+        if (add_optional) {
+          result.append("> ");
         }
-        result.append("> ");
+
         result += parameter_value[i];
       }
       else {
-        if (add_optiional) {
+        if (add_optional) {
           result.append("std::optional<");
         }
         result.append(it->type_name);
-        if (add_optiional) {
+        if (add_optional) {
           result.append(">");
         }
         result.append(" ");
@@ -166,20 +174,27 @@ std::string code_generate_body(const std::vector<struct_token> &lists,
     result.append("\t");
     if (ll.lable == lable_type::lable_repeated) {
       if (ll.type == struct_token_type::proto_string) {
-        result.append("std::vector<std::string> ");
+        if (add_optional) {
+          result.append("std::optional<");
+        }
+
+        result.append("std::vector<std::string>");
+        if (add_optional) {
+          result.append("> ");
+        }
         result.append(ll.var_name);
         result.append(";\n");
       }
       else {
-        result.append("std::vector<");
         if (ll.type == struct_token_type::message && add_optional) {
           result.append("std::optional<");
         }
+        result.append("std::vector<");
         result.append(ll.type_name);
+        result.append(">");
         if (ll.type == struct_token_type::message && add_optional) {
-          result.append(">");
+          result.append("> ");
         }
-        result.append("> ");
         result.append(ll.var_name);
         result.append(";\n");
       }
