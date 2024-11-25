@@ -71,7 +71,7 @@ IGUANA_INLINE void to_yaml(T &&t, Stream &s, size_t min_spaces = 0);
 
 template <bool Is_writing_escape, typename Stream, typename T,
           std::enable_if_t<sequence_container_v<T>, int> = 0>
-IGUANA_INLINE void render_yaml_wrapper(Stream &ss, const T &t,
+IGUANA_INLINE void render_yaml_value(Stream &ss, const T &t,
                                        size_t min_spaces) {
   ss.push_back('\n');
   for (const auto &v : t) {
@@ -83,7 +83,7 @@ IGUANA_INLINE void render_yaml_wrapper(Stream &ss, const T &t,
 
 template <bool Is_writing_escape, typename Stream, typename T,
           std::enable_if_t<tuple_v<T>, int> = 0>
-IGUANA_INLINE void render_yaml_wrapper(Stream &ss, T &&t, size_t min_spaces) {
+IGUANA_INLINE void render_yaml_value(Stream &ss, T &&t, size_t min_spaces) {
   ss.push_back('\n');
   for_each(std::forward<T>(t),
            [&ss, min_spaces](auto &v, auto i) IGUANA__INLINE_LAMBDA {
@@ -104,7 +104,7 @@ IGUANA_INLINE void render_key_value(T &&t, Stream &s, size_t min_spaces,
 
 template <bool Is_writing_escape, typename Stream, typename T,
           std::enable_if_t<map_container_v<T>, int> = 0>
-IGUANA_INLINE void render_yaml_wrapper(Stream &ss, const T &t,
+IGUANA_INLINE void render_yaml_value(Stream &ss, const T &t,
                                        size_t min_spaces) {
   ss.push_back('\n');
   for (const auto &[k, v] : t) {
@@ -114,7 +114,7 @@ IGUANA_INLINE void render_yaml_wrapper(Stream &ss, const T &t,
 
 template <bool Is_writing_escape, typename Stream, typename T,
           std::enable_if_t<optional_v<T>, int> = 0>
-IGUANA_INLINE void render_yaml_wrapper(Stream &ss, const T &val,
+IGUANA_INLINE void render_yaml_value(Stream &ss, const T &val,
                                        size_t min_spaces) {
   if (!val) {
     ss.append("null");
@@ -126,7 +126,7 @@ IGUANA_INLINE void render_yaml_wrapper(Stream &ss, const T &val,
 
 template <bool Is_writing_escape, typename Stream, typename T,
           std::enable_if_t<smart_ptr_v<T>, int> = 0>
-IGUANA_INLINE void render_yaml_wrapper(Stream &ss, const T &val,
+IGUANA_INLINE void render_yaml_value(Stream &ss, const T &val,
                                        size_t min_spaces) {
   if (!val) {
     ss.push_back('\n');
@@ -138,7 +138,7 @@ IGUANA_INLINE void render_yaml_wrapper(Stream &ss, const T &val,
 template <bool Is_writing_escape, typename Stream, typename T,
           std::enable_if_t<std::is_aggregate_v<std::remove_cvref_t<T>> &&
                                non_refletable_v<T>, int> = 0>
-IGUANA_INLINE void render_yaml_struct(Stream &s, T &&t, size_t min_spaces) {
+IGUANA_INLINE void render_yaml_value(Stream &s, T &&t, size_t min_spaces) {
   s.push_back('\n');
   using U = std::remove_cvref_t<T>;
   constexpr size_t Count = ylt::reflection::members_count_v<U>;
@@ -154,7 +154,7 @@ IGUANA_INLINE void render_yaml_struct(Stream &s, T &&t, size_t min_spaces) {
 
 template <bool Is_writing_escape, typename Stream, typename T,
           std::enable_if_t<refletable_v<T>, int> = 0>
-IGUANA_INLINE void render_yaml_struct(Stream &s, T &&t, size_t min_spaces) {
+IGUANA_INLINE void render_yaml_value(Stream &s, T &&t, size_t min_spaces) {
   s.push_back('\n');
   for_each(std::forward<T>(t),
            [&t, &s, min_spaces](const auto &v, auto i) IGUANA__INLINE_LAMBDA {
@@ -172,11 +172,9 @@ IGUANA_INLINE void render_yaml_struct(Stream &s, T &&t, size_t min_spaces) {
 template <bool Is_writing_escape = false, typename Stream, typename T>
 IGUANA_INLINE void to_yaml(T &&t, Stream &s, size_t min_spaces) {
   if constexpr (tuple_v<T> || map_container_v<T> || sequence_container_v<T> ||
-                optional_v<T> || smart_ptr_v<T>)
-    render_yaml_wrapper<Is_writing_escape>(s, std::forward<T>(t), min_spaces);
-  else if constexpr (refletable_v<T> ||
-                     std::is_aggregate_v<std::remove_cvref_t<T>>)
-    render_yaml_struct<Is_writing_escape>(s, std::forward<T>(t), min_spaces);
+                optional_v<T> || smart_ptr_v<T> || refletable_v<T> ||
+                std::is_aggregate_v<std::remove_cvref_t<T>>)
+    render_yaml_value<Is_writing_escape>(s, std::forward<T>(t), min_spaces);
   else if constexpr (yaml_not_support_v<T>)
     static_assert(!sizeof(T), "don't suppport this type");
   else
