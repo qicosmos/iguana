@@ -95,6 +95,23 @@ TEST_CASE("test parse item array_t") {
     CHECK(test[0] == 1);
     CHECK(test[1] == -222);
   }
+#if __cplusplus > 201703L
+#if __has_include(<span>)
+  {
+    std::vector<int> v{1, 2};
+    std::span<int> span(v);
+    std::string str;
+    iguana::to_json(span, str);
+
+    std::vector<int> v1;
+    v1.resize(2);
+    std::span<int> span1(v1);
+
+    iguana::from_json(span1, str);
+    CHECK(v == v1);
+  }
+#endif
+#endif
   {
     std::string str{"[1, -222,"};
     std::array<int, 2> test;
