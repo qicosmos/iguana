@@ -99,16 +99,16 @@ TEST_CASE("test parse item array_t") {
 #if __has_include(<span>)
   {
     std::vector<int> v{1, 2};
-    std::span<int> span(v);
+    std::span<int> span(v.data(), v.data() + 2);
     std::string str;
     iguana::to_json(span, str);
 
     std::vector<int> v1;
     v1.resize(2);
-    std::span<int> span1(v1);
+    std::span<int> span1(v1.data(), v1.data() + 2);
 
     iguana::from_json(span1, str);
-    CHECK(v == v1);
+    assert(v == v1);
   }
 #endif
 #endif
