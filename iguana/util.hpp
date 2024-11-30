@@ -353,35 +353,41 @@ struct variant_type_field_helper : std::false_type {
 
 template <size_t Idx, typename variant_t>
 IGUANA_INLINE constexpr auto get_variant_type_field() {
-    using element_t = variant_element_t<Idx, variant_t>;
-    return variant_type_field_helper<variant_t>{}((element_t*)nullptr);
+  using element_t = variant_element_t<Idx, variant_t>;
+  return variant_type_field_helper<variant_t>{}((element_t*)nullptr);
 }
 
 template <typename variant_t>
 using variant_type_field_t = decltype(get_variant_type_field<0, variant_t>());
 
 template <size_t Idx, typename variant_t>
-constexpr inline auto variant_type_field_v = get_variant_type_field<Idx, variant_t>();
+constexpr inline auto variant_type_field_v =
+    get_variant_type_field<Idx, variant_t>();
 
 template <typename element_t, typename field_t>
-IGUANA_INLINE constexpr size_t get_variant_element_field_index(field_t target_field) {
-    size_t find_index = size_t(-1);
-    ylt::reflection::for_each(element_t{}, [&](auto& field, auto name, auto index) {
-        if constexpr (std::is_same_v<ylt::reflection::remove_cvref_t<decltype(field)>, field_t>) {
+IGUANA_INLINE constexpr size_t get_variant_element_field_index(
+    field_t target_field) {
+  size_t find_index = size_t(-1);
+  ylt::reflection::for_each(
+      element_t{}, [&](auto& field, auto name, auto index) {
+        if constexpr (std::is_same_v<
+                          ylt::reflection::remove_cvref_t<decltype(field)>,
+                          field_t>) {
           if (field == target_field) {
             find_index = index;
           }
         }
-    });
-    return find_index;
+      });
+  return find_index;
 }
 
 template <typename variant_t>
 IGUANA_INLINE constexpr std::string_view get_variant_type_field_name() {
-    using element_t = variant_element_t<0, variant_t>;
-    constexpr size_t find_index = get_variant_element_field_index<element_t>(variant_type_field_v<0, variant_t>);
-    static_assert(find_index != size_t(-1));
-    return ylt::reflection::name_of<element_t, find_index>();
+  using element_t = variant_element_t<0, variant_t>;
+  constexpr size_t find_index = get_variant_element_field_index<element_t>(
+      variant_type_field_v<0, variant_t>);
+  static_assert(find_index != size_t(-1));
+  return ylt::reflection::name_of<element_t, find_index>();
 }
 
 template <typename variant_t>
@@ -409,15 +415,12 @@ struct variant_cast_helper<std::variant<Us...>> {
   template <size_t... Idx>
   void init_impl(variant_t& v, field_type tt, std::index_sequence<Idx...>) {
     bool r = false;
-    ((void)(!r && (r = init_impl0<Idx>(
-                     v, tt),
-                 true)),
-   ...);
+    ((void)(!r && (r = init_impl0<Idx>(v, tt), true)), ...);
   }
 
   void operator()(variant_t& v, field_type tt) {
-    return init_impl(v, tt, std::make_index_sequence<
-                        std::variant_size_v<variant_t>>{});
+    return init_impl(
+        v, tt, std::make_index_sequence<std::variant_size_v<variant_t>>{});
   }
 };
 
@@ -427,7 +430,8 @@ struct has_variant_type_field_helper {
 };
 
 template <typename T>
-constexpr inline bool has_variant_type_field_helper_v = has_variant_type_field_helper<T>::value;
+constexpr inline bool has_variant_type_field_helper_v =
+    has_variant_type_field_helper<T>::value;
 
 #if defined(__clang__) || defined(_MSC_VER) || \
     (defined(__GNUC__) && __GNUC__ > 8)

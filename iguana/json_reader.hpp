@@ -560,8 +560,8 @@ IGUANA_INLINE void from_json_variant(U &value, It &it, It &end,
 }
 
 template <typename T, typename It>
-IGUANA_INLINE bool try_read_variant_type(T& type_value, std::string_view target, It it, It end) {
-
+IGUANA_INLINE bool try_read_variant_type(T &type_value, std::string_view target,
+                                         It it, It end) {
   skip_ws(it, end);
   match<'{'>(it, end);
   if (*it == '}')
@@ -580,7 +580,7 @@ IGUANA_INLINE bool try_read_variant_type(T& type_value, std::string_view target,
     skip_ws(it, end);
     match<':'>(it, end);
     if (key != target) {
-      // discard left 
+      // discard left
       detail::skip_object_value(it, end);
     }
     else {
@@ -598,7 +598,6 @@ IGUANA_INLINE bool try_read_variant_type(T& type_value, std::string_view target,
       IGUANA_LIKELY { match<','>(it, end); }
     key = detail::get_key(it, end);
   }
-  
 }
 
 template <typename U, typename It>
@@ -606,15 +605,18 @@ IGUANA_INLINE void from_json_variant_by_type(U &value, It &it, It &end) {
   using variant_t = std::remove_reference_t<U>;
   const auto target = variant_type_field_name<variant_t>;
   variant_type_field_t<variant_t> type;
-  
+
   if (!try_read_variant_type(type, target, it, end)) {
-      throw std::runtime_error ("variant expected type field: " + std::string{target});
+    throw std::runtime_error("variant expected type field: " +
+                             std::string{target});
   }
 
   variant_cast_helper<variant_t>{}(value, type);
-  std::visit([&](auto& val) {
-    from_json_impl(val, it, end);
-  }, value);
+  std::visit(
+      [&](auto &val) {
+        from_json_impl(val, it, end);
+      },
+      value);
 }
 
 template <typename U, typename It, std::enable_if_t<variant_v<U>, int>>
@@ -624,10 +626,11 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
                 "don't allow same type in std::variant");
   if constexpr (has_variant_type_field_helper_v<variant_t>) {
     from_json_variant_by_type(value, it, end);
-  } else {
-    from_json_variant(value, it, end,
-                      std::make_index_sequence<
-                          std::variant_size_v<variant_t>>{});
+  }
+  else {
+    from_json_variant(
+        value, it, end,
+        std::make_index_sequence<std::variant_size_v<variant_t>>{});
   }
 }
 }  // namespace detail

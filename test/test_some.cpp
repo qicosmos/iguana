@@ -258,15 +258,15 @@ struct my_variant_type1_t {
 };
 YLT_REFL(my_variant_type1_t, value, tt);
 namespace iguana {
-  template <>
-  struct variant_type_field_helper<std::variant<my_variant_type0_t, my_variant_type1_t>> : std::true_type {
-      template<typename T>
-      constexpr auto operator()(T*){
-        return T{}.tt;
-      };
+template <>
+struct variant_type_field_helper<
+    std::variant<my_variant_type0_t, my_variant_type1_t>> : std::true_type {
+  template <typename T>
+  constexpr auto operator()(T *) {
+    return T{}.tt;
   };
-}
-
+};
+}  // namespace iguana
 
 TEST_CASE("test variant type") {
   std::variant<my_variant_type0_t, my_variant_type1_t> var, var1;
