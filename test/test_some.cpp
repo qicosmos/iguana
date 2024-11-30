@@ -246,6 +246,40 @@ TEST_CASE("test variant") {
   CHECK(v.var1[0] == v2.var1[0]);
 }
 
+struct my_variant_type0_t {
+  int value;
+  std::string_view tt = "1s";
+};
+YLT_REFL(my_variant_type0_t, value, tt);
+
+struct my_variant_type1_t {
+  int value;
+  std::string_view tt = "2s";
+};
+YLT_REFL(my_variant_type1_t, value, tt);
+namespace iguana {
+  template <>
+  struct variant_type_field_helper<std::variant<my_variant_type0_t, my_variant_type1_t>> : std::true_type {
+      template<typename T>
+      constexpr auto operator()(T*){
+        return T{}.tt;
+      };
+  };
+}
+
+
+TEST_CASE("test variant type") {
+  std::variant<my_variant_type0_t, my_variant_type1_t> var, var1;
+  var = my_variant_type0_t{66};
+  std::string s;
+  iguana::to_json(var, s);
+  std::cout << s << std::endl;
+
+  iguana::from_json(var1, s);
+  CHECK(std::holds_alternative<my_variant_type0_t>(var1));
+  CHECK(std::get<my_variant_type0_t>(var1).value == 66);
+}
+
 TEST_CASE("test from issues") {
   test test1{};
   std::string str1 =

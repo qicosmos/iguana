@@ -535,8 +535,6 @@ IGUANA_INLINE bool from_json_variant_impl(U &value, It it, It end, It &temp_it,
 template <typename U, typename It, size_t... Idx>
 IGUANA_INLINE void from_json_variant(U &value, It &it, It &end,
                                      std::index_sequence<Idx...>) {
-  static_assert(!has_duplicate_type_v<std::remove_reference_t<U>>,
-                "don't allow same type in std::variant");
   bool r = false;
   It temp_it = it;
   It temp_end = end;
@@ -549,11 +547,76 @@ IGUANA_INLINE void from_json_variant(U &value, It &it, It &end,
   end = temp_end;
 }
 
+template <typename T, typename It>
+IGUANA_INLINE bool try_read_variant_type(T& type_value, std::string_view target, It it, It end) {
+
+  skip_ws(it, end);
+  match<'{'>(it, end);
+  if (*it == '}')
+    IGUANA_UNLIKELY {
+      ++it;
+      return false;
+    }
+
+  skip_ws(it, end);
+
+  std::string_view key = detail::get_key(it, end);
+  while (true) {
+    if (it == end)
+      IGUANA_UNLIKELY { throw std::runtime_error("Expected }"); }
+    using namespace detail;
+    skip_ws(it, end);
+    match<':'>(it, end);
+    if (key != target) {
+      // discard left 
+      detail::skip_object_value(it, end);
+    }
+    else {
+      from_json_impl(type_value, it, end);
+      return true;
+    }
+
+    skip_ws(it, end);
+    if (*it == '}')
+      IGUANA_UNLIKELY {
+        ++it;
+        return false;
+      }
+    else
+      IGUANA_LIKELY { match<','>(it, end); }
+    key = detail::get_key(it, end);
+  }
+  
+}
+
+template <typename U, typename It>
+IGUANA_INLINE void from_json_variant_by_type(U &value, It &it, It &end) {
+  using variant_t = std::remove_reference_t<U>;
+  const auto target = variant_type_field_name<variant_t>;
+  variant_type_field_t<variant_t> type;
+  
+  if (!try_read_variant_type(type, target, it, end)) {
+      throw std::runtime_error ("variant expected type field: " + std::string{target});
+  }
+
+  variant_cast_helper<variant_t>{}(value, type);
+  std::visit([&](auto& val) {
+    from_json_impl(val, it, end);
+  }, value);
+}
+
 template <typename U, typename It, std::enable_if_t<variant_v<U>, int>>
 IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
-  from_json_variant(value, it, end,
-                    std::make_index_sequence<
-                        std::variant_size_v<std::remove_reference_t<U>>>{});
+  using variant_t = std::remove_reference_t<U>;
+  static_assert(!has_duplicate_type_v<variant_t>,
+                "don't allow same type in std::variant");
+  if constexpr (has_variant_type_field_helper_v<variant_t>) {
+    from_json_variant_by_type(value, it, end);
+  } else {
+    from_json_variant(value, it, end,
+                      std::make_index_sequence<
+                          std::variant_size_v<variant_t>>{});
+  }
 }
 }  // namespace detail
 
