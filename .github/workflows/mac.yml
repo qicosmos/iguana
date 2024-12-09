@@ -1,4 +1,4 @@
-name:  macOS Monterey 12
+name:  macOS Monterey latest
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
         mode: [ Debug, Release ]
         cpp_version: [17, 20]
         
-    runs-on: macos-12
+    runs-on: macos-latest
     
     steps:
     - name: check out
