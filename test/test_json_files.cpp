@@ -315,19 +315,18 @@ TEST_CASE("test instruments.json") {
 }
 
 struct test_optstr_reader_null {
-    std::optional<std::string> name;
+  std::optional<std::string> name;
 };
 YLT_REFL(test_optstr_reader_null, name);
 TEST_CASE("test_optstr_reader") {
+  test_optstr_reader_null v;
+  v.name = "name";        // optional<string> begin with 'n'
+  std::string json;
+  iguana::to_json(v, json);
 
-    test_optstr_reader_null v;
-    v.name = "name";        // optional<string> begin with 'n'
-    std::string json;
-    iguana::to_json(v, json);
-
-    test_optstr_reader_null v1;
-    iguana::from_json(v1, json);
-    CHECK(v.name == v1.name);
+  test_optstr_reader_null v1;
+  iguana::from_json(v1, json);
+  CHECK(v.name == v1.name);
 }
 
 // doctest comments
