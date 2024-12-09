@@ -314,6 +314,21 @@ TEST_CASE("test instruments.json") {
   }
 }
 
+struct test_optstr_reader_null {
+  std::optional<std::string> name;
+};
+YLT_REFL(test_optstr_reader_null, name);
+TEST_CASE("test_optstr_reader") {
+  test_optstr_reader_null v;
+  v.name = "name";  // optional<string> begin with 'n'
+  std::string json;
+  iguana::to_json(v, json);
+
+  test_optstr_reader_null v1;
+  iguana::from_json(v1, json);
+  CHECK(v.name == v1.name);
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007) int main(int argc, char **argv) {
