@@ -320,7 +320,7 @@ struct test_optstr_reader_null {
 YLT_REFL(test_optstr_reader_null, name);
 TEST_CASE("test_optstr_reader") {
   test_optstr_reader_null v;
-  v.name = "name";        // optional<string> begin with 'n'
+  v.name = "name";  // optional<string> begin with 'n'
   std::string json;
   iguana::to_json(v, json);
 
