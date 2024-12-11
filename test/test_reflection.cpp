@@ -374,6 +374,11 @@ TEST_CASE("test macros") {
   constexpr auto idx2 = index_of<&simple2::id>();
   static_assert(idx2 == 1);
 
+  auto i = index_of(&simple::id);
+  CHECK(i == 1);
+  i = index_of(&simple::age);
+  CHECK(i == 3);
+
   constexpr auto arr = get_member_names<simple2>();
   static_assert(arr.size() == 4);
   constexpr auto map = member_names_map<simple2>;
