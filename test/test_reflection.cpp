@@ -531,6 +531,59 @@ TEST_CASE("test visit private") {
   std::cout << id << ", " << name << "\n";
 }
 
+namespace test_type_string {
+struct struct_test {};
+class class_test {};
+union union_test {};
+}  // namespace test_type_string
+TEST_CASE("test type_string") {
+  CHECK(type_string<int>() == "int");
+  CHECK(type_string<const int>() == "const int");
+  CHECK(type_string<volatile int>() == "volatile int");
+#if defined(__clang__)
+  CHECK(type_string<int&>() == "int &");
+  CHECK(type_string<int&&>() == "int &&");
+  CHECK(type_string<const int&>() == "const int &");
+  CHECK(type_string<const int&&>() == "const int &&");
+  CHECK(type_string<volatile int&>() == "volatile int &");
+  CHECK(type_string<volatile int&&>() == "volatile int &&");
+#else
+  CHECK(type_string<int&>() == "int&");
+  CHECK(type_string<int&&>() == "int&&");
+  CHECK(type_string<const int&>() == "const int&");
+  CHECK(type_string<const int&&>() == "const int&&");
+  CHECK(type_string<volatile int&>() == "volatile int&");
+  CHECK(type_string<volatile int&&>() == "volatile int&&");
+#endif
+#if defined(_MSC_VER) && !defined(__clang__)
+  CHECK(type_string<test_type_string::struct_test>() ==
+        "struct test_type_string::struct_test");
+  CHECK(type_string<const test_type_string::struct_test>() ==
+        "const struct test_type_string::struct_test");
+  CHECK(type_string<test_type_string::class_test>() ==
+        "class test_type_string::class_test");
+  CHECK(type_string<const test_type_string::class_test>() ==
+        "const class test_type_string::class_test");
+  CHECK(type_string<test_type_string::union_test>() ==
+        "union test_type_string::union_test");
+  CHECK(type_string<const test_type_string::union_test>() ==
+        "const union test_type_string::union_test");
+#else
+  CHECK(type_string<test_type_string::struct_test>() ==
+        "test_type_string::struct_test");
+  CHECK(type_string<const test_type_string::struct_test>() ==
+        "const test_type_string::struct_test");
+  CHECK(type_string<test_type_string::class_test>() ==
+        "test_type_string::class_test");
+  CHECK(type_string<const test_type_string::class_test>() ==
+        "const test_type_string::class_test");
+  CHECK(type_string<test_type_string::union_test>() ==
+        "test_type_string::union_test");
+  CHECK(type_string<const test_type_string::union_test>() ==
+        "const test_type_string::union_test");
+#endif
+}
+
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
 int main(int argc, char** argv) { return doctest::Context(argc, argv).run(); }
 DOCTEST_MSVC_SUPPRESS_WARNING_POP
