@@ -55,6 +55,28 @@ TEST_CASE("simple test") {
   }
 }
 
+template <class T>
+struct Haha {
+  std::string msg;
+  YLT_REFL(Haha, msg);
+};
+
+template <typename T>
+inline constexpr std::string_view get_alias_struct_name(Haha<T> *) {
+  return "haha";
+}
+
+TEST_CASE("template class test") {
+  Haha<int> ha{"test"};
+  std::string ss;
+  iguana::to_xml(ha, ss);
+  std::cout << ss << "\n";
+
+  Haha<int> ha1{};
+  iguana::from_xml(ha1, ss);
+  CHECK(ha1.msg == ha.msg);
+}
+
 struct optional_t {
   int a;
   std::optional<int> b;
