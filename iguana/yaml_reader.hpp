@@ -5,10 +5,16 @@
 #include "detail/charconv.h"
 #include "detail/utf.hpp"
 #include "yaml_util.hpp"
+#include "iguana/ylt/reflection/member_value.hpp"
 
 namespace iguana {
 
 template <typename T, typename It, std::enable_if_t<refletable_v<T>, int> = 0>
+IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end,
+                             size_t min_spaces = 0);
+template <typename T, typename It,
+          std::enable_if_t<non_refletable_v<T> &&
+                              std::is_aggregate_v<std::remove_cvref_t<T>>, int> = 0>
 IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end,
                              size_t min_spaces = 0);
 
@@ -222,6 +228,14 @@ IGUANA_INLINE void yaml_parse_value(U &&value, It &&value_begin,
 }
 
 template <typename U, typename It, std::enable_if_t<refletable_v<U>, int> = 0>
+IGUANA_INLINE void yaml_parse_item(U &value, It &&it, It &&end,
+                                   size_t min_spaces) {
+  from_yaml(value, it, end, min_spaces);
+}
+
+template <typename U, typename It,
+          std::enable_if_t<non_refletable_v<U> &&
+                               std::is_aggregate_v<std::remove_cvref_t<U>>, int> = 0>
 IGUANA_INLINE void yaml_parse_item(U &value, It &&it, It &&end,
                                    size_t min_spaces) {
   from_yaml(value, it, end, min_spaces);
@@ -575,9 +589,45 @@ IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end, size_t min_spaces) {
 }
 
 template <typename T, typename It,
-          std::enable_if_t<non_refletable_v<T>, int> = 0>
+          std::enable_if_t<non_refletable_v<T> &&
+                              !std::is_aggregate_v<std::remove_cvref_t<T>>, int> = 0>
 IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end) {
   detail::yaml_parse_item(value, it, end, 0);
+}
+
+template <typename T, typename It,
+          std::enable_if_t<non_refletable_v<T> &&
+                              std::is_aggregate_v<std::remove_cvref_t<T>>, int> = 0>
+IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end, size_t min_spaces) {
+  auto spaces = skip_space_and_lines(it, end, min_spaces);
+  while (it != end) {
+    auto start = it;
+    auto keyend = yaml_skip_till<':'>(it, end);
+    std::string_view key = std::string_view{
+        &*start, static_cast<size_t>(std::distance(start, keyend))};
+    
+    bool notFind = true;
+    ylt::reflection::for_each(value, [&](auto &field, auto name) {
+      if(name == key){
+        detail::yaml_parse_item(field, it, end, spaces + 1);
+        notFind = false;
+      }
+    });
+      if(notFind)
+        IGUANA_UNLIKELY {
+#ifdef THROW_UNKNOWN_KEY
+          throw std::runtime_error("Unknown key: " + std::string(key));
+#else
+          detail::skip_object_value(it, end, spaces + 1);
+#endif
+        }
+    auto subspaces = skip_space_and_lines<false>(it, end, min_spaces);
+    if (subspaces < min_spaces)
+      IGUANA_UNLIKELY {
+        it -= subspaces + 1;
+        return;
+      }
+  }
 }
 
 template <typename T, typename It>

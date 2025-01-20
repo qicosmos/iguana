@@ -161,6 +161,14 @@ TEST_CASE("test aggregate reflect") {
   std::string ss;
   iguana::to_yaml(op, ss);
   std::cout << ss << "\n";
+
+  my_optional_t op1;
+  iguana::from_yaml(op1, ss);
+  CHECK(op1.a == op.a);
+  CHECK(*op1.b == *op.b);
+  CHECK(!op1.c);
+  CHECK(op1.d == op.d);
+  CHECK(op1.e == op.e);
 }
 
 TEST_CASE("test optional") {
