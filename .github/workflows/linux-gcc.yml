@@ -39,7 +39,7 @@ jobs:
       matrix:
         mode: [ Debug, Release ]
         cpp_version: [17]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     
     steps:
     - name: check out
