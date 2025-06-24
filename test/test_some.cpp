@@ -1071,12 +1071,12 @@ void ylt_custom_reflect(my_struct *) {}
 
 template <bool Is_writing_escape, typename Stream>
 inline void to_json_impl(Stream &s, const my_struct &t) {
-  iguana::to_json(*(int (*)[3]) & t, s);
+  iguana::to_json(*(int(*)[3]) & t, s);
 }
 
 template <typename It>
 IGUANA_INLINE void from_json_impl(my_struct &value, It &&it, It &&end) {
-  iguana::from_json(*(int (*)[3]) & value, it, end);
+  iguana::from_json(*(int(*)[3]) & value, it, end);
 }
 
 }  // namespace my_space
