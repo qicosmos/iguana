@@ -985,6 +985,40 @@ TEST_CASE("test empty string") {
   }
 }
 
+struct EmptyList_t {
+  std::vector<int> empty_vector;
+};
+YLT_REFL(EmptyList_t, empty_vector);
+
+TEST_CASE("test empty vector") {
+  std::string str = R"(
+    empty_vector: []
+  )";
+  auto validator = [](EmptyList_t &cont) {
+    CHECK(cont.empty_vector.empty());
+  };
+
+  EmptyList_t cont;
+  iguana::from_yaml(cont, str);
+  validator(cont);
+
+  {
+    std::string ss;
+    iguana::to_yaml(cont, ss);
+    EmptyList_t cont1;
+    iguana::from_yaml(cont1, ss);
+    validator(cont1);
+  }
+  {
+    cont.empty_vector = {};
+    std::string ss;
+    iguana::to_yaml<true>(cont, ss);
+    EmptyList_t cont1;
+    iguana::from_yaml(cont1, ss);
+    CHECK(cont1.empty_vector == cont.empty_vector);
+  }
+}
+
 
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182

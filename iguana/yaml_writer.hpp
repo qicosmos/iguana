@@ -110,11 +110,16 @@ template <bool Is_writing_escape, typename Stream, typename T,
           std::enable_if_t<sequence_container_v<T>, int> = 0>
 IGUANA_INLINE void render_yaml_value(Stream &ss, const T &t,
                                      size_t min_spaces) {
-  ss.push_back('\n');
-  for (const auto &v : t) {
-    ss.append(min_spaces, ' ');
-    ss.append("- ");
-    render_yaml_value<Is_writing_escape>(ss, v, min_spaces + 1);
+  if (t.empty()) {
+    ss.append("[]");
+  }
+  else {
+    ss.push_back('\n');
+    for (const auto &v : t) {
+      ss.append(min_spaces, ' ');
+      ss.append("- ");
+      render_yaml_value<Is_writing_escape>(ss, v, min_spaces + 1);
+    }
   }
 }
 
