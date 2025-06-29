@@ -254,10 +254,16 @@ IGUANA_INLINE void yaml_parse_item(U &value, It &&it, It &&end,
       }
     }
     else {
-      skip_space_and_lines(it, end, min_spaces);
-      auto start = it;
-      auto value_end = skip_till_newline(it, end);
-      yaml_parse_value(value, start, value_end);
+      auto indent = skip_space_and_lines<false>(it, end, min_spaces);
+      // in case of a string field it is valid for the field to have no content
+      if (indent < min_spaces) {
+        value = "";
+      }
+      else {
+        auto start = it;
+        auto value_end = skip_till_newline(it, end);
+        yaml_parse_value(value, start, value_end);
+      }
     }
   }
   else {

@@ -946,17 +946,20 @@ b: test
 }
 
 struct Empties_t {
+  std::string empty_empty;
   std::string empty_tilde;
   std::string empty_null;
 };
-YLT_REFL(Empties_t, empty_tilde, empty_null);
+YLT_REFL(Empties_t, empty_empty, empty_tilde, empty_null);
 
 TEST_CASE("test empty string") {
   std::string str = R"(
+    empty_empty:
     empty_tilde: ~
     empty_null: null
   )";
   auto validator = [](Empties_t &cont) {
+    CHECK(cont.empty_empty == "");
     CHECK(cont.empty_tilde == "");
     CHECK(cont.empty_null == "");
   };
@@ -973,6 +976,7 @@ TEST_CASE("test empty string") {
     validator(cont1);
   }
   {
+    cont.empty_empty = "";
     cont.empty_tilde = "";
     cont.empty_null = "";
     std::string ss;
@@ -980,6 +984,7 @@ TEST_CASE("test empty string") {
     std::cout << ss << std::endl;
     Empties_t cont1;
     iguana::from_yaml(cont1, ss);
+    CHECK(cont1.empty_empty == cont.empty_empty);
     CHECK(cont1.empty_tilde == cont.empty_tilde);
     CHECK(cont1.empty_null == cont.empty_null);
   }
