@@ -945,6 +945,47 @@ b: test
   }
 }
 
+struct Empties_t {
+  std::string empty_tilde;
+  std::string empty_null;
+};
+YLT_REFL(Empties_t, empty_tilde, empty_null);
+
+TEST_CASE("test empty string") {
+  std::string str = R"(
+    empty_tilde: ~
+    empty_null: null
+  )";
+  auto validator = [](Empties_t &cont) {
+    CHECK(cont.empty_tilde == "");
+    CHECK(cont.empty_null == "");
+  };
+
+  Empties_t cont;
+  iguana::from_yaml(cont, str);
+  validator(cont);
+
+  {
+    std::string ss;
+    iguana::to_yaml(cont, ss);
+    Empties_t cont1;
+    iguana::from_yaml(cont1, ss);
+    validator(cont1);
+  }
+  {
+    cont.empty_tilde = "";
+    cont.empty_null = "";
+    std::string ss;
+    iguana::to_yaml<true>(cont, ss);
+    std::cout << ss << std::endl;
+    Empties_t cont1;
+    iguana::from_yaml(cont1, ss);
+    CHECK(cont1.empty_tilde == cont.empty_tilde);
+    CHECK(cont1.empty_null == cont.empty_null);
+  }
+}
+
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)

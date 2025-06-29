@@ -173,6 +173,9 @@ IGUANA_INLINE void yaml_parse_value(U &value, It &&value_begin,
       IGUANA_UNLIKELY { throw std::runtime_error(R"(Expected ')"); }
   }
   value = T(&*start, static_cast<size_t>(std::distance(start, end)));
+  if ((value == "~") || (value == "null")) {
+    value = T{};
+  }
 }
 
 template <typename U, typename It, std::enable_if_t<char_v<U>, int> = 0>
