@@ -112,6 +112,7 @@ IGUANA_INLINE void render_yaml_value(Stream &ss, const T &t,
                                      size_t min_spaces) {
   if (t.empty()) {
     ss.append("[]");
+    ss.push_back('\n');
   }
   else {
     ss.push_back('\n');
