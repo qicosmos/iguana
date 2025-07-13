@@ -1024,7 +1024,6 @@ TEST_CASE("test empty vector") {
   }
 }
 
-
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
