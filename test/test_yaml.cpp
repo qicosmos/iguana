@@ -945,6 +945,97 @@ b: test
   }
 }
 
+struct Empties_t {
+  std::string empty_empty;
+  std::string empty_tilde;
+  std::string empty_null;
+  std::string tilde_word;
+  std::string null_word;
+};
+YLT_REFL(Empties_t, empty_empty, empty_tilde, empty_null, tilde_word,
+         null_word);
+
+TEST_CASE("test empty string") {
+  std::string str = R"(
+    empty_empty:
+    empty_tilde: ~
+    empty_null: null
+    tilde_word: "~"
+    null_word: "null"
+  )";
+  auto validator = [](Empties_t &cont) {
+    CHECK(cont.empty_empty == "");
+    CHECK(cont.empty_tilde == "");
+    CHECK(cont.empty_null == "");
+  };
+
+  Empties_t cont;
+  iguana::from_yaml(cont, str);
+  validator(cont);
+  CHECK(cont.tilde_word == "~");
+  CHECK(cont.null_word == "null");
+
+  {
+    std::string ss;
+    iguana::to_yaml(cont, ss);
+    Empties_t cont1;
+    iguana::from_yaml(cont1, ss);
+    validator(cont1);
+  }
+  {
+    cont.empty_empty = "";
+    cont.empty_tilde = "";
+    cont.empty_null = "";
+    std::string ss;
+    iguana::to_yaml<true>(cont, ss);
+    std::cout << ss << std::endl;
+    Empties_t cont1;
+    iguana::from_yaml(cont1, ss);
+    CHECK(cont1.empty_empty == cont.empty_empty);
+    CHECK(cont1.empty_tilde == cont.empty_tilde);
+    CHECK(cont1.empty_null == cont.empty_null);
+    CHECK(cont1.tilde_word == cont.tilde_word);
+    CHECK(cont1.null_word == cont.null_word);
+  }
+}
+
+struct EmptyList_t {
+  std::vector<int> empty_vector;
+  std::vector<int> second_value;
+};
+YLT_REFL(EmptyList_t, empty_vector, second_value);
+
+TEST_CASE("test empty vector") {
+  std::string str = R"(
+    empty_vector: []
+    second_value: []
+  )";
+  auto validator = [](EmptyList_t &cont) {
+    CHECK(cont.empty_vector.empty());
+  };
+
+  EmptyList_t cont;
+  iguana::from_yaml(cont, str);
+  validator(cont);
+
+  {
+    std::string ss;
+    iguana::to_yaml(cont, ss);
+    EmptyList_t cont1;
+    iguana::from_yaml(cont1, ss);
+    validator(cont1);
+  }
+  {
+    cont.empty_vector = {};
+    cont.second_value = {};
+    std::string ss;
+    iguana::to_yaml<true>(cont, ss);
+    EmptyList_t cont1;
+    iguana::from_yaml(cont1, ss);
+    CHECK(cont1.empty_vector == cont.empty_vector);
+  }
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
