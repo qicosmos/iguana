@@ -32,6 +32,7 @@ IGUANA_INLINE void yaml_parse_value(U &value, It &&value_begin,
 template <typename U, typename It, std::enable_if_t<string_v<U>, int> = 0>
 IGUANA_INLINE void parse_escape_str(U &value, It &&it, It &&end) {
   auto start = it;
+  value.clear();
   while (it != end) {
     if (*(it++) == '\\')
       IGUANA_UNLIKELY {
