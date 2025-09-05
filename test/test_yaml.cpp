@@ -1036,6 +1036,28 @@ TEST_CASE("test empty vector") {
   }
 }
 
+struct SSLConfig {
+  std::string cert_file = "certs/server.crt??";
+  std::string key_file = "certs/server.key??";
+  std::string ca_file = "certs/ca.crt??";
+};
+YLT_REFL(SSLConfig, cert_file, key_file, ca_file);
+
+TEST_CASE("test string with default value") {
+  SSLConfig cfg;
+  std::string buf = R"(
+    cert_file: "certs/server.crt"
+    key_file: "certs/server.key"
+    ca_file: "certs/ca.crt"
+  )";
+
+  iguana::from_yaml(cfg, buf);
+  CHECK(cfg.cert_file == "certs/server.crt");
+  CHECK(cfg.key_file == "certs/server.key");
+  CHECK(cfg.ca_file == "certs/ca.crt");
+  std::cout << cfg.cert_file << std::endl;
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
