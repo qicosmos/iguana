@@ -176,6 +176,11 @@ std::integral_constant<size_t, 3> member_count(inner_struct);
 
 }  // namespace my_space
 
+struct Foo {
+  std::vector<std::tuple<int, std::string>> i;
+};
+YLT_REFL(Foo, i);
+
 struct nest_t {
   std::string name;
   my_space::inner_struct value;
@@ -183,6 +188,21 @@ struct nest_t {
   std::variant<int, std::string, my_space::inner_struct> var2;
 };
 YLT_REFL(nest_t, name, value, var, var2);
+
+TEST_CASE("test vector tuple") {
+  Foo f;
+  f.i.emplace_back(1, "2");
+  f.i.emplace_back(3, "4");
+  std::string json_str;
+  iguana::to_json(f, json_str);
+  std::cout << "Serialized: " << json_str << " \n";
+  CHECK(!json_str.empty());
+
+  Foo loaded_config;
+  iguana::from_json(loaded_config, json_str);
+
+  CHECK(loaded_config.i == f.i);
+}
 
 TEST_CASE("test throw while parsing an illegal number") {
 #if defined(__clang__) || defined(_MSC_VER) || \

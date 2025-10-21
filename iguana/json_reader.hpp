@@ -17,6 +17,11 @@ template <typename T, typename View,
 IGUANA_INLINE void from_json(T &value, const View &view);
 
 namespace detail {
+template <typename U, typename It, std::enable_if_t<optional_v<U>, int> = 0>
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end);
+
+template <typename U, typename It, std::enable_if_t<tuple_v<U>, int> = 0>
+IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end);
 
 template <typename U, typename It,
           std::enable_if_t<sequence_container_v<U>, int> = 0>
@@ -423,7 +428,7 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   }
 }
 
-template <typename U, typename It, std::enable_if_t<tuple_v<U>, int> = 0>
+template <typename U, typename It, std::enable_if_t<tuple_v<U>, int>>
 IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   skip_ws(it, end);
   match<'['>(it, end);
@@ -447,11 +452,9 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   match<']'>(it, end);
 }
 
-template <typename U, typename It, std::enable_if_t<optional_v<U>, int> = 0>
+template <typename U, typename It, std::enable_if_t<optional_v<U>, int>>
 IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   skip_ws(it, end);
-  if (it < end && *it == '"')
-    IGUANA_LIKELY { ++it; }
   using T = std::remove_reference_t<U>;
   if (it == end)
     IGUANA_UNLIKELY { throw std::runtime_error("Unexexpected eof"); }
@@ -469,6 +472,8 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
     using value_type = typename T::value_type;
     value_type t;
     if constexpr (string_v<value_type> || string_view_v<value_type>) {
+      if (it < end && *it == '"')
+        IGUANA_LIKELY { ++it; }
       from_json_impl<true>(t, it, end);
     }
     else {

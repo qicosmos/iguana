@@ -368,12 +368,17 @@ YLT_REFL(simple2, color, id, str, age);
 TEST_CASE("test macros") {
   static_assert(!std::is_aggregate_v<simple2>);
   simple2 t{2, 10, "hello reflection", 6};
-#ifdef __GNUC__
+
   constexpr auto idx = index_of<&simple2::age>();
   static_assert(idx == 3);
   constexpr auto idx2 = index_of<&simple2::id>();
   static_assert(idx2 == 1);
-#endif
+
+  auto i = index_of(&simple::id);
+  CHECK(i == 1);
+  i = index_of(&simple::age);
+  CHECK(i == 3);
+
   constexpr auto arr = get_member_names<simple2>();
   static_assert(arr.size() == 4);
   constexpr auto map = member_names_map<simple2>;
@@ -524,6 +529,59 @@ TEST_CASE("test visit private") {
   auto id = bank.*(std::get<0>(tp));    // 1
   auto name = bank.*(std::get<1>(tp));  // ok
   std::cout << id << ", " << name << "\n";
+}
+
+namespace test_type_string {
+struct struct_test {};
+class class_test {};
+union union_test {};
+}  // namespace test_type_string
+TEST_CASE("test type_string") {
+  CHECK(type_string<int>() == "int");
+  CHECK(type_string<const int>() == "const int");
+  CHECK(type_string<volatile int>() == "volatile int");
+#if defined(__clang__)
+  CHECK(type_string<int&>() == "int &");
+  CHECK(type_string<int&&>() == "int &&");
+  CHECK(type_string<const int&>() == "const int &");
+  CHECK(type_string<const int&&>() == "const int &&");
+  CHECK(type_string<volatile int&>() == "volatile int &");
+  CHECK(type_string<volatile int&&>() == "volatile int &&");
+#else
+  CHECK(type_string<int&>() == "int&");
+  CHECK(type_string<int&&>() == "int&&");
+  CHECK(type_string<const int&>() == "const int&");
+  CHECK(type_string<const int&&>() == "const int&&");
+  CHECK(type_string<volatile int&>() == "volatile int&");
+  CHECK(type_string<volatile int&&>() == "volatile int&&");
+#endif
+#if defined(_MSC_VER) && !defined(__clang__)
+  CHECK(type_string<test_type_string::struct_test>() ==
+        "test_type_string::struct_test");
+  CHECK(type_string<const test_type_string::struct_test>() ==
+        "const struct test_type_string::struct_test");
+  CHECK(type_string<test_type_string::class_test>() ==
+        "test_type_string::class_test");
+  CHECK(type_string<const test_type_string::class_test>() ==
+        "const class test_type_string::class_test");
+  CHECK(type_string<test_type_string::union_test>() ==
+        "test_type_string::union_test");
+  CHECK(type_string<const test_type_string::union_test>() ==
+        "const union test_type_string::union_test");
+#else
+  CHECK(type_string<test_type_string::struct_test>() ==
+        "test_type_string::struct_test");
+  CHECK(type_string<const test_type_string::struct_test>() ==
+        "const test_type_string::struct_test");
+  CHECK(type_string<test_type_string::class_test>() ==
+        "test_type_string::class_test");
+  CHECK(type_string<const test_type_string::class_test>() ==
+        "const test_type_string::class_test");
+  CHECK(type_string<test_type_string::union_test>() ==
+        "test_type_string::union_test");
+  CHECK(type_string<const test_type_string::union_test>() ==
+        "const test_type_string::union_test");
+#endif
 }
 
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
