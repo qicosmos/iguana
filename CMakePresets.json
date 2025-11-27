@@ -1,0 +1,20 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "dev",
+      "displayName": "iguana dev",
+      "description": "Build iguana in ./build",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_CXX_STANDARD": "17",
+        "BUILD_UNIT_TESTS": "ON",
+        "ENABLE_SEQUENTIAL_PARSE": "OFF",
+        "HAS_RAPIDJSON": "OFF",
+        "HAS_RAPIDYAML": "OFF",
+        "COVERAGE_TEST": "OFF",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    }
+  ]
+}
