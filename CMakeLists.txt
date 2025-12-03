@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.15)
+cmake_minimum_required(VERSION 3.5)
 project(iguana)
 
 message(STATUS "C++ Compiler Version: ${CMAKE_CXX_COMPILER_VERSION}")
