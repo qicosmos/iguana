@@ -34,3 +34,5 @@ build
 cmake-*
 .cache
 .vs/
+CMakeUserPresets.json
+/CMakeSettings.json
