@@ -33,3 +33,6 @@ build
 .idea
 cmake-*
 .cache
+.vs/
+CMakeUserPresets.json
+/CMakeSettings.json
