@@ -95,6 +95,13 @@ TEST_CASE("test parse item array_t") {
     CHECK(test[0] == 1);
     CHECK(test[1] == -222);
   }
+  {
+    // test negative char in number
+    std::string str{"[1, -222]"};
+    str[str.size() - 3] = -10;
+    std::array<int, 2> test;
+    CHECK_THROWS(iguana::from_json(test, str.begin(), str.end()));
+  }
 #if __cplusplus > 201703L
 #if __has_include(<span>)
   {
