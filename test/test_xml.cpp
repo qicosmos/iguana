@@ -839,6 +839,17 @@ TEST_CASE("test escape") {
     text_attr_type text;
     CHECK_THROWS(iguana::from_xml(text, str));
   }
+  {
+    // Invalid unicode codepoint
+    std::string str = R"(
+    <text_t description="&quot;&lt;'&#x5c0f;&#24378;'&gt;&quot;">
+      <ID ID'msg='{"msg&apos;reply": "it&apos;s ok"}'>&amp;&lt;&gt;</ID>
+      <DisplayName>&#x5c0f;&#2147483859;</DisplayName>
+    </text_t>
+    )";
+    text_attr_type text;
+    CHECK_THROWS(iguana::from_xml(text, str));
+  }
 }
 
 // doctest comments
