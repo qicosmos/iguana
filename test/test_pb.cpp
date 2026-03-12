@@ -833,6 +833,89 @@ TEST_CASE("test variant") {
     CHECK(std::get<double>(st2.y) == 3.88);
   }
 }
+// hand-written get_members_impl
+struct Person362 {
+  std::string name;
+  int32_t age;
+  std::vector<std::string> emails;
+};
+inline auto get_members_impl(Person362 *) {
+  return std::make_tuple(
+      iguana::build_pb_field<&Person362::name, 10>("name"),
+      iguana::build_pb_field<&Person362::age, 20>("age"),
+      iguana::build_pb_field<&Person362::emails, 9>("emails"));
+}
+YLT_REFL(Person362, name, age, emails);
+
+// YLT_REFL_PB macro
+struct Person362Macro {
+  std::string name;
+  int32_t age;
+  std::vector<std::string> emails;
+};
+YLT_REFL_PB(Person362Macro, (name, 10), (age, 20), (emails, 9));
+
+TEST_CASE("test issue 362 custom field numbers") {
+  {
+    std::string str;
+    iguana::to_proto<Person362>(str, "Demo");
+    std::cout << str;
+    CHECK(str.find("syntax = \"proto3\";") != std::string::npos);
+    CHECK(str.find("package Demo;") != std::string::npos);
+    CHECK(str.find("message Person362") != std::string::npos);
+    CHECK(str.find("name = 10;") != std::string::npos);
+    CHECK(str.find("age = 20;") != std::string::npos);
+    CHECK(str.find("emails = 9;") != std::string::npos);
+
+    Person362 p1{"Alice", 30, {"a@b.com", "c@d.com"}};
+    std::string buf;
+    iguana::to_pb(p1, buf);
+    Person362 p2;
+    iguana::from_pb(p2, buf);
+    CHECK(p2.name == p1.name);
+    CHECK(p2.age == p1.age);
+    CHECK(p2.emails == p1.emails);
+
+    std::string json;
+    iguana::to_json(p1, json);
+    CHECK(json.find("\"name\"") != std::string::npos);
+    CHECK(json.find("\"age\"") != std::string::npos);
+  }
+
+  // ── Method 2: YLT_REFL_PB macro ──
+  {
+    std::string str;
+    iguana::to_proto<Person362Macro>(str, "Demo");
+    std::cout << str;
+    CHECK(str.find("syntax = \"proto3\";") != std::string::npos);
+    CHECK(str.find("package Demo;") != std::string::npos);
+    CHECK(str.find("message Person362Macro") != std::string::npos);
+    CHECK(str.find("name = 10;") != std::string::npos);
+    CHECK(str.find("age = 20;") != std::string::npos);
+    CHECK(str.find("emails = 9;") != std::string::npos);
+
+    Person362Macro p1{"Bob", 25, {"x@y.com"}};
+    std::string buf;
+    iguana::to_pb(p1, buf);
+    Person362Macro p2;
+    iguana::from_pb(p2, buf);
+    CHECK(p2.name == p1.name);
+    CHECK(p2.age == p1.age);
+    CHECK(p2.emails == p1.emails);
+
+    std::string json;
+    iguana::to_json(p1, json);
+    CHECK(json.find("\"name\"") != std::string::npos);
+    CHECK(json.find("\"age\"") != std::string::npos);
+
+    Person362 q1{"Bob", 25, {"x@y.com"}};
+    std::string buf1, buf2;
+    iguana::to_pb(q1, buf1);
+    iguana::to_pb(p1, buf2);
+    CHECK(buf1 == buf2);
+  }
+}
+
 #endif
 
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)

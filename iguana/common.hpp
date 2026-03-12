@@ -214,15 +214,15 @@ inline auto build_pb_fields(const Array& offset_arr,
 template <typename T>
 inline auto get_pb_members_tuple(T&& t) {
   using U = ylt::reflection::remove_cvref_t<T>;
-  if constexpr (ylt_refletable_v<U>) {
+  if constexpr (is_custom_reflection_v<U>) {
+    return get_members_impl((U*)nullptr);
+  }
+  else if constexpr (ylt_refletable_v<U>) {
     static auto& offset_arr = ylt::reflection::internal::get_member_offset_arr(
         ylt::reflection::internal::wrapper<U>::value);
     using Tuple = decltype(ylt::reflection::object_to_tuple(std::declval<U>()));
     return build_pb_fields<Tuple, T>(
         offset_arr, std::make_index_sequence<std::tuple_size_v<Tuple>>{});
-  }
-  else if constexpr (is_custom_reflection_v<U>) {
-    return get_members_impl((U*)nullptr);
   }
   else {
     static_assert(!sizeof(T), "not a reflectable type");
@@ -243,6 +243,7 @@ inline auto get_members(T&& t) {
     static_assert(!sizeof(T), "expected reflection or custom reflection");
   }
 }
+
 }  // namespace detail
 
 template <typename T>

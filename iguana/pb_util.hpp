@@ -586,5 +586,77 @@ IGUANA_INLINE size_t pb_value_size(Type&& t, uint32_t*& sz_ptr) {
   }
 }
 
+// YLT_REFL_PB implementation
+template <typename>
+struct pb_field_no;
+
+template <typename Owner, typename Value, size_t FieldNo, typename ElementType>
+struct pb_field_no<pb_field_t<Owner, Value, FieldNo, ElementType>> {
+  static constexpr size_t value = FieldNo;
+};
+
+template <typename T, size_t... I>
+inline auto build_pb_members_impl(
+    const std::array<size_t, sizeof...(I)>& offset_arr,
+    std::index_sequence<I...>) {
+  using Tuple = decltype(ylt::reflection::object_to_tuple(std::declval<T>()));
+  constexpr auto names = ylt::reflection::get_member_names<T>();
+  constexpr auto numbers = get_pb_field_numbers((T*)nullptr);
+  return std::tuple_cat(
+      build_pb_fields_impl<T, numbers[I] - 1, std::tuple_element_t<I, Tuple>>(
+          offset_arr[I], names[I])...);
+}
+
+template <typename Tuple, size_t... I>
+constexpr bool has_duplicate_field_nos(std::index_sequence<I...>) {
+  constexpr size_t nos[] = {
+      pb_field_no<std::tuple_element_t<I, Tuple>>::value...};
+  constexpr size_t N = sizeof...(I);
+  for (size_t i = 0; i < N; ++i)
+    for (size_t j = i + 1; j < N; ++j)
+      if (nos[i] == nos[j])
+        return true;
+  return false;
+}
+
+template <typename T>
+inline auto build_pb_members() {
+  using Tuple = decltype(ylt::reflection::object_to_tuple(std::declval<T>()));
+  constexpr size_t N = std::tuple_size_v<Tuple>;
+  static auto& offset_arr = ylt::reflection::internal::get_member_offset_arr(
+      ylt::reflection::internal::wrapper<T>::value);
+
+  auto res =
+      build_pb_members_impl<T>(offset_arr, std::make_index_sequence<N>{});
+  using ResultTuple = decltype(res);
+  constexpr size_t M = std::tuple_size_v<ResultTuple>;
+  static_assert(
+      !has_duplicate_field_nos<ResultTuple>(std::make_index_sequence<M>{}),
+      "YLT_REFL_PB: duplicate proto field numbers detected");
+  return res;
+}
+
+#define YLT_REFL_PB(STRUCT, ...)                                      \
+  IGUANA_PB_YLT_REFL_FWD(                                             \
+      STRUCT, WRAP_ARGS(IGUANA_PB_FIELD_NAME, unused, ##__VA_ARGS__)) \
+  inline constexpr auto get_pb_field_numbers(STRUCT*) {               \
+    return std::array<size_t, YLT_ARG_COUNT(__VA_ARGS__)>{            \
+        WRAP_ARGS(IGUANA_PB_FIELD_NO, unused, ##__VA_ARGS__)};        \
+  }                                                                   \
+  inline auto get_members_impl(STRUCT*) {                             \
+    return iguana::detail::build_pb_members<STRUCT>();                \
+  }
+
+#define IGUANA_PB_GET_FIELD_(field, no) field
+#define IGUANA_PB_GET_FIELD(pair) IGUANA_PB_GET_FIELD_ pair
+
+#define IGUANA_PB_GET_NO_(field, no) no
+#define IGUANA_PB_GET_NO(pair) IGUANA_PB_GET_NO_ pair
+
+#define IGUANA_PB_FIELD_NAME(unused, pair) IGUANA_PB_GET_FIELD(pair)
+#define IGUANA_PB_FIELD_NO(unused, pair) (size_t) IGUANA_PB_GET_NO(pair)
+
+#define IGUANA_PB_YLT_REFL_FWD(STRUCT, ...) YLT_REFL(STRUCT, __VA_ARGS__)
+
 }  // namespace detail
 }  // namespace iguana
