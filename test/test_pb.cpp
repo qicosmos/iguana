@@ -916,6 +916,168 @@ TEST_CASE("test issue 362 custom field numbers") {
   }
 }
 
+// fix bug: missing continuation bit when encoding large filed number
+struct large_field_number_test {
+  int32_t value;
+};
+YLT_REFL_PB(large_field_number_test, (value, 128));
+
+TEST_CASE("test for big filed number") {
+  large_field_number_test st{300};
+  std::string buf;
+  iguana::to_pb(st, buf);
+  large_field_number_test st2;
+  iguana::from_pb(st2, buf);
+  CHECK(st2.value == 300);
+}
+
+// Forward compatibility
+struct fc_old {
+  int32_t x;
+  std::string tag;
+};
+YLT_REFL_PB(fc_old, (x, 2), (tag, 8));
+
+// WireType::Varint — int32, int64, bool, sint32, sint64
+struct fc_new_int32 {
+  int32_t x;
+  int32_t extra;
+  std::string tag;
+};
+struct fc_new_int64 {
+  int32_t x;
+  int64_t extra;
+  std::string tag;
+};
+struct fc_new_bool {
+  int32_t x;
+  bool extra;
+  std::string tag;
+};
+struct fc_new_sint32 {
+  int32_t x;
+  iguana::sint32_t extra;
+  std::string tag;
+};
+struct fc_new_sint64 {
+  int32_t x;
+  iguana::sint64_t extra;
+  std::string tag;
+};
+YLT_REFL_PB(fc_new_int32, (x, 2), (extra, 4), (tag, 8));
+YLT_REFL_PB(fc_new_int64, (x, 2), (extra, 4), (tag, 8));
+YLT_REFL_PB(fc_new_bool, (x, 2), (extra, 4), (tag, 8));
+YLT_REFL_PB(fc_new_sint32, (x, 2), (extra, 4), (tag, 8));
+YLT_REFL_PB(fc_new_sint64, (x, 2), (extra, 4), (tag, 8));
+
+// WireType::Fixed32 — float, fixed32_t, sfixed32_t
+struct fc_new_float {
+  int32_t x;
+  float extra;
+  std::string tag;
+};
+struct fc_new_fixed32 {
+  int32_t x;
+  iguana::fixed32_t extra;
+  std::string tag;
+};
+struct fc_new_sfixed32 {
+  int32_t x;
+  iguana::sfixed32_t extra;
+  std::string tag;
+};
+YLT_REFL_PB(fc_new_float, (x, 2), (extra, 4), (tag, 8));
+YLT_REFL_PB(fc_new_fixed32, (x, 2), (extra, 4), (tag, 8));
+YLT_REFL_PB(fc_new_sfixed32, (x, 2), (extra, 4), (tag, 8));
+
+// WireType::Fixed64 — double, fixed64_t, sfixed64_t
+struct fc_new_double {
+  int32_t x;
+  double extra;
+  std::string tag;
+};
+struct fc_new_fixed64 {
+  int32_t x;
+  iguana::fixed64_t extra;
+  std::string tag;
+};
+struct fc_new_sfixed64 {
+  int32_t x;
+  iguana::sfixed64_t extra;
+  std::string tag;
+};
+YLT_REFL_PB(fc_new_double, (x, 2), (extra, 4), (tag, 8));
+YLT_REFL_PB(fc_new_fixed64, (x, 2), (extra, 4), (tag, 8));
+YLT_REFL_PB(fc_new_sfixed64, (x, 2), (extra, 4), (tag, 8));
+
+// WireType::LengthDelimited — string, packed vector, nested message
+struct fc_inner {
+  int32_t v;
+};
+YLT_REFL(fc_inner, v);
+struct fc_new_string {
+  int32_t x;
+  std::string extra;
+  std::string tag;
+};
+struct fc_new_vec {
+  int32_t x;
+  std::vector<int32_t> extra;
+  std::string tag;
+};
+struct fc_new_msg {
+  int32_t x;
+  fc_inner extra;
+  std::string tag;
+};
+YLT_REFL_PB(fc_new_string, (x, 2), (extra, 4), (tag, 8));
+YLT_REFL_PB(fc_new_vec, (x, 2), (extra, 4), (tag, 8));
+YLT_REFL_PB(fc_new_msg, (x, 2), (extra, 4), (tag, 8));
+
+// variant (oneof) as unknown field — wire type follows the active alternative
+struct fc_new_variant {
+  int32_t x;
+  std::variant<int32_t, double> extra;
+  std::string tag;
+};
+YLT_REFL_PB(fc_new_variant, (x, 2), (extra, 4), (tag, 8));
+
+// Helper: serialize New → deserialize with fc_old → verify retained fields
+template <typename New>
+static void check_fc(const New &src) {
+  std::string buf;
+  iguana::to_pb(src, buf);
+  fc_old obj{};
+  REQUIRE_NOTHROW(iguana::from_pb(obj, buf));
+  CHECK(obj.x == src.x);
+  CHECK(obj.tag == src.tag);
+}
+
+TEST_CASE("forward compatibility - skip unknown fields of all wire types") {
+  // Varint
+  check_fc(fc_new_int32{42, 99, "hello"});
+  check_fc(fc_new_int64{42, 9999999999LL, "hello"});
+  check_fc(fc_new_bool{42, true, "hello"});
+  check_fc(fc_new_sint32{42, iguana::sint32_t{-7}, "hello"});
+  check_fc(fc_new_sint64{42, iguana::sint64_t{-100}, "hello"});
+  // Fixed32
+  check_fc(fc_new_float{42, 3.14f, "hello"});
+  check_fc(fc_new_fixed32{42, iguana::fixed32_t{0xDEADBEEFu}, "hello"});
+  check_fc(fc_new_sfixed32{42, iguana::sfixed32_t{-1}, "hello"});
+  // Fixed64
+  check_fc(fc_new_double{42, 3.14159265358979, "hello"});
+  check_fc(fc_new_fixed64{42, iguana::fixed64_t{0xCAFEBABEu}, "hello"});
+  check_fc(fc_new_sfixed64{42, iguana::sfixed64_t{-999}, "hello"});
+  // LengthDelimited
+  check_fc(fc_new_string{42, "unknown_data", "hello"});
+  check_fc(fc_new_vec{42, {1, 2, 3, 4, 5}, "hello"});
+  check_fc(fc_new_msg{42, {7}, "hello"});
+  // variant (oneof) — active = int32 (Varint)
+  check_fc(fc_new_variant{42, int32_t{55}, "hello"});
+  // variant (oneof) — active = double (Fixed64)
+  check_fc(fc_new_variant{42, double{2.718}, "hello"});
+}
+
 #endif
 
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)

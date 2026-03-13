@@ -188,6 +188,40 @@ IGUANA_INLINE void parse_oneof(T& t, const Field& f, std::string_view& pb_str) {
   using item_type = typename std::decay_t<Field>::sub_type;
   from_pb_impl(t.template emplace<item_type>(), pb_str, f.field_no);
 }
+
+// pb_str must already point past the field tag varint.
+IGUANA_INLINE void skip_unknown_field(std::string_view& pb_str,
+                                      WireType wire_type) {
+  switch (wire_type) {
+    case WireType::Varint: {
+      size_t skip_pos = 0;
+      decode_varint(pb_str, skip_pos);
+      pb_str = pb_str.substr(skip_pos);
+      break;
+    }
+    case WireType::Fixed64:
+      if (pb_str.size() < 8)
+        throw std::invalid_argument("unknown Fixed64 field: too few bytes");
+      pb_str = pb_str.substr(8);
+      break;
+    case WireType::LengthDelimeted: {
+      size_t skip_pos = 0;
+      uint64_t len = decode_varint(pb_str, skip_pos);
+      if (pb_str.size() < skip_pos + len)
+        throw std::invalid_argument(
+            "unknown LengthDelimited field: too few bytes");
+      pb_str = pb_str.substr(skip_pos + len);
+      break;
+    }
+    case WireType::Fixed32:
+      if (pb_str.size() < 4)
+        throw std::invalid_argument("unknown Fixed32 field: too few bytes");
+      pb_str = pb_str.substr(4);
+      break;
+    default:
+      throw std::runtime_error("unknown wire type in unknown field");
+  }
+}
 }  // namespace detail
 
 template <typename T>
@@ -237,25 +271,32 @@ IGUANA_INLINE void from_pb(T& t, std::string_view pb_str) {
   if (parse_done)
     IGUANA_LIKELY { return; }
 #endif
+  static auto map = detail::get_members(t);
   while (true) {
     pb_str = pb_str.substr(pos);
-    static auto map = detail::get_members(std::forward<T>(t));
-    auto& member = map.at(field_number);
-    std::visit(
-        [&t, &pb_str, wire_type](auto& val) {
-          using sub_type = typename std::decay_t<decltype(val)>::sub_type;
-          using value_type = typename std::decay_t<decltype(val)>::value_type;
-          if (wire_type != detail::get_wire_type<sub_type>()) {
-            throw std::runtime_error("unmatched wire_type");
-          }
-          if constexpr (variant_v<value_type>) {
-            detail::parse_oneof(val.value(t), val, pb_str);
-          }
-          else {
-            detail::from_pb_impl(val.value(t), pb_str, val.field_no);
-          }
-        },
-        member);
+    auto it = map.find(field_number);
+    if (it == map.end()) {
+      // Unknown field: skip according to wire type (proto3 forward compat)
+      detail::skip_unknown_field(pb_str, wire_type);
+    }
+    else {
+      auto& member = it->second;
+      std::visit(
+          [&t, &pb_str, wire_type](auto& val) {
+            using sub_type = typename std::decay_t<decltype(val)>::sub_type;
+            using value_type = typename std::decay_t<decltype(val)>::value_type;
+            if (wire_type != detail::get_wire_type<sub_type>()) {
+              throw std::runtime_error("unmatched wire_type");
+            }
+            if constexpr (variant_v<value_type>) {
+              detail::parse_oneof(val.value(t), val, pb_str);
+            }
+            else {
+              detail::from_pb_impl(val.value(t), pb_str, val.field_no);
+            }
+          },
+          member);
+    }
     if (!pb_str.empty())
       IGUANA_LIKELY {
         key = detail::decode_varint(pb_str, pos);
