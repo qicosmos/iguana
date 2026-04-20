@@ -355,7 +355,8 @@ TEST_CASE("test null string field - json null to std::string yields empty") {
   // nested struct
   {
     inner_t obj;
-    iguana::from_json(obj, std::string_view{R"({"body": null, "title": "PR title"})"});
+    iguana::from_json(
+        obj, std::string_view{R"({"body": null, "title": "PR title"})"});
     CHECK(obj.body.empty());
     CHECK(obj.title == "PR title");
   }
