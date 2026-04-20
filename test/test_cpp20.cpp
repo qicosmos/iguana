@@ -335,8 +335,13 @@ TEST_CASE("test null string field - json null to std::string yields empty") {
     std::string body;
     std::string title;
   };
+  struct mixed_t {
+    std::string s;
+    int i = 99;
+    bool b = true;
+  };
 
-  // null field in object
+  // null string field
   {
     obj_t obj;
     iguana::from_json(obj, std::string_view{R"({"name": null, "value": 42})"});
@@ -359,6 +364,15 @@ TEST_CASE("test null string field - json null to std::string yields empty") {
         obj, std::string_view{R"({"body": null, "title": "PR title"})"});
     CHECK(obj.body.empty());
     CHECK(obj.title == "PR title");
+  }
+  // null int and bool fields keep default values
+  {
+    mixed_t obj;
+    iguana::from_json(
+        obj, std::string_view{R"({"s": "hi", "i": null, "b": null})"});
+    CHECK(obj.s == "hi");
+    CHECK(obj.i == 99);
+    CHECK(obj.b == true);
   }
 }
 
