@@ -190,6 +190,13 @@ template <bool skip = false, typename U, typename It,
 IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   if constexpr (!skip) {
     skip_ws(it, end);
+    // handle JSON null: leave value empty and skip "null"
+    if (it != end && *it == 'n') {
+      ++it;
+      match<'u', 'l', 'l'>(it, end);
+      value.clear();
+      return;
+    }
     match<'"'>(it, end);
   }
   value.clear();
