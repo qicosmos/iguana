@@ -326,6 +326,56 @@ TEST_CASE("test cpp20") {
 }
 #endif
 
+TEST_CASE("test null string field - json null to std::string yields empty") {
+  struct obj_t {
+    std::string name;
+    int value = 0;
+  };
+  struct inner_t {
+    std::string body;
+    std::string title;
+  };
+  struct mixed_t {
+    std::string s;
+    int i = 99;
+    bool b = true;
+  };
+
+  // null string field
+  {
+    obj_t obj;
+    iguana::from_json(obj, std::string_view{R"({"name": null, "value": 42})"});
+    CHECK(obj.name.empty());
+    CHECK(obj.value == 42);
+  }
+  // null in array of strings
+  {
+    std::vector<std::string> v;
+    iguana::from_json(v, std::string_view{R"(["hello", null, "world"])"});
+    CHECK(v.size() == 3);
+    CHECK(v[0] == "hello");
+    CHECK(v[1].empty());
+    CHECK(v[2] == "world");
+  }
+  // nested struct
+  {
+    inner_t obj;
+    iguana::from_json(
+        obj, std::string_view{R"({"body": null, "title": "PR title"})"});
+    CHECK(obj.body.empty());
+    CHECK(obj.title == "PR title");
+  }
+  // null int and bool fields keep default values
+  {
+    mixed_t obj;
+    iguana::from_json(obj,
+                      std::string_view{R"({"s": "hi", "i": null, "b": null})"});
+    CHECK(obj.s == "hi");
+    CHECK(obj.i == 99);
+    CHECK(obj.b == true);
+  }
+}
+
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
 int main(int argc, char** argv) { return doctest::Context(argc, argv).run(); }
 DOCTEST_MSVC_SUPPRESS_WARNING_POP

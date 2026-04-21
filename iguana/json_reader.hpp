@@ -81,6 +81,11 @@ IGUANA_INLINE void parse_escape(U &value, It &&it, It &&end) {
 template <typename U, typename It, std::enable_if_t<num_v<U>, int> = 0>
 IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   skip_ws(it, end);
+  if (it != end && *it == 'n') {
+    ++it;
+    match<'u', 'l', 'l'>(it, end);
+    return;
+  }
   if constexpr (contiguous_iterator<std::decay_t<It>>) {
     const auto size = std::distance(it, end);
     if (size == 0)
@@ -177,6 +182,10 @@ IGUANA_INLINE void from_json_impl(U &&value, It &&it, It &&end) {
           match<'a', 'l', 's', 'e'>(it, end);
           value = false;
           break;
+        case 'n':
+          ++it;
+          match<'u', 'l', 'l'>(it, end);
+          break;
           IGUANA_UNLIKELY default
               : throw std::runtime_error("Expected true or false");
       }
@@ -190,6 +199,13 @@ template <bool skip = false, typename U, typename It,
 IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   if constexpr (!skip) {
     skip_ws(it, end);
+    // handle JSON null: leave value empty and skip "null"
+    if (it != end && *it == 'n') {
+      ++it;
+      match<'u', 'l', 'l'>(it, end);
+      value.clear();
+      return;
+    }
     match<'"'>(it, end);
   }
   value.clear();
