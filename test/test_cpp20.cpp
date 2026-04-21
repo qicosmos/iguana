@@ -368,8 +368,8 @@ TEST_CASE("test null string field - json null to std::string yields empty") {
   // null int and bool fields keep default values
   {
     mixed_t obj;
-    iguana::from_json(
-        obj, std::string_view{R"({"s": "hi", "i": null, "b": null})"});
+    iguana::from_json(obj,
+                      std::string_view{R"({"s": "hi", "i": null, "b": null})"});
     CHECK(obj.s == "hi");
     CHECK(obj.i == 99);
     CHECK(obj.b == true);
