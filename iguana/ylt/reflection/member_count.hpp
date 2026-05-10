@@ -11,6 +11,7 @@
 #include "iguana/ylt/util/expected.hpp"
 #endif
 
+#include "std_meta.hpp"
 #include "user_reflect_macro.hpp"
 namespace struct_pack {
 template <typename T, uint64_t version>
@@ -177,6 +178,9 @@ inline constexpr std::size_t members_count() {
   }
   else if constexpr (internal::tuple_size<type>) {
     return std::tuple_size<type>::value;
+  }
+  else if constexpr (std_meta::reflectable_v<type>) {
+    return std_meta::member_count<type>();
   }
   else if constexpr (std::is_aggregate_v<type>) {
     return internal::members_count_impl<type>();

@@ -101,8 +101,14 @@ inline constexpr decltype(auto) tuple_view(T&& t, Visitor&& visitor) {
 
 template <class T>
 inline constexpr auto struct_to_tuple() {
-  return internal::object_tuple_view_helper<T,
-                                            members_count_v<T>>::tuple_view();
+  using type = remove_cvref_t<T>;
+  if constexpr (std_meta::reflectable_v<type>) {
+    return std_meta::member_ptr_tuple(internal::wrapper<type>::value);
+  }
+  else {
+    return internal::object_tuple_view_helper<T,
+                                              members_count_v<T>>::tuple_view();
+  }
 }
 
 template <class T>
@@ -113,6 +119,9 @@ inline constexpr auto object_to_tuple(T&& t) {
   }
   else if constexpr (is_inner_ylt_refl_v<type>) {
     return type::refl_object_to_tuple(std::forward<T>(t));
+  }
+  else if constexpr (std_meta::reflectable_v<type>) {
+    return std_meta::object_to_tuple(std::forward<T>(t));
   }
   else {
     return internal::tuple_view(std::forward<T>(t));
@@ -129,6 +138,10 @@ inline constexpr decltype(auto) visit_members(T&& t, Visitor&& visitor) {
   else if constexpr (is_inner_ylt_refl_v<type>) {
     return t.refl_visit_members(std::forward<T>(t),
                                 std::forward<Visitor>(visitor));
+  }
+  else if constexpr (std_meta::reflectable_v<type>) {
+    return std_meta::visit_members(std::forward<T>(t),
+                                   std::forward<Visitor>(visitor));
   }
   else {
     return internal::tuple_view<Count>(std::forward<T>(t),

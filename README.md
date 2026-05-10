@@ -50,6 +50,18 @@ YLT_REFL(person, name, age) //define meta data
 
 Defining meta data is very simple, if your compiler is C++20 compiler(gcc11+, clang13+, msvc2022), no need define YLT_REFL, other wise need to define in a `YLT_REFL` macro.
 
+With GCC 16 or newer, iguana can also use the experimental C++26
+`std::meta` reflection backend. Enable it explicitly when configuring CMake:
+
+```bash
+cmake -S . -B build -DCMAKE_CXX_COMPILER=g++ -DIGUANA_ENABLE_CXX26_REFLECTION=ON
+```
+
+This sets C++26 mode and adds `-freflection`. The backend is experimental and
+currently targets public aggregate/class data members; `YLT_REFL` and
+`YLT_REFL_PRIVATE` remain available for older compilers, aliases, protobuf
+metadata, and private fields.
+
 Now let's serialize `person` to `json` string.
 
 ```c++
