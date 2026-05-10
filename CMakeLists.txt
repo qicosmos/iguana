@@ -3,6 +3,9 @@ project(iguana)
 
 message(STATUS "C++ Compiler Version: ${CMAKE_CXX_COMPILER_VERSION}")
 
+option(IGUANA_ENABLE_CXX26_REFLECTION
+    "Enable the experimental GCC 16 C++26 std::meta reflection backend" OFF)
+
 if(MSVC)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
 add_compile_options(/utf-8)
@@ -26,6 +29,20 @@ set(IGUANA_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(NOT CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 17)
+endif()
+
+if(IGUANA_ENABLE_CXX26_REFLECTION)
+    if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        message(FATAL_ERROR "IGUANA_ENABLE_CXX26_REFLECTION requires GCC 16 or newer")
+    endif()
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 16)
+        message(FATAL_ERROR "IGUANA_ENABLE_CXX26_REFLECTION requires GCC 16 or newer")
+    endif()
+
+    set(CMAKE_CXX_STANDARD 26)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    add_definitions(-DIGUANA_ENABLE_CXX26_REFLECTION)
+    add_compile_options(-freflection)
 endif()
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -118,6 +135,10 @@ else()
     add_executable(test_reflection test/test_reflection.cpp)
 endif()
 
+if (IGUANA_ENABLE_CXX26_REFLECTION)
+    add_executable(test_cxx26_reflection test/test_cxx26_reflection.cpp)
+endif()
+
 
 find_package(Protobuf QUIET)
 if(Protobuf_FOUND)
@@ -171,3 +192,6 @@ add_test(NAME test_util COMMAND test_util)
 add_test(NAME test_xml_nothrow COMMAND test_xml_nothrow)
 add_test(NAME test_pb COMMAND test_pb)
 add_test(NAME test_cpp20 COMMAND test_cpp20)
+if (IGUANA_ENABLE_CXX26_REFLECTION)
+    add_test(NAME test_cxx26_reflection COMMAND test_cxx26_reflection)
+endif()
