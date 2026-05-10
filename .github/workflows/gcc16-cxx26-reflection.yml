@@ -1,0 +1,47 @@
+name: GCC 16 C++26 reflection
+
+on:
+  push:
+    branches: [ master, struct_pb ]
+  pull_request:
+    branches: [ master, struct_pb ]
+
+jobs:
+  gcc16_cxx26_reflection:
+    strategy:
+      matrix:
+        mode: [ Debug, Release ]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: check out
+      uses: actions/checkout@v4
+
+    - name: build and test with GCC 16
+      run: |
+        docker run --rm \
+          -v "${{ github.workspace }}:/workspace" \
+          -w /workspace \
+          gcc:16 \
+          bash -lc '
+            set -euo pipefail
+            apt-get update
+            apt-get install -y cmake ninja-build
+            gcc --version
+            g++ --version
+            printf "%s\n" \
+              "#include <meta>" \
+              "static_assert(__cpp_impl_reflection >= 202603L);" \
+              "static_assert(__cpp_lib_reflection >= 202603L);" \
+              "int main() {}" \
+              > /tmp/reflection_smoke.cpp
+            g++ -std=c++26 -freflection /tmp/reflection_smoke.cpp -o /tmp/reflection_smoke
+            cmake -S . -B build-gcc16-cxx26-reflection -G Ninja \
+              -DCMAKE_BUILD_TYPE=${{ matrix.mode }} \
+              -DCMAKE_C_COMPILER=gcc \
+              -DCMAKE_CXX_COMPILER=g++ \
+              -DIGUANA_ENABLE_CXX26_REFLECTION=ON
+            cmake --build build-gcc16-cxx26-reflection --target test_cxx26_reflection
+            cd build-gcc16-cxx26-reflection
+            ctest -C ${{ matrix.mode }} -R test_cxx26_reflection --output-on-failure -V
+          '
