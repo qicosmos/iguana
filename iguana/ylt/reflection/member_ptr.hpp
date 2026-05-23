@@ -111,7 +111,7 @@ inline constexpr auto struct_to_tuple() {
   static constexpr auto members =
       std::define_static_array(reflect26::data_members_26<remove_cvref_t<T>>());
   return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-    return std::tuple<typename[: std::meta::type_of(members[Is]) :]*...>{};
+    return std::tuple<typename[:std::meta::type_of(members[Is]):] * ...>{};
   }(std::make_index_sequence<members.size()>{});
 #else
   return internal::object_tuple_view_helper<T,
@@ -148,8 +148,7 @@ inline constexpr decltype(auto) visit_members(T&& t, Visitor&& visitor) {
   using type = remove_cvref_t<T>;
   static constexpr auto members =
       std::define_static_array(reflect26::data_members_26<type>());
-  return [&]<std::size_t... Is>(
-             std::index_sequence<Is...>) -> decltype(auto) {
+  return [&]<std::size_t... Is>(std::index_sequence<Is...>) -> decltype(auto) {
     return std::forward<Visitor>(visitor)(t.[:members[Is]:]...);
   }(std::make_index_sequence<members.size()>{});
 #else

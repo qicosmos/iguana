@@ -11,8 +11,8 @@
 #include "iguana/ylt/util/expected.hpp"
 #endif
 
-#include "user_reflect_macro.hpp"
 #include "reflect26_compat.hpp"
+#include "user_reflect_macro.hpp"
 #ifdef YLT_USE_CXX26_REFLECTION
 #include "reflect26_core.hpp"
 #endif

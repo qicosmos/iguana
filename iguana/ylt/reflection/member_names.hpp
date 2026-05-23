@@ -3,8 +3,8 @@
 #include <variant>
 
 #include "member_ptr.hpp"
-#include "template_string.hpp"
 #include "reflect26_compat.hpp"
+#include "template_string.hpp"
 #ifdef YLT_USE_CXX26_REFLECTION
 #include "reflect26_core.hpp"
 #endif
@@ -276,15 +276,15 @@ constexpr std::string_view get_struct_name() {
   }
   else {
 #endif
-  if constexpr (internal::has_alias_struct_name_v<U>) {
-    return get_alias_struct_name((U*)nullptr);
-  }
-  else if constexpr (internal::has_inner_alias_struct_name_v<U>) {
-    return U::get_alias_struct_name((U*)nullptr);
-  }
-  else {
-    return type_string<U>();
-  }
+    if constexpr (internal::has_alias_struct_name_v<U>) {
+      return get_alias_struct_name((U*)nullptr);
+    }
+    else if constexpr (internal::has_inner_alias_struct_name_v<U>) {
+      return U::get_alias_struct_name((U*)nullptr);
+    }
+    else {
+      return type_string<U>();
+    }
 #ifdef YLT_USE_CXX26_REFLECTION
   }
 #endif

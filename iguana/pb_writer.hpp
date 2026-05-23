@@ -40,8 +40,8 @@ IGUANA_INLINE void to_pb_well_known_impl(Type&& t, uint32_t*& sz_ptr,
     if (!t.has_value()) {
       return;
     }
-    to_pb_well_known_impl<TimestampSchema, key, omit_default_val>(
-        *t, sz_ptr, writer);
+    to_pb_well_known_impl<TimestampSchema, key, omit_default_val>(*t, sz_ptr,
+                                                                  writer);
   }
   else if constexpr (is_sequence_container<T>::value) {
     for (auto& item : t) {
@@ -67,8 +67,8 @@ IGUANA_INLINE void to_pb_schema_impl(Type&& t, uint32_t*& sz_ptr,
     if (!t.has_value()) {
       return;
     }
-    to_pb_schema_impl<typename W::value_type, key, omit_default_val>(
-        *t, sz_ptr, writer);
+    to_pb_schema_impl<typename W::value_type, key, omit_default_val>(*t, sz_ptr,
+                                                                     writer);
   }
   else if constexpr (is_sequence_container<T>::value) {
     using wire_item_type = typename W::value_type;
@@ -426,51 +426,51 @@ IGUANA_INLINE void to_proto_impl(
           using sub_type = typename field_type::sub_type;
           if constexpr (field_type::bytes_schema) {
             if constexpr (is_sequence_container<U>::value) {
-              build_proto_field(out, "repeated bytes",
-                                {value.field_name.data(),
-                                 value.field_name.size()},
-                                value.field_no);
+              build_proto_field(
+                  out, "repeated bytes",
+                  {value.field_name.data(), value.field_name.size()},
+                  value.field_no);
             }
             else if constexpr (optional_v<U>) {
               out.append("  optional");
-              build_proto_field(out, "bytes",
-                                {value.field_name.data(),
-                                 value.field_name.size()},
-                                value.field_no);
+              build_proto_field(
+                  out, "bytes",
+                  {value.field_name.data(), value.field_name.size()},
+                  value.field_no);
             }
             else {
-              build_proto_field(out, "bytes ",
-                                {value.field_name.data(),
-                                 value.field_name.size()},
-                                value.field_no);
+              build_proto_field(
+                  out, "bytes ",
+                  {value.field_name.data(), value.field_name.size()},
+                  value.field_no);
             }
           }
           else if constexpr (field_type::timestamp_schema) {
             if constexpr (is_sequence_container<U>::value) {
-              build_proto_field(out, "repeated google.protobuf.Timestamp",
-                                {value.field_name.data(),
-                                 value.field_name.size()},
-                                value.field_no);
+              build_proto_field(
+                  out, "repeated google.protobuf.Timestamp",
+                  {value.field_name.data(), value.field_name.size()},
+                  value.field_no);
             }
             else {
-              build_proto_field(out, "google.protobuf.Timestamp",
-                                {value.field_name.data(),
-                                 value.field_name.size()},
-                                value.field_no);
+              build_proto_field(
+                  out, "google.protobuf.Timestamp",
+                  {value.field_name.data(), value.field_name.size()},
+                  value.field_no);
             }
           }
           else if constexpr (field_type::duration_schema) {
             if constexpr (is_sequence_container<U>::value) {
-              build_proto_field(out, "repeated google.protobuf.Duration",
-                                {value.field_name.data(),
-                                 value.field_name.size()},
-                                value.field_no);
+              build_proto_field(
+                  out, "repeated google.protobuf.Duration",
+                  {value.field_name.data(), value.field_name.size()},
+                  value.field_no);
             }
             else {
-              build_proto_field(out, "google.protobuf.Duration",
-                                {value.field_name.data(),
-                                 value.field_name.size()},
-                                value.field_no);
+              build_proto_field(
+                  out, "google.protobuf.Duration",
+                  {value.field_name.data(), value.field_name.size()},
+                  value.field_no);
             }
           }
           else if constexpr (field_type::optional_schema) {
@@ -478,8 +478,7 @@ IGUANA_INLINE void to_proto_impl(
                           "pb_optional member must be std::optional<T>");
             out.append("  optional");
             to_proto_impl<typename WireU::value_type>(
-                out, map,
-                {value.field_name.data(), value.field_name.size()},
+                out, map, {value.field_name.data(), value.field_name.size()},
                 value.field_no);
           }
           else if constexpr (ylt_refletable_v<U>) {
@@ -633,8 +632,7 @@ template <typename T>
 constexpr bool proto_value_needs_duration_import();
 
 template <typename Variant, size_t... I>
-constexpr bool proto_variant_needs_timestamp_import(
-    std::index_sequence<I...>) {
+constexpr bool proto_variant_needs_timestamp_import(std::index_sequence<I...>) {
   return (proto_value_needs_timestamp_import<
               std::variant_alternative_t<I, Variant>>() ||
           ...);

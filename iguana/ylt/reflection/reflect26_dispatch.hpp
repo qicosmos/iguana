@@ -1,15 +1,16 @@
 #pragma once
 #ifdef YLT_USE_CXX26_REFLECTION
-#include "member_names.hpp"
-
 #include <meta>
 #include <string_view>
 #include <type_traits>
 #include <utility>
 
+#include "member_names.hpp"
+
 namespace ylt::reflection::reflect26 {
 
-inline constexpr std::string_view normalized_member_name(std::string_view name) {
+inline constexpr std::string_view normalized_member_name(
+    std::string_view name) {
   if (name.size() > 3 && name[0] == '_' && name[1] == '_' && name[2] == '_') {
     name.remove_prefix(3);
   }

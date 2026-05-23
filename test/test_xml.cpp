@@ -566,12 +566,12 @@ TEST_CASE("test required filed") {
   CHECK_THROWS_AS(iguana::from_xml(b, s2), std::invalid_argument);
 
   required_overlap_book overlap{};
-  CHECK_THROWS_AS(iguana::from_xml(
-                      overlap,
-                      std::string_view{
-                          "<required_overlap_book><identifier>7</identifier>"
-                          "</required_overlap_book>"}),
-                  std::invalid_argument);
+  CHECK_THROWS_AS(
+      iguana::from_xml(
+          overlap,
+          std::string_view{"<required_overlap_book><identifier>7</identifier>"
+                           "</required_overlap_book>"}),
+      std::invalid_argument);
 }
 
 enum class Fruit {
@@ -809,21 +809,21 @@ TEST_CASE("test alias") {
 }
 
 #ifdef YLT_USE_CXX26_REFLECTION
-struct [[= ylt::reflection::reflect26::struct_name<"anno_xml">{}]]
-annotation_xml_t {
+struct[[= ylt::reflection::reflect26::struct_name<
+    "anno_xml">{}]] annotation_xml_t {
   [[= ylt::reflection::reflect26::field_name<"w">{}]] int x;
   [[= ylt::reflection::reflect26::field_name<"h">{}]] int y;
 };
 
-struct [[= ylt::reflection::reflect26::struct_name<"required_xml">{}]]
-annotation_required_xml_t {
+struct[[= ylt::reflection::reflect26::struct_name<
+    "required_xml">{}]] annotation_required_xml_t {
   [[= ylt::reflection::reflect26::field_name<"identifier">{}]]
-  [[= iguana::xml_required{}]] int id;
+      [[= iguana::xml_required{}]] int id;
   std::string name;
 };
 
-struct [[= ylt::reflection::reflect26::struct_name<"required_overlap_xml">{}]]
-annotation_required_overlap_xml_t {
+struct[[= ylt::reflection::reflect26::struct_name<
+    "required_overlap_xml">{}]] annotation_required_overlap_xml_t {
   [[= iguana::xml_required{}]] int id;
   int identifier;
 };
@@ -837,29 +837,30 @@ TEST_CASE("test cxx26 annotation alias") {
   CHECK(xml_str.find("<h>2</h>") != std::string::npos);
 
   annotation_xml_t parsed{};
-  iguana::from_xml(parsed, std::string_view{
-                               "<anno_xml><h>4</h><w>3</w></anno_xml>"});
+  iguana::from_xml(parsed,
+                   std::string_view{"<anno_xml><h>4</h><w>3</w></anno_xml>"});
   CHECK(parsed.x == 3);
   CHECK(parsed.y == 4);
 }
 
 TEST_CASE("test cxx26 required annotation") {
   annotation_required_xml_t parsed{};
-  iguana::from_xml(parsed, std::string_view{
-                               "<required_xml><identifier>3</identifier>"
-                               "<name>tom</name></required_xml>"});
+  iguana::from_xml(parsed,
+                   std::string_view{"<required_xml><identifier>3</identifier>"
+                                    "<name>tom</name></required_xml>"});
   CHECK(parsed.id == 3);
   CHECK(parsed.name == "tom");
 
   annotation_required_xml_t missing{};
   CHECK_THROWS(iguana::from_xml(
-      missing, std::string_view{"<required_xml><name>tom</name></required_xml>"}));
+      missing,
+      std::string_view{"<required_xml><name>tom</name></required_xml>"}));
 
   annotation_required_overlap_xml_t overlap{};
   CHECK_THROWS_AS(
-      iguana::from_xml(overlap,
-                       std::string_view{
-                           "<required_overlap_xml><identifier>7</identifier>"
+      iguana::from_xml(
+          overlap,
+          std::string_view{"<required_overlap_xml><identifier>7</identifier>"
                            "</required_overlap_xml>"}),
       std::invalid_argument);
 }

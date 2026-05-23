@@ -474,51 +474,50 @@ IGUANA_INLINE void xml_parse_item(T &value, It &&it, It &&end,
   // map parse
   while (true) {
 #ifdef YLT_USE_CXX26_REFLECTION
-      bool found = ylt::reflection::reflect26::dispatch_by_name(
-          value, key,
-          [&](auto &field) IGUANA__INLINE_LAMBDA {
-            if constexpr (!cdata_v<std::remove_reference_t<decltype(field)>>) {
-              xml_parse_item(field, it, end, key);
-              if constexpr (iguana::has_xml_required_fields_v<U>) {
-                parsed_keys.push_back(key);
-              }
+    bool found = ylt::reflection::reflect26::dispatch_by_name(
+        value, key, [&](auto &field) IGUANA__INLINE_LAMBDA {
+          if constexpr (!cdata_v<std::remove_reference_t<decltype(field)>>) {
+            xml_parse_item(field, it, end, key);
+            if constexpr (iguana::has_xml_required_fields_v<U>) {
+              parsed_keys.push_back(key);
             }
-          });
-      if (!found)
-        IGUANA_UNLIKELY {
+          }
+        });
+    if (!found)
+      IGUANA_UNLIKELY {
 #ifdef THROW_UNKNOWN_KEY
-          throw std::runtime_error("Unknown key: " + std::string(key));
+        throw std::runtime_error("Unknown key: " + std::string(key));
 #else
-          skip_object_value(it, end, key);
+        skip_object_value(it, end, key);
 #endif
-        }
+      }
 #else
-      static auto frozen_map = ylt::reflection::get_variant_map<U>();
-      const auto &member_it = frozen_map.find(key);
-      if (member_it != frozen_map.end())
-        IGUANA_LIKELY {
-          std::visit(
-              [&](auto offset) IGUANA__INLINE_LAMBDA {
-                using value_type = typename decltype(offset)::type;
-                if constexpr (!cdata_v<value_type>) {
-                  auto member_ptr =
-                      (value_type *)((char *)(&value) + offset.value);
-                  xml_parse_item(*member_ptr, it, end, key);
-                  if constexpr (iguana::has_xml_required_fields_v<U>) {
-                    parsed_keys.push_back(key);
-                  }
+    static auto frozen_map = ylt::reflection::get_variant_map<U>();
+    const auto &member_it = frozen_map.find(key);
+    if (member_it != frozen_map.end())
+      IGUANA_LIKELY {
+        std::visit(
+            [&](auto offset) IGUANA__INLINE_LAMBDA {
+              using value_type = typename decltype(offset)::type;
+              if constexpr (!cdata_v<value_type>) {
+                auto member_ptr =
+                    (value_type *)((char *)(&value) + offset.value);
+                xml_parse_item(*member_ptr, it, end, key);
+                if constexpr (iguana::has_xml_required_fields_v<U>) {
+                  parsed_keys.push_back(key);
                 }
-              },
-              member_it->second);
-        }
-      else
-        IGUANA_UNLIKELY {
+              }
+            },
+            member_it->second);
+      }
+    else
+      IGUANA_UNLIKELY {
 #ifdef THROW_UNKNOWN_KEY
-          throw std::runtime_error("Unknown key: " + std::string(key));
+        throw std::runtime_error("Unknown key: " + std::string(key));
 #else
-          skip_object_value(it, end, key);
+        skip_object_value(it, end, key);
 #endif
-        }
+      }
 #endif
     if (skip_till_close_tag<cdata_idx>(value, it, end)) {
       match_close_tag(it, end, name);

@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+
 #include "../test/proto/unittest_proto3.h"
 #include "iguana/iguana.hpp"
 
@@ -32,13 +33,11 @@ class ScopedTimer {
 };
 
 void print_compare(const char *name, uint64_t iguana_ns, uint64_t protobuf_ns) {
-  double ratio = protobuf_ns == 0
-                     ? 0.0
-                     : static_cast<double>(iguana_ns) /
-                           static_cast<double>(protobuf_ns);
+  double ratio = protobuf_ns == 0 ? 0.0
+                                  : static_cast<double>(iguana_ns) /
+                                        static_cast<double>(protobuf_ns);
   std::cout << std::left << std::setw(45) << name << " : iguana/protobuf "
-            << std::right << std::fixed << std::setprecision(3) << ratio
-            << "x";
+            << std::right << std::fixed << std::setprecision(3) << ratio << "x";
   if (protobuf_ns != 0) {
     if (iguana_ns < protobuf_ns) {
       std::cout << " (iguana faster)";
@@ -352,8 +351,7 @@ void bench2(int Count) {
   // serialize
   uint64_t iguana_simple_serialize_ns = 0;
   {
-    ScopedTimer timer("struct_pb simple serialize",
-                      iguana_simple_serialize_ns);
+    ScopedTimer timer("struct_pb simple serialize", iguana_simple_serialize_ns);
     for (int j = 0; j < Count; j++) iguana::to_pb(simple, sp_str);
   }
 

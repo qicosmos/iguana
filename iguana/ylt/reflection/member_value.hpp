@@ -263,7 +263,8 @@ inline constexpr void for_each(T&& t, Visit&& func) {
   else {
     constexpr auto names = get_member_names<U>();
     reflect26::for_each_data_member(
-        std::forward<T>(t), [&](auto& field, std::string_view name, auto index) {
+        std::forward<T>(t),
+        [&](auto& field, std::string_view name, auto index) {
           (void)name;
           internal::invoke_for_each_field(func, field, names[index], index);
         });
@@ -288,8 +289,7 @@ inline constexpr void for_each(T&& t, Visit&& func) {
           [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
             constexpr auto arr = get_member_names<T>();
             (func(args, arr[Is]), ...);
-          }
-          (std::make_index_sequence<sizeof...(args)>{});
+          }(std::make_index_sequence<sizeof...(args)>{});
 #else
             visit_members_impl0<T>(std::forward<Visit>(func),
                                    std::make_index_sequence<sizeof...(args)>{},
@@ -304,8 +304,7 @@ inline constexpr void for_each(T&& t, Visit&& func) {
           [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
             constexpr auto arr = get_member_names<T>();
             (func(args, arr[Is], Is), ...);
-          }
-          (std::make_index_sequence<sizeof...(args)>{});
+          }(std::make_index_sequence<sizeof...(args)>{});
 #else
             visit_members_impl<T>(std::forward<Visit>(func),
                                   std::make_index_sequence<sizeof...(args)>{},

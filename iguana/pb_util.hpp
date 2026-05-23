@@ -426,8 +426,8 @@ template <size_t key_size, bool omit_default_val = true, typename Type,
           typename Arr>
 IGUANA_INLINE size_t pb_key_value_size(Type&& t, Arr& size_arr);
 
-template <bool TimestampSchema, size_t key_size,
-          bool omit_default_val = true, typename Type, typename Arr>
+template <bool TimestampSchema, size_t key_size, bool omit_default_val = true,
+          typename Type, typename Arr>
 IGUANA_INLINE size_t pb_well_known_key_value_size(Type&& t, Arr& size_arr) {
   using T = std::remove_const_t<std::remove_reference_t<Type>>;
   if constexpr (optional_v<T>) {
@@ -677,8 +677,8 @@ IGUANA_INLINE size_t pb_schema_key_value_size(Type&& t, Arr& size_arr) {
   using T = ylt::reflection::remove_cvref_t<Type>;
   using W = ylt::reflection::remove_cvref_t<Wire>;
   if constexpr (std::is_same_v<T, W>) {
-    return pb_key_value_size<key_size, omit_default_val>(
-        std::forward<Type>(t), size_arr);
+    return pb_key_value_size<key_size, omit_default_val>(std::forward<Type>(t),
+                                                         size_arr);
   }
   else if constexpr (optional_v<T>) {
     if (!t.has_value()) {

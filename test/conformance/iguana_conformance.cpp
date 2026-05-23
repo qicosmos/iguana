@@ -354,21 +354,19 @@ uint64_t zigzag64(int64_t value) {
 }
 
 int32_t unzigzag32(uint32_t value) {
-  return static_cast<int32_t>((value >> 1U) ^
-                              (~(value & 1U) + 1U));
+  return static_cast<int32_t>((value >> 1U) ^ (~(value & 1U) + 1U));
 }
 
 int64_t unzigzag64(uint64_t value) {
-  return static_cast<int64_t>((value >> 1U) ^
-                              (~(value & 1U) + 1U));
+  return static_cast<int64_t>((value >> 1U) ^ (~(value & 1U) + 1U));
 }
 
 ScalarPayload read_scalar_payload(std::string_view& in, ScalarKind kind) {
   ScalarPayload result;
   switch (kind) {
     case ScalarKind::int32: {
-      int32_t value = static_cast<int32_t>(static_cast<uint32_t>(
-          read_varint(in)));
+      int32_t value =
+          static_cast<int32_t>(static_cast<uint32_t>(read_varint(in)));
       append_int32_payload(result.bytes, value);
       result.is_default = value == 0;
       return result;
@@ -427,8 +425,8 @@ ScalarPayload read_scalar_payload(std::string_view& in, ScalarKind kind) {
     }
     case ScalarKind::enumeration:
     case ScalarKind::null_value: {
-      int32_t value = static_cast<int32_t>(static_cast<uint32_t>(
-          read_varint(in)));
+      int32_t value =
+          static_cast<int32_t>(static_cast<uint32_t>(read_varint(in)));
       append_int32_payload(result.bytes, value);
       result.is_default = value == 0;
       return result;
@@ -567,40 +565,38 @@ FieldSpec map_entry_spec(MessageKind kind, uint32_t field_number) {
                  ? FieldSpec{1, false, false, ScalarKind::sfixed64}
                  : FieldSpec{2, false, false, ScalarKind::sfixed64};
     case MessageKind::map_int32_float:
-      return field_number == 1 ? FieldSpec{1, false, false, ScalarKind::int32}
-                               : FieldSpec{2, false, false, ScalarKind::float32};
+      return field_number == 1
+                 ? FieldSpec{1, false, false, ScalarKind::int32}
+                 : FieldSpec{2, false, false, ScalarKind::float32};
     case MessageKind::map_int32_double:
-      return field_number == 1 ? FieldSpec{1, false, false, ScalarKind::int32}
-                               : FieldSpec{2, false, false, ScalarKind::float64};
+      return field_number == 1
+                 ? FieldSpec{1, false, false, ScalarKind::int32}
+                 : FieldSpec{2, false, false, ScalarKind::float64};
     case MessageKind::map_bool_bool:
-      return field_number == 1 ? FieldSpec{1, false, false, ScalarKind::boolean}
-                               : FieldSpec{2, false, false, ScalarKind::boolean};
+      return field_number == 1
+                 ? FieldSpec{1, false, false, ScalarKind::boolean}
+                 : FieldSpec{2, false, false, ScalarKind::boolean};
     case MessageKind::map_string_string:
-      return field_number == 1 ? FieldSpec{1, true}
-                               : FieldSpec{2, true};
+      return field_number == 1 ? FieldSpec{1, true} : FieldSpec{2, true};
     case MessageKind::map_string_bytes:
-      return field_number == 1 ? FieldSpec{1, true}
-                               : FieldSpec{2, false, true};
+      return field_number == 1 ? FieldSpec{1, true} : FieldSpec{2, false, true};
     case MessageKind::map_string_nested_message:
-      return field_number == 1
-                 ? FieldSpec{1, true}
-                 : FieldSpec{2, false, false, std::nullopt,
-                             MessageKind::nested_message};
+      return field_number == 1 ? FieldSpec{1, true}
+                               : FieldSpec{2, false, false, std::nullopt,
+                                           MessageKind::nested_message};
     case MessageKind::map_string_foreign_message:
-      return field_number == 1
-                 ? FieldSpec{1, true}
-                 : FieldSpec{2, false, false, std::nullopt,
-                             MessageKind::foreign_message};
+      return field_number == 1 ? FieldSpec{1, true}
+                               : FieldSpec{2, false, false, std::nullopt,
+                                           MessageKind::foreign_message};
     case MessageKind::map_string_nested_enum:
     case MessageKind::map_string_foreign_enum:
-      return field_number == 1 ? FieldSpec{1, true}
-                               : FieldSpec{2, false, false,
-                                           ScalarKind::enumeration};
+      return field_number == 1
+                 ? FieldSpec{1, true}
+                 : FieldSpec{2, false, false, ScalarKind::enumeration};
     case MessageKind::struct_fields_entry:
       return field_number == 1
                  ? FieldSpec{1, true}
-                 : FieldSpec{2, false, false, std::nullopt,
-                             MessageKind::value};
+                 : FieldSpec{2, false, false, std::nullopt, MessageKind::value};
     default:
       return FieldSpec{field_number};
   }
@@ -629,86 +625,99 @@ FieldSpec test_all_types_spec(uint32_t field_number) {
     case 416:
     case 417:
     case 418:
-      return {field_number, false, false, ScalarKind::int32,
-              std::nullopt, ScalarKind::int32, ScalarKind::int32};
+      return {field_number,      false,        false,
+              ScalarKind::int32, std::nullopt, ScalarKind::int32,
+              ScalarKind::int32};
     case 2:
     case 32:
     case 90:
-      return {field_number, false, false, ScalarKind::int64,
-              std::nullopt, ScalarKind::int64, ScalarKind::int64};
+      return {field_number,      false,        false,
+              ScalarKind::int64, std::nullopt, ScalarKind::int64,
+              ScalarKind::int64};
     case 3:
     case 33:
     case 75:
     case 77:
     case 91:
     case 111:
-      return {field_number, false, false, ScalarKind::uint32,
-              std::nullopt, ScalarKind::uint32, ScalarKind::uint32};
+      return {field_number,       false,        false,
+              ScalarKind::uint32, std::nullopt, ScalarKind::uint32,
+              ScalarKind::uint32};
     case 4:
     case 34:
     case 76:
     case 78:
     case 92:
     case 116:
-      return {field_number, false, false, ScalarKind::uint64,
-              std::nullopt, ScalarKind::uint64, ScalarKind::uint64};
+      return {field_number,       false,        false,
+              ScalarKind::uint64, std::nullopt, ScalarKind::uint64,
+              ScalarKind::uint64};
     case 5:
     case 35:
     case 79:
     case 93:
-      return {field_number, false, false, ScalarKind::sint32,
-              std::nullopt, ScalarKind::sint32, ScalarKind::sint32};
+      return {field_number,       false,        false,
+              ScalarKind::sint32, std::nullopt, ScalarKind::sint32,
+              ScalarKind::sint32};
     case 6:
     case 36:
     case 80:
     case 94:
-      return {field_number, false, false, ScalarKind::sint64,
-              std::nullopt, ScalarKind::sint64, ScalarKind::sint64};
+      return {field_number,       false,        false,
+              ScalarKind::sint64, std::nullopt, ScalarKind::sint64,
+              ScalarKind::sint64};
     case 7:
     case 37:
     case 81:
     case 95:
-      return {field_number, false, false, ScalarKind::fixed32,
-              std::nullopt, ScalarKind::fixed32, ScalarKind::fixed32};
+      return {field_number,        false,        false,
+              ScalarKind::fixed32, std::nullopt, ScalarKind::fixed32,
+              ScalarKind::fixed32};
     case 8:
     case 38:
     case 82:
     case 96:
-      return {field_number, false, false, ScalarKind::fixed64,
-              std::nullopt, ScalarKind::fixed64, ScalarKind::fixed64};
+      return {field_number,        false,        false,
+              ScalarKind::fixed64, std::nullopt, ScalarKind::fixed64,
+              ScalarKind::fixed64};
     case 9:
     case 39:
     case 83:
     case 97:
-      return {field_number, false, false, ScalarKind::sfixed32,
-              std::nullopt, ScalarKind::sfixed32, ScalarKind::sfixed32};
+      return {field_number,         false,        false,
+              ScalarKind::sfixed32, std::nullopt, ScalarKind::sfixed32,
+              ScalarKind::sfixed32};
     case 10:
     case 40:
     case 84:
     case 98:
-      return {field_number, false, false, ScalarKind::sfixed64,
-              std::nullopt, ScalarKind::sfixed64, ScalarKind::sfixed64};
+      return {field_number,         false,        false,
+              ScalarKind::sfixed64, std::nullopt, ScalarKind::sfixed64,
+              ScalarKind::sfixed64};
     case 11:
     case 41:
     case 85:
     case 99:
     case 117:
-      return {field_number, false, false, ScalarKind::float32,
-              std::nullopt, ScalarKind::float32, ScalarKind::float32};
+      return {field_number,        false,        false,
+              ScalarKind::float32, std::nullopt, ScalarKind::float32,
+              ScalarKind::float32};
     case 12:
     case 42:
     case 86:
     case 100:
     case 118:
-      return {field_number, false, false, ScalarKind::float64,
-              std::nullopt, ScalarKind::float64, ScalarKind::float64};
+      return {field_number,        false,        false,
+              ScalarKind::float64, std::nullopt, ScalarKind::float64,
+              ScalarKind::float64};
     case 13:
     case 43:
     case 87:
     case 101:
     case 115:
-      return {field_number, false, false, ScalarKind::boolean,
-              std::nullopt, ScalarKind::boolean, ScalarKind::boolean};
+      return {field_number,        false,        false,
+              ScalarKind::boolean, std::nullopt, ScalarKind::boolean,
+              ScalarKind::boolean};
     case 14:
     case 24:
     case 25:
@@ -738,8 +747,13 @@ FieldSpec test_all_types_spec(uint32_t field_number) {
     case 88:
     case 102:
     case 119:
-      return {field_number, false, false, ScalarKind::enumeration,
-              std::nullopt, ScalarKind::enumeration, ScalarKind::enumeration};
+      return {field_number,
+              false,
+              false,
+              ScalarKind::enumeration,
+              std::nullopt,
+              ScalarKind::enumeration,
+              ScalarKind::enumeration};
     case 27:
       return {field_number, false, false, std::nullopt,
               MessageKind::test_all_types};
@@ -841,12 +855,10 @@ FieldSpec test_all_types_spec(uint32_t field_number) {
               MessageKind::bytes_wrapper};
     case 301:
     case 311:
-      return {field_number, false, false, std::nullopt,
-              MessageKind::duration};
+      return {field_number, false, false, std::nullopt, MessageKind::duration};
     case 302:
     case 312:
-      return {field_number, false, false, std::nullopt,
-              MessageKind::timestamp};
+      return {field_number, false, false, std::nullopt, MessageKind::timestamp};
     case 303:
     case 313:
       return {field_number, false, false, std::nullopt,
@@ -857,12 +869,10 @@ FieldSpec test_all_types_spec(uint32_t field_number) {
               MessageKind::struct_value};
     case 305:
     case 315:
-      return {field_number, false, false, std::nullopt,
-              MessageKind::any};
+      return {field_number, false, false, std::nullopt, MessageKind::any};
     case 306:
     case 316:
-      return {field_number, false, false, std::nullopt,
-              MessageKind::value};
+      return {field_number, false, false, std::nullopt, MessageKind::value};
     case 317:
       return {field_number, false, false, std::nullopt,
               MessageKind::list_value};
@@ -932,10 +942,9 @@ FieldSpec field_spec(MessageKind kind, uint32_t field_number) {
       }
       return {field_number};
     case MessageKind::struct_value:
-      return field_number == 1
-                 ? FieldSpec{1, false, false, std::nullopt,
-                             MessageKind::struct_fields_entry}
-                 : FieldSpec{field_number};
+      return field_number == 1 ? FieldSpec{1, false, false, std::nullopt,
+                                           MessageKind::struct_fields_entry}
+                               : FieldSpec{field_number};
     case MessageKind::value:
       if (field_number == 1) {
         return {1, false, false, ScalarKind::null_value};
@@ -958,8 +967,7 @@ FieldSpec field_spec(MessageKind kind, uint32_t field_number) {
       return {field_number};
     case MessageKind::list_value:
       return field_number == 1
-                 ? FieldSpec{1, false, false, std::nullopt,
-                             MessageKind::value}
+                 ? FieldSpec{1, false, false, std::nullopt, MessageKind::value}
                  : FieldSpec{field_number};
     default:
       if (field_number == 1 || field_number == 2) {
@@ -980,8 +988,7 @@ bool is_test_all_types_repeated(uint32_t field_number) {
          (field_number >= 56 && field_number <= 74) ||
          (field_number >= 75 && field_number <= 102) ||
          (field_number >= 211 && field_number <= 219) ||
-         (field_number >= 311 && field_number <= 317) ||
-         field_number == 324;
+         (field_number >= 311 && field_number <= 317) || field_number == 324;
 }
 
 bool is_repeated_field(MessageKind kind, uint32_t field_number) {
@@ -1046,12 +1053,11 @@ std::string serialize_canonical(const CanonicalMessage& msg) {
         append_length_delimited(out, field_number, payload);
       }
       else {
-        iguana::WireType wire_type = field.spec.message.has_value() ||
-                                             field.spec.string_value ||
-                                             field.spec.bytes_value
-                                         ? iguana::WireType::LengthDelimeted
-                                         : scalar_wire_type(
-                                               repeated_scalar_kind(field.spec));
+        iguana::WireType wire_type =
+            field.spec.message.has_value() || field.spec.string_value ||
+                    field.spec.bytes_value
+                ? iguana::WireType::LengthDelimeted
+                : scalar_wire_type(repeated_scalar_kind(field.spec));
         for (const auto& value : field.values) {
           if (wire_type == iguana::WireType::LengthDelimeted) {
             append_length_delimited(out, field_number, value);
@@ -1147,8 +1153,8 @@ void parse_known_for_canonical(CanonicalMessage& msg, std::string_view& data,
       store_oneof(msg, field_number, spec, std::move(payload));
     }
     else {
-      append_stored_field(msg, field_number, spec, std::move(payload),
-                          repeated, false, false, value.empty());
+      append_stored_field(msg, field_number, spec, std::move(payload), repeated,
+                          false, false, value.empty());
     }
     return;
   }
@@ -1158,8 +1164,8 @@ void parse_known_for_canonical(CanonicalMessage& msg, std::string_view& data,
       throw std::invalid_argument("wrong wire type for message field");
     }
     std::string_view payload = read_length_delimited(data, "truncated message");
-    std::string canonical = canonicalize_message(payload, *spec.message,
-                                                 depth + 1);
+    std::string canonical =
+        canonicalize_message(payload, *spec.message, depth + 1);
     if (oneof) {
       store_oneof(msg, field_number, spec, std::move(canonical));
     }
@@ -1173,8 +1179,9 @@ void parse_known_for_canonical(CanonicalMessage& msg, std::string_view& data,
     return;
   }
 
-  if (repeated && (spec.packed_scalar.has_value() ||
-                   spec.unpacked_scalar.has_value() || spec.scalar.has_value())) {
+  if (repeated &&
+      (spec.packed_scalar.has_value() || spec.unpacked_scalar.has_value() ||
+       spec.scalar.has_value())) {
     ScalarKind scalar = repeated_scalar_kind(spec);
     if (wire_type == iguana::WireType::LengthDelimeted) {
       std::string_view packed =
@@ -1188,8 +1195,8 @@ void parse_known_for_canonical(CanonicalMessage& msg, std::string_view& data,
     }
     if (wire_type == scalar_wire_type(scalar)) {
       ScalarPayload value = read_scalar_payload(data, scalar);
-      append_stored_field(msg, field_number, spec, std::move(value.bytes),
-                          true, packed_output, false, value.is_default);
+      append_stored_field(msg, field_number, spec, std::move(value.bytes), true,
+                          packed_output, false, value.is_default);
       return;
     }
     throw std::invalid_argument("wrong wire type for repeated scalar field");
@@ -1232,9 +1239,8 @@ std::string canonicalize_message(std::string_view data, MessageKind kind,
       }
       else {
         skip_unknown(data, key.wire_type, key.field_number, depth);
-        msg.unknown_fields.emplace_back(field_start,
-                                        static_cast<size_t>(data.data() -
-                                                            field_start));
+        msg.unknown_fields.emplace_back(
+            field_start, static_cast<size_t>(data.data() - field_start));
       }
     } catch (const std::invalid_argument&) {
       throw;
@@ -1326,8 +1332,8 @@ ConformanceRequest parse_request(std::string_view bytes) {
         if (key.wire_type != iguana::WireType::LengthDelimeted) {
           throw std::invalid_argument("bad protobuf_payload wire type");
         }
-        req.payload = std::string(read_length_delimited(
-            bytes, "truncated protobuf_payload"));
+        req.payload = std::string(
+            read_length_delimited(bytes, "truncated protobuf_payload"));
         req.payload_case = PayloadCase::protobuf;
         break;
       case 2:
@@ -1416,8 +1422,7 @@ std::string handle_request(const ConformanceRequest& req) {
   if (req.message_type == "conformance.FailureSet") {
     return response_protobuf("");
   }
-  if (req.message_type !=
-      "protobuf_test_messages.proto3.TestAllTypesProto3") {
+  if (req.message_type != "protobuf_test_messages.proto3.TestAllTypesProto3") {
     return response_skipped("iguana conformance currently targets proto3");
   }
   if (req.test_category != TestCategory::binary) {

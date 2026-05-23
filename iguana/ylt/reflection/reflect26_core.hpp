@@ -2,11 +2,11 @@
 #ifdef YLT_USE_CXX26_REFLECTION
 #include <array>
 #include <cstddef>
+#include <meta>
 #include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
-#include <meta>
 
 namespace ylt::reflection::reflect26 {
 
@@ -69,7 +69,7 @@ consteval bool has_annotation_26() {
   static constexpr auto annotations =
       std::define_static_array(std::meta::annotations_of(Info));
   template for (constexpr auto annotation : annotations) {
-    using annotation_type = [: std::meta::type_of(annotation) :];
+    using annotation_type = [:std::meta::type_of(annotation):];
     using annotation_t = std::remove_cvref_t<annotation_type>;
     if constexpr (Predicate<annotation_t>::value) {
       return true;
@@ -83,7 +83,7 @@ consteval std::string_view member_name_26() {
   static constexpr auto annotations =
       std::define_static_array(std::meta::annotations_of(Member));
   template for (constexpr auto annotation : annotations) {
-    using annotation_type = [: std::meta::type_of(annotation) :];
+    using annotation_type = [:std::meta::type_of(annotation):];
     using annotation_t = std::remove_cvref_t<annotation_type>;
     if constexpr (is_field_name_annotation<annotation_t>::value) {
       return annotation_t::value;
@@ -97,7 +97,7 @@ consteval std::string_view type_name_26() {
   static constexpr auto annotations =
       std::define_static_array(std::meta::annotations_of(^^T));
   template for (constexpr auto annotation : annotations) {
-    using annotation_type = [: std::meta::type_of(annotation) :];
+    using annotation_type = [:std::meta::type_of(annotation):];
     using annotation_t = std::remove_cvref_t<annotation_type>;
     if constexpr (is_struct_name_annotation<annotation_t>::value) {
       return annotation_t::value;
@@ -113,7 +113,7 @@ consteval bool has_skip_base_annotation_26() {
 
 template <std::meta::info Base>
 consteval bool skip_base_26() {
-  using base_type = [: std::meta::type_of(Base) :];
+  using base_type = [:std::meta::type_of(Base):];
   if constexpr (skip_base_v<std::remove_cvref_t<base_type>>) {
     return true;
   }
@@ -140,8 +140,8 @@ consteval void append_data_members_26(std::vector<std::meta::info>& members) {
       append_data_members_26<std::meta::type_of(base)>(members);
     }
   }
-  static constexpr auto direct_members = std::define_static_array(
-      std::meta::nonstatic_data_members_of(Type, ctx));
+  static constexpr auto direct_members =
+      std::define_static_array(std::meta::nonstatic_data_members_of(Type, ctx));
   template for (constexpr auto member : direct_members) {
     if constexpr (!skip_field_26<member>()) {
       members.push_back(member);
@@ -163,7 +163,8 @@ consteval std::size_t members_count_26() {
 
 template <typename T>
 consteval auto member_names_array() {
-  static constexpr auto members = std::define_static_array(data_members_26<T>());
+  static constexpr auto members =
+      std::define_static_array(data_members_26<T>());
   std::array<std::string_view, members.size()> names{};
   [[maybe_unused]] std::size_t index = 0;
   template for (constexpr auto member : members) {
@@ -174,8 +175,8 @@ consteval auto member_names_array() {
 
 template <typename T, typename Visitor>
 constexpr void for_each_data_member(T&& t, Visitor&& visitor) {
-  static constexpr auto members = std::define_static_array(
-      data_members_26<std::remove_cvref_t<T>>());
+  static constexpr auto members =
+      std::define_static_array(data_members_26<std::remove_cvref_t<T>>());
   [[maybe_unused]] std::size_t index = 0;
   template for (constexpr auto member : members) {
     visitor(t.[:member:], member_name_26<member>(), index++);
@@ -184,7 +185,8 @@ constexpr void for_each_data_member(T&& t, Visitor&& visitor) {
 
 template <typename T>
 consteval auto member_offsets_26() {
-  static constexpr auto members = std::define_static_array(data_members_26<T>());
+  static constexpr auto members =
+      std::define_static_array(data_members_26<T>());
   std::array<std::size_t, members.size()> offsets{};
   [[maybe_unused]] std::size_t index = 0;
   template for (constexpr auto member : members) {

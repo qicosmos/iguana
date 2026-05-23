@@ -268,8 +268,8 @@ IGUANA_INLINE void from_pb_well_known_impl(T& val, std::string_view& pb_str,
   if constexpr (optional_v<value_type>) {
     using item_type = typename value_type::value_type;
     const item_type* current = val.has_value() ? &*val : nullptr;
-    val = from_pb_well_known_value<TimestampSchema, item_type>(
-        current, pb_str, field_no);
+    val = from_pb_well_known_value<TimestampSchema, item_type>(current, pb_str,
+                                                               field_no);
   }
   else if constexpr (is_sequence_container<value_type>::value) {
     using item_type = typename value_type::value_type;
@@ -277,8 +277,8 @@ IGUANA_INLINE void from_pb_well_known_impl(T& val, std::string_view& pb_str,
         nullptr, pb_str, field_no));
   }
   else {
-    val = from_pb_well_known_value<TimestampSchema, value_type>(
-        &val, pb_str, field_no);
+    val = from_pb_well_known_value<TimestampSchema, value_type>(&val, pb_str,
+                                                                field_no);
   }
 }
 
@@ -412,7 +412,8 @@ IGUANA_INLINE void from_pb(T& t, std::string_view pb_str) {
         else if constexpr (std::is_same_v<sub_type, std::monostate>) {
           throw std::runtime_error("oneof monostate has no wire type");
         }
-        else if constexpr (detail::is_unpacked_repeated_type<wire_value_type>()) {
+        else if constexpr (detail::is_unpacked_repeated_type<
+                               wire_value_type>()) {
           if (wire_type != WireType::LengthDelimeted &&
               !detail::is_unpacked_repeated_wire_type<wire_value_type>(
                   wire_type)) {
@@ -429,7 +430,8 @@ IGUANA_INLINE void from_pb(T& t, std::string_view pb_str) {
               std::decay_t<decltype(val)>::timestamp_schema>(
               *member_ptr, pb_str, val.field_no);
         }
-        else if constexpr (detail::is_unpacked_repeated_type<wire_value_type>()) {
+        else if constexpr (detail::is_unpacked_repeated_type<
+                               wire_value_type>()) {
           if (wire_type == WireType::LengthDelimeted) {
             detail::from_pb_schema_impl<wire_value_type>(*member_ptr, pb_str,
                                                          val.field_no);
@@ -527,8 +529,8 @@ IGUANA_INLINE void from_pb(T& t, std::string_view pb_str) {
               detail::parse_oneof(val.value(t), val, pb_str);
             }
             else {
-              detail::from_pb_schema_impl<wire_value_type>(
-                  val.value(t), pb_str, val.field_no);
+              detail::from_pb_schema_impl<wire_value_type>(val.value(t), pb_str,
+                                                           val.field_no);
             }
           },
           member);

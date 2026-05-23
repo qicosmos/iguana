@@ -735,8 +735,7 @@ TEST_CASE("proto3 protoc wire compatibility edge cases") {
     REQUIRE(pb_sfixed_it != pb_msg.sfix64_str_map().end());
     CHECK(pb_sfixed_it->second == "last");
 
-    auto st_sfixed_it =
-        st_msg.sfix64_str_map.find(iguana::sfixed64_t{42});
+    auto st_sfixed_it = st_msg.sfix64_str_map.find(iguana::sfixed64_t{42});
     REQUIRE(st_sfixed_it != st_msg.sfix64_str_map.end());
     CHECK(st_sfixed_it->second == "last");
 

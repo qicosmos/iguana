@@ -4,6 +4,7 @@
 #include "util.hpp"
 #ifdef YLT_USE_CXX26_REFLECTION
 #include <meta>
+
 #include "ylt/reflection/reflect26_core.hpp"
 #endif
 
@@ -53,8 +54,8 @@ consteval bool xml_required_26() {
 template <typename T>
 consteval size_t xml_required_count_26() {
   using U = ylt::reflection::remove_cvref_t<T>;
-  static constexpr auto members =
-      std::define_static_array(ylt::reflection::reflect26::data_members_26<U>());
+  static constexpr auto members = std::define_static_array(
+      ylt::reflection::reflect26::data_members_26<U>());
   size_t count = 0;
   template for (constexpr auto member : members) {
     if constexpr (xml_required_26<member>()) {
@@ -67,14 +68,13 @@ consteval size_t xml_required_count_26() {
 template <typename T>
 consteval auto xml_required_names_26() {
   using U = ylt::reflection::remove_cvref_t<T>;
-  static constexpr auto members =
-      std::define_static_array(ylt::reflection::reflect26::data_members_26<U>());
+  static constexpr auto members = std::define_static_array(
+      ylt::reflection::reflect26::data_members_26<U>());
   std::array<std::string_view, xml_required_count_26<U>()> names{};
   size_t index = 0;
   template for (constexpr auto member : members) {
     if constexpr (xml_required_26<member>()) {
-      names[index++] =
-          ylt::reflection::reflect26::member_name_26<member>();
+      names[index++] = ylt::reflection::reflect26::member_name_26<member>();
     }
   }
   return names;

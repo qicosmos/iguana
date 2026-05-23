@@ -573,19 +573,23 @@ IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end, size_t min_spaces) {
         &*start, static_cast<size_t>(std::distance(start, keyend))};
 
     bool found = ylt::reflection::reflect26::dispatch_by_name(
-        value, key,
-        [&](auto &field) IGUANA__INLINE_LAMBDA {
+        value, key, [&](auto &field) IGUANA__INLINE_LAMBDA {
           detail::yaml_parse_item(field, it, end, spaces + 1);
         });
-    if (!found) IGUANA_UNLIKELY {
+    if (!found)
+      IGUANA_UNLIKELY {
 #ifdef THROW_UNKNOWN_KEY
-      throw std::runtime_error("Unknown key: " + std::string(key));
+        throw std::runtime_error("Unknown key: " + std::string(key));
 #else
-      detail::skip_object_value(it, end, spaces + 1);
+        detail::skip_object_value(it, end, spaces + 1);
 #endif
-    }
+      }
     auto subspaces = skip_space_and_lines<false>(it, end, min_spaces);
-    if (subspaces < min_spaces) IGUANA_UNLIKELY { it -= subspaces + 1; return; }
+    if (subspaces < min_spaces)
+      IGUANA_UNLIKELY {
+        it -= subspaces + 1;
+        return;
+      }
   }
 }
 #else
