@@ -17,48 +17,47 @@ inline constexpr std::string_view normalized_member_name(
   return name;
 }
 
-template <typename T, std::size_t... Is>
-constexpr auto member_index_map_impl(std::index_sequence<Is...>) {
-  constexpr auto names = ylt::reflection::get_member_names<T>();
-  return frozen::unordered_map<frozen::string, std::size_t, sizeof...(Is)>{
-      {normalized_member_name(names[Is]), Is}...};
-}
-
-template <typename T>
-constexpr auto member_index_map() {
-  return member_index_map_impl<T>(
-      std::make_index_sequence<ylt::reflection::members_count_v<T>>{});
-}
-
-template <typename T, typename Func>
-void dispatch_by_runtime_index(T& obj, std::size_t target, Func& func) {
-  static constexpr auto members = std::define_static_array(
-      data_members_26<ylt::reflection::remove_cvref_t<T>>());
-  bool done = false;
-  [[maybe_unused]] std::size_t index = 0;
-  template for (constexpr auto member : members) {
-    if (!done && index == target) {
-      func(obj.[:member:]);
-      done = true;
-    }
-    ++index;
+template <typename Func, typename Field>
+void invoke_dispatch(Func& func, Field& field, std::string_view name,
+                     std::size_t index) {
+  if constexpr (std::is_invocable_v<Func&, Field&, std::string_view,
+                                    std::size_t>) {
+    func(field, name, index);
+  }
+  else if constexpr (std::is_invocable_v<Func&, Field&, std::string_view>) {
+    func(field, name);
+  }
+  else if constexpr (std::is_invocable_v<Func&, Field&>) {
+    func(field);
+  }
+  else {
+    static_assert(sizeof(Func) < 0,
+                  "invalid arguments, full arguments: [field_value&, "
+                  "std::string_view, size_t], at least has field_value and "
+                  "make sure keep the order of arguments");
   }
 }
 
 template <typename T, typename Func>
 bool dispatch_by_name(T& obj, std::string_view key, Func&& func) {
   using U = ylt::reflection::remove_cvref_t<T>;
-  if constexpr (ylt::reflection::members_count_v<U> == 0) {
+  static constexpr auto members =
+      std::define_static_array(data_members_26<U>());
+  if constexpr (members.size() == 0) {
     return false;
   }
   else {
-    static constexpr auto map = member_index_map<U>();
-    auto it = map.find(key);
-    if (it == map.end()) {
-      return false;
+    static constexpr auto names = ylt::reflection::get_member_names<U>();
+    bool found = false;
+    [[maybe_unused]] std::size_t index = 0;
+    template for (constexpr auto member : members) {
+      if (!found && key == normalized_member_name(names[index])) {
+        invoke_dispatch(func, obj.[:member:], names[index], index);
+        found = true;
+      }
+      ++index;
     }
-    dispatch_by_runtime_index(obj, it->second, func);
-    return true;
+    return found;
   }
 }
 

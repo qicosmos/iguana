@@ -3,10 +3,13 @@
 #include <cstddef>
 #include <iterator>
 #include <memory>
+#include <stdexcept>
 #include <variant>
 
 #include "member_names.hpp"
-#include "template_string.hpp"
+#ifdef YLT_USE_CXX26_REFLECTION
+#include "reflect26_dispatch.hpp"
+#endif
 #include "template_switch.hpp"
 
 namespace ylt::reflection {
@@ -50,6 +53,7 @@ struct switch_helper {
   }
 };
 
+#ifndef YLT_USE_CXX26_REFLECTION
 inline constexpr frozen::string filter_str(const frozen::string& str) {
   if (str.size() > 3 && str[0] == '_' && str[1] == '_' && str[2] == '_') {
     auto ptr = str.data() + 3;
@@ -83,13 +87,20 @@ inline constexpr auto get_variant_map_impl(std::index_sequence<Is...>) {
                  offset_t<ylt::reflection::remove_cvref_t<
                      std::tuple_element_t<Is, Tuple>>>{offset_arr[Is]}}}...};
 }
+#endif
 
 }  // namespace internal
 
 template <typename T>
 inline constexpr auto get_variant_map() {
+#ifdef YLT_USE_CXX26_REFLECTION
+  static_assert(sizeof(T) < 0,
+                "get_variant_map is not available with C++26 reflection; use "
+                "reflect26::dispatch_by_name instead");
+#else
   return internal::get_variant_map_impl<T>(
       std::make_index_sequence<members_count_v<T>>{});
+#endif
 }
 
 template <typename Member, typename T>
@@ -112,6 +123,16 @@ inline Member& get(T& t, size_t index) {
 
 template <typename Member, typename T>
 inline Member& get(T& t, std::string_view name) {
+#ifdef YLT_USE_CXX26_REFLECTION
+  Member* member_ptr = nullptr;
+  bool found = reflect26::dispatch_by_name(t, name, [&](auto& field) {
+    internal::set_member_ptr(member_ptr, std::addressof(field));
+  });
+  if (!found) {
+    throw std::out_of_range("unknown member name");
+  }
+  return *member_ptr;
+#else
   static constexpr auto map = member_names_map<T>;
   size_t index = map.at(name);  // may throw out_of_range: unknown key.
   auto ref_tp = object_to_tuple(t);
@@ -119,6 +140,7 @@ inline Member& get(T& t, std::string_view name) {
   Member* member_ptr = nullptr;
   template_switch<internal::switch_helper>(index, member_ptr, ref_tp);
   return *member_ptr;
+#endif
 }
 
 template <typename T>
