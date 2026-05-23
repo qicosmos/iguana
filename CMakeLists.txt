@@ -89,6 +89,7 @@ set(TEST_XMLNOTHROW test/test_xml_nothrow.cpp)
 set(TEST_PB test/test_pb.cpp)
 set(TEST_PROTO test/test_proto3.cpp)
 set(TEST_CPP20 test/test_cpp20.cpp)
+set(TEST_CONFORMANCE test/conformance/iguana_conformance.cpp)
 set(PB_BENCHMARK benchmark/pb_benchmark.cpp)
 
 add_executable(json_example 	${JSON_EXAMPLE})
@@ -107,6 +108,7 @@ add_executable(test_nothrow ${TEST_NOTHROW})
 add_executable(test_util ${TEST_UTIL})
 add_executable(test_pb ${TEST_PB})
 add_executable(test_cpp20 ${TEST_CPP20})
+add_executable(iguana_conformance ${TEST_CONFORMANCE})
 set_target_properties(test_cpp20 PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -171,3 +173,38 @@ add_test(NAME test_util COMMAND test_util)
 add_test(NAME test_xml_nothrow COMMAND test_xml_nothrow)
 add_test(NAME test_pb COMMAND test_pb)
 add_test(NAME test_cpp20 COMMAND test_cpp20)
+
+set(PROTOBUF_CONFORMANCE_RUNNER "" CACHE FILEPATH "Path to protobuf conformance_test_runner")
+if(PROTOBUF_CONFORMANCE_RUNNER)
+    add_test(NAME iguana_conformance_runner
+        COMMAND ${PROTOBUF_CONFORMANCE_RUNNER} --enforce_recommended $<TARGET_FILE:iguana_conformance>)
+endif()
+
+# C++26 static reflection tests (requires GCC 16+ with -freflection)
+option(ENABLE_CXX26_REFLECTION "Build tests with C++26 static reflection (requires GCC 16+)" OFF)
+if (ENABLE_CXX26_REFLECTION)
+    message(STATUS "Building with C++26 static reflection")
+    execute_process(
+        COMMAND ${CMAKE_CXX_COMPILER} -print-file-name=libstdc++.so
+        OUTPUT_VARIABLE CXX26_LIBSTDCXX
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET)
+    if(CXX26_LIBSTDCXX AND EXISTS "${CXX26_LIBSTDCXX}")
+        get_filename_component(CXX26_LIBSTDCXX_DIR "${CXX26_LIBSTDCXX}" DIRECTORY)
+    endif()
+    foreach(tgt test_some test_ut test_json_files test_xml test_yaml test_nothrow
+                test_util test_xml_nothrow test_pb test_reflection)
+        if(TARGET ${tgt})
+            set(tgt26 ${tgt}_cpp26)
+            get_target_property(tgt_sources ${tgt} SOURCES)
+            add_executable(${tgt26} ${tgt_sources})
+            target_compile_options(${tgt26} PRIVATE -std=gnu++26 -freflection)
+            target_compile_definitions(${tgt26} PRIVATE YLT_USE_CXX26_REFLECTION)
+            if(CXX26_LIBSTDCXX_DIR)
+                set_property(TARGET ${tgt26} APPEND_STRING PROPERTY LINK_FLAGS
+                    " -Wl,-rpath,${CXX26_LIBSTDCXX_DIR}")
+            endif()
+            add_test(NAME ${tgt26} COMMAND ${tgt26})
+        endif()
+    endforeach()
+endif()

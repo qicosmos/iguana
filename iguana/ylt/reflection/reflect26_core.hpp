@@ -1,0 +1,198 @@
+#pragma once
+#ifdef YLT_USE_CXX26_REFLECTION
+#include <array>
+#include <cstddef>
+#include <string_view>
+#include <type_traits>
+#include <utility>
+#include <vector>
+#include <meta>
+
+namespace ylt::reflection::reflect26 {
+
+template <std::size_t N>
+struct fixed_string {
+  char data[N];
+
+  consteval fixed_string(const char (&str)[N]) {
+    for (std::size_t i = 0; i < N; ++i) {
+      data[i] = str[i];
+    }
+  }
+
+  consteval operator std::string_view() const { return {data, N - 1}; }
+};
+
+template <fixed_string Name>
+struct field_name {
+  static constexpr auto value = Name;
+};
+
+template <fixed_string Name>
+struct struct_name {
+  static constexpr auto value = Name;
+};
+
+struct skip_base {};
+
+struct skip_field {};
+
+template <typename T>
+struct is_field_name_annotation : std::false_type {};
+
+template <fixed_string Name>
+struct is_field_name_annotation<field_name<Name>> : std::true_type {};
+
+template <typename T>
+struct is_struct_name_annotation : std::false_type {};
+
+template <fixed_string Name>
+struct is_struct_name_annotation<struct_name<Name>> : std::true_type {};
+
+template <typename T>
+struct is_skip_base_annotation : std::false_type {};
+
+template <>
+struct is_skip_base_annotation<skip_base> : std::true_type {};
+
+template <typename T>
+struct is_skip_field_annotation : std::false_type {};
+
+template <>
+struct is_skip_field_annotation<skip_field> : std::true_type {};
+
+template <typename T>
+constexpr inline bool skip_base_v = false;
+
+template <std::meta::info Info, template <typename> typename Predicate>
+consteval bool has_annotation_26() {
+  static constexpr auto annotations =
+      std::define_static_array(std::meta::annotations_of(Info));
+  template for (constexpr auto annotation : annotations) {
+    using annotation_type = [: std::meta::type_of(annotation) :];
+    using annotation_t = std::remove_cvref_t<annotation_type>;
+    if constexpr (Predicate<annotation_t>::value) {
+      return true;
+    }
+  }
+  return false;
+}
+
+template <std::meta::info Member>
+consteval std::string_view member_name_26() {
+  static constexpr auto annotations =
+      std::define_static_array(std::meta::annotations_of(Member));
+  template for (constexpr auto annotation : annotations) {
+    using annotation_type = [: std::meta::type_of(annotation) :];
+    using annotation_t = std::remove_cvref_t<annotation_type>;
+    if constexpr (is_field_name_annotation<annotation_t>::value) {
+      return annotation_t::value;
+    }
+  }
+  return std::meta::identifier_of(Member);
+}
+
+template <typename T>
+consteval std::string_view type_name_26() {
+  static constexpr auto annotations =
+      std::define_static_array(std::meta::annotations_of(^^T));
+  template for (constexpr auto annotation : annotations) {
+    using annotation_type = [: std::meta::type_of(annotation) :];
+    using annotation_t = std::remove_cvref_t<annotation_type>;
+    if constexpr (is_struct_name_annotation<annotation_t>::value) {
+      return annotation_t::value;
+    }
+  }
+  return {};
+}
+
+template <std::meta::info Info>
+consteval bool has_skip_base_annotation_26() {
+  return has_annotation_26<Info, is_skip_base_annotation>();
+}
+
+template <std::meta::info Base>
+consteval bool skip_base_26() {
+  using base_type = [: std::meta::type_of(Base) :];
+  if constexpr (skip_base_v<std::remove_cvref_t<base_type>>) {
+    return true;
+  }
+  else if constexpr (has_skip_base_annotation_26<Base>()) {
+    return true;
+  }
+  else {
+    return has_skip_base_annotation_26<std::meta::type_of(Base)>();
+  }
+}
+
+template <std::meta::info Member>
+consteval bool skip_field_26() {
+  return has_annotation_26<Member, is_skip_field_annotation>();
+}
+
+template <std::meta::info Type>
+consteval void append_data_members_26(std::vector<std::meta::info>& members) {
+  constexpr auto ctx = std::meta::access_context::unchecked();
+  static constexpr auto bases =
+      std::define_static_array(std::meta::bases_of(Type, ctx));
+  template for (constexpr auto base : bases) {
+    if constexpr (!skip_base_26<base>()) {
+      append_data_members_26<std::meta::type_of(base)>(members);
+    }
+  }
+  static constexpr auto direct_members = std::define_static_array(
+      std::meta::nonstatic_data_members_of(Type, ctx));
+  template for (constexpr auto member : direct_members) {
+    if constexpr (!skip_field_26<member>()) {
+      members.push_back(member);
+    }
+  }
+}
+
+template <typename T>
+consteval auto data_members_26() {
+  std::vector<std::meta::info> members;
+  append_data_members_26<^^T>(members);
+  return members;
+}
+
+template <typename T>
+consteval std::size_t members_count_26() {
+  return data_members_26<T>().size();
+}
+
+template <typename T>
+consteval auto member_names_array() {
+  static constexpr auto members = std::define_static_array(data_members_26<T>());
+  std::array<std::string_view, members.size()> names{};
+  [[maybe_unused]] std::size_t index = 0;
+  template for (constexpr auto member : members) {
+    names[index++] = member_name_26<member>();
+  }
+  return names;
+}
+
+template <typename T, typename Visitor>
+constexpr void for_each_data_member(T&& t, Visitor&& visitor) {
+  static constexpr auto members = std::define_static_array(
+      data_members_26<std::remove_cvref_t<T>>());
+  [[maybe_unused]] std::size_t index = 0;
+  template for (constexpr auto member : members) {
+    visitor(t.[:member:], member_name_26<member>(), index++);
+  }
+}
+
+template <typename T>
+consteval auto member_offsets_26() {
+  static constexpr auto members = std::define_static_array(data_members_26<T>());
+  std::array<std::size_t, members.size()> offsets{};
+  [[maybe_unused]] std::size_t index = 0;
+  template for (constexpr auto member : members) {
+    auto offset = std::meta::offset_of(member);
+    offsets[index++] = static_cast<std::size_t>(offset.bytes);
+  }
+  return offsets;
+}
+
+}  // namespace ylt::reflection::reflect26
+#endif  // YLT_USE_CXX26_REFLECTION

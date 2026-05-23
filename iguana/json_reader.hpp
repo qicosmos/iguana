@@ -2,6 +2,9 @@
 #include "detail/utf.hpp"
 #include "error_code.h"
 #include "json_util.hpp"
+#ifdef YLT_USE_CXX26_REFLECTION
+#include "ylt/reflection/reflect26_dispatch.hpp"
+#endif
 namespace iguana {
 
 template <typename T, typename It,
@@ -590,6 +593,40 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
 }
 }  // namespace detail
 
+#ifdef YLT_USE_CXX26_REFLECTION
+template <typename T, typename It,
+          std::enable_if_t<ylt_refletable_v<T>, int>>
+IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
+  skip_ws(it, end);
+  match<'{'>(it, end);
+  skip_ws(it, end);
+  if (*it == '}') IGUANA_UNLIKELY { ++it; return; }
+
+  while (it != end) {
+    std::string_view key = detail::get_key(it, end);
+    skip_ws(it, end);
+    match<':'>(it, end);
+    bool found = ylt::reflection::reflect26::dispatch_by_name(
+        value, key,
+        [&](auto &field) IGUANA__INLINE_LAMBDA {
+          using namespace detail;
+          from_json_impl(field, it, end);
+        });
+    if (!found) IGUANA_UNLIKELY {
+#ifdef THROW_UNKNOWN_KEY
+      throw std::runtime_error("Unknown key: " + std::string(key));
+#else
+      detail::skip_object_value(it, end);
+#endif
+    }
+    skip_ws(it, end);
+    if (*it == '}') IGUANA_UNLIKELY { ++it; return; }
+    else IGUANA_LIKELY { match<','>(it, end); }
+  }
+}
+#endif
+
+#ifndef YLT_USE_CXX26_REFLECTION
 template <typename T, typename It, std::enable_if_t<ylt_refletable_v<T>, int>>
 IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
   skip_ws(it, end);
@@ -672,6 +709,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
     }
   }
 }
+#endif  // !YLT_USE_CXX26_REFLECTION
 
 template <typename T, typename It,
           std::enable_if_t<non_ylt_refletable_v<T>, int> = 0>

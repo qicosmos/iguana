@@ -1,0 +1,44 @@
+name: Ubuntu (gcc c++26)
+
+on:
+  push:
+    branches: [ master, struct_pb ]
+  pull_request:
+    branches: [ master, struct_pb ]
+
+jobs:
+  ubuntu_gcc16_cxx26:
+    runs-on: ubuntu-22.04
+    container: gcc:16.1.0-trixie
+
+    steps:
+    - name: check out
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        apt-get update
+        apt-get install -y --no-install-recommends \
+          cmake \
+          make \
+          protobuf-compiler \
+          libprotobuf-dev
+
+    - name: Check compiler version
+      run: |
+        gcc --version
+        g++ --version
+        g++ -std=gnu++26 -freflection -x c++ -c -o /tmp/reflection.o - <<'CPP'
+        #include <meta>
+        struct probe { int value; };
+        static_assert(std::meta::identifier_of(^^probe) == "probe");
+        CPP
+
+    - name: configure cmake
+      run: CXX=g++ CC=gcc cmake -B ${{ github.workspace }}/build_cpp26 -DCMAKE_BUILD_TYPE=Release -DENABLE_CXX26_REFLECTION=ON
+
+    - name: build project
+      run: cmake --build ${{ github.workspace }}/build_cpp26 --config Release -j 2
+
+    - name: test
+      run: ctest --test-dir ${{ github.workspace }}/build_cpp26 --output-on-failure -j 2

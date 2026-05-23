@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <iterator>
+#include <memory>
 #include <variant>
 
 #include "member_names.hpp"
@@ -166,6 +167,22 @@ inline constexpr auto& get(T& t) {
 
 template <typename T, typename Field>
 inline size_t index_of(T& t, Field& value) {
+#ifdef YLT_USE_CXX26_REFLECTION
+  using U = remove_cvref_t<T>;
+  size_t index = 0;
+  size_t result = members_count_v<U>;
+  const auto value_addr =
+      static_cast<const volatile void*>(std::addressof(value));
+  reflect26::for_each_data_member(t, [&](auto& field, std::string_view, auto) {
+    const auto field_addr =
+        static_cast<const volatile void*>(std::addressof(field));
+    if (result == members_count_v<U> && field_addr == value_addr) {
+      result = index;
+    }
+    ++index;
+  });
+  return result;
+#else
   const auto& offset_arr = member_offsets<T>;
   size_t cur_offset = (const char*)(&value) - (const char*)(&t);
   auto it = std::lower_bound(offset_arr.begin(), offset_arr.end(), cur_offset);
@@ -174,6 +191,7 @@ inline size_t index_of(T& t, Field& value) {
   }
 
   return std::distance(offset_arr.begin(), it);
+#endif
 }
 
 template <typename Member>
@@ -210,54 +228,100 @@ inline constexpr void visit_members_impl(Visit&& func,
   (func(args, arr[Is], Is), ...);
 }
 
-template <typename T, typename Visit>
-inline constexpr void for_each(T&& t, Visit&& func) {
-  using Tuple = decltype(object_to_tuple(t));
-  using first_t = std::tuple_element_t<0, Tuple>;
-  if constexpr (std::is_invocable_v<Visit, first_t>) {
-    visit_members(t, [&func](auto&... args) {
-      (func(args), ...);
-    });
+namespace internal {
+template <typename Visit, typename Field>
+inline constexpr void invoke_for_each_field(Visit& func, Field& field,
+                                            std::string_view name,
+                                            std::size_t index) {
+  if constexpr (std::is_invocable_v<Visit&, Field&>) {
+    func(field);
+  }
+  else if constexpr (std::is_invocable_v<Visit&, Field&, std::string_view>) {
+    func(field, name);
+  }
+  else if constexpr (std::is_invocable_v<Visit&, Field&, std::string_view,
+                                         std::size_t>) {
+    func(field, name, index);
   }
   else {
-    if constexpr (std::is_invocable_v<Visit, first_t, std::string_view>) {
-      visit_members(t, [&](auto&... args) {
+    static_assert(sizeof(Visit) < 0,
+                  "invalid arguments, full arguments: [field_value&, "
+                  "std::string_view, size_t], at least has field_value and "
+                  "make sure keep the order of arguments");
+  }
+}
+}  // namespace internal
+
+template <typename T, typename Visit>
+inline constexpr void for_each(T&& t, Visit&& func) {
+#ifdef YLT_USE_CXX26_REFLECTION
+  using U = remove_cvref_t<T>;
+  constexpr auto Count = members_count_v<U>;
+  if constexpr (Count == 0) {
+    return;
+  }
+  else {
+    constexpr auto names = get_member_names<U>();
+    reflect26::for_each_data_member(
+        std::forward<T>(t), [&](auto& field, std::string_view name, auto index) {
+          (void)name;
+          internal::invoke_for_each_field(func, field, names[index], index);
+        });
+  }
+#else
+  using Tuple = decltype(object_to_tuple(t));
+  constexpr auto Count = std::tuple_size_v<Tuple>;
+  if constexpr (Count == 0) {
+    return;
+  }
+  else {
+    using first_t = std::tuple_element_t<0, Tuple>;
+    if constexpr (std::is_invocable_v<Visit, first_t>) {
+      visit_members(t, [&func](auto&... args) {
+        (func(args), ...);
+      });
+    }
+    else {
+      if constexpr (std::is_invocable_v<Visit, first_t, std::string_view>) {
+        visit_members(t, [&](auto&... args) {
 #if __cplusplus >= 202002L
-        [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
-          constexpr auto arr = get_member_names<T>();
-          (func(args, arr[Is]), ...);
-        }
-        (std::make_index_sequence<sizeof...(args)>{});
+          [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
+            constexpr auto arr = get_member_names<T>();
+            (func(args, arr[Is]), ...);
+          }
+          (std::make_index_sequence<sizeof...(args)>{});
 #else
             visit_members_impl0<T>(std::forward<Visit>(func),
                                    std::make_index_sequence<sizeof...(args)>{},
                                    args...);
 #endif
-      });
-    }
-    else if constexpr (std::is_invocable_v<Visit, first_t, std::string_view,
-                                           size_t>) {
-      visit_members(t, [&](auto&... args) {
+        });
+      }
+      else if constexpr (std::is_invocable_v<Visit, first_t, std::string_view,
+                                             size_t>) {
+        visit_members(t, [&](auto&... args) {
 #if __cplusplus >= 202002L
-        [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
-          constexpr auto arr = get_member_names<T>();
-          (func(args, arr[Is], Is), ...);
-        }
-        (std::make_index_sequence<sizeof...(args)>{});
+          [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
+            constexpr auto arr = get_member_names<T>();
+            (func(args, arr[Is], Is), ...);
+          }
+          (std::make_index_sequence<sizeof...(args)>{});
 #else
             visit_members_impl<T>(std::forward<Visit>(func),
                                   std::make_index_sequence<sizeof...(args)>{},
                                   args...);
 #endif
-      });
-    }
-    else {
-      static_assert(sizeof(Visit) < 0,
-                    "invalid arguments, full arguments: [field_value&, "
-                    "std::string_view, size_t], at least has field_value and "
-                    "make sure keep the order of arguments");
+        });
+      }
+      else {
+        static_assert(sizeof(Visit) < 0,
+                      "invalid arguments, full arguments: [field_value&, "
+                      "std::string_view, size_t], at least has field_value and "
+                      "make sure keep the order of arguments");
+      }
     }
   }
+#endif
 }
 
 }  // namespace ylt::reflection

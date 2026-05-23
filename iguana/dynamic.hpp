@@ -177,3 +177,13 @@ IGUANA_INLINE std::shared_ptr<base> create_instance(std::string_view name) {
   return it->second();
 }
 }  // namespace iguana
+
+#ifdef YLT_USE_CXX26_REFLECTION
+namespace ylt::reflection::reflect26 {
+template <>
+constexpr inline bool skip_base_v<iguana::detail::base> = true;
+
+template <typename T, uint8_t ENABLE_FLAG>
+constexpr inline bool skip_base_v<iguana::base_impl<T, ENABLE_FLAG>> = true;
+}  // namespace ylt::reflection::reflect26
+#endif

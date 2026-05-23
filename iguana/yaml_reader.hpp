@@ -5,6 +5,9 @@
 #include "detail/charconv.h"
 #include "detail/utf.hpp"
 #include "yaml_util.hpp"
+#ifdef YLT_USE_CXX26_REFLECTION
+#include "ylt/reflection/reflect26_dispatch.hpp"
+#endif
 
 namespace iguana {
 
@@ -559,6 +562,33 @@ IGUANA_INLINE void skip_object_value(It &&it, It &&end, size_t min_spaces) {
 
 }  // namespace detail
 
+#ifdef YLT_USE_CXX26_REFLECTION
+template <typename T, typename It, std::enable_if_t<ylt_refletable_v<T>, int>>
+IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end, size_t min_spaces) {
+  auto spaces = skip_space_and_lines(it, end, min_spaces);
+  while (it != end) {
+    auto start = it;
+    auto keyend = yaml_skip_till<':'>(it, end);
+    std::string_view key = std::string_view{
+        &*start, static_cast<size_t>(std::distance(start, keyend))};
+
+    bool found = ylt::reflection::reflect26::dispatch_by_name(
+        value, key,
+        [&](auto &field) IGUANA__INLINE_LAMBDA {
+          detail::yaml_parse_item(field, it, end, spaces + 1);
+        });
+    if (!found) IGUANA_UNLIKELY {
+#ifdef THROW_UNKNOWN_KEY
+      throw std::runtime_error("Unknown key: " + std::string(key));
+#else
+      detail::skip_object_value(it, end, spaces + 1);
+#endif
+    }
+    auto subspaces = skip_space_and_lines<false>(it, end, min_spaces);
+    if (subspaces < min_spaces) IGUANA_UNLIKELY { it -= subspaces + 1; return; }
+  }
+}
+#else
 template <typename T, typename It, std::enable_if_t<ylt_refletable_v<T>, int>>
 IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end, size_t min_spaces) {
   auto spaces = skip_space_and_lines(it, end, min_spaces);
@@ -599,6 +629,7 @@ IGUANA_INLINE void from_yaml(T &value, It &&it, It &&end, size_t min_spaces) {
       }
   }
 }
+#endif  // !YLT_USE_CXX26_REFLECTION
 
 template <typename T, typename It,
           std::enable_if_t<non_ylt_refletable_v<T>, int> = 0>

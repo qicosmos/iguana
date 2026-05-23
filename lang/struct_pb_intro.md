@@ -53,6 +53,140 @@ message nest {
 }
 ```
 
+### 自定义字段号
+
+默认情况下，字段号按 C++ 成员声明顺序从 1 开始分配。需要和已有 `.proto` 互通时，应显式指定字段号：
+
+```cpp
+struct account {
+  std::string name;
+  int32_t age;
+  std::vector<std::string> emails;
+};
+
+YLT_REFL_PB(account, (name, 10), (age, 20), (emails, 9));
+```
+
+也可以使用 helper 形式描述 proto3 wire schema。helper 形式适合需要 `bytes`、zigzag、fixed、optional、oneof、well-known type 或 unknown fields 的场景：
+
+```cpp
+struct event_msg {
+  int32_t id{};
+  std::string payload;
+  int32_t delta{};
+  uint32_t checksum{};
+  std::chrono::system_clock::time_point created_at{};
+  std::chrono::nanoseconds timeout{};
+  std::optional<int32_t> retry_count;
+  std::variant<std::monostate, int32_t, std::string> result;
+  std::string unknown;
+};
+
+inline auto get_members_impl(event_msg*) {
+  return iguana::pb_members(
+      iguana::pb_field<&event_msg::id, 1>("id"),
+      iguana::pb_bytes_field<&event_msg::payload, 3>("payload"),
+      iguana::pb_zigzag_field<&event_msg::delta, 5>("delta"),
+      iguana::pb_optional_field<&event_msg::retry_count, 6>("retry_count"),
+      iguana::pb_fixed_field<&event_msg::checksum, 7>("checksum"),
+      iguana::as_timestamp_field<&event_msg::created_at, 8>("created_at"),
+      iguana::as_duration_field<&event_msg::timeout, 9>("timeout"),
+      iguana::pb_oneof_field<&event_msg::result, 10, 12>("result"),
+      iguana::pb_unknown_fields_field<&event_msg::unknown>("unknown"));
+}
+```
+
+helper 接口说明：
+
+| helper | 用途 |
+| --- | --- |
+| `pb_members(...)` | 在 `get_members_impl(T*)` 中返回 protobuf descriptor tuple。 |
+| `pb_field<&T::field, N>("name")` | 指定 protobuf 字段号和 schema 名称。 |
+| `pb_bytes_field` | 生成 `bytes`；C++ 字段是 `std::string` 或 `std::string_view`，也支持 optional/vector 外层。 |
+| `pb_zigzag_field` | 生成 `sint32` 或 `sint64`；C++ 字段仍是 `int32_t` 或 `int64_t`，也支持 optional/vector 外层。 |
+| `pb_fixed_field` | 为 32/64-bit 整数字段生成 `fixed32`、`fixed64`、`sfixed32` 或 `sfixed64`，也支持 optional/vector 外层。 |
+| `pb_optional_field` | 生成 proto3 `optional`；C++ 字段必须是 `std::optional<T>`。 |
+| `pb_timestamp_field` / `as_timestamp_field` | 把 `std::chrono::system_clock::time_point` 按 `google.protobuf.Timestamp` 编码，也支持 optional/vector 外层。 |
+| `pb_duration_field` / `as_duration_field` | 把 `std::chrono::nanoseconds` 按 `google.protobuf.Duration` 编码，也支持 optional/vector 外层。 |
+| `pb_oneof_field<&T::field, Ns...>("name")` | 把 `std::variant<std::monostate, ...>` 的非 `monostate` 备选项映射到 oneof 字段号。 |
+| `pb_unknown_fields_field<&T::field>()` | 用单个 `std::string` 字段保留未知 protobuf wire bytes，并在再次序列化时原样写回。 |
+
+显式 wrapper 类型 `iguana::pb_timestamp` 和 `iguana::pb_duration` 仍可用于直接保存 wire-shaped well-known type；业务代码通常优先使用 chrono 字段加 `pb_timestamp_field/as_timestamp_field` 或 `pb_duration_field/as_duration_field`。
+
+需要组合多个 protobuf option 时使用 `pb_field_ex`：
+
+```cpp
+iguana::pb_field_ex<&event_msg::retry_count, 6>(
+    "retry_count", iguana::pb_optional, iguana::pb_zigzag);
+```
+
+`pb_field_ex` 支持组合的 option 包括 `pb_bytes`、`pb_zigzag`、`pb_fixed`、`pb_optional`、`pb_as_timestamp/as_timestamp` 和 `pb_as_duration/as_duration`。`pb_zigzag` 不能和 `pb_fixed` 同时使用，`pb_as_timestamp` 不能和 `pb_as_duration` 同时使用。
+
+### C++26 注解写法
+
+启用 C++26 静态反射后，可以直接把 protobuf metadata 写成字段注解。本轮 C++26 测试构建使用 GCC 16.1 和 `-std=gnu++26 -freflection`。
+
+```cpp
+struct event_msg26 {
+  [[= iguana::pb_field(1)]] int32_t id{};
+
+  [[= iguana::pb_field(3)]]
+  [[= iguana::pb_bytes]]
+  std::string payload;
+
+  [[= iguana::pb_field(5)]]
+  [[= iguana::pb_zigzag]]
+  int32_t delta{};
+
+  [[= iguana::pb_field(6)]]
+  [[= iguana::pb_optional]]
+  std::optional<int32_t> retry_count;
+
+  [[= iguana::pb_field(7)]]
+  [[= iguana::pb_fixed]]
+  uint32_t checksum{};
+
+  [[= iguana::pb_field(8)]]
+  [[= iguana::as_timestamp]]
+  std::chrono::system_clock::time_point created_at{};
+
+  [[= iguana::pb_field(9)]]
+  [[= iguana::as_duration]]
+  std::chrono::nanoseconds timeout{};
+
+  [[= iguana::pb_oneof<10, 12>]]
+  std::variant<std::monostate, int32_t, std::string> result;
+
+  [[= iguana::pb_unknown_fields]]
+  std::string unknown;
+};
+```
+
+当前支持的 proto3 wire metadata 包括：自定义字段号、`bytes`、`sint32/sint64` zigzag、fixed/sfixed、explicit optional presence、oneof、`google.protobuf.Timestamp`、`google.protobuf.Duration`、unknown fields 保留。repeated primitive 读取端同时接受 packed、unpacked、多 packed chunk 和混合编码；写入端按 proto3 默认规则输出 packed。
+
+C++26 注解和 helper 的含义一一对应：
+
+| C++26 注解 | 对应 helper / 说明 |
+| --- | --- |
+| `[[= iguana::pb_field(N)]]` | 对应 `pb_field<&T::field, N>`，指定字段号；字段号必须在 `[1, 2^29 - 1]`，且不能落入 `[19000, 19999]`。 |
+| `[[= iguana::pb_bytes]]` | 对应 `pb_bytes_field`，字段类型限制同 helper。 |
+| `[[= iguana::pb_zigzag]]` | 对应 `pb_zigzag_field`，支持 `int32_t/int64_t` 及 optional/vector 外层。 |
+| `[[= iguana::pb_fixed]]` | 对应 `pb_fixed_field`，支持 32/64-bit 整数及 optional/vector 外层。 |
+| `[[= iguana::pb_optional]]` | 对应 `pb_optional_field`，字段必须是 `std::optional<T>`。 |
+| `[[= iguana::pb_oneof<N...>]]` / `[[= iguana::oneof<N...>]]` | 对应 `pb_oneof_field`，字段必须是 `std::variant<std::monostate, ...>`。 |
+| `[[= iguana::as_timestamp]]` / `[[= iguana::pb_as_timestamp]]` | 对应 `as_timestamp_field/pb_timestamp_field`。 |
+| `[[= iguana::as_duration]]` / `[[= iguana::pb_as_duration]]` | 对应 `as_duration_field/pb_duration_field`。 |
+| `[[= iguana::pb_unknown_fields]]` | 对应 `pb_unknown_fields_field`；每个 message 最多一个，字段必须是 `std::string`。 |
+
+### 生成 proto schema
+
+```cpp
+std::string schema;
+iguana::to_proto<event_msg>(schema, "demo");
+```
+
+`to_proto` 用于生成结构体对应的 proto3 schema 视图，便于 review 字段号和 wire 类型；它不是完整的 `.proto` 编译器。
+
 ## 动态反射
 特性：
 - 根据对象名称创建实例；
@@ -155,13 +289,12 @@ oneof -> `std::variant <...>`
 | oneof       | std::variant<...> |                    |                                    |
 
 ## 约束
-- 目前还只支持proto3，不支持proto2；
-- 目前还没支持反射；
-- 还没支持unkonwn字段；
-- struct_pb 结构体必须派生于base_impl
+- 当前 protobuf 能力定位为 proto3 binary wire-only，不支持 proto2 required、extension、自定义 option、service，也不覆盖 proto3 JSON mapping 或 text format；
+- 普通 `to_pb` / `from_pb` 不要求结构体派生 `base_impl`；只有“根据对象名称创建实例”的动态反射功能需要派生 `iguana::base_impl`；
+- unknown fields 需要显式声明 `pb_unknown_fields_field` 或 C++26 `[[= iguana::pb_unknown_fields]]` 字段后才会保留；
+- official conformance 当前接入的是 proto3 binary/protobuf-output 子集，JSON/text/proto2 和非 protobuf output 会跳过。
 
 ## roadmap
 - 支持proto2；
-- 支持反射；
-- 支持unkonwn字段；
-- 去除struct_pb 结构体必须派生于base_impl的约束；
+- 扩展 proto3 JSON mapping 和 text format；
+- 扩展 descriptor/custom option/service 等更完整 `.proto` 语义；

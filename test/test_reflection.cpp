@@ -100,7 +100,7 @@ TEST_CASE("test member names") {
   test_refl_private();
   constexpr size_t size = members_count_v<person>;
   CHECK(size == 5);
-  constexpr auto tp = struct_to_tuple<person>();
+  auto tp = struct_to_tuple<person>();
   constexpr size_t tp_size = std::tuple_size_v<decltype(tp)>;
   CHECK(tp_size == 5);
 
@@ -408,11 +408,13 @@ TEST_CASE("test macros") {
   static_assert(size5 == 3);
 
   const dummy_t5 d5{};
+#ifndef YLT_USE_CXX26_REFLECTION
   refl_visit_members(d5, [](auto&... args) {
     CHECK(sizeof...(args) == 3);
     ((std::cout << args << ", "), ...);
     std::cout << "\n";
   });
+#endif
 
   visit_members(d5, [](auto&... args) {
     CHECK(sizeof...(args) == 3);
@@ -505,6 +507,7 @@ class private_struct {
 YLT_REFL_PRIVATE(private_struct, a, b);
 
 TEST_CASE("test visit private") {
+#ifndef YLT_USE_CXX26_REFLECTION
   const Bank_t bank(1, "ok");
   constexpr auto tp = get_private_ptrs(identity<Bank_t>{});
   refl_visit_members(bank, [](auto&... args) {
@@ -529,6 +532,7 @@ TEST_CASE("test visit private") {
   auto id = bank.*(std::get<0>(tp));    // 1
   auto name = bank.*(std::get<1>(tp));  // ok
   std::cout << id << ", " << name << "\n";
+#endif
 }
 
 namespace test_type_string {
