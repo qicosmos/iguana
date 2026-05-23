@@ -445,6 +445,7 @@ template for (constexpr auto member : members) {
 - `pb_reader.hpp` unknown group 跳过路径已加 `pb_recursion_guard`，并新增深层 unknown group 回归测试。
 - `xml_reader.hpp` required 字段检查已改为精确字段名匹配，并新增 `id` / `identifier` 重叠字段名回归测试。
 - `NestedMsg.proto`、`test_vector.proto` 这类测试生成文件不再写到仓库根目录，根目录历史临时文件已删除并加入 `.gitignore` 兜底。
+- C++26 GitHub Actions 容器内构建路径改用运行时 `$GITHUB_WORKSPACE`，避免 `${{ github.workspace }}` 展开到宿主 `/home/runner/work/...` 后让 `test_json_files_cpp26` 找不到 `data/`；同时为 JSON 文件测试固定 CTest 工作目录。
 
 ## 验证命令
 
@@ -480,7 +481,7 @@ cmake --build .cache/protobuf-v3.21.12-build --target conformance_test_runner co
 
 - `cmake --build build_cpp26 -j2`：通过，普通目标和 `_cpp26` 目标均完成构建。
 - `cmake --build build_cpp26 --target test_proto -j2`：通过，使用 `protoc 3.21.12` 生成的 C++ fixture。
-- `ctest --test-dir build_cpp26 --output-on-failure`：重新配置后通过，`_cpp26` 目标通过 build rpath 找到 GCC 16 libstdc++。
+- `ctest --test-dir build_cpp26 --output-on-failure`：重新配置后通过，`_cpp26` 目标通过 build rpath 找到 GCC 16 libstdc++，`test_json_files_cpp26` 通过固定 CTest 工作目录读取源码树 `data/`。
 - `LD_LIBRARY_PATH=/opt/gcc-16.1.0/lib64 ./build_cpp26/test_pb`：11/11 test cases、268/268 assertions 通过。
 - `LD_LIBRARY_PATH=/opt/gcc-16.1.0/lib64 ./build_cpp26/test_xml`：20/20 test cases、227/227 assertions 通过。
 - `LD_LIBRARY_PATH=/opt/gcc-16.1.0/lib64 ./build_cpp26/test_proto`：11/11 test cases、54/54 assertions 通过。

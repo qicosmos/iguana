@@ -890,13 +890,13 @@ TEST_CASE("test vector<bool>") {
     CHECK(v.a[1] == false);
     CHECK(v.b == true);
   };
-  vector_bool_t v;
+  vector_bool_t v{};
   iguana::from_json(v, str);
   validator(v);
 
   std::string ss;
   iguana::to_json(v, ss);
-  vector_bool_t v1;
+  vector_bool_t v1{};
   iguana::from_json(v1, ss);
   validator(v1);
 }

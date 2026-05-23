@@ -37,6 +37,13 @@ static void append_tag(std::string &out, uint32_t field_no,
                     static_cast<uint32_t>(wire_type));
 }
 
+static std::chrono::system_clock::time_point make_system_time_point(
+    std::chrono::seconds seconds, std::chrono::nanoseconds nanos) {
+  using clock_duration = std::chrono::system_clock::duration;
+  return std::chrono::system_clock::time_point{
+      std::chrono::duration_cast<clock_duration>(seconds + nanos)};
+}
+
 static std::string make_nested_unknown_group(size_t depth) {
   std::string group;
   for (size_t i = 0; i < depth; ++i) {
@@ -939,7 +946,7 @@ TEST_CASE("test struct_pb") {
         {-1, 0, 1234567890123LL},
         0xDEADBEEFu,
         -45,
-        system_clock::time_point{seconds{1680000000} + nanoseconds{123}},
+        make_system_time_point(seconds{1680000000}, nanoseconds{123}),
         nanoseconds{-1500000000},
         {nanoseconds{0}, nanoseconds{2500000000}}};
     std::string str;
@@ -1129,9 +1136,9 @@ TEST_CASE("test struct_pb") {
   {
     using namespace std::chrono;
     test_pb_annotation_chrono st1{
-        system_clock::time_point{seconds{1680000000} + nanoseconds{123}},
+        make_system_time_point(seconds{1680000000}, nanoseconds{123}),
         nanoseconds{-1500000000},
-        system_clock::time_point{seconds{-2} + nanoseconds{250000000}},
+        make_system_time_point(seconds{-2}, nanoseconds{250000000}),
         {nanoseconds{0}, nanoseconds{2500000000}}};
     std::string str;
     iguana::to_pb(st1, str);
@@ -1664,7 +1671,10 @@ TEST_CASE("test variant") {
     CHECK(std::get<std::string>(st2.y) == "Hello, variant!");
   }
   {
-    test_variant st1 = {5, 3.88, 3.14};
+    test_variant st1;
+    st1.x = 5;
+    st1.y.emplace<double>(3.88);
+    st1.z = 3.14;
     std::string str;
     iguana::to_pb(st1, str);
     test_variant st2;

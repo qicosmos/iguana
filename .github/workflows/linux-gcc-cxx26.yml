@@ -35,10 +35,10 @@ jobs:
         CPP
 
     - name: configure cmake
-      run: CXX=g++ CC=gcc cmake -B ${{ github.workspace }}/build_cpp26 -DCMAKE_BUILD_TYPE=Release -DENABLE_CXX26_REFLECTION=ON
+      run: CXX=g++ CC=gcc cmake -S "$GITHUB_WORKSPACE" -B "$GITHUB_WORKSPACE/build_cpp26" -DCMAKE_BUILD_TYPE=Release -DENABLE_CXX26_REFLECTION=ON
 
     - name: build project
-      run: cmake --build ${{ github.workspace }}/build_cpp26 --config Release -j 2
+      run: cmake --build "$GITHUB_WORKSPACE/build_cpp26" --config Release -j 2
 
     - name: test
-      run: ctest --test-dir ${{ github.workspace }}/build_cpp26 --output-on-failure -j 2
+      run: ctest --test-dir "$GITHUB_WORKSPACE/build_cpp26" --output-on-failure -j 2

@@ -71,8 +71,10 @@ struct pb_timestamp {
   }
 
   operator std::chrono::system_clock::time_point() const {
+    using clock_duration = std::chrono::system_clock::duration;
     return std::chrono::system_clock::time_point{
-        std::chrono::seconds{seconds} + std::chrono::nanoseconds{nanos}};
+        std::chrono::duration_cast<clock_duration>(
+            std::chrono::seconds{seconds} + std::chrono::nanoseconds{nanos})};
   }
 };
 

@@ -489,7 +489,7 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   }
   else {
     using value_type = typename T::value_type;
-    value_type t;
+    value_type t{};
     if constexpr (string_v<value_type> || string_view_v<value_type>) {
       if (it < end && *it == '"')
         IGUANA_LIKELY { ++it; }
@@ -557,7 +557,7 @@ template <typename value_type, typename U, typename It>
 IGUANA_INLINE bool from_json_variant_impl(U &value, It it, It end, It &temp_it,
                                           It &temp_end) {
   try {
-    value_type val;
+    value_type val{};
     from_json_impl(val, it, end);
     value = val;
     temp_it = it;
