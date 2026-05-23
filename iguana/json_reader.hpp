@@ -233,11 +233,13 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   else {
     while (it != end) {
       switch (*it) {
-        IGUANA_UNLIKELY case '\\' : ++it;
+      IGUANA_UNLIKELY case '\\':
+        ++it;
         parse_escape(value, it, end);
         break;
-        // IGUANA_UNLIKELY case ']' : return;
-        IGUANA_UNLIKELY case '"' : ++it;
+      // IGUANA_UNLIKELY case ']' : return;
+      IGUANA_UNLIKELY case '"':
+        ++it;
         return;
         IGUANA_LIKELY default : value.push_back(*it);
         ++it;
@@ -594,34 +596,42 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
 }  // namespace detail
 
 #ifdef YLT_USE_CXX26_REFLECTION
-template <typename T, typename It,
-          std::enable_if_t<ylt_refletable_v<T>, int>>
+template <typename T, typename It, std::enable_if_t<ylt_refletable_v<T>, int>>
 IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
   skip_ws(it, end);
   match<'{'>(it, end);
   skip_ws(it, end);
-  if (*it == '}') IGUANA_UNLIKELY { ++it; return; }
+  if (*it == '}')
+    IGUANA_UNLIKELY {
+      ++it;
+      return;
+    }
 
   while (it != end) {
     std::string_view key = detail::get_key(it, end);
     skip_ws(it, end);
     match<':'>(it, end);
     bool found = ylt::reflection::reflect26::dispatch_by_name(
-        value, key,
-        [&](auto &field) IGUANA__INLINE_LAMBDA {
+        value, key, [&](auto &field) IGUANA__INLINE_LAMBDA {
           using namespace detail;
           from_json_impl(field, it, end);
         });
-    if (!found) IGUANA_UNLIKELY {
+    if (!found)
+      IGUANA_UNLIKELY {
 #ifdef THROW_UNKNOWN_KEY
-      throw std::runtime_error("Unknown key: " + std::string(key));
+        throw std::runtime_error("Unknown key: " + std::string(key));
 #else
-      detail::skip_object_value(it, end);
+        detail::skip_object_value(it, end);
 #endif
-    }
+      }
     skip_ws(it, end);
-    if (*it == '}') IGUANA_UNLIKELY { ++it; return; }
-    else IGUANA_LIKELY { match<','>(it, end); }
+    if (*it == '}')
+      IGUANA_UNLIKELY {
+        ++it;
+        return;
+      }
+    else
+      IGUANA_LIKELY { match<','>(it, end); }
   }
 }
 #endif

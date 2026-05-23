@@ -146,7 +146,9 @@ struct base_impl : public base {
             if (val.field_name == name) {
               using value_type =
                   typename std::remove_reference_t<decltype(val)>::value_type;
-              auto ptr = (char*)this + val.offset;
+              auto ptr =
+                  reinterpret_cast<const char*>(static_cast<const T*>(this)) +
+                  val.offset;
               result = *((value_type*)ptr);
             }
           },
@@ -159,6 +161,12 @@ struct base_impl : public base {
   virtual ~base_impl() {}
 
   mutable size_t cache_size = 0;
+
+ protected:
+  void* object_ptr() override { return static_cast<T*>(this); }
+  const void* object_ptr() const override {
+    return static_cast<const T*>(this);
+  }
 
  private:
   virtual void dummy() {

@@ -32,9 +32,8 @@ static void append_varint(std::string &out, uint64_t value) {
 
 static void append_tag(std::string &out, uint32_t field_no,
                        iguana::WireType wire_type) {
-  append_varint(out,
-                (static_cast<uint64_t>(field_no) << 3) |
-                    static_cast<uint32_t>(wire_type));
+  append_varint(out, (static_cast<uint64_t>(field_no) << 3) |
+                         static_cast<uint32_t>(wire_type));
 }
 
 static std::chrono::system_clock::time_point make_system_time_point(
@@ -159,8 +158,7 @@ inline auto get_members_impl(test_pb_legacy_schema *) {
       iguana::pb_fixed_field<&test_pb_legacy_schema::sf64, 8>("sf64"),
       iguana::pb_timestamp_field<&test_pb_legacy_schema::created_at, 9>(
           "created_at"),
-      iguana::pb_duration_field<&test_pb_legacy_schema::timeout, 10>(
-          "timeout"),
+      iguana::pb_duration_field<&test_pb_legacy_schema::timeout, 10>("timeout"),
       iguana::pb_duration_field<&test_pb_legacy_schema::spans, 11>("spans"));
 }
 
@@ -230,12 +228,11 @@ struct test_pb_annotation_wire_expected {
 YLT_REFL(test_pb_annotation_wire_expected, x, y, z, f32, sf64);
 
 struct test_pb_annotation_wire_container {
-  [[= iguana::pb_field(6)]]
-  [[= iguana::pb_zigzag]] std::optional<int32_t> maybe_delta;
-  [[= iguana::pb_field(7)]]
-  [[= iguana::pb_fixed]] std::vector<uint32_t> packed_fixed;
-  [[= iguana::pb_field(8)]]
-  [[= iguana::pb_zigzag]] std::vector<int64_t> deltas;
+  [[= iguana::pb_field(6)]][[= iguana::pb_zigzag]] std::optional<int32_t>
+      maybe_delta;
+  [[= iguana::pb_field(7)]][[= iguana::pb_fixed]] std::vector<uint32_t>
+      packed_fixed;
+  [[= iguana::pb_field(8)]][[= iguana::pb_zigzag]] std::vector<int64_t> deltas;
 };
 
 struct test_pb_annotation_wire_container_expected {
@@ -247,8 +244,7 @@ YLT_REFL_PB(test_pb_annotation_wire_container_expected, (maybe_delta, 6),
             (packed_fixed, 7), (deltas, 8));
 
 struct test_pb_annotation_bytes {
-  [[= iguana::pb_field(3)]]
-  [[= iguana::pb_bytes]] std::string payload;
+  [[= iguana::pb_field(3)]][[= iguana::pb_bytes]] std::string payload;
   [[= iguana::pb_field(4)]] std::string plain;
 };
 
@@ -260,22 +256,24 @@ YLT_REFL_PB(test_pb_annotation_bytes_expected, (payload, 3), (plain, 4));
 
 struct test_pb_annotation_oneof {
   [[= iguana::pb_field(1)]] int32_t id;
-  [[= iguana::pb_oneof<5, 8>]]
-  std::variant<std::monostate, int32_t, std::string> result;
+  [[= iguana::pb_oneof<5, 8>]] std::variant<std::monostate, int32_t,
+                                            std::string>
+      result;
   [[= iguana::pb_field(9)]] int32_t tail;
 };
 
 struct test_pb_annotation_chrono {
-  [[= iguana::pb_field(2)]]
-  [[= iguana::as_timestamp]]
-  std::chrono::system_clock::time_point created_at;
-  [[= iguana::pb_field(4)]]
-  [[= iguana::as_duration]] std::chrono::nanoseconds timeout;
-  [[= iguana::pb_field(6)]]
-  [[= iguana::as_timestamp]]
-  std::optional<std::chrono::system_clock::time_point> maybe_at;
-  [[= iguana::pb_field(7)]]
-  [[= iguana::as_duration]] std::vector<std::chrono::nanoseconds> spans;
+  [[= iguana::pb_field(
+      2)]][[= iguana::as_timestamp]] std::chrono::system_clock::time_point
+      created_at;
+  [[= iguana::pb_field(
+      4)]][[= iguana::as_duration]] std::chrono::nanoseconds timeout;
+  [[= iguana::pb_field(6)]][[= iguana::as_timestamp]] std::optional<
+      std::chrono::system_clock::time_point>
+      maybe_at;
+  [[= iguana::pb_field(
+      7)]][[= iguana::as_duration]] std::vector<std::chrono::nanoseconds>
+      spans;
 };
 
 struct test_pb_annotation_chrono_expected {
@@ -288,12 +286,10 @@ YLT_REFL_PB(test_pb_annotation_chrono_expected, (created_at, 2), (timeout, 4),
             (maybe_at, 6), (spans, 7));
 
 struct test_pb_annotation_optional {
-  [[= iguana::pb_field(1)]]
-  [[= iguana::pb_optional]]
-  std::optional<int32_t> count;
-  [[= iguana::pb_field(2)]]
-  [[= iguana::pb_optional]]
-  std::optional<std::string> label;
+  [[= iguana::pb_field(1)]][[= iguana::pb_optional]] std::optional<int32_t>
+      count;
+  [[= iguana::pb_field(2)]][[= iguana::pb_optional]] std::optional<std::string>
+      label;
   [[= iguana::pb_field(3)]] std::optional<int32_t> legacy;
 };
 #endif
@@ -539,11 +535,13 @@ TEST_CASE("struct to proto") {
     file.flush();
     file.close();
 
-    size_t size = std::filesystem::file_size(proto_path);
-    std::ifstream in(proto_path, std::ios::binary);
     std::string read_str;
-    read_str.resize(size);
-    in.read(read_str.data(), size);
+    {
+      size_t size = std::filesystem::file_size(proto_path);
+      std::ifstream in(proto_path, std::ios::binary);
+      read_str.resize(size);
+      in.read(read_str.data(), size);
+    }
     CHECK(read_str.find("map<string, pair_t>  map = 9;") != std::string::npos);
     CHECK(read_str.find("Green = 4;") != std::string::npos);
     std::filesystem::remove(proto_path);
@@ -600,8 +598,7 @@ TEST_CASE("struct to proto") {
     CHECK(str.find("int32 legacy = 3;") != std::string::npos);
 
     iguana::to_proto<test_pb_legacy_combined_schema, false>(str);
-    CHECK(str.find("optional  sint32 maybe_delta = 6;") !=
-          std::string::npos);
+    CHECK(str.find("optional  sint32 maybe_delta = 6;") != std::string::npos);
     CHECK(str.find("fixed32 packed_fixed = 7;") != std::string::npos);
 
 #ifdef YLT_USE_CXX26_REFLECTION
@@ -972,8 +969,7 @@ TEST_CASE("test struct_pb") {
         iguana::sfixed64_t{st1.sf64},
         iguana::pb_timestamp{st1.created_at},
         iguana::pb_duration{st1.timeout},
-        {iguana::pb_duration{st1.spans[0]},
-         iguana::pb_duration{st1.spans[1]}}};
+        {iguana::pb_duration{st1.spans[0]}, iguana::pb_duration{st1.spans[1]}}};
     std::string expected_str;
     iguana::to_pb(expected, expected_str);
     CHECK(str == expected_str);
@@ -1006,8 +1002,7 @@ TEST_CASE("test struct_pb") {
     CHECK(*st2.legacy == 7);
   }
   {
-    test_pb_legacy_combined_schema st1{
-        int32_t{-7}, {0xDEADBEEFu, 7u}};
+    test_pb_legacy_combined_schema st1{int32_t{-7}, {0xDEADBEEFu, 7u}};
     std::string str;
     iguana::to_pb(st1, str);
 
@@ -1037,8 +1032,7 @@ TEST_CASE("test struct_pb") {
     CHECK(st1.f32 == st2.f32);
     CHECK(st1.sf64 == st2.sf64);
 
-    test_pb_annotation_wire_expected expected{
-        41, {-42}, {-43}, {44}, {-45}};
+    test_pb_annotation_wire_expected expected{41, {-42}, {-43}, {44}, {-45}};
     std::string expected_str;
     iguana::to_pb(expected, expected_str);
     CHECK(str == expected_str);
@@ -1247,7 +1241,7 @@ TEST_CASE("test struct_pb") {
     CHECK(st1.z == st2.z);
   }
   {
-    auto append = [](std::string& out, uint8_t byte) {
+    auto append = [](std::string &out, uint8_t byte) {
       out.push_back(static_cast<char>(byte));
     };
 
@@ -1460,7 +1454,7 @@ TEST_CASE("test struct_pb") {
     CHECK(st1.z == st2.z);
   }
   {
-    auto append = [](std::string& out, uint8_t byte) {
+    auto append = [](std::string &out, uint8_t byte) {
       out.push_back(static_cast<char>(byte));
     };
 
@@ -1625,9 +1619,9 @@ struct test_variant {
   test_variant() = default;
   test_variant(int a, std::variant<double, std::string, int> b, double c)
       : x(a), y(std::move(b)), z(c) {}
-  int x;
-  std::variant<double, std::string, int> y;
-  double z;
+  int x{};
+  std::variant<double, std::string, int> y{};
+  double z{};
 };
 YLT_REFL(test_variant, x, y, z);
 
@@ -1671,7 +1665,7 @@ TEST_CASE("test variant") {
     CHECK(std::get<std::string>(st2.y) == "Hello, variant!");
   }
   {
-    test_variant st1;
+    test_variant st1{};
     st1.x = 5;
     st1.y.emplace<double>(3.88);
     st1.z = 3.14;
@@ -2029,8 +2023,7 @@ TEST_CASE("legacy preserve unknown fields descriptor") {
   check_fc_unknown_roundtrip_legacy(fc_new_int32{42, 99, "hello"});
   check_fc_unknown_roundtrip_legacy(
       fc_new_double{42, 3.14159265358979, "hello"});
-  check_fc_unknown_roundtrip_legacy(
-      fc_new_string{42, "unknown_data", "hello"});
+  check_fc_unknown_roundtrip_legacy(fc_new_string{42, "unknown_data", "hello"});
 
   fc_old old{42, "hello"};
   std::string buf;
@@ -2063,8 +2056,8 @@ TEST_CASE("unknown group recursion limit") {
   fc_old old{42, "hello"};
   std::string buf;
   iguana::to_pb(old, buf);
-  buf.append(make_nested_unknown_group(iguana::detail::max_pb_recursion_depth +
-                                       5));
+  buf.append(
+      make_nested_unknown_group(iguana::detail::max_pb_recursion_depth + 5));
 
   fc_old_keep_unknown_legacy obj{};
   CHECK_THROWS_AS(iguana::from_pb(obj, buf), std::runtime_error);

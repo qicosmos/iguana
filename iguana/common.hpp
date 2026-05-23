@@ -13,11 +13,18 @@
 #include "util.hpp"
 #ifdef YLT_USE_CXX26_REFLECTION
 #include <meta>
+
 #include "ylt/reflection/reflect26_core.hpp"
 #endif
 
 namespace iguana {
 struct iguana_adl_t {};
+
+#if defined(__GNUC__) && !defined(__clang__)
+#define IGUANA_DYNAMIC_NOINLINE __attribute__((noinline))
+#else
+#define IGUANA_DYNAMIC_NOINLINE
+#endif
 
 struct pb_field_annotation {
   size_t value;
@@ -92,7 +99,7 @@ struct pb_duration {
   }
 
   operator std::chrono::nanoseconds() const {
-      return std::chrono::seconds{seconds} + std::chrono::nanoseconds{nanos};
+    return std::chrono::seconds{seconds} + std::chrono::nanoseconds{nanos};
   }
 };
 YLT_REFL(pb_timestamp, seconds, nanos);
@@ -127,22 +134,26 @@ struct base {
   T& get_field_value(std::string_view name) {
     auto info = get_field_info(name);
     check_field<T>(name, info);
-    auto ptr = (((char*)this) + info.offset);
+    auto ptr = static_cast<char*>(object_ptr()) + info.offset;
     return *((T*)ptr);
   }
 
   template <typename T, typename FiledType = T>
-  void set_field_value(std::string_view name, T val) {
+  IGUANA_DYNAMIC_NOINLINE void set_field_value(std::string_view name, T val) {
     auto info = get_field_info(name);
     check_field<FiledType>(name, info);
 
-    auto ptr = (((char*)this) + info.offset);
+    auto ptr = static_cast<char*>(object_ptr()) + info.offset;
 
     static_assert(std::is_constructible_v<FiledType, T>, "can not assign");
 
     *((FiledType*)ptr) = std::move(val);
   }
   virtual ~base() {}
+
+ protected:
+  virtual void* object_ptr() { return this; }
+  virtual const void* object_ptr() const { return this; }
 
  private:
   template <typename T>
@@ -308,10 +319,9 @@ constexpr bool has_duplicate_field_nos(std::index_sequence<I...>) {
 template <typename Tuple>
 constexpr void validate_pb_members_tuple() {
   constexpr size_t N = std::tuple_size_v<Tuple>;
-  static_assert(
-      !has_invalid_field_nos<Tuple>(std::make_index_sequence<N>{}),
-      "protobuf field numbers must be in [1, 2^29 - 1] and not in "
-      "[19000, 19999]");
+  static_assert(!has_invalid_field_nos<Tuple>(std::make_index_sequence<N>{}),
+                "protobuf field numbers must be in [1, 2^29 - 1] and not in "
+                "[19000, 19999]");
   static_assert(!has_duplicate_field_nos<Tuple>(std::make_index_sequence<N>{}),
                 "duplicate proto field numbers detected");
 }
@@ -363,20 +373,21 @@ constexpr inline auto build_pb_variant_fields(size_t offset,
                                               std::index_sequence<I...>) {
   return std::tuple(
       pb_field_t<T, value_type, field_no + I + 1,
-                 std::variant_alternative_t<I + First, value_type>>{
-          offset, name}...);
+                 std::variant_alternative_t<I + First, value_type>>{offset,
+                                                                    name}...);
 }
 
 template <typename T, typename ValueType, size_t First, size_t... FieldNos,
           size_t... I>
-constexpr inline auto build_pb_oneof_fields_impl(
-    size_t offset, std::string_view name, std::index_sequence<I...>) {
+constexpr inline auto build_pb_oneof_fields_impl(size_t offset,
+                                                 std::string_view name,
+                                                 std::index_sequence<I...>) {
   using U = ylt::reflection::remove_cvref_t<T>;
   using value_type = ylt::reflection::remove_cvref_t<ValueType>;
   return std::tuple(
       pb_field_t<U, value_type, FieldNos,
-                 std::variant_alternative_t<I + First, value_type>>{
-          offset, name}...);
+                 std::variant_alternative_t<I + First, value_type>>{offset,
+                                                                    name}...);
 }
 
 template <typename T, typename ValueType, size_t... FieldNos>
@@ -434,8 +445,8 @@ constexpr inline auto build_pb_fields_impl(size_t offset,
     return std::tuple(
         pb_field_t<U, value_type, field_no + 1, value_type, BytesSchema,
                    TimestampSchema, DurationSchema, OptionalSchema,
-                   ZigzagSchema, FixedSchema, wire_value_type,
-                   wire_value_type>{offset, name});
+                   ZigzagSchema, FixedSchema, wire_value_type, wire_value_type>{
+            offset, name});
   }
 }
 
@@ -476,16 +487,14 @@ struct pb_wire_type_selector<false, true, int64_t> {
 
 template <bool Zigzag, bool Fixed, typename T>
 struct pb_wire_type_selector<Zigzag, Fixed, std::optional<T>> {
-  using type = std::optional<
-      typename pb_wire_type_selector<Zigzag, Fixed,
-                                     ylt::reflection::remove_cvref_t<T>>::type>;
+  using type = std::optional<typename pb_wire_type_selector<
+      Zigzag, Fixed, ylt::reflection::remove_cvref_t<T>>::type>;
 };
 
 template <bool Zigzag, bool Fixed, typename T, typename Alloc>
 struct pb_wire_type_selector<Zigzag, Fixed, std::vector<T, Alloc>> {
-  using type = std::vector<
-      typename pb_wire_type_selector<Zigzag, Fixed,
-                                     ylt::reflection::remove_cvref_t<T>>::type>;
+  using type = std::vector<typename pb_wire_type_selector<
+      Zigzag, Fixed, ylt::reflection::remove_cvref_t<T>>::type>;
 };
 
 template <typename T>
@@ -536,13 +545,15 @@ template <typename T>
 struct is_pb_duration_option : std::false_type {};
 
 template <>
-struct is_pb_duration_option<iguana::pb_duration_annotation> : std::true_type {};
+struct is_pb_duration_option<iguana::pb_duration_annotation> : std::true_type {
+};
 
 template <typename T>
 struct is_pb_optional_option : std::false_type {};
 
 template <>
-struct is_pb_optional_option<iguana::pb_optional_annotation> : std::true_type {};
+struct is_pb_optional_option<iguana::pb_optional_annotation> : std::true_type {
+};
 
 template <typename... Options>
 struct pb_schema_options {
@@ -645,8 +656,7 @@ IGUANA_INLINE void visit_pb_unknown_field(T&& t, Field&& field, Func&& func) {
 }
 
 template <typename T, typename Tuple, typename Func, size_t... I>
-IGUANA_INLINE void visit_pb_unknown_fields_tuple(T&& t, Tuple&& tp,
-                                                 Func&& func,
+IGUANA_INLINE void visit_pb_unknown_fields_tuple(T&& t, Tuple&& tp, Func&& func,
                                                  std::index_sequence<I...>) {
   (visit_pb_unknown_field(t, std::get<I>(tp), func), ...);
 }
@@ -676,7 +686,8 @@ template <typename T>
 struct is_pb_zigzag_annotation : std::false_type {};
 
 template <>
-struct is_pb_zigzag_annotation<iguana::pb_zigzag_annotation> : std::true_type {};
+struct is_pb_zigzag_annotation<iguana::pb_zigzag_annotation> : std::true_type {
+};
 
 template <typename T>
 struct is_pb_fixed_annotation : std::false_type {};
@@ -778,7 +789,7 @@ consteval size_t pb_oneof_count_26() {
   static constexpr auto annotations =
       std::define_static_array(std::meta::annotations_of(Member));
   template for (constexpr auto annotation : annotations) {
-    using annotation_type = [: std::meta::type_of(annotation) :];
+    using annotation_type = [:std::meta::type_of(annotation):];
     using annotation_t = std::remove_cvref_t<annotation_type>;
     if constexpr (is_pb_oneof_annotation<annotation_t>::value) {
       return annotation_t::values.size();
@@ -792,7 +803,7 @@ consteval size_t pb_oneof_field_no_26() {
   static constexpr auto annotations =
       std::define_static_array(std::meta::annotations_of(Member));
   template for (constexpr auto annotation : annotations) {
-    using annotation_type = [: std::meta::type_of(annotation) :];
+    using annotation_type = [:std::meta::type_of(annotation):];
     using annotation_t = std::remove_cvref_t<annotation_type>;
     if constexpr (is_pb_oneof_annotation<annotation_t>::value) {
       constexpr auto field_no = annotation_t::values[I];
@@ -814,16 +825,16 @@ struct pb_wire_type_26 {
   using value_type = ylt::reflection::remove_cvref_t<ValueType>;
   static_assert(!(pb_zigzag_26<Member>() && pb_fixed_26<Member>()),
                 "protobuf field can't use both pb_zigzag and pb_fixed");
-  using type = typename pb_wire_type_selector<pb_zigzag_26<Member>(),
-                                              pb_fixed_26<Member>(),
-                                              value_type>::type;
+  using type =
+      typename pb_wire_type_selector<pb_zigzag_26<Member>(),
+                                     pb_fixed_26<Member>(), value_type>::type;
 };
 
 template <typename T>
 consteval size_t pb_unknown_fields_count_26() {
   using U = ylt::reflection::remove_cvref_t<T>;
-  static constexpr auto members =
-      std::define_static_array(ylt::reflection::reflect26::data_members_26<U>());
+  static constexpr auto members = std::define_static_array(
+      ylt::reflection::reflect26::data_members_26<U>());
   size_t count = 0;
   template for (constexpr auto member : members) {
     if constexpr (pb_unknown_fields_26<member>()) {
@@ -838,8 +849,8 @@ IGUANA_INLINE void visit_pb_unknown_fields_26(T&& t, Func&& func) {
   using U = ylt::reflection::remove_cvref_t<T>;
   static_assert(pb_unknown_fields_count_26<U>() <= 1,
                 "only one pb_unknown_fields member is supported");
-  static constexpr auto members =
-      std::define_static_array(ylt::reflection::reflect26::data_members_26<U>());
+  static constexpr auto members = std::define_static_array(
+      ylt::reflection::reflect26::data_members_26<U>());
   template for (constexpr auto member : members) {
     if constexpr (pb_unknown_fields_26<member>()) {
       using field_type =
@@ -878,13 +889,13 @@ IGUANA_INLINE void append_pb_unknown_field_26(T& t, const char* data,
 template <typename T, size_t I>
 consteval size_t pb_field_width_26() {
   using U = ylt::reflection::remove_cvref_t<T>;
-  static constexpr auto members =
-      std::define_static_array(ylt::reflection::reflect26::data_members_26<U>());
+  static constexpr auto members = std::define_static_array(
+      ylt::reflection::reflect26::data_members_26<U>());
   if constexpr (pb_unknown_fields_26<members[I]>()) {
     return 0;
   }
   else {
-    using member_type = [: std::meta::type_of(members[I]) :];
+    using member_type = [:std::meta::type_of(members[I]):];
     using value_type = ylt::reflection::remove_cvref_t<member_type>;
     if constexpr (is_variant<value_type>::value) {
       if constexpr (pb_oneof_26<members[I]>()) {
@@ -916,13 +927,12 @@ consteval size_t pb_field_no_26() {
   static constexpr auto annotations =
       std::define_static_array(std::meta::annotations_of(Member));
   template for (constexpr auto annotation : annotations) {
-    using annotation_type = [: std::meta::type_of(annotation) :];
+    using annotation_type = [:std::meta::type_of(annotation):];
     using annotation_t = std::remove_cvref_t<annotation_type>;
     if constexpr (is_pb_field_annotation<annotation_t>::value) {
       constexpr auto field_no =
           std::meta::extract<iguana::pb_field_annotation>(annotation).value;
-      static_assert(field_no > 0,
-                    "protobuf field number must be positive");
+      static_assert(field_no > 0, "protobuf field number must be positive");
       static_assert(field_no <= ((size_t{1} << 29) - 1),
                     "protobuf field number exceeds 2^29 - 1");
       static_assert(field_no < 19000 || field_no > 19999,
@@ -937,8 +947,8 @@ consteval size_t pb_field_no_26() {
 template <typename T, size_t I, size_t DefaultIndex>
 consteval size_t pb_field_index_26() {
   using U = ylt::reflection::remove_cvref_t<T>;
-  static constexpr auto members =
-      std::define_static_array(ylt::reflection::reflect26::data_members_26<U>());
+  static constexpr auto members = std::define_static_array(
+      ylt::reflection::reflect26::data_members_26<U>());
   if constexpr (I < members.size()) {
     constexpr auto field_no = pb_field_no_26<members[I]>();
     if constexpr (field_no > 0) {
@@ -951,8 +961,8 @@ consteval size_t pb_field_index_26() {
 template <typename T, size_t I, typename ValueType>
 struct pb_field_value_type_26 {
   using U = ylt::reflection::remove_cvref_t<T>;
-  static constexpr auto members =
-      std::define_static_array(ylt::reflection::reflect26::data_members_26<U>());
+  static constexpr auto members = std::define_static_array(
+      ylt::reflection::reflect26::data_members_26<U>());
   using type = typename pb_wire_type_26<members[I], ValueType>::type;
 };
 
@@ -965,15 +975,15 @@ constexpr inline auto build_pb_oneof_fields_26(size_t offset,
   constexpr size_t first = pb_variant_first_case_index<value_type>();
   return std::tuple(
       pb_field_t<U, value_type, pb_oneof_field_no_26<Member, I>(),
-                 std::variant_alternative_t<I + first, value_type>>{
-          offset, name}...);
+                 std::variant_alternative_t<I + first, value_type>>{offset,
+                                                                    name}...);
 }
 
 template <typename T, size_t I, typename ValueType, typename Array>
 inline auto build_pb_field_26(const Array& offset_arr, std::string_view name) {
   using U = ylt::reflection::remove_cvref_t<T>;
-  static constexpr auto members =
-      std::define_static_array(ylt::reflection::reflect26::data_members_26<U>());
+  static constexpr auto members = std::define_static_array(
+      ylt::reflection::reflect26::data_members_26<U>());
   if constexpr (pb_unknown_fields_26<members[I]>()) {
     using value_type = ylt::reflection::remove_cvref_t<ValueType>;
     static_assert(std::is_same_v<value_type, std::string>,
@@ -995,8 +1005,7 @@ inline auto build_pb_field_26(const Array& offset_arr, std::string_view name) {
                     "pb_oneof field number count must match variant "
                     "alternatives excluding std::monostate");
       return build_pb_oneof_fields_26<T, ValueType, members[I]>(
-          offset_arr[I],
-          name,
+          offset_arr[I], name,
           std::make_index_sequence<pb_oneof_count_26<members[I]>()>{});
     }
     else {
@@ -1010,11 +1019,11 @@ inline auto build_pb_field_26(const Array& offset_arr, std::string_view name) {
                     "pb_as_timestamp member must be "
                     "std::chrono::system_clock::time_point, or optional/vector "
                     "of that type");
-      static_assert(!pb_as_duration_26<members[I]>() ||
-                        std::is_same_v<annotation_leaf_type,
-                                       std::chrono::nanoseconds>,
-                    "pb_as_duration member must be std::chrono::nanoseconds, "
-                    "or optional/vector of that type");
+      static_assert(
+          !pb_as_duration_26<members[I]>() ||
+              std::is_same_v<annotation_leaf_type, std::chrono::nanoseconds>,
+          "pb_as_duration member must be std::chrono::nanoseconds, "
+          "or optional/vector of that type");
       static_assert(!pb_bytes_26<members[I]>() ||
                         std::is_same_v<annotation_leaf_type, std::string> ||
                         std::is_same_v<annotation_leaf_type, std::string_view>,
@@ -1039,8 +1048,8 @@ inline auto build_pb_field_26(const Array& offset_arr, std::string_view name) {
           pb_bytes_26<members[I]>(), pb_as_timestamp_26<members[I]>(),
           pb_as_duration_26<members[I]>(), pb_optional_26<members[I]>(),
           pb_zigzag_26<members[I]>(), pb_fixed_26<members[I]>(),
-          typename pb_field_value_type_26<T, I, ValueType>::type>(
-          offset_arr[I], name);
+          typename pb_field_value_type_26<T, I, ValueType>::type>(offset_arr[I],
+                                                                  name);
     }
   }
 }
@@ -1088,9 +1097,8 @@ inline auto build_pb_fields(const Array& offset_arr,
                             std::index_sequence<I...>) {
   constexpr auto arr = ylt::reflection::get_member_names<T>();
 #ifdef YLT_USE_CXX26_REFLECTION
-  return std::tuple_cat(
-      build_pb_field_26<T, I, std::tuple_element_t<I, Tuple>>(offset_arr,
-                                                              arr[I])...);
+  return std::tuple_cat(build_pb_field_26<T, I, std::tuple_element_t<I, Tuple>>(
+      offset_arr, arr[I])...);
 #else
   constexpr std::array<size_t, sizeof...(I)> indexs =
       get_field_no<Tuple>(std::make_index_sequence<sizeof...(I)>{});
@@ -1180,9 +1188,8 @@ IGUANA_INLINE auto pb_field_ex(std::string_view name, Options... options) {
   ((void)options, ...);
   using owner =
       typename ylt::reflection::member_traits<decltype(ptr)>::owner_type;
-  using value_type =
-      ylt::reflection::remove_cvref_t<typename ylt::reflection::member_traits<
-          decltype(ptr)>::value_type>;
+  using value_type = ylt::reflection::remove_cvref_t<
+      typename ylt::reflection::member_traits<decltype(ptr)>::value_type>;
   using leaf_type = detail::pb_annotation_leaf_type_t<value_type>;
   using opts = detail::pb_schema_options<Options...>;
   using wire_value_type =
@@ -1201,16 +1208,16 @@ IGUANA_INLINE auto pb_field_ex(std::string_view name, Options... options) {
                     std::is_same_v<leaf_type, std::string_view>,
                 "pb_bytes_field member must be std::string, "
                 "std::string_view, or optional/vector of that type");
-  static_assert(!opts::timestamp ||
-                    std::is_same_v<leaf_type,
-                                   std::chrono::system_clock::time_point>,
-                "pb_timestamp_field member must be "
-                "std::chrono::system_clock::time_point, or optional/vector of "
-                "that type");
-  static_assert(!opts::duration ||
-                    std::is_same_v<leaf_type, std::chrono::nanoseconds>,
-                "pb_duration_field member must be std::chrono::nanoseconds, "
-                "or optional/vector of that type");
+  static_assert(
+      !opts::timestamp ||
+          std::is_same_v<leaf_type, std::chrono::system_clock::time_point>,
+      "pb_timestamp_field member must be "
+      "std::chrono::system_clock::time_point, or optional/vector of "
+      "that type");
+  static_assert(
+      !opts::duration || std::is_same_v<leaf_type, std::chrono::nanoseconds>,
+      "pb_duration_field member must be std::chrono::nanoseconds, "
+      "or optional/vector of that type");
   static_assert(!opts::optional || optional_v<value_type>,
                 "pb_optional_field member must be std::optional<T>");
   static_assert(!opts::zigzag || std::is_same_v<leaf_type, int32_t> ||
@@ -1280,9 +1287,8 @@ template <auto ptr>
 IGUANA_INLINE auto pb_unknown_fields_field(std::string_view name = "") {
   using owner =
       typename ylt::reflection::member_traits<decltype(ptr)>::owner_type;
-  using value_type =
-      ylt::reflection::remove_cvref_t<typename ylt::reflection::member_traits<
-          decltype(ptr)>::value_type>;
+  using value_type = ylt::reflection::remove_cvref_t<
+      typename ylt::reflection::member_traits<decltype(ptr)>::value_type>;
   static_assert(std::is_same_v<value_type, std::string>,
                 "pb_unknown_fields_field member must be std::string");
   size_t offset = member_offset((owner*)nullptr, ptr);
@@ -1296,8 +1302,8 @@ IGUANA_INLINE auto pb_oneof_field(std::string_view name) {
   using value_type =
       typename ylt::reflection::member_traits<decltype(ptr)>::value_type;
   size_t offset = member_offset((owner*)nullptr, ptr);
-  return iguana::detail::build_pb_oneof_fields<owner, value_type,
-                                               field_nos...>(offset, name);
+  return iguana::detail::build_pb_oneof_fields<owner, value_type, field_nos...>(
+      offset, name);
 }
 
 namespace detail {
