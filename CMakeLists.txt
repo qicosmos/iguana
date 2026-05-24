@@ -201,7 +201,6 @@ if (ENABLE_CXX26_REFLECTION)
             get_target_property(tgt_sources ${tgt} SOURCES)
             add_executable(${tgt26} ${tgt_sources})
             target_compile_options(${tgt26} PRIVATE -std=gnu++26 -freflection)
-            target_compile_definitions(${tgt26} PRIVATE YLT_USE_CXX26_REFLECTION)
             if(CXX26_LIBSTDCXX_DIR)
                 set_property(TARGET ${tgt26} APPEND_STRING PROPERTY LINK_FLAGS
                     " -Wl,-rpath,${CXX26_LIBSTDCXX_DIR}")

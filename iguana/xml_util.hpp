@@ -70,12 +70,15 @@ consteval auto xml_required_names_26() {
   using U = ylt::reflection::remove_cvref_t<T>;
   static constexpr auto members = std::define_static_array(
       ylt::reflection::reflect26::data_members_26<U>());
+  constexpr auto member_names = ylt::reflection::get_member_names<U>();
   std::array<std::string_view, xml_required_count_26<U>()> names{};
   size_t index = 0;
+  size_t member_index = 0;
   template for (constexpr auto member : members) {
     if constexpr (xml_required_26<member>()) {
-      names[index++] = ylt::reflection::reflect26::member_name_26<member>();
+      names[index++] = member_names[member_index];
     }
+    ++member_index;
   }
   return names;
 }
@@ -160,8 +163,27 @@ constexpr int element_index_helper() {
 
 template <template <typename...> typename Condition, typename T>
 constexpr int tuple_element_index() {
+#ifdef YLT_USE_CXX26_REFLECTION
+  using U = ylt::reflection::remove_cvref_t<T>;
+  static constexpr auto members = std::define_static_array(
+      ylt::reflection::reflect26::data_members_26<U>());
+  int result = static_cast<int>(members.size());
+  int index = 0;
+  template for (constexpr auto member : members) {
+    using item_type =
+        ylt::reflection::remove_cvref_t<[:std::meta::type_of(member):]>;
+    if constexpr (Condition<item_type>::value) {
+      if (result == static_cast<int>(members.size())) {
+        result = index;
+      }
+    }
+    ++index;
+  }
+  return result;
+#else
   using Tuple = decltype(ylt::reflection::object_to_tuple(std::declval<T>()));
   return element_index_helper<0, Condition, Tuple>();
+#endif
 }
 
 template <template <typename...> typename Condition, typename T>

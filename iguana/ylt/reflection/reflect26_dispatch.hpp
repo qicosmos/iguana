@@ -9,14 +9,6 @@
 
 namespace ylt::reflection::reflect26 {
 
-inline constexpr std::string_view normalized_member_name(
-    std::string_view name) {
-  if (name.size() > 3 && name[0] == '_' && name[1] == '_' && name[2] == '_') {
-    name.remove_prefix(3);
-  }
-  return name;
-}
-
 template <typename Func, typename Field>
 void invoke_dispatch(Func& func, Field& field, std::string_view name,
                      std::size_t index) {
@@ -67,6 +59,27 @@ void dispatch_by_index(T& obj, Func&& func) {
       data_members_26<ylt::reflection::remove_cvref_t<T>>());
   static_assert(Index < members.size(), "index out of range");
   func(obj.[:members[Index]:]);
+}
+
+template <typename T, typename Func>
+bool dispatch_by_index(T& obj, std::size_t target, Func&& func) {
+  static constexpr auto members = std::define_static_array(
+      data_members_26<ylt::reflection::remove_cvref_t<T>>());
+  if constexpr (members.size() == 0) {
+    return false;
+  }
+  else {
+    bool found = false;
+    [[maybe_unused]] std::size_t index = 0;
+    template for (constexpr auto member : members) {
+      if (!found && index == target) {
+        invoke_dispatch(func, obj.[:member:], member_name_26<member>(), index);
+        found = true;
+      }
+      ++index;
+    }
+    return found;
+  }
 }
 
 }  // namespace ylt::reflection::reflect26

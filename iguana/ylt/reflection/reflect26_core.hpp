@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <meta>
 #include <string_view>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -36,6 +37,14 @@ struct struct_name {
 struct skip_base {};
 
 struct skip_field {};
+
+inline constexpr std::string_view normalized_member_name(
+    std::string_view name) {
+  if (name.size() > 3 && name[0] == '_' && name[1] == '_' && name[2] == '_') {
+    name.remove_prefix(3);
+  }
+  return name;
+}
 
 template <typename T>
 struct is_field_name_annotation : std::false_type {};

@@ -160,10 +160,7 @@ struct member_names_linear_map {
   constexpr auto end() const noexcept { return names.end(); }
 
   static constexpr std::string_view normalized_name(std::string_view name) {
-    if (name.size() > 3 && name[0] == '_' && name[1] == '_' && name[2] == '_') {
-      name.remove_prefix(3);
-    }
-    return name;
+    return reflect26::normalized_member_name(name);
   }
 
   constexpr std::size_t at(std::string_view name) const {
@@ -252,9 +249,20 @@ inline constexpr auto tuple_to_variant(std::tuple<Args...>) {
   return std::variant<std::add_pointer_t<Args>...>{};
 }
 
+#ifdef YLT_USE_CXX26_REFLECTION
+template <typename T>
+struct struct_variant_unavailable {
+  static_assert(sizeof(T) < 0,
+                "struct_variant_t is not available with C++26 reflection; use "
+                "reflect26::dispatch_by_name or dispatch_by_index instead");
+};
+template <typename T>
+using struct_variant_t = struct_variant_unavailable<T>;
+#else
 template <typename T>
 using struct_variant_t = decltype(tuple_to_variant(
     std::declval<decltype(struct_to_tuple<remove_cvref_t<T>>())>));
+#endif
 
 template <typename T>
 constexpr auto member_names_map = internal::get_member_names_map<T>();

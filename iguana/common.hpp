@@ -1092,21 +1092,30 @@ IGUANA_INLINE void append_pb_unknown_field(T& t, const char* data,
   });
 }
 
+#ifdef YLT_USE_CXX26_REFLECTION
+template <typename T, typename Array, size_t... I>
+inline auto build_pb_fields(const Array& offset_arr,
+                            std::index_sequence<I...>) {
+  constexpr auto arr = ylt::reflection::get_member_names<T>();
+  using U = ylt::reflection::remove_cvref_t<T>;
+  static constexpr auto members = std::define_static_array(
+      ylt::reflection::reflect26::data_members_26<U>());
+  return std::tuple_cat(
+      build_pb_field_26<T, I, typename[:std::meta::type_of(members[I]):]>(
+          offset_arr, arr[I])...);
+}
+#else
 template <typename Tuple, typename T, typename Array, size_t... I>
 inline auto build_pb_fields(const Array& offset_arr,
                             std::index_sequence<I...>) {
   constexpr auto arr = ylt::reflection::get_member_names<T>();
-#ifdef YLT_USE_CXX26_REFLECTION
-  return std::tuple_cat(build_pb_field_26<T, I, std::tuple_element_t<I, Tuple>>(
-      offset_arr, arr[I])...);
-#else
   constexpr std::array<size_t, sizeof...(I)> indexs =
       get_field_no<Tuple>(std::make_index_sequence<sizeof...(I)>{});
   return std::tuple_cat(
       build_pb_fields_impl<T, indexs[I], std::tuple_element_t<I, Tuple>>(
           offset_arr[I], arr[I])...);
-#endif
 }
+#endif
 
 template <typename T>
 inline auto get_pb_members_tuple(T&& t) {
@@ -1119,11 +1128,19 @@ inline auto get_pb_members_tuple(T&& t) {
     return res;
   }
   else if constexpr (ylt_refletable_v<U>) {
+#ifdef YLT_USE_CXX26_REFLECTION
+    static const auto& offset_arr =
+        ylt::reflection::internal::get_member_offset_arr<U>();
+    constexpr auto count = ylt::reflection::members_count_v<U>;
+    auto res =
+        build_pb_fields<T>(offset_arr, std::make_index_sequence<count>{});
+#else
     static auto& offset_arr = ylt::reflection::internal::get_member_offset_arr(
         ylt::reflection::internal::wrapper<U>::value);
     using Tuple = decltype(ylt::reflection::object_to_tuple(std::declval<U>()));
     auto res = build_pb_fields<Tuple, T>(
         offset_arr, std::make_index_sequence<std::tuple_size_v<Tuple>>{});
+#endif
     using ResultTuple = decltype(res);
     validate_pb_members_tuple<ResultTuple>();
     return res;

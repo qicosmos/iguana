@@ -108,11 +108,7 @@ inline constexpr decltype(auto) tuple_view(T&& t, Visitor&& visitor) {
 template <class T>
 inline constexpr auto struct_to_tuple() {
 #ifdef YLT_USE_CXX26_REFLECTION
-  static constexpr auto members =
-      std::define_static_array(reflect26::data_members_26<remove_cvref_t<T>>());
-  return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-    return std::tuple<typename[:std::meta::type_of(members[Is]):] * ...>{};
-  }(std::make_index_sequence<members.size()>{});
+  return reflect26::data_members_26<remove_cvref_t<T>>();
 #else
   return internal::object_tuple_view_helper<T,
                                             members_count_v<T>>::tuple_view();
@@ -122,12 +118,7 @@ inline constexpr auto struct_to_tuple() {
 template <class T>
 inline constexpr auto object_to_tuple(T&& t) {
 #ifdef YLT_USE_CXX26_REFLECTION
-  using type = remove_cvref_t<T>;
-  static constexpr auto members =
-      std::define_static_array(reflect26::data_members_26<type>());
-  return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-    return std::tie(t.[:members[Is]:]...);
-  }(std::make_index_sequence<members.size()>{});
+  return reflect26::data_members_26<remove_cvref_t<T>>();
 #else
   using type = remove_cvref_t<T>;
   if constexpr (is_out_ylt_refl_v<type>) {
@@ -145,12 +136,8 @@ inline constexpr auto object_to_tuple(T&& t) {
 template <class T, typename Visitor, size_t Count = members_count_v<T>>
 inline constexpr decltype(auto) visit_members(T&& t, Visitor&& visitor) {
 #ifdef YLT_USE_CXX26_REFLECTION
-  using type = remove_cvref_t<T>;
-  static constexpr auto members =
-      std::define_static_array(reflect26::data_members_26<type>());
-  return [&]<std::size_t... Is>(std::index_sequence<Is...>) -> decltype(auto) {
-    return std::forward<Visitor>(visitor)(t.[:members[Is]:]...);
-  }(std::make_index_sequence<members.size()>{});
+  return reflect26::for_each_data_member(std::forward<T>(t),
+                                         std::forward<Visitor>(visitor));
 #else
   using type = remove_cvref_t<T>;
   if constexpr (is_out_ylt_refl_v<type>) {
