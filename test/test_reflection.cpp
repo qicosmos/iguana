@@ -100,10 +100,10 @@ TEST_CASE("test member names") {
   test_refl_private();
   constexpr size_t size = members_count_v<person>;
   CHECK(size == 5);
-  auto tp = struct_to_tuple<person>();
 #ifdef YLT_USE_CXX26_REFLECTION
-  CHECK(tp.size() == 5);
+  CHECK(members_count_v<person> == 5);
 #else
+  auto tp = struct_to_tuple<person>();
   constexpr size_t tp_size = std::tuple_size_v<decltype(tp)>;
   CHECK(tp_size == 5);
 #endif
@@ -211,7 +211,6 @@ TEST_CASE("test member value") {
   auto str2 = get<2>(p);
   CHECK(str2 == "hello reflection");
 
-#ifndef YLT_USE_CXX26_REFLECTION
   auto var = get(p, 3);
   CHECK(*std::get<3>(var) == 6);
 
@@ -222,7 +221,6 @@ TEST_CASE("test member value") {
         std::cout << *ptr << "\n";
       },
       var2);
-#endif
 
   for_each(p, [](auto& field) {
     std::cout << field << "\n";
@@ -441,11 +439,23 @@ TEST_CASE("test macros") {
   });
 #endif
 
-  visit_members(d5, [](auto&... args) {
+  size_t visit_count = 0;
+#ifdef YLT_USE_CXX26_REFLECTION
+  visit_members(d5, [&](auto& arg, auto, auto) {
+    std::cout << arg << ", ";
+    ++visit_count;
+  });
+  CHECK(visit_count == 3);
+  std::cout << "\n";
+#else
+  visit_members(d5, [&](auto&... args) {
     CHECK(sizeof...(args) == 3);
     ((std::cout << args << ", "), ...);
     std::cout << "\n";
+    visit_count = sizeof...(args);
   });
+  CHECK(visit_count == 3);
+#endif
 
   for_each(d5, [](auto& arg) {
     std::cout << arg << "\n";

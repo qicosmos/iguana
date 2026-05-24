@@ -46,6 +46,17 @@ inline constexpr std::string_view normalized_member_name(
   return name;
 }
 
+template <std::meta::info Info>
+using meta_type_t = typename[:std::meta::type_of(Info):];
+
+template <std::meta::info Info>
+using remove_cvref_meta_type_t = std::remove_cvref_t<meta_type_t<Info>>;
+
+template <std::meta::info Info>
+consteval auto annotations_array() {
+  return std::define_static_array(std::meta::annotations_of(Info));
+}
+
 template <typename T>
 struct is_field_name_annotation : std::false_type {};
 
@@ -75,11 +86,9 @@ constexpr inline bool skip_base_v = false;
 
 template <std::meta::info Info, template <typename> typename Predicate>
 consteval bool has_annotation_26() {
-  static constexpr auto annotations =
-      std::define_static_array(std::meta::annotations_of(Info));
+  static constexpr auto annotations = annotations_array<Info>();
   template for (constexpr auto annotation : annotations) {
-    using annotation_type = [:std::meta::type_of(annotation):];
-    using annotation_t = std::remove_cvref_t<annotation_type>;
+    using annotation_t = remove_cvref_meta_type_t<annotation>;
     if constexpr (Predicate<annotation_t>::value) {
       return true;
     }
@@ -89,11 +98,9 @@ consteval bool has_annotation_26() {
 
 template <std::meta::info Member>
 consteval std::string_view member_name_26() {
-  static constexpr auto annotations =
-      std::define_static_array(std::meta::annotations_of(Member));
+  static constexpr auto annotations = annotations_array<Member>();
   template for (constexpr auto annotation : annotations) {
-    using annotation_type = [:std::meta::type_of(annotation):];
-    using annotation_t = std::remove_cvref_t<annotation_type>;
+    using annotation_t = remove_cvref_meta_type_t<annotation>;
     if constexpr (is_field_name_annotation<annotation_t>::value) {
       return annotation_t::value;
     }
@@ -103,11 +110,9 @@ consteval std::string_view member_name_26() {
 
 template <typename T>
 consteval std::string_view type_name_26() {
-  static constexpr auto annotations =
-      std::define_static_array(std::meta::annotations_of(^^T));
+  static constexpr auto annotations = annotations_array<^^T>();
   template for (constexpr auto annotation : annotations) {
-    using annotation_type = [:std::meta::type_of(annotation):];
-    using annotation_t = std::remove_cvref_t<annotation_type>;
+    using annotation_t = remove_cvref_meta_type_t<annotation>;
     if constexpr (is_struct_name_annotation<annotation_t>::value) {
       return annotation_t::value;
     }
@@ -122,7 +127,7 @@ consteval bool has_skip_base_annotation_26() {
 
 template <std::meta::info Base>
 consteval bool skip_base_26() {
-  using base_type = [:std::meta::type_of(Base):];
+  using base_type = meta_type_t<Base>;
   if constexpr (skip_base_v<std::remove_cvref_t<base_type>>) {
     return true;
   }
@@ -166,14 +171,18 @@ consteval auto data_members_26() {
 }
 
 template <typename T>
+consteval auto data_members_array() {
+  return std::define_static_array(data_members_26<std::remove_cvref_t<T>>());
+}
+
+template <typename T>
 consteval std::size_t members_count_26() {
   return data_members_26<T>().size();
 }
 
 template <typename T>
 consteval auto member_names_array() {
-  static constexpr auto members =
-      std::define_static_array(data_members_26<T>());
+  static constexpr auto members = data_members_array<T>();
   std::array<std::string_view, members.size()> names{};
   [[maybe_unused]] std::size_t index = 0;
   template for (constexpr auto member : members) {
@@ -182,10 +191,26 @@ consteval auto member_names_array() {
   return names;
 }
 
+template <template <typename...> typename Predicate, typename T>
+consteval std::size_t member_index_if() {
+  static constexpr auto members = data_members_array<T>();
+  std::size_t result = members.size();
+  std::size_t index = 0;
+  template for (constexpr auto member : members) {
+    using member_t = remove_cvref_meta_type_t<member>;
+    if constexpr (Predicate<member_t>::value) {
+      if (result == members.size()) {
+        result = index;
+      }
+    }
+    ++index;
+  }
+  return result;
+}
+
 template <typename T, typename Visitor>
 constexpr void for_each_data_member(T&& t, Visitor&& visitor) {
-  static constexpr auto members =
-      std::define_static_array(data_members_26<std::remove_cvref_t<T>>());
+  static constexpr auto members = data_members_array<T>();
   [[maybe_unused]] std::size_t index = 0;
   template for (constexpr auto member : members) {
     visitor(t.[:member:], member_name_26<member>(), index++);
@@ -194,8 +219,7 @@ constexpr void for_each_data_member(T&& t, Visitor&& visitor) {
 
 template <typename T>
 consteval auto member_offsets_26() {
-  static constexpr auto members =
-      std::define_static_array(data_members_26<T>());
+  static constexpr auto members = data_members_array<T>();
   std::array<std::size_t, members.size()> offsets{};
   [[maybe_unused]] std::size_t index = 0;
   template for (constexpr auto member : members) {

@@ -33,8 +33,7 @@ void invoke_dispatch(Func& func, Field& field, std::string_view name,
 template <typename T, typename Func>
 bool dispatch_by_name(T& obj, std::string_view key, Func&& func) {
   using U = ylt::reflection::remove_cvref_t<T>;
-  static constexpr auto members =
-      std::define_static_array(data_members_26<U>());
+  static constexpr auto members = data_members_array<U>();
   if constexpr (members.size() == 0) {
     return false;
   }
@@ -55,16 +54,14 @@ bool dispatch_by_name(T& obj, std::string_view key, Func&& func) {
 
 template <std::size_t Index, typename T, typename Func>
 void dispatch_by_index(T& obj, Func&& func) {
-  static constexpr auto members = std::define_static_array(
-      data_members_26<ylt::reflection::remove_cvref_t<T>>());
+  static constexpr auto members = data_members_array<T>();
   static_assert(Index < members.size(), "index out of range");
   func(obj.[:members[Index]:]);
 }
 
 template <typename T, typename Func>
 bool dispatch_by_index(T& obj, std::size_t target, Func&& func) {
-  static constexpr auto members = std::define_static_array(
-      data_members_26<ylt::reflection::remove_cvref_t<T>>());
+  static constexpr auto members = data_members_array<T>();
   if constexpr (members.size() == 0) {
     return false;
   }

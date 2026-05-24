@@ -89,6 +89,35 @@ inline constexpr auto get_variant_map_impl(std::index_sequence<Is...>) {
 }
 #endif
 
+#ifdef YLT_USE_CXX26_REFLECTION
+template <typename T, size_t... Is>
+inline auto get_variant_by_index_26(T& t, size_t index,
+                                    std::index_sequence<Is...>) {
+  using U = ylt::reflection::remove_cvref_t<T>;
+  using variant = struct_variant_t<T>;
+  static constexpr auto members = reflect26::data_members_array<U>();
+  variant member_ptr;
+  bool found = false;
+  (
+      [&] {
+        if (!found && index == Is) {
+          member_ptr.template emplace<Is>(std::addressof(t.[:members[Is]:]));
+          found = true;
+        }
+      }(),
+      ...);
+  if (!found) {
+    std::string str = "index out of range, ";
+    str.append("index: ")
+        .append(std::to_string(index))
+        .append(" is greater equal than member count ")
+        .append(std::to_string(members_count_v<U>));
+    throw std::out_of_range(str);
+  }
+  return member_ptr;
+}
+#endif
+
 }  // namespace internal
 
 template <typename T>
@@ -162,9 +191,14 @@ inline Member& get(T& t, std::string_view name) {
 template <typename T>
 inline auto get(T& t, size_t index) {
 #ifdef YLT_USE_CXX26_REFLECTION
-  static_assert(sizeof(T) < 0,
-                "get(t, runtime_index) is not available with C++26 "
-                "reflection; use reflect26::dispatch_by_index instead");
+  using U = remove_cvref_t<T>;
+  if constexpr (members_count_v<U> == 0) {
+    throw std::out_of_range("index out of range, empty object");
+  }
+  else {
+    return internal::get_variant_by_index_26(
+        t, index, std::make_index_sequence<members_count_v<U>>{});
+  }
 #else
   auto ref_tp = object_to_tuple(t);
   constexpr size_t tuple_size = std::tuple_size_v<decltype(ref_tp)>;
@@ -187,9 +221,9 @@ inline auto get(T& t, size_t index) {
 template <typename T>
 inline constexpr auto get(T& t, std::string_view name) {
 #ifdef YLT_USE_CXX26_REFLECTION
-  static_assert(sizeof(T) < 0,
-                "get(t, runtime_name) is not available with C++26 reflection; "
-                "use reflect26::dispatch_by_name instead");
+  constexpr auto& map = member_names_map<T>;
+  size_t index = map.at(name);  // may throw out_of_range: unknown key.
+  return get(t, index);
 #else
   constexpr auto& map = member_names_map<T>;
   size_t index = map.at(name);  // may throw out_of_range: unknown key.
@@ -203,8 +237,7 @@ inline constexpr auto& get(T& t) {
   using U = remove_cvref_t<T>;
   static_assert(index < members_count_v<U>, "index out of range");
   decltype(auto) result = [&]() -> decltype(auto) {
-    static constexpr auto members =
-        std::define_static_array(reflect26::data_members_26<U>());
+    static constexpr auto members = reflect26::data_members_array<U>();
     return (t.[:members[index]:]);
   }();
   return result;

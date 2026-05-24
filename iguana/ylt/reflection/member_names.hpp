@@ -250,14 +250,23 @@ inline constexpr auto tuple_to_variant(std::tuple<Args...>) {
 }
 
 #ifdef YLT_USE_CXX26_REFLECTION
+namespace internal {
+template <typename T, typename Member>
+using copy_const_t =
+    std::conditional_t<std::is_const_v<std::remove_reference_t<T>>,
+                       std::add_const_t<Member>, Member>;
+
+template <typename T, std::size_t... Is>
+inline constexpr auto struct_variant_26(std::index_sequence<Is...>) {
+  static constexpr auto members = reflect26::data_members_array<T>();
+  return std::variant<std::add_pointer_t<
+      copy_const_t<T, reflect26::meta_type_t<members[Is]>>>...>{};
+}
+}  // namespace internal
+
 template <typename T>
-struct struct_variant_unavailable {
-  static_assert(sizeof(T) < 0,
-                "struct_variant_t is not available with C++26 reflection; use "
-                "reflect26::dispatch_by_name or dispatch_by_index instead");
-};
-template <typename T>
-using struct_variant_t = struct_variant_unavailable<T>;
+using struct_variant_t = decltype(internal::struct_variant_26<T>(
+    std::make_index_sequence<members_count_v<remove_cvref_t<T>>>{}));
 #else
 template <typename T>
 using struct_variant_t = decltype(tuple_to_variant(

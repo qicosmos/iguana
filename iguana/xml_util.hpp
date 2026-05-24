@@ -54,8 +54,8 @@ consteval bool xml_required_26() {
 template <typename T>
 consteval size_t xml_required_count_26() {
   using U = ylt::reflection::remove_cvref_t<T>;
-  static constexpr auto members = std::define_static_array(
-      ylt::reflection::reflect26::data_members_26<U>());
+  static constexpr auto members =
+      ylt::reflection::reflect26::data_members_array<U>();
   size_t count = 0;
   template for (constexpr auto member : members) {
     if constexpr (xml_required_26<member>()) {
@@ -68,8 +68,8 @@ consteval size_t xml_required_count_26() {
 template <typename T>
 consteval auto xml_required_names_26() {
   using U = ylt::reflection::remove_cvref_t<T>;
-  static constexpr auto members = std::define_static_array(
-      ylt::reflection::reflect26::data_members_26<U>());
+  static constexpr auto members =
+      ylt::reflection::reflect26::data_members_array<U>();
   constexpr auto member_names = ylt::reflection::get_member_names<U>();
   std::array<std::string_view, xml_required_count_26<U>()> names{};
   size_t index = 0;
@@ -164,22 +164,8 @@ constexpr int element_index_helper() {
 template <template <typename...> typename Condition, typename T>
 constexpr int tuple_element_index() {
 #ifdef YLT_USE_CXX26_REFLECTION
-  using U = ylt::reflection::remove_cvref_t<T>;
-  static constexpr auto members = std::define_static_array(
-      ylt::reflection::reflect26::data_members_26<U>());
-  int result = static_cast<int>(members.size());
-  int index = 0;
-  template for (constexpr auto member : members) {
-    using item_type =
-        ylt::reflection::remove_cvref_t<[:std::meta::type_of(member):]>;
-    if constexpr (Condition<item_type>::value) {
-      if (result == static_cast<int>(members.size())) {
-        result = index;
-      }
-    }
-    ++index;
-  }
-  return result;
+  return static_cast<int>(
+      ylt::reflection::reflect26::member_index_if<Condition, T>());
 #else
   using Tuple = decltype(ylt::reflection::object_to_tuple(std::declval<T>()));
   return element_index_helper<0, Condition, Tuple>();

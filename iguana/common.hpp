@@ -106,6 +106,10 @@ YLT_REFL(pb_timestamp, seconds, nanos);
 YLT_REFL(pb_duration, seconds, nanos);
 
 namespace detail {
+#ifdef YLT_USE_CXX26_REFLECTION
+namespace reflect26 = ylt::reflection::reflect26;
+#endif
+
 template <typename T>
 struct identity {};
 
@@ -738,59 +742,50 @@ struct is_pb_unknown_fields_annotation<iguana::pb_unknown_fields_annotation>
 
 template <std::meta::info Member>
 consteval bool pb_zigzag_26() {
-  return ylt::reflection::reflect26::has_annotation_26<
-      Member, is_pb_zigzag_annotation>();
+  return reflect26::has_annotation_26<Member, is_pb_zigzag_annotation>();
 }
 
 template <std::meta::info Member>
 consteval bool pb_fixed_26() {
-  return ylt::reflection::reflect26::has_annotation_26<
-      Member, is_pb_fixed_annotation>();
+  return reflect26::has_annotation_26<Member, is_pb_fixed_annotation>();
 }
 
 template <std::meta::info Member>
 consteval bool pb_unknown_fields_26() {
-  return ylt::reflection::reflect26::has_annotation_26<
-      Member, is_pb_unknown_fields_annotation>();
+  return reflect26::has_annotation_26<Member,
+                                      is_pb_unknown_fields_annotation>();
 }
 
 template <std::meta::info Member>
 consteval bool pb_bytes_26() {
-  return ylt::reflection::reflect26::has_annotation_26<
-      Member, is_pb_bytes_annotation>();
+  return reflect26::has_annotation_26<Member, is_pb_bytes_annotation>();
 }
 
 template <std::meta::info Member>
 consteval bool pb_oneof_26() {
-  return ylt::reflection::reflect26::has_annotation_26<
-      Member, is_pb_oneof_annotation>();
+  return reflect26::has_annotation_26<Member, is_pb_oneof_annotation>();
 }
 
 template <std::meta::info Member>
 consteval bool pb_as_timestamp_26() {
-  return ylt::reflection::reflect26::has_annotation_26<
-      Member, is_pb_timestamp_annotation>();
+  return reflect26::has_annotation_26<Member, is_pb_timestamp_annotation>();
 }
 
 template <std::meta::info Member>
 consteval bool pb_as_duration_26() {
-  return ylt::reflection::reflect26::has_annotation_26<
-      Member, is_pb_duration_annotation>();
+  return reflect26::has_annotation_26<Member, is_pb_duration_annotation>();
 }
 
 template <std::meta::info Member>
 consteval bool pb_optional_26() {
-  return ylt::reflection::reflect26::has_annotation_26<
-      Member, is_pb_optional_annotation>();
+  return reflect26::has_annotation_26<Member, is_pb_optional_annotation>();
 }
 
 template <std::meta::info Member>
 consteval size_t pb_oneof_count_26() {
-  static constexpr auto annotations =
-      std::define_static_array(std::meta::annotations_of(Member));
+  static constexpr auto annotations = reflect26::annotations_array<Member>();
   template for (constexpr auto annotation : annotations) {
-    using annotation_type = [:std::meta::type_of(annotation):];
-    using annotation_t = std::remove_cvref_t<annotation_type>;
+    using annotation_t = reflect26::remove_cvref_meta_type_t<annotation>;
     if constexpr (is_pb_oneof_annotation<annotation_t>::value) {
       return annotation_t::values.size();
     }
@@ -800,11 +795,9 @@ consteval size_t pb_oneof_count_26() {
 
 template <std::meta::info Member, size_t I>
 consteval size_t pb_oneof_field_no_26() {
-  static constexpr auto annotations =
-      std::define_static_array(std::meta::annotations_of(Member));
+  static constexpr auto annotations = reflect26::annotations_array<Member>();
   template for (constexpr auto annotation : annotations) {
-    using annotation_type = [:std::meta::type_of(annotation):];
-    using annotation_t = std::remove_cvref_t<annotation_type>;
+    using annotation_t = reflect26::remove_cvref_meta_type_t<annotation>;
     if constexpr (is_pb_oneof_annotation<annotation_t>::value) {
       constexpr auto field_no = annotation_t::values[I];
       static_assert(field_no > 0,
@@ -833,8 +826,7 @@ struct pb_wire_type_26 {
 template <typename T>
 consteval size_t pb_unknown_fields_count_26() {
   using U = ylt::reflection::remove_cvref_t<T>;
-  static constexpr auto members = std::define_static_array(
-      ylt::reflection::reflect26::data_members_26<U>());
+  static constexpr auto members = reflect26::data_members_array<U>();
   size_t count = 0;
   template for (constexpr auto member : members) {
     if constexpr (pb_unknown_fields_26<member>()) {
@@ -849,8 +841,7 @@ IGUANA_INLINE void visit_pb_unknown_fields_26(T&& t, Func&& func) {
   using U = ylt::reflection::remove_cvref_t<T>;
   static_assert(pb_unknown_fields_count_26<U>() <= 1,
                 "only one pb_unknown_fields member is supported");
-  static constexpr auto members = std::define_static_array(
-      ylt::reflection::reflect26::data_members_26<U>());
+  static constexpr auto members = reflect26::data_members_array<U>();
   template for (constexpr auto member : members) {
     if constexpr (pb_unknown_fields_26<member>()) {
       using field_type =
@@ -889,14 +880,12 @@ IGUANA_INLINE void append_pb_unknown_field_26(T& t, const char* data,
 template <typename T, size_t I>
 consteval size_t pb_field_width_26() {
   using U = ylt::reflection::remove_cvref_t<T>;
-  static constexpr auto members = std::define_static_array(
-      ylt::reflection::reflect26::data_members_26<U>());
+  static constexpr auto members = reflect26::data_members_array<U>();
   if constexpr (pb_unknown_fields_26<members[I]>()) {
     return 0;
   }
   else {
-    using member_type = [:std::meta::type_of(members[I]):];
-    using value_type = ylt::reflection::remove_cvref_t<member_type>;
+    using value_type = reflect26::remove_cvref_meta_type_t<members[I]>;
     if constexpr (is_variant<value_type>::value) {
       if constexpr (pb_oneof_26<members[I]>()) {
         return pb_oneof_count_26<members[I]>();
@@ -924,11 +913,9 @@ consteval size_t pb_default_field_index_26() {
 
 template <std::meta::info Member>
 consteval size_t pb_field_no_26() {
-  static constexpr auto annotations =
-      std::define_static_array(std::meta::annotations_of(Member));
+  static constexpr auto annotations = reflect26::annotations_array<Member>();
   template for (constexpr auto annotation : annotations) {
-    using annotation_type = [:std::meta::type_of(annotation):];
-    using annotation_t = std::remove_cvref_t<annotation_type>;
+    using annotation_t = reflect26::remove_cvref_meta_type_t<annotation>;
     if constexpr (is_pb_field_annotation<annotation_t>::value) {
       constexpr auto field_no =
           std::meta::extract<iguana::pb_field_annotation>(annotation).value;
@@ -947,8 +934,7 @@ consteval size_t pb_field_no_26() {
 template <typename T, size_t I, size_t DefaultIndex>
 consteval size_t pb_field_index_26() {
   using U = ylt::reflection::remove_cvref_t<T>;
-  static constexpr auto members = std::define_static_array(
-      ylt::reflection::reflect26::data_members_26<U>());
+  static constexpr auto members = reflect26::data_members_array<U>();
   if constexpr (I < members.size()) {
     constexpr auto field_no = pb_field_no_26<members[I]>();
     if constexpr (field_no > 0) {
@@ -961,8 +947,7 @@ consteval size_t pb_field_index_26() {
 template <typename T, size_t I, typename ValueType>
 struct pb_field_value_type_26 {
   using U = ylt::reflection::remove_cvref_t<T>;
-  static constexpr auto members = std::define_static_array(
-      ylt::reflection::reflect26::data_members_26<U>());
+  static constexpr auto members = reflect26::data_members_array<U>();
   using type = typename pb_wire_type_26<members[I], ValueType>::type;
 };
 
@@ -982,8 +967,7 @@ constexpr inline auto build_pb_oneof_fields_26(size_t offset,
 template <typename T, size_t I, typename ValueType, typename Array>
 inline auto build_pb_field_26(const Array& offset_arr, std::string_view name) {
   using U = ylt::reflection::remove_cvref_t<T>;
-  static constexpr auto members = std::define_static_array(
-      ylt::reflection::reflect26::data_members_26<U>());
+  static constexpr auto members = reflect26::data_members_array<U>();
   if constexpr (pb_unknown_fields_26<members[I]>()) {
     using value_type = ylt::reflection::remove_cvref_t<ValueType>;
     static_assert(std::is_same_v<value_type, std::string>,
@@ -1098,11 +1082,10 @@ inline auto build_pb_fields(const Array& offset_arr,
                             std::index_sequence<I...>) {
   constexpr auto arr = ylt::reflection::get_member_names<T>();
   using U = ylt::reflection::remove_cvref_t<T>;
-  static constexpr auto members = std::define_static_array(
-      ylt::reflection::reflect26::data_members_26<U>());
+  static constexpr auto members = reflect26::data_members_array<U>();
   return std::tuple_cat(
-      build_pb_field_26<T, I, typename[:std::meta::type_of(members[I]):]>(
-          offset_arr, arr[I])...);
+      build_pb_field_26<T, I, reflect26::meta_type_t<members[I]>>(offset_arr,
+                                                                  arr[I])...);
 }
 #else
 template <typename Tuple, typename T, typename Array, size_t... I>

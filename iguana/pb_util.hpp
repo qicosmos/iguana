@@ -763,20 +763,35 @@ template <typename T, size_t... I>
 inline auto build_pb_members_impl(
     const std::array<size_t, sizeof...(I)>& offset_arr,
     std::index_sequence<I...>) {
-  using Tuple = decltype(ylt::reflection::object_to_tuple(std::declval<T>()));
   constexpr auto names = ylt::reflection::get_member_names<T>();
   constexpr auto numbers = get_pb_field_numbers((T*)nullptr);
+#ifdef YLT_USE_CXX26_REFLECTION
+  static constexpr auto members =
+      ylt::reflection::reflect26::data_members_array<T>();
+  return std::tuple_cat(
+      build_pb_fields_impl<T, numbers[I] - 1,
+                           ylt::reflection::reflect26::meta_type_t<members[I]>>(
+          offset_arr[I], names[I])...);
+#else
+  using Tuple = decltype(ylt::reflection::object_to_tuple(std::declval<T>()));
   return std::tuple_cat(
       build_pb_fields_impl<T, numbers[I] - 1, std::tuple_element_t<I, Tuple>>(
           offset_arr[I], names[I])...);
+#endif
 }
 
 template <typename T>
 inline auto build_pb_members() {
+#ifdef YLT_USE_CXX26_REFLECTION
+  constexpr size_t N = ylt::reflection::members_count_v<T>;
+  static const auto& offset_arr =
+      ylt::reflection::internal::get_member_offset_arr<T>();
+#else
   using Tuple = decltype(ylt::reflection::object_to_tuple(std::declval<T>()));
   constexpr size_t N = std::tuple_size_v<Tuple>;
   static auto& offset_arr = ylt::reflection::internal::get_member_offset_arr(
       ylt::reflection::internal::wrapper<T>::value);
+#endif
 
   auto res =
       build_pb_members_impl<T>(offset_arr, std::make_index_sequence<N>{});
