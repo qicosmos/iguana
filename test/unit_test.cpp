@@ -12,7 +12,7 @@
 
 #include "doctest.h"
 #include "iguana/json_reader.hpp"
-#include "test_headers.h"
+#include "person_type.h"
 
 TEST_CASE("test parse item num_t") {
   {

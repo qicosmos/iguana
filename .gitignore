@@ -30,6 +30,7 @@
 
 build
 build*
+out/
 .vscode
 .idea
 cmake-*

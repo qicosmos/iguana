@@ -64,6 +64,24 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 link_libraries(stdc++fs)
 endif()
 
+function(iguana_fast_validation_target target)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE "$<$<CONFIG:Release>:/Od;/Ob0>")
+    else()
+        target_compile_options(${target} PRIVATE "$<$<CONFIG:Release>:-O0>")
+    endif()
+endfunction()
+
+option(IGUANA_FAST_BENCHMARK_COMPILE
+       "Compile benchmark targets with low optimization for faster validation builds"
+       OFF)
+
+function(iguana_fast_benchmark_target target)
+    if(IGUANA_FAST_BENCHMARK_COMPILE)
+        iguana_fast_validation_target(${target})
+    endif()
+endfunction()
+
 set(JSON_EXAMPLE
 	example/json_example.cpp
 )
@@ -78,6 +96,7 @@ set(YAML_EXAMPLE
 set(TEST_SOME test/test_some.cpp)
 set(TEST_UT test/unit_test.cpp)
 set(TEST_JSON_FILES test/test_json_files.cpp)
+set(TEST_GITHUB_EVENTS test/test_github_events.cpp)
 set(TEST_XML test/test_xml.cpp)
 set(JSONBENCHMARK benchmark/json_benchmark.cpp)
 set(XMLBENCH  benchmark/xml_benchmark.cpp)
@@ -97,6 +116,7 @@ add_executable(json_benchmark 	${JSONBENCHMARK})
 add_executable(test_some	${TEST_SOME})
 add_executable(test_ut 	${TEST_UT})
 add_executable(test_json_files 	${TEST_JSON_FILES})
+add_executable(test_github_events ${TEST_GITHUB_EVENTS})
 add_executable(xml_example 		${XML_EXAMPLE})
 add_executable(test_xml ${TEST_XML})
 add_executable(xml_benchmark ${XMLBENCH})
@@ -111,13 +131,26 @@ add_executable(test_cpp20 ${TEST_CPP20})
 add_executable(iguana_conformance ${TEST_CONFORMANCE})
 set_target_properties(test_cpp20 PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
 
+foreach(tgt json_benchmark xml_benchmark yaml_benchmark)
+    iguana_fast_benchmark_target(${tgt})
+endforeach()
+
+foreach(tgt json_example xml_example yaml_example
+            test_some test_ut test_json_files test_github_events test_xml test_xml_nothrow
+            test_yaml test_nothrow test_util test_pb test_cpp20
+            iguana_conformance)
+    iguana_fast_validation_target(${tgt})
+endforeach()
+
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9)
         message(STATUS "GCC version ${CMAKE_CXX_COMPILER_VERSION}")
         add_executable(test_reflection test/test_reflection.cpp)
+        iguana_fast_validation_target(test_reflection)
     endif()
 else()
     add_executable(test_reflection test/test_reflection.cpp)
+    iguana_fast_validation_target(test_reflection)
 endif()
 
 
@@ -142,8 +175,10 @@ if(Protobuf_FOUND)
     
     add_executable(pb_benchmark ${PB_BENCHMARK} ${PROTO_SRCS})
     target_link_libraries(pb_benchmark ${Protobuf_LIBRARIES})
+    iguana_fast_benchmark_target(pb_benchmark)
     add_executable(test_proto ${PROTO_SRCS} ${TEST_PROTO})
     target_link_libraries(test_proto ${Protobuf_LIBRARIES})
+    iguana_fast_validation_target(test_proto)
     add_test(NAME test_proto COMMAND test_proto)
 endif()
 
@@ -166,6 +201,7 @@ endif()
 add_test(NAME test_some COMMAND test_some)
 add_test(NAME test_ut COMMAND test_ut)
 add_test(NAME test_json_files COMMAND test_json_files)
+add_test(NAME test_github_events COMMAND test_github_events)
 add_test(NAME test_xml COMMAND test_xml)
 add_test(NAME test_yaml COMMAND test_yaml)
 add_test(NAME test_nothrow COMMAND test_nothrow)
@@ -174,6 +210,8 @@ add_test(NAME test_xml_nothrow COMMAND test_xml_nothrow)
 add_test(NAME test_pb COMMAND test_pb)
 add_test(NAME test_cpp20 COMMAND test_cpp20)
 set_tests_properties(test_json_files PROPERTIES
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/test")
+set_tests_properties(test_github_events PROPERTIES
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/test")
 
 set(PROTOBUF_CONFORMANCE_RUNNER "" CACHE FILEPATH "Path to protobuf conformance_test_runner")
@@ -194,19 +232,21 @@ if (ENABLE_CXX26_REFLECTION)
     if(CXX26_LIBSTDCXX AND EXISTS "${CXX26_LIBSTDCXX}")
         get_filename_component(CXX26_LIBSTDCXX_DIR "${CXX26_LIBSTDCXX}" DIRECTORY)
     endif()
-    foreach(tgt test_some test_ut test_json_files test_xml test_yaml test_nothrow
-                test_util test_xml_nothrow test_pb test_reflection)
+    foreach(tgt test_some test_ut test_json_files test_github_events test_xml
+                test_yaml test_nothrow test_util test_xml_nothrow test_pb
+                test_reflection)
         if(TARGET ${tgt})
             set(tgt26 ${tgt}_cpp26)
             get_target_property(tgt_sources ${tgt} SOURCES)
             add_executable(${tgt26} ${tgt_sources})
             target_compile_options(${tgt26} PRIVATE -std=gnu++26 -freflection)
+            iguana_fast_validation_target(${tgt26})
             if(CXX26_LIBSTDCXX_DIR)
                 set_property(TARGET ${tgt26} APPEND_STRING PROPERTY LINK_FLAGS
                     " -Wl,-rpath,${CXX26_LIBSTDCXX_DIR}")
             endif()
             add_test(NAME ${tgt26} COMMAND ${tgt26})
-            if(tgt STREQUAL test_json_files)
+            if(tgt STREQUAL test_json_files OR tgt STREQUAL test_github_events)
                 set_tests_properties(${tgt26} PROPERTIES
                     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/test")
             endif()
