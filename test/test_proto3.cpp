@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <fstream>
 
 #include "iguana/pb_writer.hpp"
@@ -7,6 +8,47 @@
 #include "proto/unittest_proto3.h"  // msg reflection
 
 #if defined(STRUCT_PB_WITH_PROTO)
+namespace {
+static void append_varint(std::string& out, uint64_t value) {
+  while (value >= 0x80) {
+    out.push_back(static_cast<char>((value & 0x7f) | 0x80));
+    value >>= 7;
+  }
+  out.push_back(static_cast<char>(value));
+}
+
+static void append_tag(std::string& out, uint32_t field_no,
+                       iguana::WireType wire_type) {
+  append_varint(out, (static_cast<uint64_t>(field_no) << 3) |
+                         static_cast<uint32_t>(wire_type));
+}
+
+static void append_fixed64(std::string& out, uint64_t value) {
+  for (int i = 0; i < 8; ++i) {
+    out.push_back(static_cast<char>((value >> (8 * i)) & 0xff));
+  }
+}
+
+static void append_varint_field(std::string& out, uint32_t field_no,
+                                uint64_t value) {
+  append_tag(out, field_no, iguana::WireType::Varint);
+  append_varint(out, value);
+}
+
+static void append_fixed64_field(std::string& out, uint32_t field_no,
+                                 uint64_t value) {
+  append_tag(out, field_no, iguana::WireType::Fixed64);
+  append_fixed64(out, value);
+}
+
+static void append_length_delimited(std::string& out, uint32_t field_no,
+                                    std::string_view payload) {
+  append_tag(out, field_no, iguana::WireType::LengthDelimeted);
+  append_varint(out, payload.size());
+  out.append(payload.data(), payload.size());
+}
+}  // namespace
+
 TEST_CASE("test BaseTypeMsg") {
   {  // normal test
     stpb::BaseTypeMsg se_st{
@@ -304,8 +346,12 @@ TEST_CASE("test NestedMsg") {
     iguana::to_proto<stpb::NestedMsg>(str, "test");
     std::cout << str;
 
-    std::ofstream out("NestedMsg.proto", std::ios::binary);
+    const auto proto_path =
+        std::filesystem::temp_directory_path() / "iguana_NestedMsg.proto";
+    std::ofstream out(proto_path, std::ios::binary);
     iguana::to_proto_file<stpb::NestedMsg>(out, "test");
+    out.close();
+    std::filesystem::remove(proto_path);
   }
 #endif
   {
@@ -560,6 +606,151 @@ TEST_CASE("test NestOneofMsg ") {
     pb::NestOneofMsg dese_msg;
     dese_msg.ParseFromString(pb_ss);
     CheckNestOneofMsg(dese_st, dese_msg);
+  }
+}
+
+TEST_CASE("proto3 protoc wire compatibility edge cases") {
+  SUBCASE("fragmented and mixed packed repeated fields") {
+    std::string wire;
+    std::string packed_first;
+    append_varint(packed_first, 1);
+    append_varint(packed_first, 2);
+    append_length_delimited(wire, 1, packed_first);
+    append_varint_field(wire, 1, 3);
+
+    std::string packed_second;
+    append_varint(packed_second, 4);
+    append_varint(packed_second, 5);
+    append_length_delimited(wire, 1, packed_second);
+
+    append_length_delimited(wire, 7, "alpha");
+    append_length_delimited(wire, 7, "beta");
+    append_varint_field(wire, 8, 1);
+    std::string packed_enum;
+    append_varint(packed_enum, 123456);
+    append_varint(packed_enum, 0);
+    append_length_delimited(wire, 8, packed_enum);
+
+    pb::RepeatBaseTypeMsg pb_msg;
+    REQUIRE(pb_msg.ParseFromString(wire));
+
+    stpb::RepeatBaseTypeMsg st_msg{};
+    iguana::from_pb(st_msg, wire);
+
+    const std::vector<uint32_t> expected_uint32{1, 2, 3, 4, 5};
+    const std::vector<std::string> expected_string{"alpha", "beta"};
+    const std::vector<stpb::Enum> expected_enum{
+        stpb::Enum::FOO, stpb::Enum::BAZ, stpb::Enum::ZERO};
+    CHECK(st_msg.repeated_uint32 == expected_uint32);
+    CHECK(st_msg.repeated_string == expected_string);
+    CHECK(st_msg.repeated_enum == expected_enum);
+    CHECK(pb_msg.repeated_uint32_size() == 5);
+    CHECK(pb_msg.repeated_string_size() == 2);
+    CHECK(pb_msg.repeated_enum_size() == 3);
+    CheckRepeatBaseTypeMsg(st_msg, pb_msg);
+  }
+
+  SUBCASE("singular message fields merge across chunks") {
+    std::string wire;
+    std::string base_first;
+    append_varint_field(base_first, 1, 11);
+    append_length_delimited(wire, 1, base_first);
+
+    std::string base_second;
+    append_varint_field(base_second, 3, 33);
+    append_length_delimited(base_second, 8, "merged");
+    append_length_delimited(wire, 1, base_second);
+
+    append_varint_field(wire, 100, 999);
+
+    pb::NestedMsg pb_msg;
+    REQUIRE(pb_msg.ParseFromString(wire));
+
+    stpb::NestedMsg st_msg{};
+    iguana::from_pb(st_msg, wire);
+
+    CHECK(pb_msg.has_base_msg());
+    CHECK(pb_msg.base_msg().optional_int32() == 11);
+    CHECK(pb_msg.base_msg().optional_uint32() == 33);
+    CHECK(pb_msg.base_msg().optional_string() == "merged");
+    CheckNestedMsg(st_msg, pb_msg);
+  }
+
+  SUBCASE("oneof uses the last field seen") {
+    std::string wire;
+    append_varint_field(wire, 1, 100);
+
+    std::string oneof_msg;
+    append_varint_field(oneof_msg, 1, 7);
+    append_length_delimited(oneof_msg, 8, "ignored");
+    append_length_delimited(wire, 4, oneof_msg);
+    append_length_delimited(wire, 3, "final");
+
+    pb::BaseOneofMsg pb_msg;
+    REQUIRE(pb_msg.ParseFromString(wire));
+
+    stpb::BaseOneofMsg st_msg{};
+    iguana::from_pb(st_msg, wire);
+
+    CHECK(pb_msg.one_of_case() == pb::BaseOneofMsg::kOneOfString);
+    CHECK(pb_msg.one_of_string() == "final");
+    REQUIRE(std::holds_alternative<std::string>(st_msg.one_of));
+    CHECK(std::get<std::string>(st_msg.one_of) == "final");
+    CheckBaseOneofMsg(st_msg, pb_msg);
+  }
+
+  SUBCASE("map entries allow out-of-order fields and duplicate keys") {
+    std::string wire;
+
+    std::string first_sfixed_entry;
+    append_fixed64_field(first_sfixed_entry, 1, 42);
+    append_length_delimited(first_sfixed_entry, 2, "first");
+    append_length_delimited(wire, 1, first_sfixed_entry);
+
+    std::string second_sfixed_entry;
+    append_length_delimited(second_sfixed_entry, 2, "last");
+    append_fixed64_field(second_sfixed_entry, 1, 42);
+    append_length_delimited(wire, 1, second_sfixed_entry);
+
+    std::string repeat_value;
+    std::string packed_nums;
+    append_varint(packed_nums, 9);
+    append_varint(packed_nums, 10);
+    append_length_delimited(repeat_value, 1, packed_nums);
+    append_length_delimited(repeat_value, 7, "late");
+
+    std::string int_entry;
+    append_varint_field(int_entry, 99, 123);
+    append_length_delimited(int_entry, 2, repeat_value);
+    append_varint_field(int_entry, 1, 7);
+    append_length_delimited(wire, 3, int_entry);
+
+    pb::MapMsg pb_msg;
+    REQUIRE(pb_msg.ParseFromString(wire));
+
+    stpb::MapMsg st_msg{};
+    iguana::from_pb(st_msg, wire);
+
+    auto pb_sfixed_it = pb_msg.sfix64_str_map().find(42);
+    REQUIRE(pb_sfixed_it != pb_msg.sfix64_str_map().end());
+    CHECK(pb_sfixed_it->second == "last");
+
+    auto st_sfixed_it = st_msg.sfix64_str_map.find(iguana::sfixed64_t{42});
+    REQUIRE(st_sfixed_it != st_msg.sfix64_str_map.end());
+    CHECK(st_sfixed_it->second == "last");
+
+    auto pb_int_it = pb_msg.int_repeat_base_msg_map().find(7);
+    REQUIRE(pb_int_it != pb_msg.int_repeat_base_msg_map().end());
+    CHECK(pb_int_it->second.repeated_uint32_size() == 2);
+    CHECK(pb_int_it->second.repeated_string_size() == 1);
+
+    auto st_int_it = st_msg.int_repeat_base_msg_map.find(7);
+    REQUIRE(st_int_it != st_msg.int_repeat_base_msg_map.end());
+    const std::vector<uint32_t> expected_nums{9, 10};
+    const std::vector<std::string> expected_strings{"late"};
+    CHECK(st_int_it->second.repeated_uint32 == expected_nums);
+    CHECK(st_int_it->second.repeated_string == expected_strings);
+    CheckMapMsg(st_msg, pb_msg);
   }
 }
 #endif

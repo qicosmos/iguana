@@ -6,6 +6,7 @@
 |------------------------------------------------|----------------------------------------------------------------------------------------------------------|
 | Ubuntu 22.04 (clang 14.0.0)                    | ![win](https://github.com/qicosmos/iguana/actions/workflows/linux-clang.yml/badge.svg?branch=master) |
 | Ubuntu 22.04 (gcc 11.2.0)                      | ![win](https://github.com/qicosmos/iguana/actions/workflows/linux-gcc.yml/badge.svg?branch=master)   |
+| GCC 16.1.0 container (C++26 reflection)         | ![win](https://github.com/qicosmos/iguana/actions/workflows/linux-gcc-cxx26.yml/badge.svg?branch=master) |
 | macOS Monterey latest (AppleClang latest) | ![win](https://github.com/qicosmos/iguana/actions/workflows/mac.yml/badge.svg?branch=master)         |
 | Windows Server 2022 (MSVC 19.33.31630.0)       | ![win](https://github.com/qicosmos/iguana/actions/workflows/windows.yml/badge.svg?branch=master)     |
 
@@ -14,6 +15,8 @@ qq 交流群 701594518
 [中文版](lang/iguana%20使用文档.md)
 
 [struct_pb](lang/struct_pb_intro.md)
+
+[C++26 reflection/proto3 change notes](iguana_reflect26_changes.md)
 
 ### Motivation ###
 Serialize an object to any other format data with compile-time reflection, such as json, xml, binary, table and so on.
@@ -29,6 +32,47 @@ This library provides a portable cross-platform way of:
 ### compile time reflection ###
 
 [reflection lib introduction](lang/reflection_introduction.md)
+
+With a C++26 static reflection compiler, iguana can read class members directly
+from the language reflection API. The CI job for this path uses the official
+`gcc:16.1.0-trixie` container with `-std=gnu++26 -freflection` and configures
+CMake with `-DENABLE_CXX26_REFLECTION=ON`.
+
+Useful C++26 annotations:
+
+```cpp
+namespace r26 = ylt::reflection::reflect26;
+
+struct [[= r26::struct_name<"user">{}]] user_t {
+  [[= r26::field_name<"id">{}]]
+  int user_id{};
+
+  std::string name;
+
+  [[= r26::skip_field{}]]
+  int local_cache{};
+};
+
+struct base_t {
+  int internal_state{};
+};
+
+struct derived_t : [[= r26::skip_base{}]] base_t {
+  int value{};
+};
+
+struct xml_user_t {
+  [[= r26::field_name<"identifier">{}]]
+  [[= iguana::xml_required{}]]
+  int id{};
+};
+```
+
+`field_name` changes the serialized field name for JSON/XML/YAML and generated
+protobuf schema. `struct_name` changes XML root names. `skip_field` excludes a
+member from reflection, and `skip_base` excludes a base class from recursive
+member collection. `xml_required` is the C++26 annotation form of the XML
+`REQUIRED(type, fields...)` macro.
 
 ### Tutorial ###
 This Tutorial is provided to give you a view of how *iguana* works for serialization. 
@@ -332,7 +376,9 @@ iguana::to_json(e1, ss);
 ```
 
 ### Serialization of protobuf
-similar with before:
+
+Basic protobuf serialization uses the same object API:
+
 ```cpp
 struct person {
   int id;
@@ -356,7 +402,160 @@ void test() {
   CHECK(p == p1);
 }
 ```
-[more detail](lang/struct_pb_intro.md)
+
+By default, protobuf field numbers follow member order. For stable schemas or
+interop with existing `.proto` files, specify field numbers explicitly. On the
+legacy/non-C++26 path, `YLT_REFL_PB` remains available:
+
+```cpp
+struct account {
+  std::string name;
+  int32_t age;
+  std::vector<std::string> emails;
+};
+
+YLT_REFL_PB(account, (name, 10), (age, 20), (emails, 9));
+```
+
+With C++26 static reflection, prefer the `[[= iguana::pb_field(N)]]`
+annotation shown below; that path reads protobuf metadata from annotations and
+does not depend on `YLT_REFL_PB`.
+
+For advanced proto3 wire semantics on the non-C++26 path, use the descriptor
+helpers. The helper form keeps normal C++ field types while attaching protobuf
+schema metadata:
+
+```cpp
+struct event_msg {
+  int32_t id{};
+  std::string payload;
+  int32_t delta{};
+  uint32_t checksum{};
+  std::chrono::system_clock::time_point created_at{};
+  std::chrono::nanoseconds timeout{};
+  std::optional<int32_t> retry_count;
+  std::variant<std::monostate, int32_t, std::string> result;
+  std::string unknown;
+};
+
+inline auto get_members_impl(event_msg*) {
+  return iguana::pb_members(
+      iguana::pb_field<&event_msg::id, 1>("id"),
+      iguana::pb_bytes_field<&event_msg::payload, 3>("payload"),
+      iguana::pb_zigzag_field<&event_msg::delta, 5>("delta"),
+      iguana::pb_optional_field<&event_msg::retry_count, 6>("retry_count"),
+      iguana::pb_fixed_field<&event_msg::checksum, 7>("checksum"),
+      iguana::as_timestamp_field<&event_msg::created_at, 8>("created_at"),
+      iguana::as_duration_field<&event_msg::timeout, 9>("timeout"),
+      iguana::pb_oneof_field<&event_msg::result, 10, 12>("result"),
+      iguana::pb_unknown_fields_field<&event_msg::unknown>("unknown"));
+}
+```
+
+Helper APIs:
+
+| Helper | Meaning |
+| --- | --- |
+| `pb_members(...)` | Returns the protobuf descriptor tuple from `get_members_impl(T*)`. |
+| `pb_field<&T::field, N>("name")` | Sets a protobuf field number and schema name. |
+| `pb_bytes_field` | Emits `bytes`; the C++ field is `std::string` or `std::string_view`, including optional/vector forms. |
+| `pb_zigzag_field` | Emits `sint32` or `sint64`; the C++ field remains `int32_t` or `int64_t`, including optional/vector forms. |
+| `pb_fixed_field` | Emits `fixed32`, `fixed64`, `sfixed32`, or `sfixed64` for 32/64-bit integer fields, including optional/vector forms. |
+| `pb_optional_field` | Emits proto3 `optional`; the C++ field must be `std::optional<T>`. |
+| `pb_timestamp_field` / `as_timestamp_field` | Encodes `std::chrono::system_clock::time_point` as `google.protobuf.Timestamp`, including optional/vector forms. |
+| `pb_duration_field` / `as_duration_field` | Encodes `std::chrono::nanoseconds` as `google.protobuf.Duration`, including optional/vector forms. |
+| `pb_oneof_field<&T::field, Ns...>("name")` | Maps `std::variant<std::monostate, ...>` alternatives to oneof field numbers. |
+| `pb_unknown_fields_field<&T::field>()` | Preserves unknown protobuf wire bytes in a single `std::string` field. |
+
+The explicit wrapper types `iguana::pb_timestamp` and `iguana::pb_duration`
+remain available when code wants the wire-shaped representation directly.
+
+`pb_field_ex` can combine options. Supported options are `pb_bytes`,
+`pb_zigzag`, `pb_fixed`, `pb_optional`, `pb_as_timestamp`/`as_timestamp`, and
+`pb_as_duration`/`as_duration`.
+
+```cpp
+iguana::pb_field_ex<&event_msg::retry_count, 6>(
+    "retry_count", iguana::pb_optional, iguana::pb_zigzag);
+```
+
+With a C++26 reflection compiler, the same metadata can be written as
+annotations without `YLT_REFL_PB`. The current C++26 test build uses GCC 16.1 with
+`-std=gnu++26 -freflection`.
+
+```cpp
+struct event_msg26 {
+  [[= iguana::pb_field(1)]] int32_t id{};
+
+  [[= iguana::pb_field(3)]]
+  [[= iguana::pb_bytes]]
+  std::string payload;
+
+  [[= iguana::pb_field(5)]]
+  [[= iguana::pb_zigzag]]
+  int32_t delta{};
+
+  [[= iguana::pb_field(6)]]
+  [[= iguana::pb_optional]]
+  std::optional<int32_t> retry_count;
+
+  [[= iguana::pb_field(7)]]
+  [[= iguana::pb_fixed]]
+  uint32_t checksum{};
+
+  [[= iguana::pb_field(8)]]
+  [[= iguana::as_timestamp]]
+  std::chrono::system_clock::time_point created_at{};
+
+  [[= iguana::pb_field(9)]]
+  [[= iguana::as_duration]]
+  std::chrono::nanoseconds timeout{};
+
+  [[= iguana::pb_oneof<10, 12>]]
+  std::variant<std::monostate, int32_t, std::string> result;
+
+  [[= iguana::pb_unknown_fields]]
+  std::string unknown;
+};
+```
+
+C++26 annotation equivalents:
+
+| Annotation | Meaning |
+| --- | --- |
+| `[[= iguana::pb_field(N)]]` | Sets the protobuf field number. |
+| `[[= iguana::pb_bytes]]` | Same as `pb_bytes_field`. |
+| `[[= iguana::pb_zigzag]]` | Same as `pb_zigzag_field`. |
+| `[[= iguana::pb_fixed]]` | Same as `pb_fixed_field`. |
+| `[[= iguana::pb_optional]]` | Same as `pb_optional_field`. |
+| `[[= iguana::pb_oneof<N...>]]` / `[[= iguana::oneof<N...>]]` | Same as `pb_oneof_field`. |
+| `[[= iguana::as_timestamp]]` / `[[= iguana::pb_as_timestamp]]` | Same as `as_timestamp_field` / `pb_timestamp_field`. |
+| `[[= iguana::as_duration]]` / `[[= iguana::pb_as_duration]]` | Same as `as_duration_field` / `pb_duration_field`. |
+| `[[= iguana::pb_unknown_fields]]` | Same as `pb_unknown_fields_field`. |
+
+Supported proto3 wire metadata includes custom field numbers, `bytes`,
+`sint32/sint64` zigzag encoding, fixed-width integers, explicit optional
+presence, oneof, `google.protobuf.Timestamp`, `google.protobuf.Duration`, and
+unknown field preservation. Repeated primitive fields accept packed, unpacked,
+and mixed input; writers use proto3 default packed output where applicable.
+
+Field numbers must be in `[1, 2^29 - 1]` and cannot be in protobuf's reserved
+`[19000, 19999]` range. A message can have at most one unknown-field storage
+member, and it must be a `std::string`.
+
+Generate a `.proto` view of a struct with:
+
+```cpp
+std::string schema;
+iguana::to_proto<event_msg>(schema, "demo");
+```
+
+The current conformance target covers the proto3 binary/protobuf-output
+wire-only subset. JSON mapping, text format, proto2, extensions, services, and
+custom options are outside this scope.
+
+[more detail](lang/struct_pb_intro.md) and
+[change notes](iguana_reflect26_changes.md)
 
 ### Full sources:
 

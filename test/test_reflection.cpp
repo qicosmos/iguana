@@ -100,9 +100,13 @@ TEST_CASE("test member names") {
   test_refl_private();
   constexpr size_t size = members_count_v<person>;
   CHECK(size == 5);
-  constexpr auto tp = struct_to_tuple<person>();
+#ifdef YLT_USE_CXX26_REFLECTION
+  CHECK(members_count_v<person> == 5);
+#else
+  auto tp = struct_to_tuple<person>();
   constexpr size_t tp_size = std::tuple_size_v<decltype(tp)>;
   CHECK(tp_size == 5);
+#endif
 
 #if __cplusplus >= 202002L
   constexpr auto arr = get_member_names<person>();
@@ -153,15 +157,20 @@ void test_pt() {
 #if __cplusplus >= 202002L
 TEST_CASE("test member value") {
   simple p{.color = 2, .id = 10, .str = "hello reflection", .age = 6};
+  std::stringstream out;
+#ifdef YLT_USE_CXX26_REFLECTION
+  for_each(p, [&](auto& field, auto name, auto) {
+    out << "name: " << name << ", value: " << field << "\n";
+  });
+#else
   auto ref_tp = object_to_tuple(p);
   constexpr auto arr = get_member_names<simple>();
-  std::stringstream out;
   [&]<size_t... Is>(std::index_sequence<Is...>) {
     ((out << "name: " << arr[Is] << ", value: " << std::get<Is>(ref_tp)
           << "\n"),
      ...);
-  }
-  (std::make_index_sequence<arr.size()>{});
+  }(std::make_index_sequence<arr.size()>{});
+#endif
 
   std::string result = out.str();
   std::cout << out.str();
@@ -174,7 +183,11 @@ TEST_CASE("test member value") {
   constexpr auto map = member_names_map<simple>;
   constexpr size_t index = map.at("age");
   CHECK(index == 3);
+#ifdef YLT_USE_CXX26_REFLECTION
+  auto age = get<index>(p);
+#else
   auto age = std::get<index>(ref_tp);
+#endif
   CHECK(age == 6);
 
   auto& age1 = get<int>(p, "age");
@@ -294,11 +307,20 @@ TEST_CASE("test template switch") {
 
 TEST_CASE("test visitor") {
   simple p{2, 10, "hello reflection", 6};
+#ifdef YLT_USE_CXX26_REFLECTION
+  size_t size = 0;
+  visit_members(p, [&](auto&& field, auto, auto) {
+    std::cout << field << ", ";
+    ++size;
+  });
+  std::cout << "\n";
+#else
   size_t size = visit_members(p, [](auto&&... args) {
     ((std::cout << args << ", "), ...);
     std::cout << "\n";
     return sizeof...(args);
   });
+#endif
   CHECK(size == 4);
 }
 
@@ -387,13 +409,14 @@ TEST_CASE("test macros") {
   constexpr size_t size = members_count_v<dummy_t>;
   static_assert(size == 3);
 
-  auto ref_tp = object_to_tuple(t);
-  auto& c = std::get<0>(ref_tp);
+  auto& c = get<0>(t);
   c = 10;
   CHECK(t.color == 10);
 
+#ifndef YLT_USE_CXX26_REFLECTION
   using Tuple = decltype(struct_to_tuple<simple2>());
   std::cout << type_string<Tuple>() << "\n";
+#endif
 
   constexpr size_t size2 = members_count_v<dummy_t2>;
   static_assert(size2 == 3);
@@ -408,17 +431,31 @@ TEST_CASE("test macros") {
   static_assert(size5 == 3);
 
   const dummy_t5 d5{};
+#ifndef YLT_USE_CXX26_REFLECTION
   refl_visit_members(d5, [](auto&... args) {
     CHECK(sizeof...(args) == 3);
     ((std::cout << args << ", "), ...);
     std::cout << "\n";
   });
+#endif
 
-  visit_members(d5, [](auto&... args) {
+  size_t visit_count = 0;
+#ifdef YLT_USE_CXX26_REFLECTION
+  visit_members(d5, [&](auto& arg, auto, auto) {
+    std::cout << arg << ", ";
+    ++visit_count;
+  });
+  CHECK(visit_count == 3);
+  std::cout << "\n";
+#else
+  visit_members(d5, [&](auto&... args) {
     CHECK(sizeof...(args) == 3);
     ((std::cout << args << ", "), ...);
     std::cout << "\n";
+    visit_count = sizeof...(args);
   });
+  CHECK(visit_count == 3);
+#endif
 
   for_each(d5, [](auto& arg) {
     std::cout << arg << "\n";
@@ -505,6 +542,7 @@ class private_struct {
 YLT_REFL_PRIVATE(private_struct, a, b);
 
 TEST_CASE("test visit private") {
+#ifndef YLT_USE_CXX26_REFLECTION
   const Bank_t bank(1, "ok");
   constexpr auto tp = get_private_ptrs(identity<Bank_t>{});
   refl_visit_members(bank, [](auto&... args) {
@@ -529,6 +567,7 @@ TEST_CASE("test visit private") {
   auto id = bank.*(std::get<0>(tp));    // 1
   auto name = bank.*(std::get<1>(tp));  // ok
   std::cout << id << ", " << name << "\n";
+#endif
 }
 
 namespace test_type_string {

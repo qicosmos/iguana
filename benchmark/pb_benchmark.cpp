@@ -1,5 +1,10 @@
 #include <google/protobuf/arena.h>
 #define SEQUENTIAL_PARSE
+#include <cstdlib>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+
 #include "../test/proto/unittest_proto3.h"
 #include "iguana/iguana.hpp"
 
@@ -26,6 +31,26 @@ class ScopedTimer {
   std::chrono::time_point<std::chrono::high_resolution_clock> m_beg;
   uint64_t *m_ns = nullptr;
 };
+
+void print_compare(const char *name, uint64_t iguana_ns, uint64_t protobuf_ns) {
+  double ratio = protobuf_ns == 0 ? 0.0
+                                  : static_cast<double>(iguana_ns) /
+                                        static_cast<double>(protobuf_ns);
+  std::cout << std::left << std::setw(45) << name << " : iguana/protobuf "
+            << std::right << std::fixed << std::setprecision(3) << ratio << "x";
+  if (protobuf_ns != 0) {
+    if (iguana_ns < protobuf_ns) {
+      std::cout << " (iguana faster)";
+    }
+    else if (iguana_ns > protobuf_ns) {
+      std::cout << " (protobuf faster)";
+    }
+    else {
+      std::cout << " (tie)";
+    }
+  }
+  std::cout << "\n";
+}
 
 void bench(int Count) {
   // init the benchmark data
@@ -146,8 +171,9 @@ void bench(int Count) {
   std::string nest_st_ss;
   std::string map_st_ss;
   std::string base_one_of_st_ss;
+  uint64_t iguana_many_serialize_ns = 0;
   {
-    ScopedTimer timer("struct_pb many serialize");
+    ScopedTimer timer("struct_pb many serialize", iguana_many_serialize_ns);
     for (int i = 0; i < Count; ++i) {
       iguana::to_pb(base_type_st, base_type_st_ss);
       iguana::to_pb(iguana_type_st, iguana_type_st_ss);
@@ -166,9 +192,10 @@ void bench(int Count) {
   std::string nest_msg_ss;
   std::string map_msg_ss;
   std::string base_one_of_msg_ss;
+  uint64_t protobuf_many_serialize_ns = 0;
   // protobuf serialization benchmark
   {
-    ScopedTimer timer("protobuf many serialize");
+    ScopedTimer timer("protobuf many serialize", protobuf_many_serialize_ns);
     for (int i = 0; i < Count; ++i) {
       base_type_msg.SerializeToString(&base_type_msg_ss);
       iguana_type_msg.SerializeToString(&iguana_type_msg_ss);
@@ -179,6 +206,8 @@ void bench(int Count) {
       base_one_of_msg.SerializeToString(&base_one_of_msg_ss);
     }
   }
+  print_compare("many serialize compare", iguana_many_serialize_ns,
+                protobuf_many_serialize_ns);
 
   // ensure serialize correction
   assert(base_type_st_ss == base_type_msg_ss);
@@ -186,11 +215,12 @@ void bench(int Count) {
   assert(re_base_type_st_ss == re_base_type_msg_ss);
   assert(re_iguana_type_st_ss == re_iguana_type_msg_ss);
   assert(nest_st_ss == nest_msg_ss);
-  assert(map_st_ss == map_st_ss);
+  assert(map_st_ss.size() == map_msg_ss.size());
   assert(base_one_of_st_ss == base_one_of_msg_ss);
   // iguana deserialization benchmark
+  uint64_t iguana_many_deserialize_ns = 0;
   {
-    ScopedTimer timer("struct_pb many deserialize");
+    ScopedTimer timer("struct_pb many deserialize", iguana_many_deserialize_ns);
     for (int i = 0; i < Count; ++i) {
       stpb::BaseTypeMsg base_type_st_de;
       iguana::from_pb(base_type_st_de, base_type_st_ss);
@@ -216,8 +246,10 @@ void bench(int Count) {
   }
 
   // protobuf deserialization benchmark
+  uint64_t protobuf_many_deserialize_ns = 0;
   {
-    ScopedTimer timer("protobuf many deserialize");
+    ScopedTimer timer("protobuf many deserialize",
+                      protobuf_many_deserialize_ns);
     for (int i = 0; i < Count; ++i) {
       pb::BaseTypeMsg base_type_msg_de;
       base_type_msg_de.ParseFromString(base_type_msg_ss);
@@ -241,6 +273,8 @@ void bench(int Count) {
       base_one_of_msg_de.ParseFromString(base_one_of_msg_ss);
     }
   }
+  print_compare("many deserialize compare", iguana_many_deserialize_ns,
+                protobuf_many_deserialize_ns);
 
   // ensure deserialize correction
   stpb::BaseTypeMsg base_type_st_de{};
@@ -315,32 +349,43 @@ void bench2(int Count) {
   iguana::to_pb(simple, sp_str);
 
   // serialize
+  uint64_t iguana_simple_serialize_ns = 0;
   {
-    ScopedTimer timer("struct_pb simple serialize");
+    ScopedTimer timer("struct_pb simple serialize", iguana_simple_serialize_ns);
     for (int j = 0; j < Count; j++) iguana::to_pb(simple, sp_str);
   }
 
+  uint64_t protobuf_simple_serialize_ns = 0;
   {
-    ScopedTimer timer("protobuf simple serialize ");
+    ScopedTimer timer("protobuf simple serialize ",
+                      protobuf_simple_serialize_ns);
     for (int j = 0; j < Count; j++) pb_simple.SerializeToString(&pb_str);
   }
+  print_compare("simple serialize compare", iguana_simple_serialize_ns,
+                protobuf_simple_serialize_ns);
 
   // deserialize
+  uint64_t iguana_simple_deserialize_ns = 0;
   {
-    ScopedTimer timer("struct_pb simple deserialize");
+    ScopedTimer timer("struct_pb simple deserialize",
+                      iguana_simple_deserialize_ns);
     for (int j = 0; j < Count; j++) {
       stpb::simple_t s;
       iguana::from_pb(s, sp_str);
     }
   }
 
+  uint64_t protobuf_simple_deserialize_ns = 0;
   {
-    ScopedTimer timer("protobuf simple deserialize");
+    ScopedTimer timer("protobuf simple deserialize",
+                      protobuf_simple_deserialize_ns);
     for (int j = 0; j < Count; j++) {
       pb::Simple pb;
       pb.ParseFromString(pb_str);
     }
   }
+  print_compare("simple deserialize compare", iguana_simple_deserialize_ns,
+                protobuf_simple_deserialize_ns);
 
   {
     ScopedTimer timer("struct_pb simple deserialize view");
@@ -362,32 +407,44 @@ void bench3(int Count) {
   iguana::to_pb(sp_monster, sp_str);
 
   // serialize
+  uint64_t iguana_monster_serialize_ns = 0;
   {
-    ScopedTimer timer("struct_pb monster serialize");
+    ScopedTimer timer("struct_pb monster serialize",
+                      iguana_monster_serialize_ns);
     for (int j = 0; j < Count; j++) iguana::to_pb(sp_monster, sp_str);
   }
 
+  uint64_t protobuf_monster_serialize_ns = 0;
   {
-    ScopedTimer timer("protobuf monster serialize ");
+    ScopedTimer timer("protobuf monster serialize ",
+                      protobuf_monster_serialize_ns);
     for (int j = 0; j < Count; j++) pb_monster.SerializeToString(&pb_str);
   }
+  print_compare("monster serialize compare", iguana_monster_serialize_ns,
+                protobuf_monster_serialize_ns);
 
   // deserialize
+  uint64_t iguana_monster_deserialize_ns = 0;
   {
-    ScopedTimer timer("struct_pb monster deserialize");
+    ScopedTimer timer("struct_pb monster deserialize",
+                      iguana_monster_deserialize_ns);
     for (int j = 0; j < Count; j++) {
       stpb::Monster s;
       iguana::from_pb(s, sp_str);
     }
   }
 
+  uint64_t protobuf_monster_deserialize_ns = 0;
   {
-    ScopedTimer timer("protobuf monster deserialize");
+    ScopedTimer timer("protobuf monster deserialize",
+                      protobuf_monster_deserialize_ns);
     for (int j = 0; j < Count; j++) {
       mygame::Monster pb;
       pb.ParseFromString(pb_str);
     }
   }
+  print_compare("monster deserialize compare", iguana_monster_deserialize_ns,
+                protobuf_monster_deserialize_ns);
 }
 
 void bench4(int Count) {
@@ -405,29 +462,43 @@ void bench4(int Count) {
   iguana::to_pb(st_num, st_str);
 
   // deserialize
+  uint64_t iguana_int32_deserialize_ns = 0;
   {
-    ScopedTimer timer("struct_pb int32 deserialize");
+    ScopedTimer timer("struct_pb int32 deserialize",
+                      iguana_int32_deserialize_ns);
     for (int j = 0; j < Count; j++) {
       stpb::bench_int32 s;
       iguana::from_pb(s, st_str);
     }
   }
 
+  uint64_t protobuf_int32_deserialize_ns = 0;
   {
-    ScopedTimer timer("protobuf int32 deserialize");
+    ScopedTimer timer("protobuf int32 deserialize",
+                      protobuf_int32_deserialize_ns);
     for (int j = 0; j < Count; j++) {
       mygame::bench_int32 pb;
       pb.ParseFromString(pb_str);
     }
   }
+  print_compare("int32 deserialize compare", iguana_int32_deserialize_ns,
+                protobuf_int32_deserialize_ns);
 }
 
-int main() {
-  bench(100000);
+int main(int argc, char **argv) {
+  int count = 100000;
+  if (argc > 1) {
+    count = std::atoi(argv[1]);
+    if (count <= 0) {
+      count = 100000;
+    }
+  }
+  std::cout << "protobuf benchmark iterations: " << count << "\n";
+  bench(count);
   std::cout << "----------------------------------------\n";
-  bench2(100000);
+  bench2(count);
   std::cout << "----------------------------------------\n";
-  bench3(100000);
+  bench3(count);
   std::cout << "----------------------------------------\n";
-  bench4(100000);
+  bench4(count);
 }

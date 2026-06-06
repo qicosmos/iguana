@@ -2,6 +2,9 @@
 #include "detail/utf.hpp"
 #include "error_code.h"
 #include "json_util.hpp"
+#ifdef YLT_USE_CXX26_REFLECTION
+#include "ylt/reflection/reflect26_dispatch.hpp"
+#endif
 namespace iguana {
 
 template <typename T, typename It,
@@ -230,11 +233,13 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   else {
     while (it != end) {
       switch (*it) {
-        IGUANA_UNLIKELY case '\\' : ++it;
+      IGUANA_UNLIKELY case '\\':
+        ++it;
         parse_escape(value, it, end);
         break;
-        // IGUANA_UNLIKELY case ']' : return;
-        IGUANA_UNLIKELY case '"' : ++it;
+      // IGUANA_UNLIKELY case ']' : return;
+      IGUANA_UNLIKELY case '"':
+        ++it;
         return;
         IGUANA_LIKELY default : value.push_back(*it);
         ++it;
@@ -486,7 +491,7 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
   }
   else {
     using value_type = typename T::value_type;
-    value_type t;
+    value_type t{};
     if constexpr (string_v<value_type> || string_view_v<value_type>) {
       if (it < end && *it == '"')
         IGUANA_LIKELY { ++it; }
@@ -554,7 +559,7 @@ template <typename value_type, typename U, typename It>
 IGUANA_INLINE bool from_json_variant_impl(U &value, It it, It end, It &temp_it,
                                           It &temp_end) {
   try {
-    value_type val;
+    value_type val{};
     from_json_impl(val, it, end);
     value = val;
     temp_it = it;
@@ -590,6 +595,48 @@ IGUANA_INLINE void from_json_impl(U &value, It &&it, It &&end) {
 }
 }  // namespace detail
 
+#ifdef YLT_USE_CXX26_REFLECTION
+template <typename T, typename It, std::enable_if_t<ylt_refletable_v<T>, int>>
+IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
+  skip_ws(it, end);
+  match<'{'>(it, end);
+  skip_ws(it, end);
+  if (*it == '}')
+    IGUANA_UNLIKELY {
+      ++it;
+      return;
+    }
+
+  while (it != end) {
+    std::string_view key = detail::get_key(it, end);
+    skip_ws(it, end);
+    match<':'>(it, end);
+    bool found = ylt::reflection::reflect26::dispatch_by_name(
+        value, key, [&](auto &field) IGUANA__INLINE_LAMBDA {
+          using namespace detail;
+          from_json_impl(field, it, end);
+        });
+    if (!found)
+      IGUANA_UNLIKELY {
+#ifdef THROW_UNKNOWN_KEY
+        throw std::runtime_error("Unknown key: " + std::string(key));
+#else
+        detail::skip_object_value(it, end);
+#endif
+      }
+    skip_ws(it, end);
+    if (*it == '}')
+      IGUANA_UNLIKELY {
+        ++it;
+        return;
+      }
+    else
+      IGUANA_LIKELY { match<','>(it, end); }
+  }
+}
+#endif
+
+#ifndef YLT_USE_CXX26_REFLECTION
 template <typename T, typename It, std::enable_if_t<ylt_refletable_v<T>, int>>
 IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
   skip_ws(it, end);
@@ -672,6 +719,7 @@ IGUANA_INLINE void from_json(T &value, It &&it, It &&end) {
     }
   }
 }
+#endif  // !YLT_USE_CXX26_REFLECTION
 
 template <typename T, typename It,
           std::enable_if_t<non_ylt_refletable_v<T>, int> = 0>

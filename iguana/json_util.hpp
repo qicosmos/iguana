@@ -32,6 +32,9 @@ template <typename T>
 constexpr inline bool numeric_str_v =
     std::is_same_v<numeric_str, std::remove_cvref_t<T>>;
 
+template <>
+constexpr inline bool reflect26_excluded_v<numeric_str> = true;
+
 template <typename It>
 IGUANA_INLINE void skip_comment(It &&it, It &&end) {
   ++it;

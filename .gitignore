@@ -29,6 +29,8 @@
 *.app
 
 build
+build*
+out/
 .vscode
 .idea
 cmake-*
@@ -36,3 +38,5 @@ cmake-*
 .vs/
 CMakeUserPresets.json
 /CMakeSettings.json
+/NestedMsg.proto
+/test_vector.proto

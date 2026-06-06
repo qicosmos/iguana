@@ -14,6 +14,30 @@ struct point_t {
 };
 YLT_REFL(point_t, x, y);
 
+#if __cplusplus >= 202002L
+struct alias_no_macro_t {
+  int x;
+  int y;
+};
+
+inline constexpr auto get_alias_field_names(alias_no_macro_t *) {
+  return std::array{ylt::reflection::field_alias_t{"X", 0},
+                    ylt::reflection::field_alias_t{"Y", 1}};
+}
+#endif
+
+#ifdef YLT_USE_CXX26_REFLECTION
+struct annotation_alias_t {
+  [[= ylt::reflection::reflect26::field_name<"X">{}]] int x;
+  [[= ylt::reflection::reflect26::field_name<"Y">{}]] int y;
+};
+
+struct annotation_skip_t {
+  int id;
+  [[= ylt::reflection::reflect26::skip_field{}]] int cache;
+};
+#endif
+
 struct person {
   std::string name;
   bool ok;
@@ -507,6 +531,53 @@ TEST_CASE("test simple object") {
     CHECK(p1.ok == false);
   }
 }
+
+TEST_CASE("test alias without macro") {
+#if __cplusplus >= 202002L
+  alias_no_macro_t obj{1, 2};
+  std::string ss;
+  iguana::to_json(obj, ss);
+  CHECK(ss == R"({"X":1,"Y":2})");
+
+  alias_no_macro_t p{};
+  std::string_view str = R"({"Y":4,"X":3})";
+  iguana::from_json(p, std::begin(str), std::end(str));
+  CHECK(p.x == 3);
+  CHECK(p.y == 4);
+#endif
+}
+
+#ifdef YLT_USE_CXX26_REFLECTION
+TEST_CASE("test annotation alias") {
+  annotation_alias_t obj{1, 2};
+  std::string ss;
+  iguana::to_json(obj, ss);
+  CHECK(ss == R"({"X":1,"Y":2})");
+
+  annotation_alias_t p{};
+  std::string_view str = R"({"Y":4,"X":3})";
+  iguana::from_json(p, std::begin(str), std::end(str));
+  CHECK(p.x == 3);
+  CHECK(p.y == 4);
+}
+
+TEST_CASE("test annotation skip field") {
+  static_assert(ylt::reflection::members_count_v<annotation_skip_t> == 1);
+  constexpr auto names = ylt::reflection::get_member_names<annotation_skip_t>();
+  static_assert(names[0] == "id");
+
+  annotation_skip_t obj{42, 7};
+  std::string ss;
+  iguana::to_json(obj, ss);
+  CHECK(ss == R"({"id":42})");
+
+  annotation_skip_t parsed{};
+  std::string_view str = R"({"id":9})";
+  iguana::from_json(parsed, std::begin(str), std::end(str));
+  CHECK(parsed.id == 9);
+  CHECK(parsed.cache == 0);
+}
+#endif
 
 TEST_CASE("test two_fields object") {
   two_fields_t obj{{1, 2}, {"aa", "bb"}};
