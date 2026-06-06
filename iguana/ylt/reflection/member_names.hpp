@@ -209,7 +209,7 @@ template <typename T>
 inline const auto& get_member_offset_arr(T&& t) {
 #ifdef YLT_USE_CXX26_REFLECTION
   [[maybe_unused]] static constexpr auto arr =
-      reflect26::member_offsets_26<remove_cvref_t<T>>();
+      reflect26::member_offsets<remove_cvref_t<T>>();
   return arr;
 #else
   constexpr size_t Count = members_count_v<T>;
@@ -236,7 +236,7 @@ template <typename T>
 inline const auto& get_member_offset_arr() {
 #ifdef YLT_USE_CXX26_REFLECTION
   [[maybe_unused]] static constexpr auto arr =
-      reflect26::member_offsets_26<remove_cvref_t<T>>();
+      reflect26::member_offsets<remove_cvref_t<T>>();
   return arr;
 #else
   return get_member_offset_arr(internal::wrapper<T>::value);
@@ -257,7 +257,7 @@ using copy_const_t =
                        std::add_const_t<Member>, Member>;
 
 template <typename T, std::size_t... Is>
-inline constexpr auto struct_variant_26(std::index_sequence<Is...>) {
+inline constexpr auto struct_variant_reflect(std::index_sequence<Is...>) {
   static constexpr auto members = reflect26::data_members_array<T>();
   return std::variant<std::add_pointer_t<
       copy_const_t<T, reflect26::meta_type_t<members[Is]>>>...>{};
@@ -265,7 +265,7 @@ inline constexpr auto struct_variant_26(std::index_sequence<Is...>) {
 }  // namespace internal
 
 template <typename T>
-using struct_variant_t = decltype(internal::struct_variant_26<T>(
+using struct_variant_t = decltype(internal::struct_variant_reflect<T>(
     std::make_index_sequence<members_count_v<remove_cvref_t<T>>>{}));
 #else
 template <typename T>
@@ -315,7 +315,7 @@ template <typename T>
 constexpr std::string_view get_struct_name() {
   using U = ylt::reflection::remove_cvref_t<T>;
 #ifdef YLT_USE_CXX26_REFLECTION
-  constexpr auto annotation_name = reflect26::type_name_26<U>();
+  constexpr auto annotation_name = reflect26::type_name<U>();
   if constexpr (!annotation_name.empty()) {
     return annotation_name;
   }

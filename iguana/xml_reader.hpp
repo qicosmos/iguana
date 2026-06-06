@@ -407,8 +407,8 @@ IGUANA_INLINE void check_required(
     }
   }
 #ifdef YLT_USE_CXX26_REFLECTION
-  if constexpr (iguana::detail::xml_required_count_26<T>() > 0) {
-    constexpr auto required_arr = iguana::detail::xml_required_names_26<T>();
+  if constexpr (iguana::detail::xml_required_count<T>() > 0) {
+    constexpr auto required_arr = iguana::detail::xml_required_names<T>();
     for (auto &item : required_arr) {
       if (!contains_xml_key(parsed_keys, item)) {
         std::string err = "required filed ";

@@ -178,7 +178,7 @@ inline constexpr std::size_t members_count() {
     return std::tuple_size<type>::value;
   }
   else {
-    return reflect26::members_count_26<type>();
+    return reflect26::members_count<type>();
   }
 #else
   if constexpr (is_out_ylt_refl_v<type>) {

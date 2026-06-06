@@ -70,7 +70,7 @@ bool dispatch_by_index(T& obj, std::size_t target, Func&& func) {
     [[maybe_unused]] std::size_t index = 0;
     template for (constexpr auto member : members) {
       if (!found && index == target) {
-        invoke_dispatch(func, obj.[:member:], member_name_26<member>(), index);
+        invoke_dispatch(func, obj.[:member:], member_name<member>(), index);
         found = true;
       }
       ++index;

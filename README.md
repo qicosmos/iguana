@@ -41,15 +41,13 @@ CMake with `-DENABLE_CXX26_REFLECTION=ON`.
 Useful C++26 annotations:
 
 ```cpp
-namespace r26 = ylt::reflection::reflect26;
-
-struct [[= r26::struct_name<"user">{}]] user_t {
-  [[= r26::field_name<"id">{}]]
+struct [[= ylt::reflection::struct_name<"user">{}]] user_t {
+  [[= ylt::reflection::field_name<"id">{}]]
   int user_id{};
 
   std::string name;
 
-  [[= r26::skip_field{}]]
+  [[= ylt::reflection::skip_field{}]]
   int local_cache{};
 };
 
@@ -57,12 +55,12 @@ struct base_t {
   int internal_state{};
 };
 
-struct derived_t : [[= r26::skip_base{}]] base_t {
+struct derived_t : [[= ylt::reflection::skip_base{}]] base_t {
   int value{};
 };
 
 struct xml_user_t {
-  [[= r26::field_name<"identifier">{}]]
+  [[= ylt::reflection::field_name<"identifier">{}]]
   [[= iguana::xml_required{}]]
   int id{};
 };
