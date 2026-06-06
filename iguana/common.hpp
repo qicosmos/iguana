@@ -752,8 +752,7 @@ consteval bool has_pb_fixed() {
 
 template <std::meta::info Member>
 consteval bool has_pb_unknown_fields() {
-  return reflect26::has_annotation<Member,
-                                      is_pb_unknown_fields_annotation>();
+  return reflect26::has_annotation<Member, is_pb_unknown_fields_annotation>();
 }
 
 template <std::meta::info Member>
@@ -882,8 +881,7 @@ consteval size_t pb_default_field_index() {
     return 0;
   }
   else {
-    return pb_default_field_index<T, I - 1>() +
-           pb_field_width<T, I - 1>();
+    return pb_default_field_index<T, I - 1>() + pb_field_width<T, I - 1>();
   }
 }
 
@@ -928,9 +926,8 @@ struct pb_field_value_type {
 };
 
 template <typename T, typename ValueType, std::meta::info Member, size_t... I>
-constexpr inline auto build_pb_annotation_oneof_fields(size_t offset,
-                                               std::string_view name,
-                                               std::index_sequence<I...>) {
+constexpr inline auto build_pb_annotation_oneof_fields(
+    size_t offset, std::string_view name, std::index_sequence<I...>) {
   using U = ylt::reflection::remove_cvref_t<T>;
   using value_type = ylt::reflection::remove_cvref_t<ValueType>;
   constexpr size_t first = pb_variant_first_case_index<value_type>();
@@ -941,7 +938,8 @@ constexpr inline auto build_pb_annotation_oneof_fields(size_t offset,
 }
 
 template <typename T, size_t I, typename ValueType, typename Array>
-inline auto build_pb_annotation_field(const Array& offset_arr, std::string_view name) {
+inline auto build_pb_annotation_field(const Array& offset_arr,
+                                      std::string_view name) {
   using U = ylt::reflection::remove_cvref_t<T>;
   static constexpr auto members = reflect26::data_members_array<U>();
   if constexpr (has_pb_unknown_fields<members[I]>()) {
@@ -960,10 +958,10 @@ inline auto build_pb_annotation_field(const Array& offset_arr, std::string_view 
       static_assert(std::is_same_v<std::variant_alternative_t<0, value_type>,
                                    std::monostate>,
                     "pb_oneof member must start with std::monostate");
-      static_assert(pb_oneof_count<members[I]>() ==
-                        pb_variant_case_count<value_type>(),
-                    "pb_oneof field number count must match variant "
-                    "alternatives excluding std::monostate");
+      static_assert(
+          pb_oneof_count<members[I]>() == pb_variant_case_count<value_type>(),
+          "pb_oneof field number count must match variant "
+          "alternatives excluding std::monostate");
       return build_pb_annotation_oneof_fields<T, ValueType, members[I]>(
           offset_arr[I], name,
           std::make_index_sequence<pb_oneof_count<members[I]>()>{});
@@ -1009,7 +1007,7 @@ inline auto build_pb_annotation_field(const Array& offset_arr, std::string_view 
           has_pb_as_duration<members[I]>(), has_pb_optional<members[I]>(),
           has_pb_zigzag<members[I]>(), has_pb_fixed<members[I]>(),
           typename pb_field_value_type<T, I, ValueType>::type>(offset_arr[I],
-                                                                  name);
+                                                               name);
     }
   }
 }

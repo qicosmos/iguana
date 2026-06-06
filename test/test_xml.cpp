@@ -814,15 +814,15 @@ struct[[= ylt::reflection::struct_name<"anno_xml">{}]] annotation_xml_t {
   [[= ylt::reflection::field_name<"h">{}]] int y;
 };
 
-struct[[= ylt::reflection::struct_name<"required_xml">{}]]
-    annotation_required_xml_t {
+struct[[= ylt::reflection::struct_name<
+    "required_xml">{}]] annotation_required_xml_t {
   [[= ylt::reflection::field_name<"identifier">{}]]
-  [[= iguana::xml_required{}]] int id;
+      [[= iguana::xml_required{}]] int id;
   std::string name;
 };
 
-struct[[= ylt::reflection::struct_name<"required_overlap_xml">{}]]
-    annotation_required_overlap_xml_t {
+struct[[= ylt::reflection::struct_name<
+    "required_overlap_xml">{}]] annotation_required_overlap_xml_t {
   [[= iguana::xml_required{}]] int id;
   int identifier;
 };

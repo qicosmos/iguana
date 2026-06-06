@@ -92,7 +92,7 @@ inline constexpr auto get_variant_map_impl(std::index_sequence<Is...>) {
 #ifdef YLT_USE_CXX26_REFLECTION
 template <typename T, size_t... Is>
 inline auto get_variant_by_index_reflect(T& t, size_t index,
-                                    std::index_sequence<Is...>) {
+                                         std::index_sequence<Is...>) {
   using U = ylt::reflection::remove_cvref_t<T>;
   using variant = struct_variant_t<T>;
   static constexpr auto members = reflect26::data_members_array<U>();
