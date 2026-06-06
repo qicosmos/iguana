@@ -110,7 +110,7 @@ proto3 binary wire 协议验证：
 - 命中后直接 splice 到 `obj.[:member:]` 调用用户回调，回调可接收 `(field)`、`(field, name)` 或 `(field, name, index)`。
 - 这样避免了旧实现的 offset 指针算术；当前没有使用 `frozen::unordered_map` 做 C++26 路径的运行时 key 查找，性能重点是线性比较的字段数成本。
 
-这个文件仍然需要。C++26 反射解决的是“编译期知道有哪些成员”，但 JSON/XML/YAML 输入 key 是运行时字符串，需要一层运行时查找和类型化调用桥接。
+C++26 反射解决的是“编译期知道有哪些成员”，但 JSON/XML/YAML 输入 key 是运行时字符串，需要一层运行时查找和类型化调用桥接。
 
 ## 注解能力
 
@@ -459,36 +459,30 @@ template for (constexpr auto member : members) {
 
 这些位置使用 pack expansion 更直接，也更符合现有类型接口。把它们改成 `template for` 反而会引入中间容器或更复杂的状态代码。
 
-## 后续注解方向
+## 本次还没支持的地方
 
-可以继续用注解简化的方向：
+结论：下面两类能力这次没有支持，后续如果有必要了再继续完善。
 
-- XML attr/cdata：当前 wrapper 还承载实际存储结构，不能只靠注解等价替换；后续可以为普通字段提供注解式语法糖。
-- protobuf proto2 required、extension、自定义 option 等更大 schema 语义。
+- XML attr/cdata 注解化：现在仍然用 `xml_attr_t` 和 `xml_cdata_t` 表示 XML 属性和 CDATA。这次没有把它们改成 `[[= ...]]` 注解写法。以后如果想让普通字段也能用注解表示 XML 属性或 CDATA，可以单独做；这是易用性改进，不是当前缺陷。
+- protobuf proto2、extension、自定义 option：这次目标是 proto3 binary wire 互通。proto2 required 字段、extension、自定义 option 属于更完整的 `.proto` schema 支持，本次没有实现；以后如果项目需要完整 proto2/schema 能力，再单独做。
 
-当前没有把所有 wrapper 都改成注解，是因为 XML attr/cdata 还承载存储结构，proto2/extension 会改变兼容性和 schema 语义，需要单独测试矩阵。
+## 需要注意反射的范围
 
-## 关注点
+- C++26 路径现在会枚举 private 成员，`class` 里的私有字段如果没有标 `skip_field`，也可能进入 JSON/XML/YAML/protobuf 的序列化和反序列化流程。维护者需要决定这是不是 iguana 想要的默认行为：如果是，就保持现状；如果不是，就要改实现，默认只反射 public 成员，或要求用户显式标注哪些 private 成员可以参与反射。
 
-需要确认的问题：
+例如：
 
-- `test/conformance/iguana_conformance.cpp` 当前是面向官方 runner 的 proto3 binary canonicalizer，没有直接调用 public `iguana::from_pb` / `iguana::to_pb`。public API 正确性由项目内单测和 protoc runtime 对照覆盖；官方 conformance 用于确认 proto3 binary wire 语义。
-- C++26 路径使用 `access_context::unchecked`，可以反射 private data member。需要产品层明确这是预期能力，还是应该默认只反射公开成员/显式注册成员。
+```cpp
+class User {
+public:
+  int id;
 
-重点阅读区域：
+private:
+  std::string token;
+};
+```
 
-- `reflect26_core.hpp` 的基类递归和 `skip_base` 判断是否符合业务继承模型。
-- `reflect26_dispatch.hpp` 的线性 key 查找 + 类型化分发是否满足性能预期。
-- `common.hpp` 中 protobuf 字段号校验是否会影响旧 `YLT_REFL_PB` 用户。
-- `util.hpp` 的 C++26 `ylt_refletable_v` 排除条件是否覆盖所有 wrapper 类型。
-- JSON/XML/YAML C++26 分支和旧分支在未知字段处理上的行为是否一致。
-
-已处理问题：
-
-- `pb_reader.hpp` unknown group 跳过路径已加 `pb_recursion_guard`，并新增深层 unknown group 回归测试。
-- `xml_reader.hpp` required 字段检查已改为精确字段名匹配，并新增 `id` / `identifier` 重叠字段名回归测试。
-- `NestedMsg.proto`、`test_vector.proto` 这类测试生成文件不再写到仓库根目录，根目录历史临时文件已删除并加入 `.gitignore` 兜底。
-- C++26 GitHub Actions 容器内构建路径改用运行时 `$GITHUB_WORKSPACE`，避免 `${{ github.workspace }}` 展开到宿主 `/home/runner/work/...` 后让 `test_json_files_cpp26` 找不到 `data/`；同时为 JSON 文件测试固定 CTest 工作目录。
+按当前 C++26 实现，`token` 这种 private 字段也可能被当成普通字段处理。
 
 ## 验证命令
 
@@ -545,5 +539,3 @@ cmake --build .cache/protobuf-v3.21.12-build --target conformance_test_runner co
 - `git diff --check`：通过，无 whitespace/error 输出。
 
 conformance 说明：`iguana_conformance` 目前是 proto3 binary protobuf-output 验收 testee。JSON/text/JSPB 属于官方 runner 的其他表示形式，不是 pb3 binary wire 格式；proto3 binary protobuf input/output 已在 `--enforce_recommended` 下通过，未记录未通过项。
-
-构建过程中仍能看到既有 warning，主要来自 `frozen/string.h` 的 C++23 literal suffix 提示、JSON optional/variant 路径的 `maybe-uninitialized` 提示，以及 dynamic 测试里的 `stringop-overflow` 提示。这些历史 warning 不属于本次 C++26 反射改造内容。
