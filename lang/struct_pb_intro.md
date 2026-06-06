@@ -55,7 +55,7 @@ message nest {
 
 ### 自定义字段号
 
-默认情况下，字段号按 C++ 成员声明顺序从 1 开始分配。需要和已有 `.proto` 互通时，应显式指定字段号：
+默认情况下，字段号按 C++ 成员声明顺序从 1 开始分配。需要和已有 `.proto` 互通时，应显式指定字段号。旧路径/非 C++26 路径可以继续使用 `YLT_REFL_PB`：
 
 ```cpp
 struct account {
@@ -66,6 +66,8 @@ struct account {
 
 YLT_REFL_PB(account, (name, 10), (age, 20), (emails, 9));
 ```
+
+启用 C++26 静态反射后，优先使用后文的 `[[= iguana::pb_field(N)]]` 注解；该路径从字段注解读取 protobuf metadata，不依赖 `YLT_REFL_PB`。
 
 也可以使用 helper 形式描述 proto3 wire schema。helper 形式适合需要 `bytes`、zigzag、fixed、optional、oneof、well-known type 或 unknown fields 的场景：
 
@@ -124,7 +126,7 @@ iguana::pb_field_ex<&event_msg::retry_count, 6>(
 
 ### C++26 注解写法
 
-启用 C++26 静态反射后，可以直接把 protobuf metadata 写成字段注解。本轮 C++26 测试构建使用 GCC 16.1 和 `-std=gnu++26 -freflection`。
+启用 C++26 静态反射后，可以直接把 protobuf metadata 写成字段注解，不需要 `YLT_REFL_PB`。本轮 C++26 测试构建使用 GCC 16.1 和 `-std=gnu++26 -freflection`。
 
 ```cpp
 struct event_msg26 {

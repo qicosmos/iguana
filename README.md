@@ -404,7 +404,8 @@ void test() {
 ```
 
 By default, protobuf field numbers follow member order. For stable schemas or
-interop with existing `.proto` files, specify field numbers explicitly:
+interop with existing `.proto` files, specify field numbers explicitly. On the
+legacy/non-C++26 path, `YLT_REFL_PB` remains available:
 
 ```cpp
 struct account {
@@ -415,6 +416,10 @@ struct account {
 
 YLT_REFL_PB(account, (name, 10), (age, 20), (emails, 9));
 ```
+
+With C++26 static reflection, prefer the `[[= iguana::pb_field(N)]]`
+annotation shown below; that path reads protobuf metadata from annotations and
+does not depend on `YLT_REFL_PB`.
 
 For advanced proto3 wire semantics on the non-C++26 path, use the descriptor
 helpers. The helper form keeps normal C++ field types while attaching protobuf
@@ -475,7 +480,7 @@ iguana::pb_field_ex<&event_msg::retry_count, 6>(
 ```
 
 With a C++26 reflection compiler, the same metadata can be written as
-annotations. The current C++26 test build uses GCC 16.1 with
+annotations without `YLT_REFL_PB`. The current C++26 test build uses GCC 16.1 with
 `-std=gnu++26 -freflection`.
 
 ```cpp
