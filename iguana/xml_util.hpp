@@ -46,19 +46,19 @@ template <>
 struct is_xml_required_annotation<iguana::xml_required> : std::true_type {};
 
 template <std::meta::info Member>
-consteval bool xml_required_26() {
-  return ylt::reflection::reflect26::has_annotation_26<
+consteval bool has_xml_required() {
+  return ylt::reflection::reflect26::has_annotation<
       Member, is_xml_required_annotation>();
 }
 
 template <typename T>
-consteval size_t xml_required_count_26() {
+consteval size_t xml_required_count() {
   using U = ylt::reflection::remove_cvref_t<T>;
   static constexpr auto members =
       ylt::reflection::reflect26::data_members_array<U>();
   size_t count = 0;
   template for (constexpr auto member : members) {
-    if constexpr (xml_required_26<member>()) {
+    if constexpr (has_xml_required<member>()) {
       ++count;
     }
   }
@@ -66,16 +66,16 @@ consteval size_t xml_required_count_26() {
 }
 
 template <typename T>
-consteval auto xml_required_names_26() {
+consteval auto xml_required_names() {
   using U = ylt::reflection::remove_cvref_t<T>;
   static constexpr auto members =
       ylt::reflection::reflect26::data_members_array<U>();
   constexpr auto member_names = ylt::reflection::get_member_names<U>();
-  std::array<std::string_view, xml_required_count_26<U>()> names{};
+  std::array<std::string_view, xml_required_count<U>()> names{};
   size_t index = 0;
   size_t member_index = 0;
   template for (constexpr auto member : members) {
-    if constexpr (xml_required_26<member>()) {
+    if constexpr (has_xml_required<member>()) {
       names[index++] = member_names[member_index];
     }
     ++member_index;
@@ -89,7 +89,7 @@ template <class T>
 constexpr bool has_xml_required_fields_v =
     has_iguana_required_arr_v<T>
 #ifdef YLT_USE_CXX26_REFLECTION
-    || detail::xml_required_count_26<T>() > 0
+    || detail::xml_required_count<T>() > 0
 #endif
     ;
 

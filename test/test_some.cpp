@@ -28,13 +28,13 @@ inline constexpr auto get_alias_field_names(alias_no_macro_t *) {
 
 #ifdef YLT_USE_CXX26_REFLECTION
 struct annotation_alias_t {
-  [[= ylt::reflection::reflect26::field_name<"X">{}]] int x;
-  [[= ylt::reflection::reflect26::field_name<"Y">{}]] int y;
+  [[= ylt::reflection::field_name<"X">{}]] int x;
+  [[= ylt::reflection::field_name<"Y">{}]] int y;
 };
 
 struct annotation_skip_t {
   int id;
-  [[= ylt::reflection::reflect26::skip_field{}]] int cache;
+  [[= ylt::reflection::skip_field{}]] int cache;
 };
 #endif
 

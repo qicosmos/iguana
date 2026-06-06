@@ -741,48 +741,48 @@ struct is_pb_unknown_fields_annotation<iguana::pb_unknown_fields_annotation>
     : std::true_type {};
 
 template <std::meta::info Member>
-consteval bool pb_zigzag_26() {
-  return reflect26::has_annotation_26<Member, is_pb_zigzag_annotation>();
+consteval bool has_pb_zigzag() {
+  return reflect26::has_annotation<Member, is_pb_zigzag_annotation>();
 }
 
 template <std::meta::info Member>
-consteval bool pb_fixed_26() {
-  return reflect26::has_annotation_26<Member, is_pb_fixed_annotation>();
+consteval bool has_pb_fixed() {
+  return reflect26::has_annotation<Member, is_pb_fixed_annotation>();
 }
 
 template <std::meta::info Member>
-consteval bool pb_unknown_fields_26() {
-  return reflect26::has_annotation_26<Member,
+consteval bool has_pb_unknown_fields() {
+  return reflect26::has_annotation<Member,
                                       is_pb_unknown_fields_annotation>();
 }
 
 template <std::meta::info Member>
-consteval bool pb_bytes_26() {
-  return reflect26::has_annotation_26<Member, is_pb_bytes_annotation>();
+consteval bool has_pb_bytes() {
+  return reflect26::has_annotation<Member, is_pb_bytes_annotation>();
 }
 
 template <std::meta::info Member>
-consteval bool pb_oneof_26() {
-  return reflect26::has_annotation_26<Member, is_pb_oneof_annotation>();
+consteval bool has_pb_oneof() {
+  return reflect26::has_annotation<Member, is_pb_oneof_annotation>();
 }
 
 template <std::meta::info Member>
-consteval bool pb_as_timestamp_26() {
-  return reflect26::has_annotation_26<Member, is_pb_timestamp_annotation>();
+consteval bool has_pb_as_timestamp() {
+  return reflect26::has_annotation<Member, is_pb_timestamp_annotation>();
 }
 
 template <std::meta::info Member>
-consteval bool pb_as_duration_26() {
-  return reflect26::has_annotation_26<Member, is_pb_duration_annotation>();
+consteval bool has_pb_as_duration() {
+  return reflect26::has_annotation<Member, is_pb_duration_annotation>();
 }
 
 template <std::meta::info Member>
-consteval bool pb_optional_26() {
-  return reflect26::has_annotation_26<Member, is_pb_optional_annotation>();
+consteval bool has_pb_optional() {
+  return reflect26::has_annotation<Member, is_pb_optional_annotation>();
 }
 
 template <std::meta::info Member>
-consteval size_t pb_oneof_count_26() {
+consteval size_t pb_oneof_count() {
   static constexpr auto annotations = reflect26::annotations_array<Member>();
   template for (constexpr auto annotation : annotations) {
     using annotation_t = reflect26::remove_cvref_meta_type_t<annotation>;
@@ -794,7 +794,7 @@ consteval size_t pb_oneof_count_26() {
 }
 
 template <std::meta::info Member, size_t I>
-consteval size_t pb_oneof_field_no_26() {
+consteval size_t pb_oneof_field_no() {
   static constexpr auto annotations = reflect26::annotations_array<Member>();
   template for (constexpr auto annotation : annotations) {
     using annotation_t = reflect26::remove_cvref_meta_type_t<annotation>;
@@ -814,22 +814,22 @@ consteval size_t pb_oneof_field_no_26() {
 }
 
 template <std::meta::info Member, typename ValueType>
-struct pb_wire_type_26 {
+struct pb_annotation_wire_type {
   using value_type = ylt::reflection::remove_cvref_t<ValueType>;
-  static_assert(!(pb_zigzag_26<Member>() && pb_fixed_26<Member>()),
+  static_assert(!(has_pb_zigzag<Member>() && has_pb_fixed<Member>()),
                 "protobuf field can't use both pb_zigzag and pb_fixed");
   using type =
-      typename pb_wire_type_selector<pb_zigzag_26<Member>(),
-                                     pb_fixed_26<Member>(), value_type>::type;
+      typename pb_wire_type_selector<has_pb_zigzag<Member>(),
+                                     has_pb_fixed<Member>(), value_type>::type;
 };
 
 template <typename T>
-consteval size_t pb_unknown_fields_count_26() {
+consteval size_t pb_unknown_fields_count() {
   using U = ylt::reflection::remove_cvref_t<T>;
   static constexpr auto members = reflect26::data_members_array<U>();
   size_t count = 0;
   template for (constexpr auto member : members) {
-    if constexpr (pb_unknown_fields_26<member>()) {
+    if constexpr (has_pb_unknown_fields<member>()) {
       ++count;
     }
   }
@@ -837,13 +837,13 @@ consteval size_t pb_unknown_fields_count_26() {
 }
 
 template <typename T, typename Func>
-IGUANA_INLINE void visit_pb_unknown_fields_26(T&& t, Func&& func) {
+IGUANA_INLINE void visit_pb_unknown_fields_annotation(T&& t, Func&& func) {
   using U = ylt::reflection::remove_cvref_t<T>;
-  static_assert(pb_unknown_fields_count_26<U>() <= 1,
+  static_assert(pb_unknown_fields_count<U>() <= 1,
                 "only one pb_unknown_fields member is supported");
   static constexpr auto members = reflect26::data_members_array<U>();
   template for (constexpr auto member : members) {
-    if constexpr (pb_unknown_fields_26<member>()) {
+    if constexpr (has_pb_unknown_fields<member>()) {
       using field_type =
           ylt::reflection::remove_cvref_t<decltype(t.[:member:])>;
       static_assert(std::is_same_v<field_type, std::string>,
@@ -853,42 +853,18 @@ IGUANA_INLINE void visit_pb_unknown_fields_26(T&& t, Func&& func) {
   }
 }
 
-template <typename T>
-IGUANA_INLINE size_t pb_unknown_fields_size_26(const T& t) {
-  size_t size = 0;
-  visit_pb_unknown_fields_26(t, [&](const std::string& fields) {
-    size += fields.size();
-  });
-  return size;
-}
-
-template <typename T, typename Writer>
-IGUANA_INLINE void write_pb_unknown_fields_26(const T& t, Writer& writer) {
-  visit_pb_unknown_fields_26(t, [&](const std::string& fields) {
-    writer.write(fields.data(), fields.size());
-  });
-}
-
-template <typename T>
-IGUANA_INLINE void append_pb_unknown_field_26(T& t, const char* data,
-                                              size_t size) {
-  visit_pb_unknown_fields_26(t, [&](std::string& fields) {
-    fields.append(data, size);
-  });
-}
-
 template <typename T, size_t I>
-consteval size_t pb_field_width_26() {
+consteval size_t pb_field_width() {
   using U = ylt::reflection::remove_cvref_t<T>;
   static constexpr auto members = reflect26::data_members_array<U>();
-  if constexpr (pb_unknown_fields_26<members[I]>()) {
+  if constexpr (has_pb_unknown_fields<members[I]>()) {
     return 0;
   }
   else {
     using value_type = reflect26::remove_cvref_meta_type_t<members[I]>;
     if constexpr (is_variant<value_type>::value) {
-      if constexpr (pb_oneof_26<members[I]>()) {
-        return pb_oneof_count_26<members[I]>();
+      if constexpr (has_pb_oneof<members[I]>()) {
+        return pb_oneof_count<members[I]>();
       }
       else {
         return pb_variant_case_count<value_type>();
@@ -901,18 +877,18 @@ consteval size_t pb_field_width_26() {
 }
 
 template <typename T, size_t I>
-consteval size_t pb_default_field_index_26() {
+consteval size_t pb_default_field_index() {
   if constexpr (I == 0) {
     return 0;
   }
   else {
-    return pb_default_field_index_26<T, I - 1>() +
-           pb_field_width_26<T, I - 1>();
+    return pb_default_field_index<T, I - 1>() +
+           pb_field_width<T, I - 1>();
   }
 }
 
 template <std::meta::info Member>
-consteval size_t pb_field_no_26() {
+consteval size_t pb_annotation_field_no() {
   static constexpr auto annotations = reflect26::annotations_array<Member>();
   template for (constexpr auto annotation : annotations) {
     using annotation_t = reflect26::remove_cvref_meta_type_t<annotation>;
@@ -932,11 +908,11 @@ consteval size_t pb_field_no_26() {
 }
 
 template <typename T, size_t I, size_t DefaultIndex>
-consteval size_t pb_field_index_26() {
+consteval size_t pb_field_index() {
   using U = ylt::reflection::remove_cvref_t<T>;
   static constexpr auto members = reflect26::data_members_array<U>();
   if constexpr (I < members.size()) {
-    constexpr auto field_no = pb_field_no_26<members[I]>();
+    constexpr auto field_no = pb_annotation_field_no<members[I]>();
     if constexpr (field_no > 0) {
       return field_no - 1;
     }
@@ -945,82 +921,82 @@ consteval size_t pb_field_index_26() {
 }
 
 template <typename T, size_t I, typename ValueType>
-struct pb_field_value_type_26 {
+struct pb_field_value_type {
   using U = ylt::reflection::remove_cvref_t<T>;
   static constexpr auto members = reflect26::data_members_array<U>();
-  using type = typename pb_wire_type_26<members[I], ValueType>::type;
+  using type = typename pb_annotation_wire_type<members[I], ValueType>::type;
 };
 
 template <typename T, typename ValueType, std::meta::info Member, size_t... I>
-constexpr inline auto build_pb_oneof_fields_26(size_t offset,
+constexpr inline auto build_pb_annotation_oneof_fields(size_t offset,
                                                std::string_view name,
                                                std::index_sequence<I...>) {
   using U = ylt::reflection::remove_cvref_t<T>;
   using value_type = ylt::reflection::remove_cvref_t<ValueType>;
   constexpr size_t first = pb_variant_first_case_index<value_type>();
   return std::tuple(
-      pb_field_t<U, value_type, pb_oneof_field_no_26<Member, I>(),
+      pb_field_t<U, value_type, pb_oneof_field_no<Member, I>(),
                  std::variant_alternative_t<I + first, value_type>>{offset,
                                                                     name}...);
 }
 
 template <typename T, size_t I, typename ValueType, typename Array>
-inline auto build_pb_field_26(const Array& offset_arr, std::string_view name) {
+inline auto build_pb_annotation_field(const Array& offset_arr, std::string_view name) {
   using U = ylt::reflection::remove_cvref_t<T>;
   static constexpr auto members = reflect26::data_members_array<U>();
-  if constexpr (pb_unknown_fields_26<members[I]>()) {
+  if constexpr (has_pb_unknown_fields<members[I]>()) {
     using value_type = ylt::reflection::remove_cvref_t<ValueType>;
     static_assert(std::is_same_v<value_type, std::string>,
                   "pb_unknown_fields member must be std::string");
     return std::tuple<>{};
   }
   else {
-    constexpr size_t default_index = pb_default_field_index_26<U, I>();
+    constexpr size_t default_index = pb_default_field_index<U, I>();
     using value_type = ylt::reflection::remove_cvref_t<ValueType>;
     using annotation_leaf_type = pb_annotation_leaf_type_t<value_type>;
-    if constexpr (pb_oneof_26<members[I]>()) {
+    if constexpr (has_pb_oneof<members[I]>()) {
       static_assert(is_variant<value_type>::value,
                     "pb_oneof member must be std::variant");
       static_assert(std::is_same_v<std::variant_alternative_t<0, value_type>,
                                    std::monostate>,
                     "pb_oneof member must start with std::monostate");
-      static_assert(pb_oneof_count_26<members[I]>() ==
+      static_assert(pb_oneof_count<members[I]>() ==
                         pb_variant_case_count<value_type>(),
                     "pb_oneof field number count must match variant "
                     "alternatives excluding std::monostate");
-      return build_pb_oneof_fields_26<T, ValueType, members[I]>(
+      return build_pb_annotation_oneof_fields<T, ValueType, members[I]>(
           offset_arr[I], name,
-          std::make_index_sequence<pb_oneof_count_26<members[I]>()>{});
+          std::make_index_sequence<pb_oneof_count<members[I]>()>{});
     }
     else {
-      static_assert(!(pb_as_timestamp_26<members[I]>() &&
-                      pb_as_duration_26<members[I]>()),
+      static_assert(!(has_pb_as_timestamp<members[I]>() &&
+                      has_pb_as_duration<members[I]>()),
                     "protobuf field can't use both pb_as_timestamp and "
                     "pb_as_duration");
-      static_assert(!pb_as_timestamp_26<members[I]>() ||
+      static_assert(!has_pb_as_timestamp<members[I]>() ||
                         std::is_same_v<annotation_leaf_type,
                                        std::chrono::system_clock::time_point>,
                     "pb_as_timestamp member must be "
                     "std::chrono::system_clock::time_point, or optional/vector "
                     "of that type");
       static_assert(
-          !pb_as_duration_26<members[I]>() ||
+          !has_pb_as_duration<members[I]>() ||
               std::is_same_v<annotation_leaf_type, std::chrono::nanoseconds>,
           "pb_as_duration member must be std::chrono::nanoseconds, "
           "or optional/vector of that type");
-      static_assert(!pb_bytes_26<members[I]>() ||
+      static_assert(!has_pb_bytes<members[I]>() ||
                         std::is_same_v<annotation_leaf_type, std::string> ||
                         std::is_same_v<annotation_leaf_type, std::string_view>,
                     "pb_bytes member must be std::string, std::string_view, "
                     "or optional/vector of that type");
-      static_assert(!pb_optional_26<members[I]>() || optional_v<value_type>,
+      static_assert(!has_pb_optional<members[I]>() || optional_v<value_type>,
                     "pb_optional member must be std::optional<T>");
-      static_assert(!pb_zigzag_26<members[I]>() ||
+      static_assert(!has_pb_zigzag<members[I]>() ||
                         std::is_same_v<annotation_leaf_type, int32_t> ||
                         std::is_same_v<annotation_leaf_type, int64_t>,
                     "pb_zigzag member must be int32_t/int64_t, or "
                     "optional/vector of that type");
-      static_assert(!pb_fixed_26<members[I]>() ||
+      static_assert(!has_pb_fixed<members[I]>() ||
                         std::is_same_v<annotation_leaf_type, uint32_t> ||
                         std::is_same_v<annotation_leaf_type, uint64_t> ||
                         std::is_same_v<annotation_leaf_type, int32_t> ||
@@ -1028,11 +1004,11 @@ inline auto build_pb_field_26(const Array& offset_arr, std::string_view name) {
                     "pb_fixed member must be 32/64-bit int, or "
                     "optional/vector of that type");
       return build_pb_fields_impl<
-          T, pb_field_index_26<T, I, default_index>(), ValueType,
-          pb_bytes_26<members[I]>(), pb_as_timestamp_26<members[I]>(),
-          pb_as_duration_26<members[I]>(), pb_optional_26<members[I]>(),
-          pb_zigzag_26<members[I]>(), pb_fixed_26<members[I]>(),
-          typename pb_field_value_type_26<T, I, ValueType>::type>(offset_arr[I],
+          T, pb_field_index<T, I, default_index>(), ValueType,
+          has_pb_bytes<members[I]>(), has_pb_as_timestamp<members[I]>(),
+          has_pb_as_duration<members[I]>(), has_pb_optional<members[I]>(),
+          has_pb_zigzag<members[I]>(), has_pb_fixed<members[I]>(),
+          typename pb_field_value_type<T, I, ValueType>::type>(offset_arr[I],
                                                                   name);
     }
   }
@@ -1047,7 +1023,7 @@ IGUANA_INLINE void visit_pb_unknown_fields(T&& t, Func&& func) {
   }
 #ifdef YLT_USE_CXX26_REFLECTION
   else if constexpr (ylt_refletable_v<U>) {
-    visit_pb_unknown_fields_26(t, std::forward<Func>(func));
+    visit_pb_unknown_fields_annotation(t, std::forward<Func>(func));
   }
 #endif
 }
@@ -1084,8 +1060,8 @@ inline auto build_pb_fields(const Array& offset_arr,
   using U = ylt::reflection::remove_cvref_t<T>;
   static constexpr auto members = reflect26::data_members_array<U>();
   return std::tuple_cat(
-      build_pb_field_26<T, I, reflect26::meta_type_t<members[I]>>(offset_arr,
-                                                                  arr[I])...);
+      build_pb_annotation_field<T, I, reflect26::meta_type_t<members[I]>>(
+          offset_arr, arr[I])...);
 }
 #else
 template <typename Tuple, typename T, typename Array, size_t... I>

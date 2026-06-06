@@ -108,7 +108,7 @@ inline constexpr decltype(auto) tuple_view(T&& t, Visitor&& visitor) {
 template <class T>
 inline constexpr auto struct_to_tuple() {
 #ifdef YLT_USE_CXX26_REFLECTION
-  return reflect26::data_members_26<remove_cvref_t<T>>();
+  return reflect26::data_members<remove_cvref_t<T>>();
 #else
   return internal::object_tuple_view_helper<T,
                                             members_count_v<T>>::tuple_view();
@@ -118,7 +118,7 @@ inline constexpr auto struct_to_tuple() {
 template <class T>
 inline constexpr auto object_to_tuple(T&& t) {
 #ifdef YLT_USE_CXX26_REFLECTION
-  return reflect26::data_members_26<remove_cvref_t<T>>();
+  return reflect26::data_members<remove_cvref_t<T>>();
 #else
   using type = remove_cvref_t<T>;
   if constexpr (is_out_ylt_refl_v<type>) {

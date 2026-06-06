@@ -91,7 +91,7 @@ inline constexpr auto get_variant_map_impl(std::index_sequence<Is...>) {
 
 #ifdef YLT_USE_CXX26_REFLECTION
 template <typename T, size_t... Is>
-inline auto get_variant_by_index_26(T& t, size_t index,
+inline auto get_variant_by_index_reflect(T& t, size_t index,
                                     std::index_sequence<Is...>) {
   using U = ylt::reflection::remove_cvref_t<T>;
   using variant = struct_variant_t<T>;
@@ -196,7 +196,7 @@ inline auto get(T& t, size_t index) {
     throw std::out_of_range("index out of range, empty object");
   }
   else {
-    return internal::get_variant_by_index_26(
+    return internal::get_variant_by_index_reflect(
         t, index, std::make_index_sequence<members_count_v<U>>{});
   }
 #else
