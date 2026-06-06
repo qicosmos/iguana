@@ -135,7 +135,7 @@ get_member_names() {
   else {
     constexpr size_t Count = members_count_v<T>;
     std::array<std::string_view, Count> arr;
-#if __cplusplus >= 202002L
+#if __cplusplus >= 202002L && (!defined(_MSC_VER) || _MSC_VER >= 1930)
     constexpr auto tp = struct_to_tuple<T>();
     [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
       ((arr[Is] =

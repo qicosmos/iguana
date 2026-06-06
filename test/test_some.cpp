@@ -2,6 +2,8 @@
 #include <iguana/json_writer.hpp>
 #include <iostream>
 #include <optional>
+#include <utility>
+#include <vector>
 
 #include "doctest.h"
 #include "iguana/json_reader.hpp"
@@ -690,6 +692,13 @@ TEST_CASE("test map") {
   iguana::from_json(p, std::begin(ss), std::end(ss));
   CHECK(map.map1 == p.map1);
   CHECK(map.map2 == p.map2);
+}
+
+TEST_CASE("test vector pair json object") {
+  std::vector<std::pair<std::string, int>> items{{"a", 1}, {"b", 2}};
+  std::string ss;
+  iguana::to_json(items, ss);
+  CHECK(ss == R"({"a":1,"b":2})");
 }
 
 TEST_CASE("test nested object") {

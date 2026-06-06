@@ -623,6 +623,14 @@ TEST_CASE("test type_string") {
 #endif
 }
 
+namespace test_empty_aggregate {
+struct empty_t {};
+}  // namespace test_empty_aggregate
+
+TEST_CASE("empty aggregate member count") {
+  CHECK(ylt::reflection::members_count_v<test_empty_aggregate::empty_t> == 0);
+}
+
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
 int main(int argc, char** argv) { return doctest::Context(argc, argv).run(); }
 DOCTEST_MSVC_SUPPRESS_WARNING_POP
