@@ -1,5 +1,23 @@
 #include "json_benchmark.h"
 
+#include <cstdlib>
+#include <iomanip>
+#include <stdexcept>
+
+#include "iguana/json_dom.hpp"
+
+#ifdef HAS_NLOHMANN_JSON
+#include <nlohmann/json.hpp>
+#endif
+
+#ifdef HAS_SIMDJSON
+#include <simdjson.h>
+#endif
+
+#ifdef HAS_YYJSON
+#include <yyjson.h>
+#endif
+
 class ScopedTimer {
  public:
   ScopedTimer(const char *name)
@@ -23,6 +41,37 @@ class ScopedTimer {
   std::chrono::time_point<std::chrono::high_resolution_clock> m_beg;
   uint64_t *m_ns = nullptr;
 };
+
+namespace {
+volatile size_t json_parse_sink = 0;
+
+void consume_json_parse_result(size_t value) {
+  json_parse_sink = json_parse_sink + value;
+}
+
+void print_parse_result(const std::string &name, uint64_t ns, size_t bytes,
+                        int iterations) {
+  const double seconds = static_cast<double>(ns) / 1000000000.0;
+  const double gib = static_cast<double>(bytes) *
+                     static_cast<double>(iterations) /
+                     (1024.0 * 1024.0 * 1024.0);
+  const double gib_per_second = seconds > 0 ? gib / seconds : 0.0;
+
+  auto flags = std::cout.flags();
+  auto precision = std::cout.precision();
+  std::cout << std::left << std::setw(45) << name << " : " << std::right
+            << std::setw(12) << ns << " ns  " << std::fixed
+            << std::setprecision(3) << gib_per_second << " GiB/s\n";
+  std::cout.flags(flags);
+  std::cout.precision(precision);
+}
+
+bool should_run_parser(std::string_view parser_name,
+                       std::string_view parser_filter) {
+  return parser_filter.empty() ||
+         parser_name.find(parser_filter) != std::string_view::npos;
+}
+}  // namespace
 
 inline constexpr std::string_view json0 = R"(
 {
@@ -226,13 +275,201 @@ template <typename S>
 void test_dom_parse(std::string filename, const S &json_str, const int size) {
   std::string iguana_str = "iguana parse " + filename;
   iguana::jvalue val;
+  uint64_t ns = 0;
   {
-    ScopedTimer timer(iguana_str.data());
+    ScopedTimer timer(iguana_str.data(), ns);
     for (int i = 0; i < size; ++i) {
       iguana::parse(val, json_str);
     }
   }
+  print_parse_result(iguana_str, ns, json_str.size(), size);
 }
+
+template <typename S>
+void test_iguana_json_dom_parse(std::string filename, const S &json_str,
+                                const int size) {
+  std::string name = "iguana json::dom parse " + filename;
+  uint64_t ns = 0;
+  {
+    ScopedTimer timer(name.data(), ns);
+    for (int i = 0; i < size; ++i) {
+      auto doc = iguana::json::parse(
+          std::string_view(json_str.data(), json_str.size()));
+      consume_json_parse_result(doc.node_count());
+    }
+  }
+  print_parse_result(name, ns, json_str.size(), size);
+}
+
+template <typename S>
+void test_iguana_json_dom_view_parse(std::string filename, const S &json_str,
+                                     const int size) {
+  std::string name = "iguana json::dom view parse " + filename;
+  uint64_t ns = 0;
+  {
+    ScopedTimer timer(name.data(), ns);
+    for (int i = 0; i < size; ++i) {
+      auto doc = iguana::json::parse_view(
+          std::string_view(json_str.data(), json_str.size()));
+      consume_json_parse_result(doc.node_count());
+    }
+  }
+  print_parse_result(name, ns, json_str.size(), size);
+}
+
+template <typename S>
+void test_iguana_json_dom_reuse_view_parse(std::string filename,
+                                           const S &json_str, const int size) {
+  std::string name = "iguana json::dom reuse view parse " + filename;
+  iguana::json::document doc;
+  doc.reserve(json_str.size());
+  uint64_t ns = 0;
+  {
+    ScopedTimer timer(name.data(), ns);
+    for (int i = 0; i < size; ++i) {
+      iguana::json::parse_view(
+          doc, std::string_view(json_str.data(), json_str.size()));
+      consume_json_parse_result(doc.node_count());
+    }
+  }
+  print_parse_result(name, ns, json_str.size(), size);
+}
+
+template <typename S>
+void test_iguana_json_dom_lazy_reuse_view_parse(std::string filename,
+                                                const S &json_str,
+                                                const int size) {
+  std::string name = "iguana json::dom lazy reuse view parse " + filename;
+  iguana::json::document doc;
+  doc.reserve(json_str.size());
+  iguana::json::parse_options options;
+  options.numbers = iguana::json::number_mode::lazy;
+  uint64_t ns = 0;
+  {
+    ScopedTimer timer(name.data(), ns);
+    for (int i = 0; i < size; ++i) {
+      iguana::json::parse_view(
+          doc, std::string_view(json_str.data(), json_str.size()), options);
+      consume_json_parse_result(doc.node_count());
+    }
+  }
+  print_parse_result(name, ns, json_str.size(), size);
+}
+
+template <typename S>
+void test_iguana_json_dom_trusted_reuse_view_parse(std::string filename,
+                                                   const S &json_str,
+                                                   const int size) {
+  std::string name = "iguana json::dom trusted reuse view parse " + filename;
+  iguana::json::document doc;
+  doc.reserve(json_str.size());
+  uint64_t ns = 0;
+  {
+    ScopedTimer timer(name.data(), ns);
+    for (int i = 0; i < size; ++i) {
+      iguana::json::parse_trusted_view(
+          doc, std::string_view(json_str.data(), json_str.size()));
+      consume_json_parse_result(doc.node_count());
+    }
+  }
+  print_parse_result(name, ns, json_str.size(), size);
+}
+
+#ifdef HAS_NLOHMANN_JSON
+template <typename S>
+void test_nlohmann_dom_parse(std::string filename, const S &json_str,
+                             const int size) {
+  std::string name = "nlohmann parse " + filename;
+  uint64_t ns = 0;
+  {
+    ScopedTimer timer(name.data(), ns);
+    for (int i = 0; i < size; ++i) {
+      auto val = nlohmann::json::parse(json_str.begin(), json_str.end());
+      consume_json_parse_result(val.size());
+    }
+  }
+  print_parse_result(name, ns, json_str.size(), size);
+}
+#endif
+
+#ifdef HAS_YYJSON
+template <typename S>
+void test_yyjson_dom_parse(std::string filename, const S &json_str,
+                           const int size) {
+  std::string name = "yyjson parse " + filename;
+  uint64_t ns = 0;
+  {
+    ScopedTimer timer(name.data(), ns);
+    for (int i = 0; i < size; ++i) {
+      yyjson_doc *doc = yyjson_read(json_str.data(), json_str.size(), 0);
+      if (doc == nullptr) {
+        throw std::runtime_error("yyjson failed to parse " + filename);
+      }
+      yyjson_val *root = yyjson_doc_get_root(doc);
+      consume_json_parse_result(root == nullptr ? 0 : yyjson_get_type(root));
+      yyjson_doc_free(doc);
+    }
+  }
+  print_parse_result(name, ns, json_str.size(), size);
+}
+
+template <typename S>
+void test_yyjson_insitu_dom_parse(std::string filename, const S &json_str,
+                                  const int size) {
+  std::vector<std::string> json_copies(size);
+  for (int i = 0; i < size; ++i) {
+    json_copies[i].assign(json_str.begin(), json_str.end());
+  }
+
+  std::string name = "yyjson insitu parse " + filename;
+  uint64_t ns = 0;
+  {
+    ScopedTimer timer(name.data(), ns);
+    for (int i = 0; i < size; ++i) {
+      yyjson_doc *doc =
+          yyjson_read_opts(json_copies[i].data(), json_copies[i].size(),
+                           YYJSON_READ_INSITU, nullptr, nullptr);
+      if (doc == nullptr) {
+        throw std::runtime_error("yyjson insitu failed to parse " + filename);
+      }
+      yyjson_val *root = yyjson_doc_get_root(doc);
+      consume_json_parse_result(root == nullptr ? 0 : yyjson_get_type(root));
+      yyjson_doc_free(doc);
+    }
+  }
+  print_parse_result(name, ns, json_str.size(), size);
+}
+#endif
+
+#ifdef HAS_SIMDJSON
+template <typename S>
+void test_simdjson_dom_parse(std::string filename, const S &json_str,
+                             const int size) {
+  simdjson::padded_string padded(json_str.data(), json_str.size());
+  simdjson::dom::parser parser;
+  if (auto error = parser.allocate(padded.size())) {
+    throw std::runtime_error(simdjson::error_message(error));
+  }
+
+  std::string name = "simdjson dom parse " + filename;
+  uint64_t ns = 0;
+  {
+    ScopedTimer timer(name.data(), ns);
+    for (int i = 0; i < size; ++i) {
+      auto doc = parser.parse(padded);
+      if (doc.error()) {
+        throw std::runtime_error(simdjson::error_message(doc.error()));
+      }
+      simdjson::dom::element_type type;
+      if (auto error = doc.type().get(type)) {
+        throw std::runtime_error(simdjson::error_message(error));
+      }
+      consume_json_parse_result(static_cast<size_t>(type));
+    }
+  }
+  print_parse_result(name, ns, json_str.size(), size);
+}
+#endif
 
 void test_to_json() {
   int iterations = 100000;
@@ -294,14 +531,67 @@ void test_from_json_file() {
   }
 }
 
-void test_dom_parse_file() {
+void test_dom_parse_file(int iterations = 10, std::string_view filter = {},
+                         std::string_view parser_filter = {}) {
   for (auto &pair : test_map) {
+    if (!filter.empty() && pair.first.find(filter) == std::string::npos) {
+      continue;
+    }
     auto content = iguana::json_file_content(pair.first);
-    test_dom_parse(pair.first, content, 10);
+    if (should_run_parser("iguana parse", parser_filter)) {
+      test_dom_parse(pair.first, content, iterations);
+    }
+    if (should_run_parser("iguana json::dom parse", parser_filter)) {
+      test_iguana_json_dom_parse(pair.first, content, iterations);
+    }
+    if (should_run_parser("iguana json::dom view parse", parser_filter)) {
+      test_iguana_json_dom_view_parse(pair.first, content, iterations);
+    }
+    if (should_run_parser("iguana json::dom reuse view parse", parser_filter)) {
+      test_iguana_json_dom_reuse_view_parse(pair.first, content, iterations);
+    }
+    if (should_run_parser("iguana json::dom lazy reuse view parse",
+                          parser_filter)) {
+      test_iguana_json_dom_lazy_reuse_view_parse(pair.first, content,
+                                                 iterations);
+    }
+    if (should_run_parser("iguana json::dom trusted reuse view parse",
+                          parser_filter)) {
+      test_iguana_json_dom_trusted_reuse_view_parse(pair.first, content,
+                                                    iterations);
+    }
+#ifdef HAS_NLOHMANN_JSON
+    if (should_run_parser("nlohmann parse", parser_filter)) {
+      test_nlohmann_dom_parse(pair.first, content, iterations);
+    }
+#endif
+#ifdef HAS_YYJSON
+    if (should_run_parser("yyjson parse", parser_filter)) {
+      test_yyjson_dom_parse(pair.first, content, iterations);
+    }
+    if (should_run_parser("yyjson insitu parse", parser_filter)) {
+      test_yyjson_insitu_dom_parse(pair.first, content, iterations);
+    }
+#endif
+#ifdef HAS_SIMDJSON
+    if (should_run_parser("simdjson dom parse", parser_filter)) {
+      test_simdjson_dom_parse(pair.first, content, iterations);
+    }
+#endif
   }
 }
 
-int main() {
+int run_dom_parse_benchmark(int rounds = 1, int iterations = 10,
+                            std::string_view filter = {},
+                            std::string_view parser_filter = {}) {
+  for (int i = 0; i < rounds; ++i) {
+    test_dom_parse_file(iterations, filter, parser_filter);
+    std::cout << "====================\n";
+  }
+  return 0;
+}
+
+int run_benchmark() {
   for (size_t i = 0; i < 5; i++) {
     test_from_json_file();
     std::cout << "====================\n";
@@ -327,5 +617,29 @@ int main() {
   for (int i = 0; i < 10; ++i) {
     test_dom_parse("obj_t", json0, 100000);
     std::cout << "====================\n";
+  }
+  return 0;
+}
+
+int main(int argc, char **argv) {
+  try {
+    if (argc > 1 && std::string_view(argv[1]) == "dom") {
+      int rounds = argc > 2 ? std::atoi(argv[2]) : 1;
+      int iterations = argc > 3 ? std::atoi(argv[3]) : 10;
+      if (rounds <= 0 || iterations <= 0) {
+        throw std::runtime_error("rounds and iterations must be positive");
+      }
+      const std::string_view filter = argc > 4 ? std::string_view(argv[4]) : "";
+      const std::string_view parser_filter =
+          argc > 5 ? std::string_view(argv[5]) : "";
+      return run_dom_parse_benchmark(rounds, iterations, filter, parser_filter);
+    }
+    return run_benchmark();
+  } catch (const std::exception &e) {
+    std::cerr << "json_benchmark failed: " << e.what() << "\n";
+    return 1;
+  } catch (...) {
+    std::cerr << "json_benchmark failed: unknown exception\n";
+    return 1;
   }
 }
