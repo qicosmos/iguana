@@ -33,6 +33,10 @@ inline constexpr auto wrap(const T& arg) noexcept {
   return Wrapper{arg};
 }
 
+template <typename T, size_t I>
+inline constexpr auto wrapped_member_ptr =
+    wrap(std::get<I>(struct_to_tuple<T>()));
+
 template <auto ptr>
 inline constexpr std::string_view get_member_name() {
 #if defined(_MSC_VER)
@@ -55,6 +59,13 @@ inline constexpr std::string_view get_member_name() {
                 "You are using an unsupported compiler. Please use GCC, Clang "
                 "or MSVC or switch to the rfl::Field-syntax.");
 #endif
+}
+
+template <typename T, size_t... Is>
+inline constexpr auto get_member_names_from_indices(
+    std::index_sequence<Is...>) {
+  return std::array<std::string_view, sizeof...(Is)>{
+      get_member_name<wrapped_member_ptr<T, Is>>()...};
 }
 
 template <class T>
@@ -112,13 +123,6 @@ template <typename T>
 constexpr bool has_inner_alias_field_names_v =
     has_inner_alias_field_names_t<T>::value;
 
-template <typename T, typename U, size_t... Is>
-inline constexpr void init_arr_with_tuple(U& arr, std::index_sequence<Is...>) {
-  constexpr auto tp = struct_to_tuple<T>();
-  ((arr[Is] = internal::get_member_name<internal::wrap(std::get<Is>(tp))>()),
-   ...);
-}
-
 template <typename T>
 inline constexpr std::array<std::string_view, members_count_v<T>>
 get_member_names() {
@@ -134,18 +138,9 @@ get_member_names() {
   }
   else {
     constexpr size_t Count = members_count_v<T>;
-    std::array<std::string_view, Count> arr;
-#if __cplusplus >= 202002L && (!defined(_MSC_VER) || _MSC_VER >= 1930)
-    constexpr auto tp = struct_to_tuple<T>();
-    [&]<size_t... Is>(std::index_sequence<Is...>) mutable {
-      ((arr[Is] =
-            internal::get_member_name<internal::wrap(std::get<Is>(tp))>()),
-       ...);
-    }(std::make_index_sequence<Count>{});
-#else
-    init_arr_with_tuple<T>(arr, std::make_index_sequence<Count>{});
-#endif
-    return arr;
+    // Keep the member pointer used as an NTTP at namespace scope. Newer MSVC
+    // versions reject deriving it from a function-local constexpr tuple.
+    return get_member_names_from_indices<T>(std::make_index_sequence<Count>{});
   }
 #endif
 }
