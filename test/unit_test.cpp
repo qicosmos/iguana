@@ -1033,6 +1033,40 @@ TEST_CASE("test smart point issue 223") {
   CHECK(*p1.age == 42);
 }
 
+namespace {
+struct character_only_json_output {
+  std::string data;
+  void push_back(char c) { data.push_back(c); }
+};
+}  // namespace
+
+TEST_CASE("json string runs preserve escaping and append semantics") {
+  for (size_t length : {0u, 1u, 31u, 16383u, 16384u, 16385u, 65537u}) {
+    std::string text(length, 'a');
+    text += "\"\\\n\t";
+    for (char c = 0; c < 32; ++c) {
+      text.push_back(c);
+    }
+    text += "\xE4\xB8\xAD\xE6\x96\x87";
+    text.append(length, 'z');
+
+    std::string encoded = "prefix:";
+    iguana::to_json(text, encoded);
+    CHECK(encoded.substr(0, 7) == "prefix:");
+    std::string decoded;
+    iguana::from_json(decoded,
+                      std::string_view(encoded.data() + 7, encoded.size() - 7));
+    CHECK(bool(decoded == text));
+
+    character_only_json_output character_output;
+    iguana::to_json(text, character_output);
+    CHECK(character_output.data == encoded.substr(7));
+  }
+  std::string emoji;
+  iguana::to_json(std::string("\xF0\x9F\x98\x80"), emoji);
+  CHECK(emoji == R"("\uD83D\uDE00")");
+}
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007) int main(int argc, char **argv) {
