@@ -302,6 +302,25 @@ IGUANA_INLINE void write_unicode_to_string(Ch& it, Stream& ss) {
   }
 }
 
+namespace detail {
+template <typename Stream, typename Ch>
+IGUANA_INLINE auto append_string_run(Stream& ss, const Ch* first,
+                                     const Ch* last, int)
+    -> decltype(ss.append(first, last - first), void()) {
+  if (first != last) {
+    ss.append(first, last - first);
+  }
+}
+
+template <typename Stream, typename Ch>
+IGUANA_INLINE void append_string_run(Stream& ss, const Ch* first,
+                                     const Ch* last, long) {
+  while (first != last) {
+    ss.push_back(*first++);
+  }
+}
+}  // namespace detail
+
 // https://github.com/Tencent/rapidjson/blob/master/include/rapidjson/writer.h
 template <typename Ch, typename SizeType, typename Stream>
 IGUANA_INLINE void write_string_with_escape(const Ch* it, SizeType length,
@@ -326,27 +345,32 @@ IGUANA_INLINE void write_string_with_escape(const Ch* it, SizeType length,
   };
   auto end = it;
   std::advance(end, length);
+  auto run = it;
   while (it < end) {
+    if (static_cast<unsigned>(*it) < 0x80 &&
+        !escape[static_cast<unsigned char>(*it)]) {
+      ++it;
+      continue;
+    }
+    detail::append_string_run(ss, run, it, 0);
     if (static_cast<unsigned>(*it) >= 0x80)
       IGUANA_UNLIKELY { write_unicode_to_string(it, ss); }
-    else if (escape[static_cast<unsigned char>(*it)])
-      IGUANA_UNLIKELY {
-        ss.push_back('\\');
-        ss.push_back(escape[static_cast<unsigned char>(*it)]);
-
-        if (escape[static_cast<unsigned char>(*it)] == 'u') {
-          // escape other control characters
-          ss.push_back('0');
-          ss.push_back('0');
-          ss.push_back(hexDigits[static_cast<unsigned char>(*it) >> 4]);
-          ss.push_back(hexDigits[static_cast<unsigned char>(*it) & 0xF]);
-        }
-        ++it;
-      }
     else {
-      ss.push_back(*(it++));
+      ss.push_back('\\');
+      ss.push_back(escape[static_cast<unsigned char>(*it)]);
+
+      if (escape[static_cast<unsigned char>(*it)] == 'u') {
+        // escape other control characters
+        ss.push_back('0');
+        ss.push_back('0');
+        ss.push_back(hexDigits[static_cast<unsigned char>(*it) >> 4]);
+        ss.push_back(hexDigits[static_cast<unsigned char>(*it) & 0xF]);
+      }
+      ++it;
     }
+    run = it;
   }
+  detail::append_string_run(ss, run, it, 0);
 }
 
 template <typename T, size_t N>

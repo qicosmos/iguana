@@ -234,12 +234,34 @@ IGUANA_INLINE void to_json_impl(Stream &ss, const T &v) {
   to_json_impl<Is_writing_escape>(ss, v.second);
 }
 
-constexpr auto write_json_key = [](auto &s, auto name) IGUANA__INLINE_LAMBDA {
-  s.push_back('"');
-  // will be replaced by string_view later
-  s.append(name.data(), name.size());
-  s.push_back('"');
-};
+template <typename T, size_t Index>
+constexpr auto make_json_key() {
+  constexpr auto name = ylt::reflection::get_member_names<T>()[Index];
+  constexpr size_t prefix = Index == 0 ? 0 : 1;
+  std::array<char, name.size() + prefix + 3> key{};
+  if constexpr (prefix != 0)
+    key[0] = ',';
+  key[prefix] = '"';
+  for (size_t i = 0; i < name.size(); ++i) {
+    key[prefix + i + 1] = name[i];
+  }
+  key[key.size() - 2] = '"';
+  key[key.size() - 1] = ':';
+  return key;
+}
+
+template <typename T, size_t Index>
+inline constexpr auto json_key = make_json_key<T, Index>();
+
+template <typename T, size_t... Indices>
+constexpr auto make_json_keys(std::index_sequence<Indices...>) {
+  return std::array<std::string_view, sizeof...(Indices)>{std::string_view(
+      json_key<T, Indices>.data(), json_key<T, Indices>.size())...};
+}
+
+template <typename T>
+inline constexpr auto json_keys = make_json_keys<T>(
+    std::make_index_sequence<ylt::reflection::members_count_v<T>>{});
 
 template <bool Is_writing_escape, typename Stream, typename T,
           std::enable_if_t<smart_ptr_v<T>, int>>
@@ -289,15 +311,13 @@ IGUANA_INLINE void to_json(T &&t, Stream &s) {
   using U = ylt::reflection::remove_cvref_t<T>;
   constexpr auto Count = ylt::reflection::members_count_v<U>;
   if constexpr (Count > 0) {
-    ylt::reflection::for_each(t, [&](auto &field, auto name, auto index) {
+    ylt::reflection::for_each(t, [&](auto &field, auto, auto index) {
       static_assert(
           !std::is_pointer_v<std::remove_reference_t<decltype(field)>>,
           "don't use raw pointer, please use smart pointer");
-      write_json_key(s, name);
-      s.push_back(':');
+      const auto &key = json_keys<U>[index];
+      s.append(key.data(), key.size());
       to_json_impl<Is_writing_escape>(s, field);
-      if (index < Count - 1)
-        IGUANA_LIKELY { s.push_back(','); }
     });
   }
 
