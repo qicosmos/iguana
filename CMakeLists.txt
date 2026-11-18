@@ -76,6 +76,10 @@ option(IGUANA_FAST_BENCHMARK_COMPILE
        "Compile benchmark targets with low optimization for faster validation builds"
        OFF)
 
+option(IGUANA_JSON_DOM_ENABLE_AVX2
+       "Compile json DOM benchmark/test targets with AVX2 on x86 hosts"
+       OFF)
+
 function(iguana_fast_benchmark_target target)
     if(IGUANA_FAST_BENCHMARK_COMPILE)
         iguana_fast_validation_target(${target})
@@ -108,6 +112,7 @@ set(TEST_XMLNOTHROW test/test_xml_nothrow.cpp)
 set(TEST_PB test/test_pb.cpp)
 set(TEST_PROTO test/test_proto3.cpp)
 set(TEST_CPP20 test/test_cpp20.cpp)
+set(TEST_JSON_DOM test/test_json_dom.cpp)
 set(TEST_CONFORMANCE test/conformance/iguana_conformance.cpp)
 set(PB_BENCHMARK benchmark/pb_benchmark.cpp)
 
@@ -128,8 +133,50 @@ add_executable(test_nothrow ${TEST_NOTHROW})
 add_executable(test_util ${TEST_UTIL})
 add_executable(test_pb ${TEST_PB})
 add_executable(test_cpp20 ${TEST_CPP20})
+add_executable(test_json_dom ${TEST_JSON_DOM})
 add_executable(iguana_conformance ${TEST_CONFORMANCE})
+set_target_properties(json_benchmark PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
 set_target_properties(test_cpp20 PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
+set_target_properties(test_json_dom PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
+target_compile_definitions(test_json_dom PRIVATE IGUANA_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+
+if(MSVC AND NOT IGUANA_FAST_BENCHMARK_COMPILE)
+    target_compile_options(json_benchmark PRIVATE "$<$<CONFIG:Release>:/Ob3;/Oi;/Ot>")
+endif()
+
+if(IGUANA_JSON_DOM_ENABLE_AVX2 AND
+   (CMAKE_SYSTEM_PROCESSOR MATCHES "AMD64|x86_64|X86|i.86"))
+    if(MSVC)
+        target_compile_options(json_benchmark PRIVATE /arch:AVX2)
+        target_compile_options(test_json_dom PRIVATE /arch:AVX2)
+    else()
+        target_compile_options(json_benchmark PRIVATE -mavx2)
+        target_compile_options(test_json_dom PRIVATE -mavx2)
+    endif()
+endif()
+
+set(IGUANA_NLOHMANN_JSON_DIR ""
+    CACHE PATH "Path to nlohmann/json source tree")
+if(EXISTS "${IGUANA_NLOHMANN_JSON_DIR}/single_include/nlohmann/json.hpp")
+    target_compile_definitions(json_benchmark PRIVATE HAS_NLOHMANN_JSON)
+    target_include_directories(json_benchmark PRIVATE "${IGUANA_NLOHMANN_JSON_DIR}/single_include")
+endif()
+
+set(IGUANA_YYJSON_DIR ""
+    CACHE PATH "Path to yyjson source tree")
+if(EXISTS "${IGUANA_YYJSON_DIR}/src/yyjson.h" AND EXISTS "${IGUANA_YYJSON_DIR}/src/yyjson.c")
+    target_compile_definitions(json_benchmark PRIVATE HAS_YYJSON)
+    target_include_directories(json_benchmark PRIVATE "${IGUANA_YYJSON_DIR}/src")
+    target_sources(json_benchmark PRIVATE "${IGUANA_YYJSON_DIR}/src/yyjson.c")
+endif()
+
+set(IGUANA_SIMDJSON_DIR ""
+    CACHE PATH "Path to simdjson source tree")
+if(EXISTS "${IGUANA_SIMDJSON_DIR}/singleheader/simdjson.h" AND EXISTS "${IGUANA_SIMDJSON_DIR}/singleheader/simdjson.cpp")
+    target_compile_definitions(json_benchmark PRIVATE HAS_SIMDJSON)
+    target_include_directories(json_benchmark PRIVATE "${IGUANA_SIMDJSON_DIR}/singleheader")
+    target_sources(json_benchmark PRIVATE "${IGUANA_SIMDJSON_DIR}/singleheader/simdjson.cpp")
+endif()
 
 foreach(tgt json_benchmark xml_benchmark yaml_benchmark)
     iguana_fast_benchmark_target(${tgt})
@@ -137,7 +184,7 @@ endforeach()
 
 foreach(tgt json_example xml_example yaml_example
             test_some test_ut test_json_files test_github_events test_xml test_xml_nothrow
-            test_yaml test_nothrow test_util test_pb test_cpp20
+            test_yaml test_nothrow test_util test_pb test_cpp20 test_json_dom
             iguana_conformance)
     iguana_fast_validation_target(${tgt})
 endforeach()
@@ -209,6 +256,7 @@ add_test(NAME test_util COMMAND test_util)
 add_test(NAME test_xml_nothrow COMMAND test_xml_nothrow)
 add_test(NAME test_pb COMMAND test_pb)
 add_test(NAME test_cpp20 COMMAND test_cpp20)
+add_test(NAME test_json_dom COMMAND test_json_dom)
 set_tests_properties(test_json_files PROPERTIES
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/test")
 set_tests_properties(test_github_events PROPERTIES

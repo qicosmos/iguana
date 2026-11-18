@@ -139,6 +139,37 @@ b = val.get<bool>(); // this interface maybe throw exception
 CHECK(!b);
 ```
 
+For a high-throughput, read-only DOM, C++20 users can include
+`iguana/json_dom.hpp`:
+
+```c++
+#include "iguana/json_dom.hpp"
+
+auto doc = iguana::json::parse(
+    R"({"items":[{"id":1,"name":"one"}],"count":1})");
+
+auto root = doc.root();
+auto items = root["items"].as_array();
+auto id = items[0]["id"].as_uint64();
+auto name = items[0]["name"].as_string_view();
+```
+
+`parse` owns a copy of the input. `parse_view` avoids that copy, but the input
+must outlive the document. A document can be reused to retain its allocated
+capacity:
+
+```c++
+iguana::json::document doc;
+doc.reserve(input.size());
+
+iguana::json::parse_options options;
+options.numbers = iguana::json::number_mode::lazy;
+iguana::json::parse_view(doc, input, options);
+```
+
+The default parser validates JSON number syntax and UTF-8. Use
+`parse_trusted_view` only for input that has already been validated.
+
 ### Serialization of xml
 
 The serialization of `xml` is similar to `json`. The first step is also defining meta data as above, and then you can call `iguana::to_xml` to serialization  the structure, or call `iguana::from_xml` to deserialization  the structure. The following is a complete example.
