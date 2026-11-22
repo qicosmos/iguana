@@ -139,6 +139,10 @@ b = val.get<bool>(); // this interface maybe throw exception
 CHECK(!b);
 ```
 
+Use `iguana::to_json_buffered(value, output)` to append JSON directly to a
+reusable `std::string`. The input must not reference the output string.
+Custom serializers used with this API must accept a generic output stream.
+
 ### Serialization of xml
 
 The serialization of `xml` is similar to `json`. The first step is also defining meta data as above, and then you can call `iguana::to_xml` to serialization  the structure, or call `iguana::from_xml` to deserialization  the structure. The following is a complete example.

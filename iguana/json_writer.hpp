@@ -4,6 +4,7 @@
 
 #ifndef SERIALIZE_JSON_HPP
 #define SERIALIZE_JSON_HPP
+#include "detail/json_string_sink.hpp"
 #include "json_util.hpp"
 
 namespace iguana {
@@ -76,9 +77,14 @@ IGUANA_INLINE void to_json_impl(Stream &ss, char value) {
 template <bool Is_writing_escape, typename Stream, typename T,
           std::enable_if_t<num_v<T>, int> = 0>
 IGUANA_INLINE void to_json_impl(Stream &ss, T value) {
-  char temp[65];
-  auto p = detail::to_chars(temp, value);
-  ss.append(temp, p - temp);
+  if constexpr (json_string_sink_v<Stream> && int_v<T> && sizeof(T) <= 8) {
+    ss.write_integer(std::array<char, 0>{}, value);
+  }
+  else {
+    char temp[65];
+    auto p = detail::to_chars(temp, value);
+    ss.append(temp, p - temp);
+  }
 }
 
 // template <bool Is_writing_escape, typename Stream, typename T,
@@ -96,14 +102,20 @@ IGUANA_INLINE void to_json_impl(Stream &ss, T v) {
 template <bool Is_writing_escape, typename Stream, typename T,
           std::enable_if_t<string_container_v<T>, int> = 0>
 IGUANA_INLINE void to_json_impl(Stream &ss, T &&t) {
-  ss.push_back('"');
-  if constexpr (Is_writing_escape) {
-    write_string_with_escape(t.data(), t.size(), ss);
+  if constexpr (json_string_sink_v<Stream> &&
+                std::is_convertible_v<T, std::string_view>) {
+    ss.template write_quoted<Is_writing_escape>(std::array<char, 0>{}, t);
   }
   else {
-    ss.append(t.data(), t.size());
+    ss.push_back('"');
+    if constexpr (Is_writing_escape) {
+      write_string_with_escape(t.data(), t.size(), ss);
+    }
+    else {
+      ss.append(t.data(), t.size());
+    }
+    ss.push_back('"');
   }
-  ss.push_back('"');
 }
 
 template <bool Is_writing_escape, typename Stream, typename T,
@@ -234,13 +246,14 @@ IGUANA_INLINE void to_json_impl(Stream &ss, const T &v) {
   to_json_impl<Is_writing_escape>(ss, v.second);
 }
 
-template <typename T, size_t Index>
+template <typename T, size_t Index, bool IncludeOpen = false>
 constexpr auto make_json_key() {
   constexpr auto name = ylt::reflection::get_member_names<T>()[Index];
-  constexpr size_t prefix = Index == 0 ? 0 : 1;
+  constexpr size_t prefix = (Index != 0 || IncludeOpen) ? 1 : 0;
   std::array<char, name.size() + prefix + 3> key{};
-  if constexpr (prefix != 0)
-    key[0] = ',';
+  if constexpr (prefix != 0) {
+    key[0] = Index == 0 ? '{' : ',';
+  }
   key[prefix] = '"';
   for (size_t i = 0; i < name.size(); ++i) {
     key[prefix + i + 1] = name[i];
@@ -302,23 +315,54 @@ IGUANA_INLINE void to_json_impl(Stream &s, T &&t) {
       },
       t);
 }
+template <bool Is_writing_escape, typename Field, size_t N>
+IGUANA_INLINE void write_buffered_field(json_string_sink &ss,
+                                        const std::array<char, N> &key,
+                                        const Field &field) {
+  if constexpr (string_container_v<Field> &&
+                std::is_convertible_v<const Field &, std::string_view>) {
+    ss.template write_quoted<Is_writing_escape>(key, field);
+  }
+  else if constexpr (int_v<Field> && sizeof(Field) <= 8) {
+    ss.write_integer(key, field);
+  }
+  else {
+    ss.append(key.data(), key.size());
+    to_json_impl<Is_writing_escape>(ss, field);
+  }
+}
 }  // namespace detail
 template <bool Is_writing_escape, typename Stream, typename T,
           std::enable_if_t<ylt_refletable_v<T>, int>>
 IGUANA_INLINE void to_json(T &&t, Stream &s) {
   using namespace detail;
-  s.push_back('{');
   using U = ylt::reflection::remove_cvref_t<T>;
   constexpr auto Count = ylt::reflection::members_count_v<U>;
-  if constexpr (Count > 0) {
-    ylt::reflection::for_each(t, [&](auto &field, auto, auto index) {
-      static_assert(
-          !std::is_pointer_v<std::remove_reference_t<decltype(field)>>,
-          "don't use raw pointer, please use smart pointer");
-      const auto &key = json_keys<U>[index];
-      s.append(key.data(), key.size());
-      to_json_impl<Is_writing_escape>(s, field);
-    });
+  if constexpr (json_string_sink_v<Stream> && Count > 0) {
+    auto fields = ylt::reflection::object_to_tuple(t);
+    foreach_tuple(
+        [&](auto &field, auto index) {
+          static_assert(
+              !std::is_pointer_v<std::remove_reference_t<decltype(field)>>,
+              "don't use raw pointer, please use smart pointer");
+          static constexpr auto key =
+              make_json_key<U, decltype(index)::value, true>();
+          write_buffered_field<Is_writing_escape>(s, key, field);
+        },
+        fields);
+  }
+  else {
+    s.push_back('{');
+    if constexpr (Count > 0) {
+      ylt::reflection::for_each(t, [&](auto &field, auto, auto index) {
+        static_assert(
+            !std::is_pointer_v<std::remove_reference_t<decltype(field)>>,
+            "don't use raw pointer, please use smart pointer");
+        const auto &key = json_keys<U>[index];
+        s.append(key.data(), key.size());
+        to_json_impl<Is_writing_escape>(s, field);
+      });
+    }
   }
 
   s.push_back('}');
@@ -329,6 +373,14 @@ template <bool Is_writing_escape = true, typename Stream, typename T,
 IGUANA_INLINE void to_json(T &&t, Stream &s) {
   using namespace detail;
   to_json_impl<Is_writing_escape>(s, t);
+}
+
+// Append using contiguous storage. The value must not borrow from output.
+// Custom serializers used here must accept a generic output stream.
+template <bool Is_writing_escape = true, typename T>
+IGUANA_INLINE void to_json_buffered(T &&value, std::string &output) {
+  detail::json_string_sink stream(output);
+  to_json<Is_writing_escape>(std::forward<T>(value), stream);
 }
 
 template <typename T>

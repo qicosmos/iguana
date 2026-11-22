@@ -1,5 +1,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #define SEQUENTIAL_PARSE
+#include <limits>
+
 #include "doctest.h"
 #include "iguana/iguana.hpp"
 
@@ -377,5 +379,89 @@ TEST_CASE("test null string field - json null to std::string yields empty") {
 }
 
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007)
+struct buffered_json_item {
+  int64_t id;
+  uint64_t maximum;
+  std::string text;
+  std::vector<std::string_view> tags;
+  double rating;
+};
+YLT_REFL(buffered_json_item, id, maximum, text, tags, rating);
+
+TEST_CASE("buffered JSON preserves an existing prefix and escapes by byte") {
+  buffered_json_item item{std::numeric_limits<int64_t>::min(),
+                          std::numeric_limits<uint64_t>::max(),
+                          std::string(20000, 'x'),
+                          {"short", "\"\\", "雪"},
+                          1.25};
+  std::vector<std::string> strings;
+  for (size_t length = 1; length <= 16; ++length) {
+    strings.push_back(std::string(length, 'x'));
+    for (size_t position = 0; position < length; ++position) {
+      for (char byte : {char(0), char(31), '"', '\\'}) {
+        auto& value = strings.emplace_back(length, 'x');
+        value[position] = byte;
+      }
+    }
+  }
+  for (const auto& value : strings) {
+    item.tags.emplace_back(value);
+  }
+  for (int64_t value : {0, 9, 10, 99, 100, 999, 1000, -1000}) {
+    item.id = value;
+    std::string expected = "prefix ";
+    iguana::to_json(item, expected);
+    std::string output = "prefix ";
+    iguana::to_json_buffered(item, output);
+    CHECK(output == expected);
+  }
+  item.id = std::numeric_limits<int64_t>::min();
+  std::string actual;
+  std::string expected;
+  iguana::to_json_buffered(item, actual);
+  iguana::to_json(item, expected);
+  CHECK(actual == expected);
+
+  actual.clear();
+  expected.clear();
+  iguana::to_json_buffered<false>(item, actual);
+  iguana::to_json<false>(item, expected);
+  CHECK(actual == expected);
+}
+
+namespace buffered_json_test {
+class custom_number {
+ public:
+  explicit custom_number(int number) : number(number) {}
+
+  int number;
+};
+
+template <bool Escape, typename Stream>
+void to_json_impl(Stream& output, const custom_number& value) {
+  iguana::to_json<Escape>(value.number, output);
+}
+
+struct result {
+  custom_number value;
+};
+YLT_REFL(result, value);
+}  // namespace buffered_json_test
+
+template <>
+inline constexpr bool
+    iguana::reflect26_excluded_v<buffered_json_test::custom_number> = true;
+
+TEST_CASE("buffered JSON uses an ADL writer for a reflected field") {
+  buffered_json_test::result result{buffered_json_test::custom_number(1000)};
+  std::string expected;
+  iguana::to_json(result, expected);
+  CHECK(expected == R"({"value":1000})");
+
+  std::string output;
+  iguana::to_json_buffered(result, output);
+  CHECK(output == expected);
+}
+
 int main(int argc, char** argv) { return doctest::Context(argc, argv).run(); }
 DOCTEST_MSVC_SUPPRESS_WARNING_POP
