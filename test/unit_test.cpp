@@ -1067,6 +1067,19 @@ TEST_CASE("json string runs preserve escaping and append semantics") {
   CHECK(emoji == R"("\uD83D\uDE00")");
 }
 
+#ifdef YLT_USE_CXX26_REFLECTION
+TEST_CASE("buffered JSON writes statically reflected fields") {
+  struct row {
+    int id;
+    std::string name;
+  };
+
+  std::string output = "prefix:";
+  iguana::to_json_buffered(row{123, "sample"}, output);
+  CHECK(output == R"(prefix:{"id":123,"name":"sample"})");
+}
+#endif
+
 // doctest comments
 // 'function' : must be 'attribute' - see issue #182
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4007) int main(int argc, char **argv) {

@@ -339,6 +339,20 @@ IGUANA_INLINE void to_json(T &&t, Stream &s) {
   using U = ylt::reflection::remove_cvref_t<T>;
   constexpr auto Count = ylt::reflection::members_count_v<U>;
   if constexpr (json_string_sink_v<Stream> && Count > 0) {
+#ifdef YLT_USE_CXX26_REFLECTION
+    static constexpr auto members =
+        ylt::reflection::reflect26::data_members_array<U>();
+    [&]<size_t... Indices>(std::index_sequence<Indices...>) {
+      static_assert(
+          (!std::is_pointer_v<
+               std::remove_reference_t<decltype(t.[:members[Indices]:])>> &&
+           ...),
+          "don't use raw pointer, please use smart pointer");
+      (write_buffered_field<Is_writing_escape>(
+           s, make_json_key<U, Indices, true>(), t.[:members[Indices]:]),
+       ...);
+    }(std::make_index_sequence<Count>{});
+#else
     auto fields = ylt::reflection::object_to_tuple(t);
     foreach_tuple(
         [&](auto &field, auto index) {
@@ -350,6 +364,7 @@ IGUANA_INLINE void to_json(T &&t, Stream &s) {
           write_buffered_field<Is_writing_escape>(s, key, field);
         },
         fields);
+#endif
   }
   else {
     s.push_back('{');
