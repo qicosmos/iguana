@@ -926,13 +926,19 @@ inline void parse(jvalue &result, It &&it, It &&end, std::error_code &ec,
 }
 
 template <bool Is_view = false, typename T, typename View,
-          std::enable_if_t<json_view_v<View>, int> = 0>
+          std::enable_if_t<json_view_v<View> && (std::is_base_of_v<jvalue, T> ||
+                                                 std::is_base_of_v<jarray, T> ||
+                                                 std::is_base_of_v<jobject, T>),
+                           int> = 0>
 inline void parse(T &result, const View &view, bool parse_as_double = false) {
   parse<Is_view>(result, std::begin(view), std::end(view), parse_as_double);
 }
 
 template <bool Is_view = false, typename T, typename View,
-          std::enable_if_t<json_view_v<View>, int> = 0>
+          std::enable_if_t<json_view_v<View> && (std::is_base_of_v<jvalue, T> ||
+                                                 std::is_base_of_v<jarray, T> ||
+                                                 std::is_base_of_v<jobject, T>),
+                           int> = 0>
 inline void parse(T &result, const View &view, std::error_code &ec,
                   bool parse_as_double = false) noexcept {
   try {

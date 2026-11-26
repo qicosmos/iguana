@@ -1,5 +1,6 @@
 #pragma once
 #include "iguana/dynamic.hpp"
+#include "iguana/json_dom.hpp"
 #include "iguana/json_reader.hpp"
 #include "iguana/json_writer.hpp"
 #include "iguana/pb_reader.hpp"

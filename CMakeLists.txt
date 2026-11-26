@@ -113,7 +113,19 @@ set(PB_BENCHMARK benchmark/pb_benchmark.cpp)
 
 add_executable(json_example 	${JSON_EXAMPLE})
 add_executable(json_benchmark 	${JSONBENCHMARK})
+add_executable(json_dom_benchmark EXCLUDE_FROM_ALL benchmark/json_dom_benchmark.cpp)
+set(IGUANA_DOM_NLOHMANN_DIR "" CACHE PATH "Directory containing nlohmann/json.hpp")
+set(IGUANA_DOM_SIMDJSON_DIR "" CACHE PATH "simdjson singleheader directory")
+set(IGUANA_DOM_YYJSON_DIR "" CACHE PATH "yyjson src directory")
+if(IGUANA_DOM_NLOHMANN_DIR AND IGUANA_DOM_SIMDJSON_DIR AND IGUANA_DOM_YYJSON_DIR)
+    target_compile_definitions(json_dom_benchmark PRIVATE IGUANA_DOM_BENCHMARK_REFERENCES)
+    target_include_directories(json_dom_benchmark PRIVATE
+        "${IGUANA_DOM_NLOHMANN_DIR}" "${IGUANA_DOM_SIMDJSON_DIR}" "${IGUANA_DOM_YYJSON_DIR}")
+    target_sources(json_dom_benchmark PRIVATE
+        "${IGUANA_DOM_SIMDJSON_DIR}/simdjson.cpp" "${IGUANA_DOM_YYJSON_DIR}/yyjson.c")
+endif()
 add_executable(test_some	${TEST_SOME})
+add_executable(test_json_dom test/test_json_dom.cpp)
 add_executable(test_ut 	${TEST_UT})
 add_executable(test_json_files 	${TEST_JSON_FILES})
 add_executable(test_github_events ${TEST_GITHUB_EVENTS})
@@ -136,7 +148,7 @@ foreach(tgt json_benchmark xml_benchmark yaml_benchmark)
 endforeach()
 
 foreach(tgt json_example xml_example yaml_example
-            test_some test_ut test_json_files test_github_events test_xml test_xml_nothrow
+            test_some test_ut test_json_dom test_json_files test_github_events test_xml test_xml_nothrow
             test_yaml test_nothrow test_util test_pb test_cpp20
             iguana_conformance)
     iguana_fast_validation_target(${tgt})
@@ -199,6 +211,7 @@ if(COVERAGE_TEST)
 endif()
 
 add_test(NAME test_some COMMAND test_some)
+add_test(NAME test_json_dom COMMAND test_json_dom)
 add_test(NAME test_ut COMMAND test_ut)
 add_test(NAME test_json_files COMMAND test_json_files)
 add_test(NAME test_github_events COMMAND test_github_events)
