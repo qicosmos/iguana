@@ -53,24 +53,48 @@ assert(p1.name == "tom");
 
 如果存在一些结构体中没有的字段，即unknown 字段时，默认情况下不会抛异常，会忽略不认识的字段，如果希望这时候跑异常，那么需要开启预定义宏 THROW_UNKNOWN_KEY 。
 
-## json 的dom 解析
-iguana 也提供了dom 解析接口，使用parse 接口时，不需要定义json 对应的结构体。
+## JSON DOM
+
+用 `iguana::json` 可以直接读取和修改 JSON。文档拥有数据，解析输入可以是临时字符串。
 
 ```c++
-std::string_view str = R"(false)";
-iguana::jvalue val;
-iguana::parse(val, str.begin(), str.end());
+#include <iostream>
+#include <vector>
+#include <iguana/json_dom.hpp>
 
-// 错误码接口
-std::error_code ec;
-auto b = val.get<bool>(ec);
-CHECK(!ec);
-CHECK(!b);
-
-// 抛异常的接口
-b = val.get<bool>(); // this interface maybe throw exception
-CHECK(!b);
+auto doc = iguana::json::parse(R"({"user":{"name":"tom","roles":["reader"]}})");
+auto user = doc.at("user");
+std::string name = user["name"];
+auto locale = user.value("locale", "zh-CN");
+auto role = doc.try_get<std::string>("user", "roles", 0).value_or("guest");
+user["roles"] = {"reader", "editor"};
+std::vector<std::string> roles = user["roles"];
+doc["settings"]["enabled"] = true;
+for (auto [key, value] : doc["user"]) {
+    if (key == "name" && value == "tom") value = "Ada";
+    std::cout << key << " = " << value << '\n';
+}
+auto text = doc.dump(2);
 ```
+
+`at()` 检查键和下标。`find()` 和 `try_get<T>()` 返回 `std::optional`，适合处理可选字段和类型不匹配。`try_parse()` 在输入无效时返回空值，也可以用 `parse(text, ec)` 获取错误码。
+
+读取时可以直接写目标类型，类型和数值范围检查与 `get<T>()` 相同。支持标量、`std::vector<T>` 和 `std::map<std::string, T>`，容器里的字符串用 `std::string` 持有。用 `auto` 可以保留节点句柄。
+
+可变对象的 `operator[]` 在赋值或追加元素时创建缺失的键。把缺失节点读成有类型的值会抛出 `std::out_of_range`，也可以用 `try_get<T>()` 取得空值。
+
+范围 `for` 可以直接用 `[key, value]` 遍历对象。遍历数组时直接读取元素即可。
+
+连续解析时可以用 `iguana::json_parser` 复用缓冲区。`parse()` 返回只读的 `json_view`，在下一次尝试解析或解析器销毁前有效。需要跨次保留数据时，可以将它复制成 `iguana::json`。
+
+```c++
+iguana::json_parser parser;
+auto first = parser.parse(R"({"name":"Ada"})");
+iguana::json saved = first;
+auto second = parser.parse("[1,2,3]");
+```
+
+子节点句柄引用原文档，用 `iguana::json copy = user;` 可以复制子树。文档修改可能使 `std::string_view` 失效，需要保留字符串时用 `get<std::string>()`。`compact()` 回收已删除或替换的节点占用的存储，并使原句柄失效。原有 `jvalue` 和 `parse` 重载仍可使用。
 
 # 最佳实践
 ## 零拷贝的反序列化

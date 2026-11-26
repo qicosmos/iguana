@@ -122,26 +122,85 @@ iguana::from_json(p, json);
 
 It's as simple as serialization, just need to call `from_json` method. 
 
-You can also use parse interface to do dom parsing:
-
-```c++
-std::string_view str = R"(false)";
-iguana::jvalue val;
-iguana::parse(val, str.begin(), str.end());
-
-std::error_code ec;
-auto b = val.get<bool>(ec);
-CHECK(!ec);
-CHECK(!b);
-
-// or
-b = val.get<bool>(); // this interface maybe throw exception
-CHECK(!b);
-```
-
 Use `iguana::to_json_buffered(value, output)` to append JSON directly to a
 reusable `std::string`. The input must not reference the output string.
 Custom serializers used with this API must accept a generic output stream.
+
+### JSON DOM
+
+Use `iguana::json` to read or edit JSON without defining a C++ schema. The
+document owns its data, so the input can be a temporary string.
+
+```c++
+#include <iostream>
+#include <vector>
+#include <iguana/json_dom.hpp>
+
+auto doc = iguana::json::parse(R"({"user":{"name":"Ada","roles":["reader"]}})");
+auto user = doc.at("user");
+std::string name = user["name"];
+auto locale = user.value("locale", "en");
+auto role = doc.try_get<std::string>("user", "roles", 0).value_or("guest");
+user["roles"] = {"reader", "editor"};
+std::vector<std::string> roles = user["roles"];
+doc["settings"]["enabled"] = true;
+
+for (auto [key, value] : user) {
+  std::cout << key << " = " << value << '\n';
+}
+std::cout << doc.dump(2) << '\n';
+```
+
+`at()` checks keys and indices and returns a handle without copying the subtree.
+Assign a node to a typed C++ variable to convert it with the same checks as
+`get<T>()`. Conversion supports scalars, `std::vector<T>` and
+`std::map<std::string, T>` with owning element types. Use `auto` when you want
+to keep a node handle. Nodes support direct comparisons and streaming as JSON.
+Equality compares array and object contents. Ordering compares compatible
+scalar types.
+In a range-based `for`, destructure object entries as `[key, value]` and
+iterate arrays as values. The `value` handle can update a mutable document.
+Use `find()` for optional members and indices and `try_get<T>()` for checked
+conversion with an optional result. Pass keys and indices to `try_get<T>()` to
+check an entire path in one call. Mutable `operator[]` creates missing keys
+when you assign or append through the handle. Reading a missing value as a
+typed variable throws `std::out_of_range`. `json::array()` and `json::object()`
+construct containers explicitly. Assign a handle to an owning `iguana::json`
+variable to copy its subtree.
+
+`json::try_parse(text)` returns an empty optional on invalid input.
+`json::parse(text, ec)` reports the error code, and the throwing overload reports
+a zero-based byte offset in `iguana::json_parse_error`. Parsing validates UTF-8,
+checks for duplicate keys and limits nesting to 512 containers.
+
+Use `iguana::json_parser` to reuse buffers when parsing multiple documents.
+Each call returns a read-only `json_view` valid until the next parse attempt or
+until the parser is destroyed. Copy a view to an owning `iguana::json` to keep
+it across parses.
+
+```c++
+iguana::json_parser parser;
+auto first = parser.parse(R"({"name":"Ada"})");
+iguana::json saved = first;
+auto second = parser.parse("[1,2,3]");
+```
+
+Nodes, container indices and strings live in contiguous document-owned buffers.
+Handles remain valid as these buffers grow. Destroying or replacing a document,
+removing a referenced subtree, or calling `compact()` invalidates the affected
+handles. Copy a fetched string into `std::string` if it must survive document
+edits. Structural edits invalidate iterators over the edited container. Object
+iteration order is unspecified. `compact()` reclaims storage from
+removed and replaced subtrees. Existing code can still use `iguana::jvalue` and
+its `parse` overloads.
+
+Build the `json_dom_benchmark` CMake target in Release and pass JSON file paths as
+arguments. For the external comparisons, configure `IGUANA_DOM_NLOHMANN_DIR`
+with nlohmann/json's `single_include` directory, `IGUANA_DOM_SIMDJSON_DIR` with
+simdjson's `singleheader` directory, and `IGUANA_DOM_YYJSON_DIR` with yyjson's
+`src` directory. The benchmark reports median parse throughput across five rounds.
+It measures iguana and simdjson with fresh and reused parsers, and yyjson with its
+default allocator and a preallocated memory pool.
 
 ### Serialization of xml
 
